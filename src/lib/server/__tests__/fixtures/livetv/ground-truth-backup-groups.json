@@ -1,0 +1,432 @@
+{
+    "description": "Ground-truth fixture for backup group detection accuracy testing (>90% target)",
+    "channels": [
+        {
+            "tvgId": "Nordwelle.de",
+            "tvgName": "Nordwelle FHD",
+            "name": "Nordwelle FHD",
+            "logoUrl": "http://logos.example/nordwellehd.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/501.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "Nordwelle.de",
+            "tvgName": "Nordwelle HD",
+            "name": "Nordwelle HD",
+            "logoUrl": "http://logos.example/nordwellehd.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/30452.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "KWF.de",
+            "tvgName": "KWF FHD",
+            "name": "KWF FHD",
+            "logoUrl": "http://logos.example/kwfhd.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/502.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "KWF.de",
+            "tvgName": "KWF HD",
+            "name": "KWF HD",
+            "logoUrl": "http://logos.example/kwfhd.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/30502.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "MTK.de",
+            "tvgName": "MTK FHD",
+            "name": "MTK FHD",
+            "logoUrl": "http://logos.example/mtkhd.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/503.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "MTK.de",
+            "tvgName": "MTK HD",
+            "name": "MTK HD",
+            "logoUrl": "http://logos.example/mtkhd.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/30503.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "MTK.de",
+            "tvgName": "MTK SD",
+            "name": "MTK SD",
+            "logoUrl": "http://logos.example/mtk.png",
+            "groupTitle": "FreeTV",
+            "streamUrl": "http://provider.example/live/user/pass/40503.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "Pinotopia.de",
+            "tvgName": "Pinotopia FHD",
+            "name": "Pinotopia FHD",
+            "logoUrl": "http://logos.example/pino.png",
+            "groupTitle": "Kids",
+            "streamUrl": "http://provider.example/live/user/pass/800.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "Pinotopia.de",
+            "tvgName": "Pinotopia HD *",
+            "name": "Pinotopia HD *",
+            "logoUrl": "http://logos.example/pino.png",
+            "groupTitle": "Kids *",
+            "streamUrl": "http://provider.example/live/user/pass/30800.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "3kult.de",
+            "tvgName": "3kult HD \u00b9",
+            "name": "3kult HD \u00b9",
+            "logoUrl": "http://logos.example/3kult.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/512.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "3kult.de",
+            "tvgName": "3kult HD \u00b2",
+            "name": "3kult HD \u00b2",
+            "logoUrl": "http://logos.example/3kult.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/30419.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "ZAVO1.de",
+            "tvgName": "ZAVO 1 FHD",
+            "name": "ZAVO 1 FHD",
+            "logoUrl": "http://logos.example/zavo1.png",
+            "groupTitle": "ZAVO Event",
+            "streamUrl": "http://provider.example/live/user/pass/700.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "ZAVO2.de",
+            "tvgName": "ZAVO 2 FHD",
+            "name": "ZAVO 2 FHD",
+            "logoUrl": "http://logos.example/zavo2.png",
+            "groupTitle": "ZAVO Event",
+            "streamUrl": "http://provider.example/live/user/pass/701.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "OrbSportTopliga1.de",
+            "tvgName": "Orb Sport BL 1 FHD",
+            "name": "Orb Sport BL 1 FHD",
+            "logoUrl": "http://logos.example/orb1.png",
+            "groupTitle": "Orb Topliga",
+            "streamUrl": "http://provider.example/live/user/pass/600.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "OrbSportTopliga1.de",
+            "tvgName": "Orb Sport BL 1 HD",
+            "name": "Orb Sport BL 1 HD",
+            "logoUrl": "http://logos.example/orb1.png",
+            "groupTitle": "Orb Topliga",
+            "streamUrl": "http://provider.example/live/user/pass/30600.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "Siebenstern.de",
+            "tvgName": "Stern7 FHD",
+            "name": "Stern7 FHD",
+            "logoUrl": "http://logos.example/stern7.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/510.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "Siebenstern.de",
+            "tvgName": "Stern7 HD **",
+            "name": "Stern7 HD **",
+            "logoUrl": "http://logos.example/stern7.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/30510.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "TukanPrime1.de",
+            "tvgName": "Tukan Prime 1",
+            "name": "Tukan Prime 1",
+            "logoUrl": "http://logos.example/prime.png",
+            "groupTitle": "Tukan Prime",
+            "streamUrl": "http://provider.example/live/user/pass/1000.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "HLV1.ch",
+            "tvgName": "HLV 1 HD *",
+            "name": "HLV 1 HD *",
+            "logoUrl": "http://logos.example/hlv1.png",
+            "groupTitle": "AT / CH *",
+            "streamUrl": "http://provider.example/live/user/pass/771.ts",
+            "countryCode": "ch",
+            "extras": {}
+        },
+        {
+            "tvgId": "OSK1.at",
+            "tvgName": "OSK 1 HD",
+            "name": "OSK 1 HD",
+            "logoUrl": "http://logos.example/osk1.png",
+            "groupTitle": "AT / CH",
+            "streamUrl": "http://provider.example/live/user/pass/772.ts",
+            "countryCode": "at",
+            "extras": {}
+        },
+        {
+            "tvgId": "VELO.us",
+            "tvgName": "VELO FHD",
+            "name": "VELO FHD",
+            "logoUrl": "http://logos.example/velo.png",
+            "groupTitle": "USA Sport",
+            "streamUrl": "http://provider.example/live/user/pass/1100.ts",
+            "countryCode": "us",
+            "extras": {}
+        },
+        {
+            "tvgId": "OrbCinemaAction.de",
+            "tvgName": "Orb Cinema Action FHD",
+            "name": "Orb Cinema Action FHD",
+            "logoUrl": "http://logos.example/orbcinema.png",
+            "groupTitle": "Orb Cinema",
+            "streamUrl": "http://provider.example/live/user/pass/900.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "Sat4.de",
+            "tvgName": "Sat.4 FHD",
+            "name": "Sat.4 FHD",
+            "logoUrl": "http://logos.example/sat4.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/520.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "Sat4.de",
+            "tvgName": "Sat.4 HD",
+            "name": "Sat.4 HD",
+            "logoUrl": "http://logos.example/sat4.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/30520.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "VEX.de",
+            "tvgName": "VEX FHD",
+            "name": "VEX FHD",
+            "logoUrl": "http://logos.example/vex.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/521.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "VEX.de",
+            "tvgName": "VEX HD WEB",
+            "name": "VEX HD WEB",
+            "logoUrl": "http://logos.example/vex.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/30521.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "Kabel8.de",
+            "tvgName": "Kabel 8 FHD",
+            "name": "Kabel 8 FHD",
+            "logoUrl": "http://logos.example/kabel8.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/522.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "Kabel8.de",
+            "tvgName": "Kabel 8 HD",
+            "name": "Kabel 8 HD",
+            "logoUrl": "http://logos.example/kabel8.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/30522.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "MTK2.de",
+            "tvgName": "MTK2 FHD",
+            "name": "MTK2 FHD",
+            "logoUrl": "http://logos.example/mtk2.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/523.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "MTK2.de",
+            "tvgName": "MTK2 HD",
+            "name": "MTK2 HD",
+            "logoUrl": "http://logos.example/mtk2.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/30523.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": null,
+            "tvgName": "VOD: Action Movie 1",
+            "name": "VOD: Action Movie 1",
+            "logoUrl": null,
+            "groupTitle": "VOD | Action",
+            "streamUrl": "http://provider.example/movie/user/pass/12345.mkv",
+            "countryCode": null,
+            "extras": {}
+        },
+        {
+            "tvgId": null,
+            "tvgName": "VOD: Comedy Series S01E01",
+            "name": "VOD: Comedy Series S01E01",
+            "logoUrl": null,
+            "groupTitle": "Series | Comedy",
+            "streamUrl": "http://provider.example/series/user/pass/67890.mp4",
+            "countryCode": null,
+            "extras": {}
+        },
+        {
+            "tvgId": "Musa.de",
+            "tvgName": "Musa HD",
+            "name": "Musa HD",
+            "logoUrl": "http://logos.example/musa.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/530.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "SuperMTK.de",
+            "tvgName": "Super MTK FHD",
+            "name": "Super MTK FHD",
+            "logoUrl": "http://logos.example/supermtk.png",
+            "groupTitle": "Kids",
+            "streamUrl": "http://provider.example/live/user/pass/801.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "SuperMTK.de",
+            "tvgName": "Super MTK HD",
+            "name": "Super MTK HD",
+            "logoUrl": "http://logos.example/supermtk.png",
+            "groupTitle": "Kids",
+            "streamUrl": "http://provider.example/live/user/pass/30801.ts",
+            "countryCode": "de",
+            "extras": {}
+        }
+    ],
+    "expectedGroups": [
+        {
+            "name": "Nordwelle",
+            "members": ["Nordwelle FHD", "Nordwelle HD"],
+            "primary": "Nordwelle FHD"
+        },
+        {
+            "name": "KWF",
+            "members": ["KWF FHD", "KWF HD"],
+            "primary": "KWF FHD"
+        },
+        {
+            "name": "MTK",
+            "members": ["MTK FHD", "MTK HD", "MTK SD"],
+            "primary": "MTK FHD"
+        },
+        {
+            "name": "Pinotopia",
+            "members": ["Pinotopia FHD", "Pinotopia HD *"],
+            "primary": "Pinotopia FHD"
+        },
+        {
+            "name": "3kult",
+            "members": ["3kult HD \u00b9", "3kult HD \u00b2"],
+            "primary": "3kult HD \u00b9"
+        },
+        {
+            "name": "Orb Sport BL 1",
+            "members": ["Orb Sport BL 1 FHD", "Orb Sport BL 1 HD"],
+            "primary": "Orb Sport BL 1 FHD"
+        },
+        {
+            "name": "Stern7",
+            "members": ["Stern7 FHD", "Stern7 HD **"],
+            "primary": "Stern7 FHD"
+        },
+        {
+            "name": "Sat.4",
+            "members": ["Sat.4 FHD", "Sat.4 HD"],
+            "primary": "Sat.4 FHD"
+        },
+        {
+            "name": "VEX",
+            "members": ["VEX FHD", "VEX HD WEB"],
+            "primary": "VEX FHD"
+        },
+        {
+            "name": "Kabel 8",
+            "members": ["Kabel 8 FHD", "Kabel 8 HD"],
+            "primary": "Kabel 8 FHD"
+        },
+        {
+            "name": "MTK2",
+            "members": ["MTK2 FHD", "MTK2 HD"],
+            "primary": "MTK2 FHD"
+        },
+        {
+            "name": "Super MTK",
+            "members": ["Super MTK FHD", "Super MTK HD"],
+            "primary": "Super MTK FHD"
+        }
+    ],
+    "expectedNotGrouped": [
+        "ZAVO 1 FHD",
+        "ZAVO 2 FHD",
+        "Tukan Prime 1",
+        "HLV 1 HD *",
+        "OSK 1 HD",
+        "VELO FHD",
+        "Orb Cinema Action FHD",
+        "Musa HD"
+    ],
+    "expectedVod": ["VOD: Action Movie 1", "VOD: Comedy Series S01E01"],
+    "expectedRegionalVariants": [
+        { "baseName": "HLV 1", "countryCodes": ["ch"], "isRegionalOnly": true },
+        { "baseName": "OSK 1", "countryCodes": ["at"], "isRegionalOnly": true }
+    ]
+}

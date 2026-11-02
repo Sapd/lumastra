@@ -1,0 +1,29 @@
+title: ''
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Check [lumastra.org](https://lumastra.org) first. Most setup and configuration questions are answered there. If it is a **bug** (something behaves against the documentation), please file an [issue](https://github.com/Sapd/lumastra/issues/new/choose) instead; it gets the diagnostics we need. Install and deployment questions have their own category, as do playback/client and plugin/API questions.
+
+              **House rules**, in short: keep it about media you own or are licensed to use (no references to pirated content of any kind), redact secrets and personal data before posting, and be kind. The full rules: [CODE_OF_CONDUCT.md](https://github.com/Sapd/lumastra/blob/main/.github/CODE_OF_CONDUCT.md#content-rules).
+    - type: input
+      id: version
+      attributes:
+          label: Version / image tag
+          placeholder: ghcr.io/lumastra/lumastra:stable, v0.1.0, or a commit SHA
+    - type: dropdown
+      id: deploy
+      attributes:
+          label: How are you running it?
+          options:
+              - Docker Compose
+              - Kubernetes
+              - Local dev (npm run dev)
+              - Other
+    - type: textarea
+      id: question
+      attributes:
+          label: Your question
+          description: What you are trying to achieve, what you tried, and what happened.
+      validations:
+          required: true

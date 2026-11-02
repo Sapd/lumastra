@@ -1,0 +1,13 @@
+# Run the OpenAPI contract guard on push so a handler↔documented-schema
+# divergence (e.g. a leaked sonarr/radarr/mediaType discriminator, or a flat
+# image field where an images{} map is required) is caught before it lands on
+# the remote. This is the cheap subset of `npm run check:all`
+# (lint + check:critical + openapi:check); run the full `check:all` locally
+# before pushing larger changes.
+. "$(dirname -- "$0")/resolve-app-dir.sh"
+
+if has_node_modules; then
+	npm run openapi:check
+else
+	echo "pre-push: openapi:check skipped — $app_dir has no node_modules. Run 'npm ci' there, then 'npm run openapi:check', before pushing." >&2
+fi

@@ -1,0 +1,12 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/v1/playback/fb4e2182-5024-407f-91a3-66c54f0e4b42/probe-status"
+    },
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+        "probing": false
+    },
+    "baselineProblems": []
+}

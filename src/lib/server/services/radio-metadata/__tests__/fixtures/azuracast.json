@@ -1,0 +1,20 @@
+{
+    "now_playing": {
+        "song": {
+            "title": "Lantern Tale",
+            "artist": "Lanter",
+            "duration": 287
+        },
+        "elapsed": 42
+    },
+    "playing_next": {
+        "song": {
+            "title": "Lanternlight",
+            "artist": "Harborhunterz"
+        }
+    },
+    "live": {
+        "is_live": true,
+        "streamer_name": "DJ Solara"
+    }
+}

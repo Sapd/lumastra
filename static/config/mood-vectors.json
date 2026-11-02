@@ -1,0 +1,943 @@
+{
+    "$schema": "./mood-vectors.schema.json",
+    "settings": {
+        "enabled": true,
+        "minSeedsRequired": 3,
+        "defaultLimit": 20,
+        "cacheTtlMinutes": 1440
+    },
+    "moods": [
+        {
+            "key": "relaxing",
+            "displayName": "Relaxing",
+            "description": "Cozy, feel-good content for unwinding",
+            "seeds": [
+                {
+                    "tmdbId": 508947,
+                    "mediaType": "movie",
+                    "title": "Turning Red"
+                },
+                { "tmdbId": 862, "mediaType": "movie", "title": "Toy Story" },
+                { "tmdbId": 13, "mediaType": "movie", "title": "Forrest Gump" },
+                { "tmdbId": 508442, "mediaType": "movie", "title": "Soul" },
+                {
+                    "tmdbId": 150540,
+                    "mediaType": "movie",
+                    "title": "Inside Out"
+                },
+                {
+                    "tmdbId": 4935,
+                    "mediaType": "movie",
+                    "title": "Howl's Moving Castle"
+                },
+                {
+                    "tmdbId": 8587,
+                    "mediaType": "movie",
+                    "title": "The Lion King"
+                },
+                {
+                    "tmdbId": 585,
+                    "mediaType": "movie",
+                    "title": "Monsters, Inc."
+                },
+                { "tmdbId": 1412, "mediaType": "tv", "title": "Gilmore Girls" },
+                {
+                    "tmdbId": 67023,
+                    "mediaType": "tv",
+                    "title": "Schitt's Creek"
+                },
+                {
+                    "tmdbId": 66573,
+                    "mediaType": "tv",
+                    "title": "The Good Place"
+                }
+            ]
+        },
+        {
+            "key": "exciting",
+            "displayName": "Exciting",
+            "description": "High-octane action and thrills",
+            "seeds": [
+                { "tmdbId": 603, "mediaType": "movie", "title": "The Matrix" },
+                {
+                    "tmdbId": 155,
+                    "mediaType": "movie",
+                    "title": "The Dark Knight"
+                },
+                { "tmdbId": 27205, "mediaType": "movie", "title": "Inception" },
+                { "tmdbId": 98, "mediaType": "movie", "title": "Gladiator" },
+                {
+                    "tmdbId": 680,
+                    "mediaType": "movie",
+                    "title": "Pulp Fiction"
+                },
+                {
+                    "tmdbId": 299536,
+                    "mediaType": "movie",
+                    "title": "Avengers: Infinity War"
+                },
+                { "tmdbId": 19995, "mediaType": "movie", "title": "Avatar" },
+                { "tmdbId": 597, "mediaType": "movie", "title": "Titanic" },
+                {
+                    "tmdbId": 76600,
+                    "mediaType": "movie",
+                    "title": "Avatar: The Way of Water"
+                },
+                {
+                    "tmdbId": 24428,
+                    "mediaType": "movie",
+                    "title": "The Avengers"
+                }
+            ]
+        },
+        {
+            "key": "brainfood",
+            "displayName": "Brain Food",
+            "description": "Mind-bending puzzles and complex plots",
+            "seeds": [
+                { "tmdbId": 27205, "mediaType": "movie", "title": "Inception" },
+                { "tmdbId": 77, "mediaType": "movie", "title": "Memento" },
+                { "tmdbId": 807, "mediaType": "movie", "title": "Se7en" },
+                {
+                    "tmdbId": 1124,
+                    "mediaType": "movie",
+                    "title": "The Prestige"
+                },
+                { "tmdbId": 550, "mediaType": "movie", "title": "Fight Club" },
+                {
+                    "tmdbId": 68718,
+                    "mediaType": "movie",
+                    "title": "Django Unchained"
+                },
+                {
+                    "tmdbId": 274,
+                    "mediaType": "movie",
+                    "title": "The Silence of the Lambs"
+                },
+                { "tmdbId": 539, "mediaType": "movie", "title": "Psycho" },
+                {
+                    "tmdbId": 745,
+                    "mediaType": "movie",
+                    "title": "The Sixth Sense"
+                },
+                { "tmdbId": 8967, "mediaType": "movie", "title": "The Game" }
+            ]
+        },
+        {
+            "key": "thoughtful",
+            "displayName": "Thoughtful",
+            "description": "Deep, meaningful cinema for reflection",
+            "seeds": [
+                {
+                    "tmdbId": 278,
+                    "mediaType": "movie",
+                    "title": "The Shawshank Redemption"
+                },
+                {
+                    "tmdbId": 389,
+                    "mediaType": "movie",
+                    "title": "12 Angry Men"
+                },
+                {
+                    "tmdbId": 497,
+                    "mediaType": "movie",
+                    "title": "The Green Mile"
+                },
+                {
+                    "tmdbId": 240,
+                    "mediaType": "movie",
+                    "title": "The Godfather Part II"
+                },
+                {
+                    "tmdbId": 510,
+                    "mediaType": "movie",
+                    "title": "Schindler's List"
+                },
+                {
+                    "tmdbId": 857,
+                    "mediaType": "movie",
+                    "title": "Saving Private Ryan"
+                },
+                {
+                    "tmdbId": 14,
+                    "mediaType": "movie",
+                    "title": "American Beauty"
+                },
+                {
+                    "tmdbId": 453,
+                    "mediaType": "movie",
+                    "title": "A Beautiful Mind"
+                },
+                {
+                    "tmdbId": 11324,
+                    "mediaType": "movie",
+                    "title": "Shutter Island"
+                }
+            ]
+        },
+        {
+            "key": "emotional",
+            "displayName": "Emotional",
+            "description": "Tearjerkers and deeply moving stories",
+            "seeds": [
+                { "tmdbId": 354912, "mediaType": "movie", "title": "Coco" },
+                { "tmdbId": 14160, "mediaType": "movie", "title": "Up" },
+                {
+                    "tmdbId": 11036,
+                    "mediaType": "movie",
+                    "title": "The Notebook"
+                },
+                {
+                    "tmdbId": 497,
+                    "mediaType": "movie",
+                    "title": "The Green Mile"
+                },
+                { "tmdbId": 508442, "mediaType": "movie", "title": "Soul" },
+                {
+                    "tmdbId": 150540,
+                    "mediaType": "movie",
+                    "title": "Inside Out"
+                },
+                {
+                    "tmdbId": 222935,
+                    "mediaType": "movie",
+                    "title": "The Fault in Our Stars"
+                },
+                {
+                    "tmdbId": 637,
+                    "mediaType": "movie",
+                    "title": "Life is Beautiful"
+                },
+                {
+                    "tmdbId": 334541,
+                    "mediaType": "movie",
+                    "title": "Manchester by the Sea"
+                },
+                { "tmdbId": 152601, "mediaType": "movie", "title": "Her" },
+                {
+                    "tmdbId": 12477,
+                    "mediaType": "movie",
+                    "title": "Grave of the Fireflies"
+                }
+            ]
+        },
+        {
+            "key": "funny",
+            "displayName": "Funny",
+            "description": "Comedy that makes you laugh out loud",
+            "seeds": [
+                {
+                    "tmdbId": 22,
+                    "mediaType": "movie",
+                    "title": "Pirates of the Caribbean"
+                },
+                {
+                    "tmdbId": 585,
+                    "mediaType": "movie",
+                    "title": "Monsters, Inc."
+                },
+                {
+                    "tmdbId": 10193,
+                    "mediaType": "movie",
+                    "title": "Toy Story 3"
+                },
+                { "tmdbId": 862, "mediaType": "movie", "title": "Toy Story" },
+                {
+                    "tmdbId": 18785,
+                    "mediaType": "movie",
+                    "title": "The Hangover"
+                },
+                { "tmdbId": 109445, "mediaType": "movie", "title": "Frozen" },
+                { "tmdbId": 1668, "mediaType": "tv", "title": "Friends" },
+                { "tmdbId": 2316, "mediaType": "tv", "title": "The Office" },
+                {
+                    "tmdbId": 48891,
+                    "mediaType": "tv",
+                    "title": "Brooklyn Nine-Nine"
+                },
+                {
+                    "tmdbId": 8592,
+                    "mediaType": "tv",
+                    "title": "Parks and Recreation"
+                }
+            ]
+        },
+        {
+            "key": "romantic",
+            "displayName": "Romantic",
+            "description": "Love stories and romantic comedies",
+            "seeds": [
+                { "tmdbId": 597, "mediaType": "movie", "title": "Titanic" },
+                {
+                    "tmdbId": 508,
+                    "mediaType": "movie",
+                    "title": "Love Actually"
+                },
+                { "tmdbId": 194, "mediaType": "movie", "title": "Amélie" },
+                {
+                    "tmdbId": 914,
+                    "mediaType": "movie",
+                    "title": "The Great Gatsby"
+                },
+                {
+                    "tmdbId": 114,
+                    "mediaType": "movie",
+                    "title": "Pretty Woman"
+                },
+                {
+                    "tmdbId": 4348,
+                    "mediaType": "movie",
+                    "title": "Pride & Prejudice"
+                },
+                { "tmdbId": 152601, "mediaType": "movie", "title": "Her" },
+                {
+                    "tmdbId": 381288,
+                    "mediaType": "movie",
+                    "title": "A Star Is Born"
+                },
+                {
+                    "tmdbId": 10020,
+                    "mediaType": "movie",
+                    "title": "Beauty and the Beast"
+                },
+                {
+                    "tmdbId": 313369,
+                    "mediaType": "movie",
+                    "title": "La La Land"
+                }
+            ]
+        },
+        {
+            "key": "spooky",
+            "displayName": "Spooky",
+            "description": "Horror and supernatural thrills",
+            "seeds": [
+                { "tmdbId": 539, "mediaType": "movie", "title": "Psycho" },
+                { "tmdbId": 694, "mediaType": "movie", "title": "The Shining" },
+                {
+                    "tmdbId": 745,
+                    "mediaType": "movie",
+                    "title": "The Sixth Sense"
+                },
+                {
+                    "tmdbId": 493922,
+                    "mediaType": "movie",
+                    "title": "Hereditary"
+                },
+                { "tmdbId": 419430, "mediaType": "movie", "title": "Get Out" },
+                { "tmdbId": 346364, "mediaType": "movie", "title": "It" },
+                {
+                    "tmdbId": 138843,
+                    "mediaType": "movie",
+                    "title": "The Conjuring"
+                },
+                {
+                    "tmdbId": 310131,
+                    "mediaType": "movie",
+                    "title": "The Witch"
+                },
+                {
+                    "tmdbId": 66732,
+                    "mediaType": "tv",
+                    "title": "Stranger Things"
+                },
+                {
+                    "tmdbId": 67178,
+                    "mediaType": "tv",
+                    "title": "The Haunting of Hill House"
+                }
+            ]
+        },
+        {
+            "key": "epic",
+            "displayName": "Epic",
+            "description": "Grand-scale adventures and sagas",
+            "seeds": [
+                {
+                    "tmdbId": 120,
+                    "mediaType": "movie",
+                    "title": "The Lord of the Rings: The Fellowship of the Ring"
+                },
+                {
+                    "tmdbId": 121,
+                    "mediaType": "movie",
+                    "title": "The Lord of the Rings: The Two Towers"
+                },
+                {
+                    "tmdbId": 122,
+                    "mediaType": "movie",
+                    "title": "The Lord of the Rings: The Return of the King"
+                },
+                { "tmdbId": 19995, "mediaType": "movie", "title": "Avatar" },
+                {
+                    "tmdbId": 299536,
+                    "mediaType": "movie",
+                    "title": "Avengers: Infinity War"
+                },
+                {
+                    "tmdbId": 299534,
+                    "mediaType": "movie",
+                    "title": "Avengers: Endgame"
+                },
+                { "tmdbId": 11, "mediaType": "movie", "title": "Star Wars" },
+                { "tmdbId": 438631, "mediaType": "movie", "title": "Dune" },
+                {
+                    "tmdbId": 1399,
+                    "mediaType": "tv",
+                    "title": "Game of Thrones"
+                },
+                {
+                    "tmdbId": 84773,
+                    "mediaType": "tv",
+                    "title": "The Lord of the Rings: The Rings of Power"
+                }
+            ]
+        },
+        {
+            "key": "nostalgic",
+            "displayName": "Nostalgic",
+            "description": "Classics and throwback favorites",
+            "seeds": [
+                {
+                    "tmdbId": 89,
+                    "mediaType": "movie",
+                    "title": "Indiana Jones and the Last Crusade"
+                },
+                {
+                    "tmdbId": 85,
+                    "mediaType": "movie",
+                    "title": "Raiders of the Lost Ark"
+                },
+                {
+                    "tmdbId": 105,
+                    "mediaType": "movie",
+                    "title": "Back to the Future"
+                },
+                {
+                    "tmdbId": 620,
+                    "mediaType": "movie",
+                    "title": "Ghostbusters"
+                },
+                { "tmdbId": 679, "mediaType": "movie", "title": "Aliens" },
+                { "tmdbId": 78, "mediaType": "movie", "title": "Blade Runner" },
+                {
+                    "tmdbId": 218,
+                    "mediaType": "movie",
+                    "title": "The Terminator"
+                },
+                {
+                    "tmdbId": 8587,
+                    "mediaType": "movie",
+                    "title": "The Lion King"
+                },
+                {
+                    "tmdbId": 878,
+                    "mediaType": "movie",
+                    "title": "Die Feuerzangenbowle"
+                },
+                {
+                    "tmdbId": 66732,
+                    "mediaType": "tv",
+                    "title": "Stranger Things"
+                },
+                { "tmdbId": 1668, "mediaType": "tv", "title": "Friends" }
+            ]
+        },
+        {
+            "key": "inspiring",
+            "displayName": "Inspiring",
+            "description": "Motivational stories of triumph",
+            "seeds": [
+                { "tmdbId": 13, "mediaType": "movie", "title": "Forrest Gump" },
+                {
+                    "tmdbId": 278,
+                    "mediaType": "movie",
+                    "title": "The Shawshank Redemption"
+                },
+                {
+                    "tmdbId": 453,
+                    "mediaType": "movie",
+                    "title": "A Beautiful Mind"
+                },
+                {
+                    "tmdbId": 497,
+                    "mediaType": "movie",
+                    "title": "The Green Mile"
+                },
+                {
+                    "tmdbId": 389,
+                    "mediaType": "movie",
+                    "title": "12 Angry Men"
+                },
+                {
+                    "tmdbId": 381288,
+                    "mediaType": "movie",
+                    "title": "A Star Is Born"
+                },
+                {
+                    "tmdbId": 76341,
+                    "mediaType": "movie",
+                    "title": "Mad Max: Fury Road"
+                },
+                {
+                    "tmdbId": 424,
+                    "mediaType": "movie",
+                    "title": "Schindler's List"
+                },
+                {
+                    "tmdbId": 857,
+                    "mediaType": "movie",
+                    "title": "Saving Private Ryan"
+                }
+            ]
+        },
+        {
+            "key": "darkgritty",
+            "displayName": "Dark & Gritty",
+            "description": "Noir, crime, and morally complex stories",
+            "seeds": [
+                {
+                    "tmdbId": 155,
+                    "mediaType": "movie",
+                    "title": "The Dark Knight"
+                },
+                { "tmdbId": 807, "mediaType": "movie", "title": "Se7en" },
+                { "tmdbId": 550, "mediaType": "movie", "title": "Fight Club" },
+                {
+                    "tmdbId": 680,
+                    "mediaType": "movie",
+                    "title": "Pulp Fiction"
+                },
+                {
+                    "tmdbId": 240,
+                    "mediaType": "movie",
+                    "title": "The Godfather Part II"
+                },
+                {
+                    "tmdbId": 238,
+                    "mediaType": "movie",
+                    "title": "The Godfather"
+                },
+                {
+                    "tmdbId": 68718,
+                    "mediaType": "movie",
+                    "title": "Django Unchained"
+                },
+                {
+                    "tmdbId": 629,
+                    "mediaType": "movie",
+                    "title": "The Usual Suspects"
+                },
+                { "tmdbId": 1396, "mediaType": "tv", "title": "Breaking Bad" },
+                {
+                    "tmdbId": 60059,
+                    "mediaType": "tv",
+                    "title": "Better Call Saul"
+                }
+            ]
+        },
+        {
+            "key": "comfortrewatch",
+            "displayName": "Comfort Rewatch",
+            "description": "Easy-watching favorites perfect for rewatching",
+            "seeds": [
+                { "tmdbId": 1668, "mediaType": "tv", "title": "Friends" },
+                { "tmdbId": 2316, "mediaType": "tv", "title": "The Office" },
+                {
+                    "tmdbId": 8592,
+                    "mediaType": "tv",
+                    "title": "Parks and Recreation"
+                },
+                {
+                    "tmdbId": 1100,
+                    "mediaType": "tv",
+                    "title": "How I Met Your Mother"
+                },
+                { "tmdbId": 1421, "mediaType": "tv", "title": "Modern Family" },
+                { "tmdbId": 1420, "mediaType": "tv", "title": "New Girl" },
+                {
+                    "tmdbId": 48891,
+                    "mediaType": "tv",
+                    "title": "Brooklyn Nine-Nine"
+                },
+                {
+                    "tmdbId": 67023,
+                    "mediaType": "tv",
+                    "title": "Schitt's Creek"
+                },
+                { "tmdbId": 862, "mediaType": "movie", "title": "Toy Story" },
+                {
+                    "tmdbId": 8587,
+                    "mediaType": "movie",
+                    "title": "The Lion King"
+                },
+                {
+                    "tmdbId": 585,
+                    "mediaType": "movie",
+                    "title": "Monsters, Inc."
+                },
+                { "tmdbId": 12, "mediaType": "movie", "title": "Finding Nemo" }
+            ]
+        },
+        {
+            "key": "eveningchill",
+            "displayName": "Evening Chill",
+            "description": "Light entertainment for winding down after work",
+            "seeds": [
+                { "tmdbId": 1668, "mediaType": "tv", "title": "Friends" },
+                {
+                    "tmdbId": 66573,
+                    "mediaType": "tv",
+                    "title": "The Good Place"
+                },
+                { "tmdbId": 1412, "mediaType": "tv", "title": "Gilmore Girls" },
+                { "tmdbId": 97546, "mediaType": "tv", "title": "Ted Lasso" },
+                {
+                    "tmdbId": 67023,
+                    "mediaType": "tv",
+                    "title": "Schitt's Creek"
+                },
+                { "tmdbId": 1421, "mediaType": "tv", "title": "Modern Family" },
+                {
+                    "tmdbId": 508,
+                    "mediaType": "movie",
+                    "title": "Love Actually"
+                },
+                { "tmdbId": 194, "mediaType": "movie", "title": "Amélie" },
+                {
+                    "tmdbId": 313369,
+                    "mediaType": "movie",
+                    "title": "La La Land"
+                },
+                { "tmdbId": 508442, "mediaType": "movie", "title": "Soul" }
+            ]
+        },
+        {
+            "key": "quickwatch",
+            "displayName": "Quick Watch",
+            "description": "Short, fun films perfect for limited time",
+            "seeds": [
+                {
+                    "tmdbId": 2108,
+                    "mediaType": "movie",
+                    "title": "The Breakfast Club"
+                },
+                {
+                    "tmdbId": 137,
+                    "mediaType": "movie",
+                    "title": "Groundhog Day"
+                },
+                { "tmdbId": 771, "mediaType": "movie", "title": "Home Alone" },
+                { "tmdbId": 9595, "mediaType": "movie", "title": "Hot Shots!" },
+                {
+                    "tmdbId": 9255,
+                    "mediaType": "movie",
+                    "title": "Hot Shots! Part Deux"
+                },
+                { "tmdbId": 7326, "mediaType": "movie", "title": "Juno" },
+                {
+                    "tmdbId": 8346,
+                    "mediaType": "movie",
+                    "title": "My Big Fat Greek Wedding"
+                }
+            ]
+        },
+        {
+            "key": "hiddengems",
+            "displayName": "Hidden Gems",
+            "description": "Underrated indie and arthouse films",
+            "seeds": [
+                {
+                    "tmdbId": 55420,
+                    "mediaType": "movie",
+                    "title": "Another Earth"
+                },
+                {
+                    "tmdbId": 220289,
+                    "mediaType": "movie",
+                    "title": "Coherence"
+                },
+                {
+                    "tmdbId": 120467,
+                    "mediaType": "movie",
+                    "title": "The Grand Budapest Hotel"
+                },
+                {
+                    "tmdbId": 391713,
+                    "mediaType": "movie",
+                    "title": "Lady Bird"
+                },
+                {
+                    "tmdbId": 153,
+                    "mediaType": "movie",
+                    "title": "Lost in Translation"
+                },
+                {
+                    "tmdbId": 976893,
+                    "mediaType": "movie",
+                    "title": "Perfect Days"
+                },
+                {
+                    "tmdbId": 347031,
+                    "mediaType": "movie",
+                    "title": "Swiss Army Man"
+                },
+                {
+                    "tmdbId": 371645,
+                    "mediaType": "movie",
+                    "title": "Hunt for the Wilderpeople"
+                },
+                {
+                    "tmdbId": 878,
+                    "mediaType": "movie",
+                    "title": "Die Feuerzangenbowle"
+                }
+            ]
+        },
+        {
+            "key": "datenight",
+            "displayName": "Date Night",
+            "description": "Romantic and fun films perfect for couples",
+            "seeds": [
+                {
+                    "tmdbId": 4951,
+                    "mediaType": "movie",
+                    "title": "10 Things I Hate About You"
+                },
+                {
+                    "tmdbId": 122906,
+                    "mediaType": "movie",
+                    "title": "About Time"
+                },
+                { "tmdbId": 194, "mediaType": "movie", "title": "Amélie" },
+                {
+                    "tmdbId": 445571,
+                    "mediaType": "movie",
+                    "title": "Game Night"
+                },
+                {
+                    "tmdbId": 8346,
+                    "mediaType": "movie",
+                    "title": "My Big Fat Greek Wedding"
+                },
+                {
+                    "tmdbId": 114150,
+                    "mediaType": "movie",
+                    "title": "Pitch Perfect"
+                },
+                { "tmdbId": 7326, "mediaType": "movie", "title": "Juno" },
+                {
+                    "tmdbId": 150540,
+                    "mediaType": "movie",
+                    "title": "Inside Out"
+                },
+                {
+                    "tmdbId": 585,
+                    "mediaType": "movie",
+                    "title": "Monsters, Inc."
+                }
+            ]
+        },
+        {
+            "key": "educational",
+            "displayName": "Educational",
+            "description": "Documentaries and inspiring true stories",
+            "seeds": [
+                {
+                    "tmdbId": 453,
+                    "mediaType": "movie",
+                    "title": "A Beautiful Mind"
+                },
+                {
+                    "tmdbId": 424,
+                    "mediaType": "movie",
+                    "title": "Schindler's List"
+                },
+                {
+                    "tmdbId": 857,
+                    "mediaType": "movie",
+                    "title": "Saving Private Ryan"
+                },
+                {
+                    "tmdbId": 278,
+                    "mediaType": "movie",
+                    "title": "The Shawshank Redemption"
+                },
+                {
+                    "tmdbId": 27205,
+                    "mediaType": "movie",
+                    "title": "Inception"
+                },
+                { "tmdbId": 77, "mediaType": "movie", "title": "Memento" },
+                {
+                    "tmdbId": 497,
+                    "mediaType": "movie",
+                    "title": "The Green Mile"
+                },
+                { "tmdbId": 98, "mediaType": "movie", "title": "Gladiator" },
+                {
+                    "tmdbId": 13183,
+                    "mediaType": "tv",
+                    "title": "Watchmen"
+                },
+                { "tmdbId": 1396, "mediaType": "tv", "title": "Breaking Bad" }
+            ]
+        },
+        {
+            "key": "cozy",
+            "displayName": "Cozy",
+            "description": "Warm, comforting content for relaxing",
+            "seeds": [
+                {
+                    "tmdbId": 1581,
+                    "mediaType": "movie",
+                    "title": "The Holiday"
+                },
+                {
+                    "tmdbId": 116149,
+                    "mediaType": "movie",
+                    "title": "Paddington"
+                },
+                {
+                    "tmdbId": 346648,
+                    "mediaType": "movie",
+                    "title": "Paddington 2"
+                },
+                {
+                    "tmdbId": 508,
+                    "mediaType": "movie",
+                    "title": "Love Actually"
+                },
+                { "tmdbId": 194, "mediaType": "movie", "title": "Amélie" },
+                { "tmdbId": 508442, "mediaType": "movie", "title": "Soul" },
+                { "tmdbId": 97546, "mediaType": "tv", "title": "Ted Lasso" },
+                { "tmdbId": 1412, "mediaType": "tv", "title": "Gilmore Girls" },
+                {
+                    "tmdbId": 67023,
+                    "mediaType": "tv",
+                    "title": "Schitt's Creek"
+                },
+                {
+                    "tmdbId": 66573,
+                    "mediaType": "tv",
+                    "title": "The Good Place"
+                }
+            ]
+        },
+        {
+            "key": "familynight",
+            "displayName": "Family Night",
+            "description": "Fun for all ages - Pixar, Disney & animated favorites",
+            "seeds": [
+                { "tmdbId": 12, "mediaType": "movie", "title": "Finding Nemo" },
+                {
+                    "tmdbId": 9806,
+                    "mediaType": "movie",
+                    "title": "The Incredibles"
+                },
+                { "tmdbId": 808, "mediaType": "movie", "title": "Shrek" },
+                { "tmdbId": 277834, "mediaType": "movie", "title": "Moana" },
+                { "tmdbId": 568124, "mediaType": "movie", "title": "Encanto" },
+                {
+                    "tmdbId": 2062,
+                    "mediaType": "movie",
+                    "title": "Ratatouille"
+                },
+                { "tmdbId": 10681, "mediaType": "movie", "title": "WALL·E" },
+                {
+                    "tmdbId": 129,
+                    "mediaType": "movie",
+                    "title": "Spirited Away"
+                },
+                {
+                    "tmdbId": 8392,
+                    "mediaType": "movie",
+                    "title": "My Neighbor Totoro"
+                },
+                {
+                    "tmdbId": 2493,
+                    "mediaType": "movie",
+                    "title": "The Princess Bride"
+                }
+            ]
+        },
+        {
+            "key": "guiltypleasure",
+            "displayName": "Guilty Pleasure",
+            "description": "Fun, campy entertainment you secretly love",
+            "seeds": [
+                {
+                    "tmdbId": 18785,
+                    "mediaType": "movie",
+                    "title": "The Hangover"
+                },
+                { "tmdbId": 862, "mediaType": "movie", "title": "Toy Story" },
+                {
+                    "tmdbId": 585,
+                    "mediaType": "movie",
+                    "title": "Monsters, Inc."
+                },
+                { "tmdbId": 211672, "mediaType": "movie", "title": "Minions" },
+                { "tmdbId": 109445, "mediaType": "movie", "title": "Frozen" },
+                { "tmdbId": 771, "mediaType": "movie", "title": "Home Alone" },
+                {
+                    "tmdbId": 22,
+                    "mediaType": "movie",
+                    "title": "Pirates of the Caribbean"
+                },
+                { "tmdbId": 1668, "mediaType": "tv", "title": "Friends" },
+                {
+                    "tmdbId": 60625,
+                    "mediaType": "tv",
+                    "title": "Rick and Morty"
+                },
+                {
+                    "tmdbId": 1100,
+                    "mediaType": "tv",
+                    "title": "How I Met Your Mother"
+                }
+            ]
+        },
+        {
+            "key": "visuallystunning",
+            "displayName": "Visually Stunning",
+            "description": "Breathtaking cinematography and visual artistry",
+            "seeds": [
+                {
+                    "tmdbId": 335984,
+                    "mediaType": "movie",
+                    "title": "Blade Runner 2049"
+                },
+                {
+                    "tmdbId": 157336,
+                    "mediaType": "movie",
+                    "title": "Interlumastra"
+                },
+                { "tmdbId": 19995, "mediaType": "movie", "title": "Avatar" },
+                {
+                    "tmdbId": 87827,
+                    "mediaType": "movie",
+                    "title": "Life of Pi"
+                },
+                {
+                    "tmdbId": 120467,
+                    "mediaType": "movie",
+                    "title": "The Grand Budapest Hotel"
+                },
+                {
+                    "tmdbId": 129,
+                    "mediaType": "movie",
+                    "title": "Spirited Away"
+                },
+                {
+                    "tmdbId": 76341,
+                    "mediaType": "movie",
+                    "title": "Mad Max: Fury Road"
+                },
+                { "tmdbId": 49047, "mediaType": "movie", "title": "Gravity" },
+                { "tmdbId": 530915, "mediaType": "movie", "title": "1917" },
+                { "tmdbId": 438631, "mediaType": "movie", "title": "Dune" }
+            ]
+        }
+    ]
+}

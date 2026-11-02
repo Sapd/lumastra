@@ -1,0 +1,14 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/v1/requests"
+    },
+    "status": 503,
+    "contentType": "application/problem+json",
+    "body": {
+        "code": "dependency_unavailable",
+        "error": "Jellyseerr is not reachable",
+        "status": 503
+    },
+    "baselineProblems": []
+}

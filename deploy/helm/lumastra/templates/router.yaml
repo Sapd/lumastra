@@ -1,0 +1,171 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+
+Affinity router: nginx in front of the HTTP pods. Routing key (same chain as Lumastra prod):
+  grant  →  PlaySessionId (not preview-*)  →  client IP
+consistent-hashed over one `server <web-N>.<headless> resolve` line per web pod (re-resolved every
+dnsValid; open-source nginx ≥ 1.27.3 — it round-robins the addresses of a single multi-address
+name, so per-pod names from the web StatefulSet are required). Every segment/playlist URL the app emits carries
+grant + PlaySessionId, so a session stays on the pod that owns its FFmpeg job.
+*/ -}}
+{{- if .Values.router.enabled }}
+{{- $r := .Values.router -}}
+{{- $fa := $r.forwardAuth -}}
+{{- $appFa := .Values.auth.forwardAuth -}}
+{{- /* Identity headers blanked on every request: the app's own + the configured list. */ -}}
+{{- $strip := list -}}
+{{- if $appFa.enabled }}
+{{- $strip = append $strip $appFa.userHeader -}}
+{{- $strip = append $strip $appFa.groupHeader -}}
+{{- with $appFa.nameHeader }}{{ $strip = append $strip . }}{{ end -}}
+{{- end -}}
+{{- $strip = concat $strip (default list $fa.stripRequestHeaders) | uniq -}}
+{{- if and $fa.enabled (not $fa.url) }}
+{{- fail "router.forwardAuth.url is required when router.forwardAuth.enabled" }}
+{{- end }}
+{{- $headless := printf "%s.%s.svc.%s" (include "lumastra.component" (list . "web-headless")) .Release.Namespace $r.clusterDomain -}}
+{{- $upstreams := list -}}
+{{- /* exactly web.replicas lines (each empty slot is re-resolved and logged every dnsValid);
+       webSlots adds headroom for an HPA on request */ -}}
+{{- $slots := max (int .Values.web.replicas) (int $r.webSlots) -}}
+{{- range $i := until (int $slots) }}
+{{- $upstreams = append $upstreams (printf "%s-%d.%s" (include "lumastra.component" (list $ "web")) $i $headless) -}}
+{{- end }}
+
+{{- $conf := include "lumastra.routerConf" (dict "root" . "r" $r "fa" $fa "strip" $strip "upstreams" $upstreams) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "lumastra.component" (list . "router") }}
+  labels:
+    {{- include "lumastra.componentLabels" (list . "router") | nindent 4 }}
+data:
+  nginx.conf: |
+    {{- $conf | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "lumastra.component" (list . "router") }}
+  labels:
+    {{- include "lumastra.componentLabels" (list . "router") | nindent 4 }}
+spec:
+  replicas: {{ $r.replicas }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  selector:
+    matchLabels:
+      {{- include "lumastra.selectorLabels" (list . "router") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "lumastra.selectorLabels" (list . "router") | nindent 8 }}
+        {{- with include "lumastra.podLabels" (list . $r) }}
+        {{- . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ $conf | sha256sum }}
+        {{- with include "lumastra.podAnnotations" (list . $r) }}
+        {{- . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "lumastra.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- include "lumastra.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile: { type: RuntimeDefault }
+      terminationGracePeriodSeconds: {{ $r.terminationGracePeriodSeconds }}
+      {{- include "lumastra.scheduling" (list . $r) | nindent 6 }}
+      containers:
+        - name: nginx
+          image: {{ include "lumastra.image" (list . $r.image) }}
+          imagePullPolicy: {{ $r.image.pullPolicy }}
+          args: ["nginx", "-c", "/etc/lumastra-router/nginx.conf", "-g", "daemon off;"]
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          readinessProbe:
+            httpGet: { path: /__router/healthz, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /__router/healthz, port: http }
+            periodSeconds: 20
+          # nginx treats SIGTERM as a FAST shutdown (drops open connections). Stop routing first,
+          # then quit gracefully (SIGQUIT: finish in-flight requests) within the grace period.
+          # When nginx has exited, the container stops while this hook is still waiting, so the
+          # kubelet records "PreStopHook failed" (exit 137) on every rollover. That is expected:
+          # returning earlier would let the kubelet's SIGTERM cut the graceful quit short.
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sh
+                  - -c
+                  - sleep 5; kill -QUIT "$(cat /tmp/nginx.pid)"; while [ -e /tmp/nginx.pid ]; do sleep 1; done
+          resources:
+            {{- toYaml $r.resources | nindent 12 }}
+          volumeMounts:
+            - { name: config, mountPath: /etc/lumastra-router, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+            - { name: cache, mountPath: /var/cache/nginx }
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "lumastra.component" (list . "router") }}
+        - { name: tmp, emptyDir: {} }
+        - { name: cache, emptyDir: {} }
+{{- end }}
+
+{{- /* auth_request block for a location: dict fa, fallback */ -}}
+{{- define "lumastra.routerAuth" -}}
+auth_request /__lumastra_auth;
+error_page 401 = {{ .fallback }};
+auth_request_set $lumastra_auth_status $upstream_status;
+{{- if .fa.relayCookies }}
+auth_request_set $lumastra_auth_cookie $upstream_http_set_cookie;
+add_header Set-Cookie $lumastra_auth_cookie;
+{{- end }}
+{{- range $i, $h := .fa.responseHeaders }}
+auth_request_set $lumastra_ah_{{ $i }} $upstream_http_{{ lower $h | replace "-" "_" }};
+{{- end }}
+{{- end -}}
+
+{{- /*
+Proxy block: dict strip (headers to blank), resp (auth response headers to forward), auth (bool).
+proxy_set_header at location level replaces ALL inherited ones, so every location repeats the set.
+*/ -}}
+{{- define "lumastra.routerProxy" -}}
+{{- $respLower := list -}}
+{{- range .resp }}{{ $respLower = append $respLower (lower .) }}{{ end -}}
+# $http_host keeps a non-default port (the app derives its origin from it for CSRF checks).
+proxy_set_header Host $http_host;
+proxy_set_header X-Forwarded-For $remote_addr;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-Proto $lumastra_proto;
+proxy_set_header X-Forwarded-Host $http_host;
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection $lumastra_connection;
+{{- range .strip }}
+{{- if not (has (lower .) $respLower) }}
+proxy_set_header {{ . }} "";
+{{- end }}
+{{- end }}
+{{- if .auth }}
+{{- range $i, $h := .resp }}
+proxy_set_header {{ $h }} $lumastra_ah_{{ $i }};
+{{- end }}
+{{- end }}
+proxy_pass http://lumastra_web;
+{{- end -}}

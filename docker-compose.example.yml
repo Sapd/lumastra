@@ -1,0 +1,453 @@
+# Lumastra: web, one task worker (with its Rust watcher), PostgreSQL and two Valkeys.
+# Copy this file to compose.yml. Copy .env.example to .env; set DATABASE_PASSWORD, CACHE_PASSWORD and LUMASTRA_MASTER_KEY.
+# Optional: TASK_CACHE_PASSWORD gives the task Valkey its own password (default: CACHE_PASSWORD).
+# Passwords end up inside redis:// URLs and Compose cannot percent-encode them: use only letters,
+# digits and - . _ ~ (openssl rand -hex 24 does), or percent-encode other characters yourself.
+# Add matching media mounts to web and worker, then run: docker compose up -d
+# Setup guide: https://lumastra.org/guides/deploy-docker/
+#
+# Keep the secrets file named .env: Compose uses it for ${...} interpolation.
+# A different filename requires --env-file on every Compose command; env_file alone
+# only passes variables into containers and does not satisfy interpolation.
+#
+# x86-64 requires x86-64-v2 (SSE4.2/POPCNT); use host-passthrough in VMs.
+# ARM64 works for the core stack; BPM/mood analysis, the sonic sidecar and Intel QSV/VA-API
+# are x86-64 only.
+
+services:
+    # Web app: the UI and API, HLS playback and sign-in.
+    lumastra:
+        # :stable supports amd64 and arm64; :edge is amd64-only. Pin a version for controlled updates.
+        image: ghcr.io/lumastra/lumastra:stable
+        restart: unless-stopped
+        # Runs unprivileged. For a read-only root, also provide writable disk-backed /tmp for transcodes.
+        security_opt:
+            - no-new-privileges:true
+        cap_drop:
+            - ALL
+        logging:
+            driver: json-file
+            options:
+                max-size: '20m'
+                max-file: '10'
+                compress: 'true'
+        # Host-only access. Remove this ports block behind a reverse proxy to prevent bypassing TLS/auth.
+        # Use HTTPS for remote access: https://lumastra.org/guides/reverse-proxy/
+        ports:
+            - '127.0.0.1:3000:3000'
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.lumastra.rule=Host(`your-domain.example.com`)
+            # Forward auth only: your proxy's auth middleware, e.g. <name>@docker.
+            # - traefik.http.routers.lumastra.middlewares=forward-auth@docker
+            - traefik.http.services.lumastra.loadbalancer.server.port=3000
+        environment:
+            NODE_ENV: 'production'
+            # Web containers serve HTTP; the dedicated worker below owns background jobs.
+            # Leave these two as they are: start.sh refuses to start with any other value.
+            WORKER_MODE: 'disabled'
+            DEDICATED_WORKER: 'false'
+            # Limits the Node heap on small hosts; NODE_OPTIONS can override the heap limit.
+            LUMASTRA_LOW_RAM_MODE: 'true'
+            BASE_PATH: '/config' # Must match the config volume mount below
+
+            # Request body ceiling (the image default). Must be at least the
+            # largest upload you allow (Admin -> Settings, MAX_IMAGE_UPLOAD_MB).
+            BODY_SIZE_LIMIT: '50M'
+
+            # Forward auth requires both settings and a proxy that strips incoming identity headers.
+            # TRUSTED_PROXY_IPS must identify your proxy: https://lumastra.org/guides/reverse-proxy/
+            # FORWARD_AUTH_ENABLED: 'true'
+            # TRUSTED_PROXY_IPS: '172.28.0.10'
+
+            # Database connection
+            DATABASE_URL: 'postgresql://lumastra:${DATABASE_PASSWORD}@lumastra-postgres:5432/lumastra'
+            CACHE_URL: 'redis://default:${CACHE_PASSWORD}@lumastra-valkey-cache:6379/0'
+            TASK_CACHE_URL: 'redis://default:${TASK_CACHE_PASSWORD:-${CACHE_PASSWORD}}@lumastra-valkey:6379/0'
+
+            # Sonic music features: enable the sonic profile and set this URL on BOTH web and worker.
+            # Then enable the features in Admin -> Settings -> Music. Leave unset without the sidecar.
+            # SONIC_EMBEDDER_URL: 'http://lumastra-sonic-embedder:8000'
+
+            # NVIDIA on Windows/WSL2: use with gpus: all below; add these to this environment map.
+            # NVIDIA_VISIBLE_DEVICES: 'all'
+            # NVIDIA_DRIVER_CAPABILITIES: 'all'
+        volumes:
+            # Settings and master.key: back up this volume and keep its key stable.
+            - config:/config
+            # Shared FFmpeg binaries, separate from config so the proxy cannot access master.key.
+            - ffmpeg-cache:/config/bin
+            # Image cache (TMDB, Jellyfin, user avatars) - persist for performance
+            - cache:/app/.cache
+            # Persists installed plugins across updates. Bundled plugins remain in the image.
+            - plugins:/app/plugins
+            # Uncomment your media folder. Use identical host/container paths on worker and sonic.
+            # Subfolders become libraries; Windows example: C:/Users/you/Videos:/data/media:ro
+            # - /path/to/media:/data/media:ro
+
+        # Plugin installs: set PLUGINS_REQUIRE_REGISTRY=true in .env to require signed,
+        # registry-managed external plugins. Bundled plugins still load.
+
+        # Live TV: set these in .env and enable the livetv-proxy profile below.
+        # STREAM_PROXY_URL=http://lumastra-proxy:3000
+        # STREAM_PROXY_SECRET=<shared secret, at least 16 characters>
+        # Enable Live TV in Admin -> Settings; keep STREAM_PROXY_MODE off on web/worker.
+        # Local/private sources require LIVETV_ALLOW_PRIVATE_URLS=true.
+        # An HTTP CONNECT upstream proxy must be configured on BOTH app and proxy services.
+        # Guide and settings: https://lumastra.org/guides/live-tv/
+
+        # The same .env supplies Compose interpolation and container environment variables.
+        env_file:
+            - .env
+        # Uncomment and customize if you need DNS overrides for internal services
+        # extra_hosts:
+        #   - "internal-service.example.com:192.168.1.100"
+        depends_on:
+            lumastra-postgres:
+                condition: service_healthy
+            lumastra-valkey:
+                condition: service_healthy
+            lumastra-valkey-cache:
+                condition: service_healthy
+
+        # Health check to verify migration completed
+        # Uses curl (wget not available in image); accepts 401 as "app running"
+        healthcheck:
+            test: ['CMD-SHELL', 'curl -sf http://localhost:3000/api/health || [ $? -eq 22 ]']
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 60s # Give time for migration to complete
+        networks:
+            - lumastra-network
+
+        # GPU transcoding: configure GPU_ACCELERATION in .env AND expose the device here.
+        # Repeat the device access on worker/proxy if they also transcode.
+        # Full setup: https://lumastra.org/guides/gpu-transcoding/
+        #
+        # NVIDIA (nvenc), with NVIDIA Container Toolkit:
+        # deploy:
+        #     resources:
+        #         reservations:
+        #             devices:
+        #                 - driver: nvidia
+        #                   count: 1
+        #                   capabilities: [gpu, video]
+        # Windows/WSL2: use gpus: all instead, plus the NVIDIA environment settings above.
+        # gpus: all
+        #
+        # Intel QSV or Intel/AMD VA-API (qsv|vaapi); match device and group IDs to your host:
+        # devices:
+        #     - /dev/dri:/dev/dri
+        # group_add:
+        #     - "video"  # or the numeric GID owning /dev/dri/renderD128
+        # VideoToolbox is macOS bare-metal only, unavailable inside Linux containers.
+
+    # Worker (exactly one): library scans, metadata, trickplay and music analysis, with the Rust
+    # library watcher as a child process. Shares settings, media mounts and ffmpeg cache with web.
+    lumastra-worker:
+        image: ghcr.io/lumastra/lumastra:stable
+        restart: unless-stopped
+        # Gives running jobs time to finish on stop/update instead of being killed after 10 s.
+        stop_grace_period: 90s
+        # No `init: true` needed: the image's ENTRYPOINT is `tini -s`, which forwards SIGTERM to
+        # Node and reaps orphaned ffmpeg/watcher children.
+        security_opt:
+            - no-new-privileges:true
+        cap_drop:
+            - ALL
+        # Lower CPU priority under contention; the worker can still use idle CPU.
+        cpu_shares: 512
+        # Optional hard CPU ceiling: size for your host, leaving headroom for playback and PostgreSQL.
+        # cpus: 8
+        logging:
+            driver: json-file
+            options:
+                max-size: '20m'
+                max-file: '10'
+                compress: 'true'
+        environment:
+            NODE_ENV: 'production'
+            # start-worker.sh also forces these; set here for clarity.
+            WORKER_MODE: 'enabled' # Dedicated worker container — runs the background jobs
+            DEDICATED_WORKER: 'true'
+            LUMASTRA_LOW_RAM_MODE: 'true' # See the note on the web service above
+            BASE_PATH: '/config' # Must match the config volume mount — shared with web container
+            DATABASE_URL: 'postgresql://lumastra:${DATABASE_PASSWORD}@lumastra-postgres:5432/lumastra'
+            CACHE_URL: 'redis://default:${CACHE_PASSWORD}@lumastra-valkey-cache:6379/0'
+            TASK_CACHE_URL: 'redis://default:${TASK_CACHE_PASSWORD:-${CACHE_PASSWORD}}@lumastra-valkey:6379/0'
+            # Keep this URL in sync with web when the sonic profile is enabled.
+            # SONIC_EMBEDDER_URL: 'http://lumastra-sonic-embedder:8000'
+        env_file:
+            - .env
+        command: ['./start-worker.sh']
+        volumes:
+            # Shared settings and generated artwork must be visible to web and worker.
+            - config:/config
+            # Shared FFmpeg binaries.
+            - ffmpeg-cache:/config/bin
+            # Installed/drop-in tasks must be visible to the worker registry too.
+            - plugins:/app/plugins
+            # Use the SAME host and container path as the web media mount above.
+            # The worker scans these files; web serves and plays them.
+            # - /path/to/media:/data/media:ro
+        depends_on:
+            lumastra-postgres:
+                condition: service_healthy
+            lumastra-valkey:
+                condition: service_healthy
+            lumastra-valkey-cache:
+                condition: service_healthy
+        healthcheck:
+            # The lean task host exposes health and metrics only. Readiness, not just liveness:
+            # unhealthy while another worker holds the singleton lease, during a prepared upgrade,
+            # without PostgreSQL / task Valkey, or when the library watcher has failed
+            # (`curl -s .../api/health/ready` shows why).
+            test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:3000/api/health/ready > /dev/null']
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 60s
+        networks:
+            - lumastra-network
+
+    # Optional sonic music analysis (amd64 only): MSCLAP embeddings and Music Map projection.
+    # Requires the sonic profile, matching media mounts and SONIC_EMBEDDER_URL on web/worker.
+    lumastra-sonic-embedder:
+        # Edit the media mount and configure SONIC_READER_PASSWORD before starting:
+        # docker compose --profile sonic up -d
+        # Leave this profile off on ARM64 hosts.
+        profiles: ['sonic']
+        image: ghcr.io/lumastra/lumastra-sonic-embedder:stable
+        # build: ./workers/sonic-embedder   # fallback: build the sidecar from source
+        container_name: lumastra-sonic-embedder
+        restart: unless-stopped
+        # Processes untrusted audio: keep privilege restrictions and a read-only root.
+        # Put additional library caches under /tmp rather than disabling read_only.
+        security_opt:
+            - no-new-privileges:true
+        cap_drop:
+            - ALL
+        read_only: true
+        tmpfs:
+            - /tmp
+        logging:
+            driver: json-file
+            options:
+                max-size: '20m'
+                max-file: '10'
+                compress: 'true'
+        environment:
+            # Use a dedicated read-only role: only the Node worker writes analysis results.
+            # Create it after the first app boot has migrated the schema, then set the same
+            # SONIC_READER_PASSWORD in .env. Do not use the application's database credentials.
+            # docker compose exec lumastra-postgres psql -U lumastra -d lumastra -c "
+            #   CREATE ROLE sonic_reader LOGIN PASSWORD '<pick-a-password>';
+            #   GRANT CONNECT ON DATABASE lumastra TO sonic_reader;
+            #   GRANT USAGE ON SCHEMA public TO sonic_reader;
+            #   GRANT SELECT ON media_audio_embeddings TO sonic_reader;
+            # "
+            # Empty default avoids interpolation warnings when the sonic profile is disabled.
+            DATABASE_URL: 'postgresql://sonic_reader:${SONIC_READER_PASSWORD:-}@lumastra-postgres:5432/lumastra'
+            MODEL_ID: 'msclap-2023'
+            # Keep threads <= the CPU limit below; increasing threads also increases memory use.
+            SONIC_EMBEDDER_THREADS: '4'
+            # Weights download from HuggingFace on first use; model terms are Microsoft's.
+            # For offline use, mount vetted weights below and point SONIC_MODEL_FP at the file.
+            # SONIC_MODEL_FP: '/models/clap-2023.pth'
+        volumes:
+            # Match the web/worker container path; media must be readable by uid/gid 1000.
+            - /path/to/media:/data/media:ro
+            # Persist downloaded model weights across container updates.
+            - sonic-model-cache:/app/.cache/huggingface
+            # Offline weights (also set SONIC_MODEL_FP above):
+            # - /path/to/clap-2023.pth:/models/clap-2023.pth:ro
+            # Keep the memory cap: oversized audio must not exhaust the host.
+            # Memory controls: workers/sonic-embedder/README.md
+        deploy:
+            resources:
+                limits:
+                    memory: 6g
+                    # Leave CPU headroom for other services; keep SONIC_EMBEDDER_THREADS <= this limit.
+                    cpus: '4'
+                # Optional NVIDIA model acceleration; requires NVIDIA Container Toolkit.
+                # reservations:
+                #     devices:
+                #         - driver: nvidia
+                #           count: all
+                #           capabilities: [gpu]
+        depends_on:
+            lumastra-postgres:
+                condition: service_healthy
+        networks:
+            - lumastra-network
+
+    # Optional Live TV stream proxy (own profile): keeps Live TV streams off the web container.
+    lumastra-proxy:
+        # Set STREAM_PROXY_SECRET before starting:
+        # docker compose --profile livetv-proxy up -d
+        profiles: ['livetv-proxy']
+        image: ghcr.io/lumastra/lumastra:stable
+        container_name: lumastra-proxy
+        restart: unless-stopped
+        # Same hardening as the app service (same image, unprivileged user).
+        security_opt:
+            - no-new-privileges:true
+        cap_drop:
+            - ALL
+        stop_grace_period: 15s # 10s force-exit + 5s buffer before Docker SIGKILL
+        volumes:
+            # Read-only binary cache only: NEVER mount config:/config here (it contains master.key).
+            # Web/worker populate this cache; the proxy must not modify binaries they execute.
+            - ffmpeg-cache:/config/bin:ro
+        logging:
+            driver: json-file
+            options:
+                max-size: '20m'
+                max-file: '10'
+                compress: 'true'
+        environment:
+            # Checked at runtime; requiring it here would also block users without this profile.
+            STREAM_PROXY_SECRET: '${STREAM_PROXY_SECRET:-}'
+            PORT: '3000'
+            # The task Valkey: the proxy writes its cluster heartbeat (Admin -> Cluster) and Live TV
+            TASK_CACHE_URL: 'redis://default:${TASK_CACHE_PASSWORD:-${CACHE_PASSWORD}}@lumastra-valkey:6379/0'
+            # Encoders are shared by channel/rung; a full adaptive ladder reserves four.
+            # LIVETV_MAX_EGRESS_ENCODERS: '4'
+            # LIVETV_SHUTDOWN_DRAIN_SECONDS: '5'
+            # Must match the app's upstream HTTP CONNECT proxy, if configured:
+            # LIVETV_UPSTREAM_PROXY_URL: 'http://forward-proxy:8080'
+            # Keep command (not entrypoint) so tini reaps FFmpeg children.
+        command: ['sh', 'start-proxy.sh']
+        healthcheck:
+            test:
+                ['CMD-SHELL', 'curl -sf http://localhost:3000/status | grep -q "\"healthy\":true"']
+            interval: 5s
+            timeout: 3s
+            start_period: 10s
+            retries: 3
+        networks:
+            - lumastra-network
+
+    # Database: all library data, users and search vectors (PostgreSQL 18 + pgvector).
+    lumastra-postgres:
+        # NOTE: pg18+ requires mounting /var/lib/postgresql (not /data subdirectory)
+        image: pgvector/pgvector:pg18
+        # Shared-memory headroom for parallel queries on large libraries.
+        shm_size: 1gb
+        # Tune shared_buffers for available RAM; high JIT thresholds avoid overhead on browse queries.
+        # https://lumastra.org/guides/performance-tuning/
+        command: >
+            postgres
+            -c shared_buffers=${POSTGRES_SHARED_BUFFERS:-512MB}
+            -c jit_above_cost=10000000
+            -c jit_optimize_above_cost=50000000
+            -c jit_inline_above_cost=50000000
+        logging:
+            driver: json-file
+            options:
+                max-size: '10m'
+                max-file: '5'
+                compress: 'true'
+        environment:
+            POSTGRES_DB: lumastra
+            POSTGRES_USER: lumastra
+            POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
+        volumes:
+            - lumastra_postgres_data:/var/lib/postgresql
+            # Schema is auto-migrated by the application on startup - no init SQL needed
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U lumastra -d lumastra || exit 1']
+            interval: 30s
+            timeout: 10s
+            retries: 10
+            start_period: 60s
+        restart: unless-stopped
+        networks:
+            - lumastra-network
+
+    # Task Valkey (TASK_CACHE_URL): the durable job queue and locks. Never evicts, saved to disk.
+    # Idle RAM roughly 10 MB.
+    # Upgrading an existing RDB-only Valkey? Do NOT just add --appendonly yes and restart: it would
+    # start empty. First run on the live server: CONFIG SET appendonly yes (and CONFIG SET
+    # maxmemory-policy noeviction), wait for INFO persistence to show aof_rewrite_in_progress:0 and
+    # aof_last_bgrewrite_status:ok, then restart with the flags below. Steps:
+    # https://lumastra.org/guides/deploy-docker/#upgrading-to-the-dedicated-worker-and-two-valkeys
+    lumastra-valkey:
+        image: valkey/valkey:9-alpine
+        logging:
+            driver: json-file
+            options:
+                max-size: '5m'
+                max-file: '3'
+                compress: 'true'
+        environment:
+            # valkey-cli reads the password from REDISCLI_AUTH: used by the healthcheck below and by
+            # `docker compose exec lumastra-valkey valkey-cli ...`, so it never shows in a command line.
+            - REDISCLI_AUTH=${TASK_CACHE_PASSWORD:-${CACHE_PASSWORD:?CACHE_PASSWORD is required}}
+        volumes:
+            - lumastra_valkey_data:/data
+        restart: unless-stopped
+        # Persist task/coordination writes with AOF, synced every second.
+        # Never evict jobs or locks; the separate application cache is disposable.
+        command: >
+            valkey-server
+            --requirepass ${TASK_CACHE_PASSWORD:-${CACHE_PASSWORD}}
+            --maxmemory-policy noeviction --appendonly yes --appendfsync everysec
+        healthcheck:
+            test: ['CMD-SHELL', 'valkey-cli ping | grep -q PONG']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+        networks:
+            - lumastra-network
+
+    # Cache Valkey (CACHE_URL): disposable cache, safe to lose, capped by CACHE_VALKEY_MAXMEMORY.
+    # Idle RAM roughly 10 MB.
+    lumastra-valkey-cache:
+        image: valkey/valkey:9-alpine
+        environment:
+            - REDISCLI_AUTH=${CACHE_PASSWORD}
+        restart: unless-stopped
+        command: >
+            valkey-server
+            --requirepass ${CACHE_PASSWORD}
+            --maxmemory ${CACHE_VALKEY_MAXMEMORY:-1024mb}
+            --maxmemory-policy allkeys-lru
+            --save ""
+            --appendonly no
+        healthcheck:
+            test: ['CMD-SHELL', 'valkey-cli ping | grep -q PONG']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+        networks:
+            - lumastra-network
+
+# Keep project-scoped volumes: fixed names can make separate installations share data.
+# Existing installations must preserve their volume names before changing project/folder names.
+volumes:
+    lumastra_postgres_data:
+        driver: local
+    lumastra_valkey_data:
+        driver: local
+    cache:
+        driver: local
+    config:
+        driver: local
+    # Separate binary cache: the proxy must never receive the config volume.
+    ffmpeg-cache:
+        driver: local
+    plugins:
+        driver: local
+    # Downloaded sonic model weights.
+    sonic-model-cache:
+        driver: local
+
+networks:
+    lumastra-network:
+        driver: bridge
+
+# Configure integrations and feature flags in the setup wizard / Admin -> Settings.
+# Environment reference: https://lumastra.org/reference/environment-variables/
+# Health check: curl http://localhost:3000/api/health

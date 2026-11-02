@@ -1,0 +1,31 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+*/ -}}
+{{- if and .Values.web.pdb.enabled (gt (int .Values.web.replicas) 1) }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "lumastra.component" (list . "web") }}
+  labels:
+    {{- include "lumastra.componentLabels" (list . "web") | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.web.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "lumastra.selectorLabels" (list . "web") | nindent 6 }}
+{{- end }}
+{{- if and .Values.router.enabled .Values.router.pdb.enabled (gt (int .Values.router.replicas) 1) }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "lumastra.component" (list . "router") }}
+  labels:
+    {{- include "lumastra.componentLabels" (list . "router") | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.router.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "lumastra.selectorLabels" (list . "router") | nindent 6 }}
+{{- end }}

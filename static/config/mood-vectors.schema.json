@@ -1,0 +1,108 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Mood Vectors Configuration",
+    "description": "Configuration for vector-based mood recommendations. Seeds define the direction for each mood by averaging their embeddings.",
+    "type": "object",
+    "properties": {
+        "settings": {
+            "type": "object",
+            "description": "Global mood vector settings",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable/disable mood vector recommendations",
+                    "default": true
+                },
+                "minSeedsRequired": {
+                    "type": "integer",
+                    "description": "Minimum number of seeds with embeddings required to generate a mood vector",
+                    "default": 3,
+                    "minimum": 1,
+                    "maximum": 10
+                },
+                "defaultLimit": {
+                    "type": "integer",
+                    "description": "Default number of recommendations to return",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100
+                },
+                "cacheTtlMinutes": {
+                    "type": "integer",
+                    "description": "Cache TTL for mood vectors in minutes",
+                    "default": 1440,
+                    "minimum": 1
+                }
+            }
+        },
+        "moods": {
+            "type": "array",
+            "description": "Array of mood configurations with their seed movies/shows",
+            "items": {
+                "$ref": "#/definitions/Mood"
+            }
+        }
+    },
+    "definitions": {
+        "Mood": {
+            "type": "object",
+            "required": ["key", "displayName", "description", "seeds"],
+            "properties": {
+                "key": {
+                    "type": "string",
+                    "description": "Unique identifier for the mood (used in API)",
+                    "pattern": "^[a-z][a-z0-9]*$",
+                    "examples": ["relaxing", "exciting", "brainfood"]
+                },
+                "displayName": {
+                    "type": "string",
+                    "description": "Display name shown in UI"
+                },
+                "displayNameDE": {
+                    "type": "string",
+                    "description": "Display name (German)"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Description of the mood"
+                },
+                "descriptionDE": {
+                    "type": "string",
+                    "description": "Description (German)"
+                },
+                "seeds": {
+                    "type": "array",
+                    "description": "Seed movies/shows that define this mood's vector direction. 8-12 seeds recommended for stable results.",
+                    "minItems": 3,
+                    "items": {
+                        "$ref": "#/definitions/Seed"
+                    }
+                },
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable/disable this mood",
+                    "default": true
+                }
+            }
+        },
+        "Seed": {
+            "type": "object",
+            "required": ["tmdbId", "mediaType"],
+            "properties": {
+                "tmdbId": {
+                    "type": "integer",
+                    "description": "TMDB ID of the movie or TV show"
+                },
+                "mediaType": {
+                    "type": "string",
+                    "enum": ["movie", "tv"],
+                    "description": "Whether this is a movie or TV show"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Title for documentation purposes (not used in code)"
+                }
+            }
+        }
+    }
+}

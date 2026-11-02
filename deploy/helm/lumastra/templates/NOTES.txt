@@ -1,0 +1,83 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+*/ -}}
+Lumastra chart {{ .Chart.Version }} (beta) — release "{{ .Release.Name }}" in "{{ .Release.Namespace }}", mode {{ .Values.mode }}.
+
+Entry Service: {{ include "lumastra.fullname" . }}:{{ .Values.service.port }} ({{ ternary "affinity router" "HTTP pods directly" .Values.router.enabled }})
+{{- if .Values.httpRoute.enabled }}
+HTTPRoute:     {{ include "lumastra.fullname" . }} → {{ join ", " .Values.httpRoute.hostnames }}
+{{- end }}
+
+First boot: migrations run inside the app pods (startupProbe allows ~15 min). Open
+{{ default "https://<your-host>" .Values.app.origin }}/setup to pick the sign-in method and create the first admin, then add
+library paths (Admin → Library) under the mountPaths from `libraries`.
+{{- if not .Values.app.origin }}
+
+WARNING: app.origin is empty. Set it to the public URL (Secure cookies, CSRF origin checks).
+{{- end }}
+{{- if not .Values.secrets.existingSecret }}
+
+WARNING: secrets.existingSecret is empty, so LUMASTRA_MASTER_KEY is not set. Several pods sharing
+/config then rely on the generated /config/master.key — set the key explicitly and back it up.
+{{- end }}
+{{- if and (gt (int .Values.web.replicas) 1) (not .Values.router.enabled) }}
+
+WARNING: {{ .Values.web.replicas }} web replicas without the router. HLS sessions will bounce between pods
+(503 + takeover after 15 s). Enable router.enabled or pin clients by other means.
+{{- end }}
+{{- if and .Values.auth.forwardAuth.enabled (not .Values.router.forwardAuth.enabled) }}
+
+NOTE: auth.forwardAuth is on but router.forwardAuth is off — something in front of this chart must
+authenticate every request and inject {{ .Values.auth.forwardAuth.userHeader }}/{{ .Values.auth.forwardAuth.groupHeader }}.
+{{- end }}
+{{- if and .Values.auth.forwardAuth.enabled (not .Values.auth.forwardAuth.trustedProxyIps) }}
+
+WARNING: auth.forwardAuth.trustedProxyIps is empty: the app ignores identity headers (fail-closed).
+Set it to the CIDR of the pods that send them ({{ ternary "the router pods = your pod network" "your authenticating proxy" .Values.router.enabled }}).
+{{- end }}
+{{- if and (or (gt (int .Values.web.replicas) 1) (and (gt (int .Values.web.replicas) 0) (gt (int .Values.worker.replicas) 0))) (has "ReadWriteOnce" (default list .Values.persistence.config.accessModes)) }}
+
+NOTE: /config is ReadWriteOnce: every web/worker pod must run on the same node (nodeSelector/affinity).
+{{- end }}
+{{- if and (eq (toString .Values.auth.native.enabled) "<nil>") (not .Values.auth.forwardAuth.enabled) (not .Values.auth.oidc.enabled) }}
+
+NOTE: no forward-auth/OIDC in these values, so built-in login is enabled (AUTH_NATIVE_LOGIN_ENABLED=true;
+the app refuses to start without a sign-in method). If OIDC is configured only in the Admin UI
+(migrated settings.json), set auth.native.enabled explicitly; false also needs
+auth.oidc.configuredInAdminUi: true.
+{{- end }}
+{{- $stopped := list }}
+{{- if eq (int .Values.web.replicas) 0 }}{{ $stopped = append $stopped "web" }}{{ end }}
+{{- if eq (int .Values.worker.replicas) 0 }}{{ $stopped = append $stopped "worker" }}{{ end }}
+{{- if and .Values.router.enabled (eq (int .Values.router.replicas) 0) }}{{ $stopped = append $stopped "router" }}{{ end }}
+{{- if and .Values.proxy.enabled (eq (int .Values.proxy.replicas) 0) }}{{ $stopped = append $stopped "proxy" }}{{ end }}
+{{- if and .Values.sonic.enabled (eq (int .Values.sonic.replicas) 0) }}{{ $stopped = append $stopped "sonic" }}{{ end }}
+{{- if eq .Values.valkey.mode "bundled" }}
+{{- if eq (int .Values.valkey.cache.replicas) 0 }}{{ $stopped = append $stopped "valkey-cache" }}{{ end }}
+{{- if eq (int .Values.valkey.tasks.replicas) 0 }}{{ $stopped = append $stopped "valkey-tasks" }}{{ end }}
+{{- end }}
+{{- if and (eq .Values.database.mode "cnpg") .Values.database.cnpg.hibernate }}{{ $stopped = append $stopped "postgres (hibernated)" }}{{ end }}
+{{- if $stopped }}
+
+STOPPED (replicas 0): {{ join ", " $stopped }}.
+{{- end }}
+{{- if .Values.router.enabled }}
+
+SCALING: the router has one upstream line per web slot, {{ max (int .Values.web.replicas) (int .Values.router.webSlots) }} now (the larger of web.replicas and
+router.webSlots). A web pod beyond that gets no traffic, so `kubectl scale statefulset` past it adds
+idle pods. Scale through web.replicas (helm upgrade or your GitOps values), which re-renders the
+router. For an HPA, set router.webSlots to its maxReplicas.
+{{- end }}
+{{- if and .Values.router.enabled (gt (int .Values.router.webSlots) (int .Values.web.replicas)) }}
+
+NOTE: router.webSlots ({{ .Values.router.webSlots }}) > web.replicas ({{ .Values.web.replicas }}): each router pod logs a DNS
+"could not be resolved" error for every empty slot every {{ .Values.router.dnsValid }}. Only needed with an HPA.
+{{- end }}
+
+Changing a referenced Secret (database, Valkey, master key, …) does not restart pods: roll them
+yourself (kubectl rollout restart) or use a tool such as Reloader.
+{{- if and (not .Values.image.digest) (has (toString .Values.image.tag) (list "stable" "latest" "main")) }}
+Image tag "{{ .Values.image.tag }}" moves: a helm upgrade alone will not roll pods to a new build. Pin
+image.digest (or a release tag) for reproducible upgrades.
+{{- end }}

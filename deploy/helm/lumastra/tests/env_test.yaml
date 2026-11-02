@@ -1,0 +1,116 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+# Env names are the contract with src/lib/server/config.ts — a typo renders valid YAML and ships.
+suite: app env (ConfigMap)
+templates: [templates/configmap-env.yaml]
+set:
+    secrets.existingSecret: lumastra
+tests:
+    - it: defaults
+      asserts:
+          - equal: { path: data.NODE_ENV, value: production }
+          - equal: { path: data.BASE_PATH, value: /config }
+          # Admin-UI auth settings are not rendered by default: the app default applies and a
+          # value saved in settings.json (setup wizard, migrated install) is not overridden.
+          # No SSO configured: native login is the only way in (the app's preflight requires one).
+          - equal: { path: data.AUTH_NATIVE_LOGIN_ENABLED, value: 'true' }
+          - notExists: { path: data.FEATURE_DEVICE_AUTH }
+          - notExists: { path: data.FEATURE_USER_PATS }
+          - notExists: { path: data.ADMIN_GROUPS }
+          - equal: { path: data.GPU_ACCELERATION, value: none }
+          - notExists: { path: data.USERHEADER }
+          # Forward auth is opt-in in the app: off unless auth.forwardAuth.enabled.
+          - notExists: { path: data.FORWARD_AUTH_ENABLED }
+          - notExists: { path: data.AUTH_OIDC_ENABLED }
+    - it: forward-auth renders the header names and the trusted peers
+      set:
+          auth.forwardAuth:
+              {
+                  enabled: true,
+                  userHeader: X-authentik-username,
+                  groupHeader: X-authentik-groups,
+                  nameHeader: X-authentik-name,
+                  trustedProxyIps: 10.42.0.0/16,
+                  groupsAlwaysSent: true,
+              }
+      asserts:
+          - equal: { path: data.FORWARD_AUTH_ENABLED, value: 'true' }
+          - equal: { path: data.USERHEADER, value: X-authentik-username }
+          - equal: { path: data.GROUPHEADER, value: X-authentik-groups }
+          - equal: { path: data.NAMEHEADER, value: X-authentik-name }
+          - equal: { path: data.TRUSTED_PROXY_IPS, value: 10.42.0.0/16 }
+          - equal: { path: data.FORWARD_AUTH_GROUPS_ALWAYS_SENT, value: 'true' }
+    - it: OIDC renders issuer/client/claims
+      set:
+          auth.oidc:
+              {
+                  enabled: true,
+                  issuer: 'https://idp.example.com/',
+                  clientId: lumastra,
+                  groupsClaim: roles,
+                  scopes: openid profile,
+              }
+      asserts:
+          - equal: { path: data.AUTH_OIDC_ENABLED, value: 'true' }
+          - equal: { path: data.AUTH_OIDC_ISSUER, value: 'https://idp.example.com/' }
+          - equal: { path: data.AUTH_OIDC_CLIENT_ID, value: lumastra }
+          - equal: { path: data.AUTH_OIDC_GROUPS_CLAIM, value: roles }
+          - equal: { path: data.AUTH_OIDC_SCOPES, value: openid profile }
+    - it: OIDC without an issuer fails
+      set: { auth.oidc: { enabled: true, clientId: lumastra } }
+      asserts:
+          - failedTemplate: { errorPattern: auth.oidc.issuer is required }
+    - it: app.env wins over features and concurrency; values are strings
+      set:
+          features: { FEATURE_LIVETV: true }
+          concurrency: { LUMASTRA_CONCURRENCY_CPU: 4 }
+          app.env: { FEATURE_LIVETV: 'false' }
+      asserts:
+          - equal: { path: data.FEATURE_LIVETV, value: 'false' }
+          - equal: { path: data.LUMASTRA_CONCURRENCY_CPU, value: '4' }
+    - it: integrations render the server-side and the browser-facing URL separately
+      set:
+          integrations.audiobookshelf:
+              {
+                  url: 'http://audiobookshelf.audiobookshelf.svc.cluster.local:13378',
+                  publicUrl: 'https://audio.example.com',
+                  apiKey: { key: ABS_KEY },
+              }
+          integrations.sonarr:
+              { url: 'http://sonarr:8989', publicUrl: 'https://ignored.example.com' }
+      asserts:
+          - equal:
+                {
+                    path: data.AUDIOURL,
+                    value: 'http://audiobookshelf.audiobookshelf.svc.cluster.local:13378',
+                }
+          - equal: { path: data.PUBLIC_AUDIOBOOKURL, value: 'https://audio.example.com' }
+          - equal: { path: data.SONARRURL, value: 'http://sonarr:8989' }
+          - notExists: { path: data.AUDIOAPIKEY }
+          - notExists: { path: data.KAVITAURL }
+    - it: auth settings render only when set, false included
+      set:
+          auth.native.enabled: false
+          auth.userPats: true
+          auth.deviceAuth: false
+          auth.adminGroups: Admins,Ops
+      asserts:
+          - equal: { path: data.AUTH_NATIVE_LOGIN_ENABLED, value: 'false' }
+          - equal: { path: data.FEATURE_USER_PATS, value: 'true' }
+          - equal: { path: data.FEATURE_DEVICE_AUTH, value: 'false' }
+          - equal: { path: data.ADMIN_GROUPS, value: 'Admins,Ops' }
+    - it: forward-auth leaves FORWARD_AUTH_GROUPS_ALWAYS_SENT to the app unless set
+      set: { auth.forwardAuth: { enabled: true, trustedProxyIps: 10.42.0.0/16 } }
+      asserts:
+          - equal: { path: data.USERHEADER, value: X-Forwarded-User }
+          - notExists: { path: data.FORWARD_AUTH_GROUPS_ALWAYS_SENT }
+          # SSO configured: native login left to settings.json / the app default.
+          - notExists: { path: data.AUTH_NATIVE_LOGIN_ENABLED }
+    - it: OIDC leaves native login to settings.json unless set
+      set: { auth.oidc: { enabled: true, issuer: 'https://idp.example.com/', clientId: lumastra } }
+      asserts:
+          - notExists: { path: data.AUTH_NATIVE_LOGIN_ENABLED }
+    - it: a non-boolean auth flag fails
+      set: { auth.userPats: 'yes' }
+      asserts:
+          - failedTemplate: { errorPattern: 'FEATURE_USER_PATS: expected true, false or null' }

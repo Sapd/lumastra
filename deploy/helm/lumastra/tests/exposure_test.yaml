@@ -1,0 +1,120 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+suite: ingress, ServiceMonitor, CNPG backups, guards
+set:
+    secrets.existingSecret: lumastra
+tests:
+    - it: Ingress routes to the entry Service and adds the ingress-nginx streaming defaults
+      template: templates/ingress.yaml
+      set:
+          ingress:
+              {
+                  enabled: true,
+                  className: nginx,
+                  hosts: [{ host: lumastra.example.com }],
+                  annotations: { nginx.ingress.kubernetes.io/proxy-read-timeout: '7200' },
+              }
+      asserts:
+          - equal:
+                {
+                    path: 'spec.rules[0].http.paths[0].backend.service',
+                    value: { name: RELEASE-NAME-lumastra, port: { number: 80 } },
+                }
+          - equal:
+                {
+                    path: 'metadata.annotations["nginx.ingress.kubernetes.io/proxy-body-size"]',
+                    value: 50m,
+                }
+          - equal:
+                {
+                    path: 'metadata.annotations["nginx.ingress.kubernetes.io/proxy-buffering"]',
+                    value: 'off',
+                }
+          - equal:
+                {
+                    path: 'metadata.annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"]',
+                    value: '7200',
+                }
+    - it: no ingress-nginx annotations for other classes
+      template: templates/ingress.yaml
+      set: { ingress: { enabled: true, className: traefik, hosts: [{ host: a.example.com }] } }
+      asserts:
+          - notExists: { path: metadata.annotations }
+    - it: ServiceMonitor scrapes web and worker with the bearer token
+      template: templates/servicemonitor.yaml
+      set:
+          serviceMonitor: { enabled: true, bearerTokenSecret: { name: lumastra, key: METRICS } }
+          # The internal worker NetworkPolicy needs the scraper as a metrics peer.
+          networkPolicy.metricsFrom: [{ podSelector: { matchLabels: { app: prometheus } } }]
+      asserts:
+          - equal: { path: 'spec.selector.matchExpressions[0].values', value: [web, worker] }
+          - equal: { path: 'spec.endpoints[0].path', value: /metrics }
+          - equal:
+                {
+                    path: 'spec.endpoints[0].authorization.credentials',
+                    value: { name: lumastra, key: METRICS },
+                }
+    - it: the worker has a headless metrics Service matching the ServiceMonitor port
+      template: templates/services.yaml
+      documentIndex: 2
+      asserts:
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-worker-metrics }
+          - equal: { path: 'spec.selector["app.kubernetes.io/component"]', value: worker }
+          - equal: { path: 'spec.ports[0].name', value: http }
+    - it: CNPG backups render the plugin, ObjectStore and ScheduledBackup
+      template: templates/cnpg.yaml
+      set:
+          database.mode: cnpg
+          database.cnpg.backup:
+              {
+                  enabled: true,
+                  configuration: { destinationPath: 's3://b/l' },
+                  schedule: '0 0 3 * * *',
+              }
+      asserts:
+          - equal:
+                {
+                    path: 'spec.plugins[0].parameters.barmanObjectName',
+                    value: RELEASE-NAME-lumastra-postgres-backup,
+                }
+            documentIndex: 0
+          - isKind: { of: ObjectStore }
+            documentIndex: 1
+          - equal: { path: spec.configuration.destinationPath, value: 's3://b/l' }
+            documentIndex: 1
+          - equal: { path: spec.method, value: plugin }
+            documentIndex: 2
+    - it: CNPG backups without a configuration fail
+      template: templates/cnpg.yaml
+      set: { database.mode: cnpg, database.cnpg.backup.enabled: true }
+      asserts:
+          - failedTemplate: { errorPattern: database.cnpg.backup.configuration is required }
+    - it: extension ownership hand-over is opt-in and quotes identifiers
+      template: templates/cnpg.yaml
+      set:
+          {
+              database.mode: cnpg,
+              database.cnpg.transferExtensionOwnership: true,
+              database.cnpg.extensions: [uuid-ossp],
+          }
+      asserts:
+          - contains:
+                {
+                    path: spec.bootstrap.initdb.postInitApplicationSQL,
+                    content: 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public',
+                }
+          - contains:
+                path: spec.bootstrap.initdb.postInitApplicationSQL
+                content: "UPDATE pg_catalog.pg_extension SET extowner = (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'lumastra') WHERE extname IN ('uuid-ossp')"
+    - it: no catalog edit by default
+      template: templates/cnpg.yaml
+      set: { database.mode: cnpg }
+      asserts:
+          - lengthEqual: { path: spec.bootstrap.initdb.postInitApplicationSQL, count: 4 }
+    - it: tasks Valkey can run without a PVC
+      template: templates/valkey.yaml
+      set: { valkey.tasks.persistence.enabled: false }
+      asserts:
+          - hasDocuments: { count: 4 }
+          - equal: { path: 'spec.template.spec.volumes[0]', value: { name: data, emptyDir: {} } }
+            documentIndex: 3

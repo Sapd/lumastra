@@ -1,0 +1,72 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+# Everything at once: router + forward-auth + NetworkPolicies + proxy + sonic + CNPG with backups +
+# GPU + HTTPRoute + ServiceMonitor — catches combinations that only break together.
+image: { digest: 'sha256:1111111111111111111111111111111111111111111111111111111111111111' }
+proxy:
+    enabled: true
+    image: { tag: '0.1.0' } # a release tag (vX.Y.Z → X.Y.Z), or pin a digest
+app: { origin: https://lumastra.example.com, metadataStorageLocation: alongside }
+secrets:
+    existingSecret: lumastra
+    env:
+        LUMASTRA_MASTER_KEY: LUMASTRA_MASTER_KEY
+        LUMASTRA_METRICS_BEARER_TOKEN: METRICS_TOKEN
+features: { FEATURE_LIVETV: true, FEATURE_MUSIC_SONIC: true }
+auth:
+    native: { enabled: false }
+    forwardAuth:
+        {
+            enabled: true,
+            userHeader: X-authentik-username,
+            groupHeader: X-authentik-groups,
+            trustedProxyIps: 10.42.0.0/16,
+        }
+web: { replicas: 3 }
+router:
+    webSlots: 6
+    realIp: { fromCIDRs: [10.42.0.0/16] }
+    forwardAuth:
+        enabled: true
+        url: https://auth.example.com/outpost.goauthentik.io/auth/nginx
+        signinUrl: /outpost.goauthentik.io/start?rd=$lumastra_proto://$http_host$request_uri
+        responseHeaders: [X-authentik-username, X-authentik-groups]
+        extraPassthroughPaths: [/api/playback/]
+        outpost: { enabled: true, origin: https://auth.example.com }
+persistence:
+    ffmpegCache: { enabled: true }
+    dataAnnotations: { argocd.argoproj.io/sync-options: 'Prune=false,Delete=false' }
+libraries:
+    - { name: movies, mountPath: /data/movies, nfs: { server: 10.0.0.1, path: /export/movies } }
+    - { name: music, mountPath: /data/music, hostPath: /srv/music, music: true }
+gpu:
+    {
+        mode: resource,
+        acceleration: qsv,
+        resources: { gpu.intel.com/i915: 1 },
+        renderGroupId: 993,
+        components: [web, worker, proxy],
+    }
+sonic: { enabled: true }
+database:
+    mode: cnpg
+    cnpg:
+        sonicReader: { enabled: true, passwordSecret: lumastra-sonic-reader }
+        backup:
+            enabled: true
+            configuration:
+                destinationPath: s3://backups/lumastra
+                s3Credentials:
+                    accessKeyId: { name: s3, key: ACCESS_KEY_ID }
+                    secretAccessKey: { name: s3, key: ACCESS_SECRET_KEY }
+httpRoute:
+    {
+        enabled: true,
+        parentRefs: [{ name: gw, namespace: traefik }],
+        hostnames: [lumastra.example.com],
+    }
+networkPolicy:
+    enabled: true
+    ingressFrom: [{ namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: traefik } } }]
+    metricsFrom: [{ podSelector: { matchLabels: { app: vmagent } } }]
+serviceMonitor: { enabled: true, bearerTokenSecret: { name: lumastra, key: METRICS_TOKEN } }

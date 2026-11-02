@@ -1,0 +1,62 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/music/tracks/0fff5c4d-3336-4809-82bc-cace172c5e07"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "track": {
+      "id": "0fff5c4d-3336-4809-82bc-cace172c5e07",
+      "type": "track",
+      "title": "01 - Gute Nacht (CK 2946-2, ES 383)",
+      "artists": [
+        {
+          "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+          "title": "Franz Schubert"
+        }
+      ],
+      "albumArtist": {
+        "id": null,
+        "title": "Franz Schubert"
+      },
+      "album": {
+        "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+        "title": "Schubert - Selected Works"
+      },
+      "trackNumber": 1,
+      "discNumber": null,
+      "durationMs": 249000,
+      "genres": [
+        "Classical"
+      ],
+      "year": null,
+      "images": {
+        "primary": {
+          "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+          "variants": {
+            "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+            "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+          },
+          "revision": "5117ea152dbc",
+          "source": "album",
+          "placeholder": {
+            "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+          }
+        }
+      },
+      "isRadio": false,
+      "lyrics": {
+        "plain": null,
+        "synced": null,
+        "source": "lrclib",
+        "fetchedAt": "2026-09-12T13:48:07.489Z"
+      }
+    },
+    "userContext": {
+      "feedback": null
+    }
+  },
+  "baselineProblems": []
+}

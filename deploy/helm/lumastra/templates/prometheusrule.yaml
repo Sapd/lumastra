@@ -1,0 +1,78 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+
+Optional prometheus-operator alerts for the dedicated task worker. Off by default.
+Metric names are documented in src/lib/server/tasks/metrics.ts.
+*/ -}}
+{{- if and .Values.metrics .Values.metrics.prometheusRule .Values.metrics.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "lumastra.fullname" . }}-worker
+  labels:
+    {{- include "lumastra.labels" . | nindent 4 }}
+    {{- with .Values.metrics.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: {{ include "lumastra.fullname" . }}.worker
+      rules:
+        - alert: LumastraWorkerLoopsStalled
+          expr: time() - min by (instance) (lumastra_task_runtime_last_tick_timestamp_seconds) > 600
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Task worker scheduler and consumers have not turned over for 10 minutes
+        - alert: LumastraWorkerUpgradeNotResumed
+          expr: max by (instance) (lumastra_task_runtime_upgrade_state{state=~"preparing|prepared|unknown"}) == 1
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Task worker has been in a prepared or unknown upgrade state for 30 minutes
+        - alert: LumastraWorkerLeaseNotHeld
+          # `or vector(0)`: with no worker running the series is absent and the
+          # plain sum would return nothing, so the alert would never fire.
+          expr: (sum(lumastra_task_runtime_singleton_lease_held) or vector(0)) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: No task worker holds the singleton lease (or no worker is running)
+        - alert: LumastraWorkerLeaseRenewStale
+          expr: max by (instance) (lumastra_task_runtime_singleton_lease_seconds_since_renew) > 30
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: A task worker has not renewed the singleton lease for more than 30 seconds
+        - alert: LumastraWatcherNotReady
+          expr: max by (instance) (lumastra_task_runtime_watcher_state{state=~"degraded|failed"}) == 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: The library file watcher is degraded or failed
+        - alert: LumastraWatcherRestarting
+          expr: increase(lumastra_task_runtime_watcher_restarts_total[1h]) > 3
+          labels:
+            severity: warning
+          annotations:
+            summary: The library file watcher restarted more than 3 times in the last hour
+        - alert: LumastraWorkerUncaughtExceptions
+          expr: increase(lumastra_task_runtime_uncaught_exceptions_total[15m]) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: The task worker logged uncaught exceptions
+        - alert: LumastraQueueBacklogWithoutConsumers
+          expr: sum(max by (queue) (lumastra_task_queue_depth)) > 0 unless on() (sum(lumastra_task_runtime_consumers{condition="running"}) > 0)
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Jobs are waiting in the task queues and no worker consumer is running
+{{- end }}

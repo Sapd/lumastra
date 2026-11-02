@@ -1,0 +1,319 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/music/sonic-mixes"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": 0,
+        "label": "March · Choral · Stings",
+        "trackCount": 13,
+        "topGenres": [
+          "March",
+          "Choral",
+          "Stings"
+        ],
+        "topArtists": [
+          "John Philip Sousa",
+          "Kevin MacLeod",
+          "Claude Debussy"
+        ],
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=063f78a8-38c5-4a8c-93cb-d18d534b6d9b,07778a87-4c0a-44eb-ae1a-6e4cea41bc0c,0d6c4e24-f345-4594-b683-1162b1762a5a,2910c397-6401-4383-abea-c0a27919c0fd&size=card&v=ae01322b1cf22a99",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=063f78a8-38c5-4a8c-93cb-d18d534b6d9b,07778a87-4c0a-44eb-ae1a-6e4cea41bc0c,0d6c4e24-f345-4594-b683-1162b1762a5a,2910c397-6401-4383-abea-c0a27919c0fd&size=thumb&v=ae01322b1cf22a99",
+              "card": "/api/v1/music/images/collage?ids=063f78a8-38c5-4a8c-93cb-d18d534b6d9b,07778a87-4c0a-44eb-ae1a-6e4cea41bc0c,0d6c4e24-f345-4594-b683-1162b1762a5a,2910c397-6401-4383-abea-c0a27919c0fd&size=card&v=ae01322b1cf22a99",
+              "full": "/api/v1/music/images/collage?ids=063f78a8-38c5-4a8c-93cb-d18d534b6d9b,07778a87-4c0a-44eb-ae1a-6e4cea41bc0c,0d6c4e24-f345-4594-b683-1162b1762a5a,2910c397-6401-4383-abea-c0a27919c0fd&size=full&v=ae01322b1cf22a99"
+            },
+            "revision": "ae01322b1cf22a99",
+            "source": "generated"
+          }
+        }
+      },
+      {
+        "id": 1,
+        "label": "Classical",
+        "trackCount": 23,
+        "topGenres": [
+          "Classical"
+        ],
+        "topArtists": [
+          "Johann Sebastian Bach"
+        ],
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=04091254-9117-41e9-ae46-54462a67a8b3&size=card&v=845b187cf8bbdfad",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=04091254-9117-41e9-ae46-54462a67a8b3&size=thumb&v=845b187cf8bbdfad",
+              "card": "/api/v1/music/images/collage?ids=04091254-9117-41e9-ae46-54462a67a8b3&size=card&v=845b187cf8bbdfad",
+              "full": "/api/v1/music/images/collage?ids=04091254-9117-41e9-ae46-54462a67a8b3&size=full&v=845b187cf8bbdfad"
+            },
+            "revision": "845b187cf8bbdfad",
+            "source": "generated"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "label": "Ragtime · Waltz · Americana",
+        "trackCount": 32,
+        "topGenres": [
+          "Ragtime",
+          "Waltz",
+          "Americana"
+        ],
+        "topArtists": [
+          "Kevin MacLeod",
+          "Erik Satie",
+          "Scott Joplin"
+        ],
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=0231ca2a-bd3a-41f9-aa97-1d564532a37c,151b3e4d-800b-44f8-8f81-73872b67e9b7,188ec202-130a-40ff-8e01-dc679cd5bcf0,4278ca02-535e-488b-b63f-ec8518dc574f&size=card&v=817dcf58d534fd31",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=0231ca2a-bd3a-41f9-aa97-1d564532a37c,151b3e4d-800b-44f8-8f81-73872b67e9b7,188ec202-130a-40ff-8e01-dc679cd5bcf0,4278ca02-535e-488b-b63f-ec8518dc574f&size=thumb&v=817dcf58d534fd31",
+              "card": "/api/v1/music/images/collage?ids=0231ca2a-bd3a-41f9-aa97-1d564532a37c,151b3e4d-800b-44f8-8f81-73872b67e9b7,188ec202-130a-40ff-8e01-dc679cd5bcf0,4278ca02-535e-488b-b63f-ec8518dc574f&size=card&v=817dcf58d534fd31",
+              "full": "/api/v1/music/images/collage?ids=0231ca2a-bd3a-41f9-aa97-1d564532a37c,151b3e4d-800b-44f8-8f81-73872b67e9b7,188ec202-130a-40ff-8e01-dc679cd5bcf0,4278ca02-535e-488b-b63f-ec8518dc574f&size=full&v=817dcf58d534fd31"
+            },
+            "revision": "817dcf58d534fd31",
+            "source": "generated"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "label": "Soundtrack · Swing · Waltz",
+        "trackCount": 24,
+        "topGenres": [
+          "Soundtrack",
+          "Swing",
+          "Waltz"
+        ],
+        "topArtists": [
+          "Kevin MacLeod"
+        ],
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=07f1a316-cf70-4ed2-84fc-d30780331864,1883490f-d63f-4f56-b213-fa6257113a9f,189aa15c-3d3c-4249-a03c-11d8d47a78d9,18ea5208-4156-4b67-b71a-8f7070e93d68&size=card&v=ec26cd4ccbc09dec",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=07f1a316-cf70-4ed2-84fc-d30780331864,1883490f-d63f-4f56-b213-fa6257113a9f,189aa15c-3d3c-4249-a03c-11d8d47a78d9,18ea5208-4156-4b67-b71a-8f7070e93d68&size=thumb&v=ec26cd4ccbc09dec",
+              "card": "/api/v1/music/images/collage?ids=07f1a316-cf70-4ed2-84fc-d30780331864,1883490f-d63f-4f56-b213-fa6257113a9f,189aa15c-3d3c-4249-a03c-11d8d47a78d9,18ea5208-4156-4b67-b71a-8f7070e93d68&size=card&v=ec26cd4ccbc09dec",
+              "full": "/api/v1/music/images/collage?ids=07f1a316-cf70-4ed2-84fc-d30780331864,1883490f-d63f-4f56-b213-fa6257113a9f,189aa15c-3d3c-4249-a03c-11d8d47a78d9,18ea5208-4156-4b67-b71a-8f7070e93d68&size=full&v=ec26cd4ccbc09dec"
+            },
+            "revision": "ec26cd4ccbc09dec",
+            "source": "generated"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "label": "March · Classical",
+        "trackCount": 33,
+        "topGenres": [
+          "March",
+          "Classical"
+        ],
+        "topArtists": [
+          "Franz Schubert",
+          "John Philip Sousa",
+          "Tango de los Tientos"
+        ],
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=0026644e-de14-4db9-9526-77699da27752,04005047-5c56-493f-9c51-d79e27e158fa,0c248552-95d0-417c-8476-fc00f6bd2ff9,1ba1ce0f-6713-4dff-b7b8-47bd15159a5c&size=card&v=81da2321b1133ad5",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=0026644e-de14-4db9-9526-77699da27752,04005047-5c56-493f-9c51-d79e27e158fa,0c248552-95d0-417c-8476-fc00f6bd2ff9,1ba1ce0f-6713-4dff-b7b8-47bd15159a5c&size=thumb&v=81da2321b1133ad5",
+              "card": "/api/v1/music/images/collage?ids=0026644e-de14-4db9-9526-77699da27752,04005047-5c56-493f-9c51-d79e27e158fa,0c248552-95d0-417c-8476-fc00f6bd2ff9,1ba1ce0f-6713-4dff-b7b8-47bd15159a5c&size=card&v=81da2321b1133ad5",
+              "full": "/api/v1/music/images/collage?ids=0026644e-de14-4db9-9526-77699da27752,04005047-5c56-493f-9c51-d79e27e158fa,0c248552-95d0-417c-8476-fc00f6bd2ff9,1ba1ce0f-6713-4dff-b7b8-47bd15159a5c&size=full&v=81da2321b1133ad5"
+            },
+            "revision": "81da2321b1133ad5",
+            "source": "generated"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "label": "Classical",
+        "trackCount": 18,
+        "topGenres": [
+          "Classical"
+        ],
+        "topArtists": [
+          "Wolfgang Amadeus Mozart",
+          "Ludwig van Beethoven"
+        ],
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=03c8f43b-6d0b-437a-81bf-5d34ace38a04,1a2c84db-c6e0-4a55-b8f1-fdf6a3c3a205&size=card&v=ed8ae63f36325fe4",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=03c8f43b-6d0b-437a-81bf-5d34ace38a04,1a2c84db-c6e0-4a55-b8f1-fdf6a3c3a205&size=thumb&v=ed8ae63f36325fe4",
+              "card": "/api/v1/music/images/collage?ids=03c8f43b-6d0b-437a-81bf-5d34ace38a04,1a2c84db-c6e0-4a55-b8f1-fdf6a3c3a205&size=card&v=ed8ae63f36325fe4",
+              "full": "/api/v1/music/images/collage?ids=03c8f43b-6d0b-437a-81bf-5d34ace38a04,1a2c84db-c6e0-4a55-b8f1-fdf6a3c3a205&size=full&v=ed8ae63f36325fe4"
+            },
+            "revision": "ed8ae63f36325fe4",
+            "source": "generated"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "label": "Dixieland · Latin · Funk",
+        "trackCount": 38,
+        "topGenres": [
+          "Dixieland",
+          "Latin",
+          "Funk"
+        ],
+        "topArtists": [
+          "Kevin MacLeod",
+          "Various Artists"
+        ],
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=053bcc01-0ef2-45a3-adc1-87e146a73cfd,14cfc5cd-f1dd-49b1-b2af-09ebacce3724,2b7c73a0-1d0e-4126-a0ee-b62d3bce7e4b,2ecd80e9-3377-443a-b7d5-4aa9351ed3f3&size=card&v=bc8c420bcc0bde95",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=053bcc01-0ef2-45a3-adc1-87e146a73cfd,14cfc5cd-f1dd-49b1-b2af-09ebacce3724,2b7c73a0-1d0e-4126-a0ee-b62d3bce7e4b,2ecd80e9-3377-443a-b7d5-4aa9351ed3f3&size=thumb&v=bc8c420bcc0bde95",
+              "card": "/api/v1/music/images/collage?ids=053bcc01-0ef2-45a3-adc1-87e146a73cfd,14cfc5cd-f1dd-49b1-b2af-09ebacce3724,2b7c73a0-1d0e-4126-a0ee-b62d3bce7e4b,2ecd80e9-3377-443a-b7d5-4aa9351ed3f3&size=card&v=bc8c420bcc0bde95",
+              "full": "/api/v1/music/images/collage?ids=053bcc01-0ef2-45a3-adc1-87e146a73cfd,14cfc5cd-f1dd-49b1-b2af-09ebacce3724,2b7c73a0-1d0e-4126-a0ee-b62d3bce7e4b,2ecd80e9-3377-443a-b7d5-4aa9351ed3f3&size=full&v=bc8c420bcc0bde95"
+            },
+            "revision": "bc8c420bcc0bde95",
+            "source": "generated"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "label": "Classical",
+        "trackCount": 6,
+        "topGenres": [
+          "Classical"
+        ],
+        "topArtists": [
+          "Erik Satie",
+          "Kevin MacLeod"
+        ],
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=1b12704f-cb3f-4c42-84a3-6c63f57c3ff1,4de55c91-484f-4554-8adc-92e3b98a7a80&size=card&v=082ff792f0dc6d5c",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=1b12704f-cb3f-4c42-84a3-6c63f57c3ff1,4de55c91-484f-4554-8adc-92e3b98a7a80&size=thumb&v=082ff792f0dc6d5c",
+              "card": "/api/v1/music/images/collage?ids=1b12704f-cb3f-4c42-84a3-6c63f57c3ff1,4de55c91-484f-4554-8adc-92e3b98a7a80&size=card&v=082ff792f0dc6d5c",
+              "full": "/api/v1/music/images/collage?ids=1b12704f-cb3f-4c42-84a3-6c63f57c3ff1,4de55c91-484f-4554-8adc-92e3b98a7a80&size=full&v=082ff792f0dc6d5c"
+            },
+            "revision": "082ff792f0dc6d5c",
+            "source": "generated"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "label": "Holiday · Stings · World",
+        "trackCount": 19,
+        "topGenres": [
+          "Holiday",
+          "Stings",
+          "World"
+        ],
+        "topArtists": [
+          "Kevin MacLeod",
+          "Wolfgang Amadeus Mozart"
+        ],
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=0d44f2ab-8bec-4a50-ad4a-3df1cdeb92b2,1e6d402f-ec23-472d-a482-754293560499,4b87b4bc-47da-48d3-b1bb-be4d03c8d803,71f9a5e8-de76-42c1-a192-41f29235ead4&size=card&v=2738c169983b9a4a",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=0d44f2ab-8bec-4a50-ad4a-3df1cdeb92b2,1e6d402f-ec23-472d-a482-754293560499,4b87b4bc-47da-48d3-b1bb-be4d03c8d803,71f9a5e8-de76-42c1-a192-41f29235ead4&size=thumb&v=2738c169983b9a4a",
+              "card": "/api/v1/music/images/collage?ids=0d44f2ab-8bec-4a50-ad4a-3df1cdeb92b2,1e6d402f-ec23-472d-a482-754293560499,4b87b4bc-47da-48d3-b1bb-be4d03c8d803,71f9a5e8-de76-42c1-a192-41f29235ead4&size=card&v=2738c169983b9a4a",
+              "full": "/api/v1/music/images/collage?ids=0d44f2ab-8bec-4a50-ad4a-3df1cdeb92b2,1e6d402f-ec23-472d-a482-754293560499,4b87b4bc-47da-48d3-b1bb-be4d03c8d803,71f9a5e8-de76-42c1-a192-41f29235ead4&size=full&v=2738c169983b9a4a"
+            },
+            "revision": "2738c169983b9a4a",
+            "source": "generated"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "label": "Electronic · Funk · Holiday",
+        "trackCount": 18,
+        "topGenres": [
+          "Electronic",
+          "Funk",
+          "Holiday"
+        ],
+        "topArtists": [
+          "Kevin MacLeod"
+        ],
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=00cd7d78-66bd-42f3-a97c-b6ba4b16ccdf,388f38ce-cd3e-4872-b062-c504404348de,3fc027fb-492b-44e8-be20-bfa5f57c966b,496bd43f-ea9b-46b7-9785-0506668a41e4&size=card&v=e35ca2f91f1febbc",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=00cd7d78-66bd-42f3-a97c-b6ba4b16ccdf,388f38ce-cd3e-4872-b062-c504404348de,3fc027fb-492b-44e8-be20-bfa5f57c966b,496bd43f-ea9b-46b7-9785-0506668a41e4&size=thumb&v=e35ca2f91f1febbc",
+              "card": "/api/v1/music/images/collage?ids=00cd7d78-66bd-42f3-a97c-b6ba4b16ccdf,388f38ce-cd3e-4872-b062-c504404348de,3fc027fb-492b-44e8-be20-bfa5f57c966b,496bd43f-ea9b-46b7-9785-0506668a41e4&size=card&v=e35ca2f91f1febbc",
+              "full": "/api/v1/music/images/collage?ids=00cd7d78-66bd-42f3-a97c-b6ba4b16ccdf,388f38ce-cd3e-4872-b062-c504404348de,3fc027fb-492b-44e8-be20-bfa5f57c966b,496bd43f-ea9b-46b7-9785-0506668a41e4&size=full&v=e35ca2f91f1febbc"
+            },
+            "revision": "e35ca2f91f1febbc",
+            "source": "generated"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "label": "Choral · Stings",
+        "trackCount": 6,
+        "topGenres": [
+          "Choral",
+          "Stings"
+        ],
+        "topArtists": [
+          "Debussy",
+          "Beethoven",
+          "Kevin MacLeod"
+        ],
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=0638ec3c-6bba-4898-a67b-3761109473d9,32771c39-a718-4923-b431-8881e420dae8,5bd89003-7acc-4551-a3b8-6de2e060a8b4,706a1f74-47a8-4582-9ee3-6bf4ff0886c6&size=card&v=168d9cb2f2e32c15",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=0638ec3c-6bba-4898-a67b-3761109473d9,32771c39-a718-4923-b431-8881e420dae8,5bd89003-7acc-4551-a3b8-6de2e060a8b4,706a1f74-47a8-4582-9ee3-6bf4ff0886c6&size=thumb&v=168d9cb2f2e32c15",
+              "card": "/api/v1/music/images/collage?ids=0638ec3c-6bba-4898-a67b-3761109473d9,32771c39-a718-4923-b431-8881e420dae8,5bd89003-7acc-4551-a3b8-6de2e060a8b4,706a1f74-47a8-4582-9ee3-6bf4ff0886c6&size=card&v=168d9cb2f2e32c15",
+              "full": "/api/v1/music/images/collage?ids=0638ec3c-6bba-4898-a67b-3761109473d9,32771c39-a718-4923-b431-8881e420dae8,5bd89003-7acc-4551-a3b8-6de2e060a8b4,706a1f74-47a8-4582-9ee3-6bf4ff0886c6&size=full&v=168d9cb2f2e32c15"
+            },
+            "revision": "168d9cb2f2e32c15",
+            "source": "generated"
+          }
+        }
+      },
+      {
+        "id": 11,
+        "label": "Unbekanntes Genre · Classical · Stings",
+        "trackCount": 25,
+        "topGenres": [
+          "Unbekanntes Genre",
+          "Classical",
+          "Stings"
+        ],
+        "topArtists": [
+          "Claude Debussy",
+          "Kevin MacLeod",
+          "Erik Satie"
+        ],
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=182aefc4-5150-4d0e-b902-055eca8aaf07,1d422714-4c78-4755-8eda-a30722ba697e,5a11a56d-95f0-4261-958b-eda87210d59b,664b598f-979a-44c1-89fb-c8565dc45ac4&size=card&v=b6e6fb2260124468",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=182aefc4-5150-4d0e-b902-055eca8aaf07,1d422714-4c78-4755-8eda-a30722ba697e,5a11a56d-95f0-4261-958b-eda87210d59b,664b598f-979a-44c1-89fb-c8565dc45ac4&size=thumb&v=b6e6fb2260124468",
+              "card": "/api/v1/music/images/collage?ids=182aefc4-5150-4d0e-b902-055eca8aaf07,1d422714-4c78-4755-8eda-a30722ba697e,5a11a56d-95f0-4261-958b-eda87210d59b,664b598f-979a-44c1-89fb-c8565dc45ac4&size=card&v=b6e6fb2260124468",
+              "full": "/api/v1/music/images/collage?ids=182aefc4-5150-4d0e-b902-055eca8aaf07,1d422714-4c78-4755-8eda-a30722ba697e,5a11a56d-95f0-4261-958b-eda87210d59b,664b598f-979a-44c1-89fb-c8565dc45ac4&size=full&v=b6e6fb2260124468"
+            },
+            "revision": "b6e6fb2260124468",
+            "source": "generated"
+          }
+        }
+      }
+    ]
+  },
+  "baselineProblems": []
+}

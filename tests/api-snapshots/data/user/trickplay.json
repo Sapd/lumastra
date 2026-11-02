@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/playback/fb4e2182-5024-407f-91a3-66c54f0e4b42/trickplay/320/manifest"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "fileId": "2a39c197-eeaa-4d43-b6d1-deb3829731de",
+    "width": 320,
+    "height": 180,
+    "tileColumns": 10,
+    "tileRows": 10,
+    "intervalMs": 10000,
+    "thumbnailCount": 69,
+    "sheets": [
+      {
+        "index": 0,
+        "startMs": 0,
+        "endMs": 690000,
+        "href": "/api/v1/playback/fb4e2182-5024-407f-91a3-66c54f0e4b42/trickplay/320?fileId=2a39c197-eeaa-4d43-b6d1-deb3829731de&index=0&rev=7c1dd2c91cfb9a1e5b07f869e6203a8dc77848906f5e7bbf7342e0856bddf293"
+      }
+    ]
+  },
+  "baselineProblems": []
+}

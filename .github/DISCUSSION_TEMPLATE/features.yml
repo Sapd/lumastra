@@ -1,0 +1,54 @@
+title: '[Feature] '
+labels: []
+body:
+    - type: markdown
+      attributes:
+          value: |
+              **Search first.** If someone already asked for this, upvote their post (the ▲ next to the title) and add your use case as a comment instead of opening a duplicate. Votes are how we see what matters most: sort the category by **Top** to see the most-wanted requests.
+
+              This is where features start. Describe the **problem** before the solution. A well-described problem gets designed well; a solution-first post usually gets "why?" back. Once a maintainer accepts a proposal, they open the tracking issue; a PR before that is closed unread (see CONTRIBUTING).
+
+              **House rules**, in short: keep it about media you own or are licensed to use (no references to pirated content of any kind), redact secrets and personal data before posting, and be kind. The full rules: [CODE_OF_CONDUCT.md](https://github.com/Sapd/lumastra/blob/main/.github/CODE_OF_CONDUCT.md#content-rules).
+    - type: textarea
+      id: problem
+      attributes:
+          label: What are you trying to do, and what stops you today?
+          description: The situation, who it affects (viewers, admins, integrators), and how you work around it now.
+      validations:
+          required: true
+    - type: textarea
+      id: proposal
+      attributes:
+          label: What would you like to happen?
+          description: Your proposed behaviour. Sketches, mock-ups and examples from other software welcome.
+      validations:
+          required: true
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: Alternatives considered
+          description: Other ways to solve it, and why you prefer the proposal.
+    - type: dropdown
+      id: area
+      attributes:
+          label: Area
+          multiple: true
+          options:
+              - Web UI
+              - Admin / operations
+              - Video playback
+              - Music
+              - Audiobooks
+              - Live TV
+              - Metadata / library management
+              - Recommendations / AI
+              - API / integrations
+              - Plugins
+              - TV / native clients
+              - Other
+    - type: checkboxes
+      id: contribute
+      attributes:
+          label: Contribution
+          options:
+              - label: I would implement this myself once accepted (I have hands-on development experience and have read CONTRIBUTING.md).

@@ -1,0 +1,42 @@
+# Ingress — OPTION 1: ingress-nginx with cookie session affinity.
+# Apply EITHER this OR gateway-traefik.yaml.
+#
+# Sticky sessions are REQUIRED: per-session HLS transcode state lives on the web
+# pod that started the session, so each client must stay pinned to one pod. A pod that
+# isn't the owner answers 503 and only takes the session over after the owner has been
+# idle for 15 s. Cookie affinity misses clients that don't keep cookies across segment
+# requests (AVPlayer, Jellyfin apps); the Helm chart's router (deploy/helm/lumastra) pins
+# by stream token / PlaySessionId instead.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: lumastra
+    namespace: lumastra
+    annotations:
+        nginx.ingress.kubernetes.io/affinity: 'cookie'
+        nginx.ingress.kubernetes.io/affinity-mode: 'balanced'
+        nginx.ingress.kubernetes.io/session-cookie-name: 'lumastra-sticky'
+        nginx.ingress.kubernetes.io/proxy-read-timeout: '3600' # SSE / HLS are long-lived
+        nginx.ingress.kubernetes.io/proxy-send-timeout: '3600'
+        nginx.ingress.kubernetes.io/proxy-buffering: 'off' # stream HLS / SSE straight through
+        # Default is 1m: artwork uploads and client diagnostics bundles (≤ 3 MiB) need more.
+        # Match BODY_SIZE_LIMIT in configmap.yaml.
+        nginx.ingress.kubernetes.io/proxy-body-size: '50m'
+        # TLS via cert-manager (optional):
+        # cert-manager.io/cluster-issuer: letsencrypt
+spec:
+    ingressClassName: nginx
+    rules:
+        - host: lumastra.example.com
+          http:
+              paths:
+                  - path: /
+                    pathType: Prefix
+                    backend:
+                        service:
+                            name: lumastra-web
+                            port:
+                                number: 80
+    tls:
+        - hosts: [lumastra.example.com]
+          secretName: lumastra-tls

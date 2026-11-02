@@ -1,0 +1,820 @@
+{
+  "createdAt": "2026-10-21T01:16:55.056Z",
+  "results": [
+    {
+      "role": "user",
+      "endpoint": "album",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "artist",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "audiobook-author-books",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "audiobook-author",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "audiobook-authors",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "audiobook-narrators",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "audiobook-series-books",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "audiobook-series-list",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "audiobook-series",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "audiobook",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "audiobooks",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "browse-libraries",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "browse",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "continue-watching",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "devices",
+      "verdict": "CHANGED",
+      "details": [
+        "Added keys (info): $.items[], $.items[].deviceSessionId, $.items[].deviceId, $.items[].deviceName, $.items[].isCustomName, $.items[].clientId, $.items[].createdAt, $.items[].lastUsedAt, $.items[].isOnline, $.items[].supportsWatchTogether"
+      ]
+    },
+    {
+      "role": "user",
+      "endpoint": "episode",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "episodes",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "feed",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "genres",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "images",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "lists",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "livetv-availability",
+      "verdict": "BROKEN",
+      "details": [
+        "Removed key $.sources[].playbackObservedAt"
+      ]
+    },
+    {
+      "role": "user",
+      "endpoint": "livetv-favorites",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "livetv-guide",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "livetv-stations",
+      "verdict": "BROKEN",
+      "details": [
+        "Removed key $.availability.sources[].playbackObservedAt"
+      ]
+    },
+    {
+      "role": "user",
+      "endpoint": "me",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "movie",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "music-albums",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "music-artists",
+      "verdict": "CHANGED",
+      "details": [
+        "Added keys (info): $.items[].images.backdrop.placeholder, $.items[].images.backdrop.placeholder.blurhash"
+      ]
+    },
+    {
+      "role": "user",
+      "endpoint": "music-clusters",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "music-genres",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "music-home",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "music-recent",
+      "verdict": "CHANGED",
+      "details": [
+        "Added keys (info): $.items[].albumArtist.id, $.items[].albumArtist.title"
+      ]
+    },
+    {
+      "role": "user",
+      "endpoint": "music-taste-stations",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "music-top-artists",
+      "verdict": "CHANGED",
+      "details": [
+        "Added keys (info): $.items[].images.backdrop.placeholder, $.items[].images.backdrop.placeholder.blurhash"
+      ]
+    },
+    {
+      "role": "user",
+      "endpoint": "music-tracks",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "notice",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "notifications",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "person",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "play-sessions",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "playback-info",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "playlists",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "probe",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "rating",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "requests",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "runs",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "search",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "season",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "seasons",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "series",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "server",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "service-tokens",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "sync-changes",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "sync-library",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "sync-user-state",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "tasks",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "timeline",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "track-similar",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "track",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "trending",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "trickplay",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "upcoming",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "users",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "watch-state",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "watch-together",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "user",
+      "endpoint": "watchlist",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "album",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "artist",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "audiobook-author-books",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "audiobook-author",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "audiobook-authors",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "audiobook-narrators",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "audiobook-series-books",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "audiobook-series-list",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "audiobook-series",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "audiobook",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "audiobooks",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "browse-libraries",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "browse",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "channel",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "continue-watching",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "devices",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "episode",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "episodes",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "feed",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "genres",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "images",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "lists",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "livetv-availability",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "livetv-favorites",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "livetv-guide",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "livetv-stations",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "me",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "movie",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "music-albums",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "music-artists",
+      "verdict": "CHANGED",
+      "details": [
+        "Added keys (info): $.items[].images.backdrop.placeholder, $.items[].images.backdrop.placeholder.blurhash"
+      ]
+    },
+    {
+      "role": "admin",
+      "endpoint": "music-clusters",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "music-genres",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "music-home",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "music-recent",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "music-taste-stations",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "music-top-artists",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "music-tracks",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "notice",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "notifications",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "person",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "play-sessions",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "playback-info",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "playlists",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "probe",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "rating",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "requests",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "runs",
+      "verdict": "BROKEN",
+      "details": [
+        "Removed key $.items[].result.message",
+        "Added keys (info): $.items[].parentRunId, $.items[].trigger.by"
+      ]
+    },
+    {
+      "role": "admin",
+      "endpoint": "search",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "season",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "seasons",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "series",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "server",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "service-tokens",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "sync-changes",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "sync-library",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "sync-user-state",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "tasks",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "timeline",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "track-similar",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "track",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "trending",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "trickplay",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "upcoming",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "users",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "watch-state",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "watch-together",
+      "verdict": "OK",
+      "details": []
+    },
+    {
+      "role": "admin",
+      "endpoint": "watchlist",
+      "verdict": "OK",
+      "details": []
+    }
+  ]
+}

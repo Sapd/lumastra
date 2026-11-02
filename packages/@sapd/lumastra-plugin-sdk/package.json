@@ -1,0 +1,58 @@
+{
+    "name": "@sapd/lumastra-plugin-sdk",
+    "version": "0.2.0-alpha.2",
+    "description": "SDK for building Lumastra plugins (pre-1.0, expect breaking changes)",
+    "license": "Apache-2.0",
+    "type": "module",
+    "main": "./src/index.ts",
+    "types": "./src/index.ts",
+    "exports": {
+        ".": {
+            "types": "./src/index.ts",
+            "import": "./src/index.ts",
+            "default": "./src/index.ts"
+        }
+    },
+    "files": [
+        "dist",
+        "src",
+        "README.md",
+        "CHANGELOG.md"
+    ],
+    "peerDependencies": {
+        "postgres": "^3.4.0",
+        "zod": "^4.0.0"
+    },
+    "devDependencies": {
+        "@sapd/lumastra-plugin-sdk-testing": "0.1.0-alpha.1",
+        "typescript": "*",
+        "vitest": "*"
+    },
+    "scripts": {
+        "build": "rm -rf dist && tsc -p tsconfig.build.json",
+        "prepublishOnly": "node ../scripts/assert-publish-client.mjs && npm run build"
+    },
+    "publishConfig": {
+        "access": "public",
+        "main": "./dist/index.js",
+        "types": "./dist/index.d.ts",
+        "exports": {
+            ".": {
+                "types": "./dist/index.d.ts",
+                "import": "./dist/index.js",
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Sapd/lumastra.git",
+        "directory": "packages/@sapd/lumastra-plugin-sdk"
+    },
+    "keywords": [
+        "lumastra",
+        "plugin",
+        "sdk",
+        "media-server"
+    ]
+}

@@ -1,0 +1,68 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/sync/changes"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "changes": [],
+    "nextCursor": "djF8ODI1YTAwMTktYzA0YS00MjdjLWFlMjQtODA2ZTExZGIxZmY3fDB8MTQyNDI0NjF8MHxjNGEyOGIzMS1iMWRkLTRmZWYtOTY1MC02YzIzMGU2YmExZGJ8NjY5NzRiNGJlNDE2MmJiNzczMmNlMjM5fDzYQhMk5eMQxVI5d7aUaymn5OTwptcRAMGHw_Z6rYUZ",
+    "hasMore": false,
+    "initialLoad": [
+      {
+        "kind": "movie",
+        "href": "/api/v1/sync/library?kind=movie&limit=1000"
+      },
+      {
+        "kind": "series",
+        "href": "/api/v1/sync/library?kind=series&limit=1000"
+      },
+      {
+        "kind": "season",
+        "href": "/api/v1/sync/library?kind=season&limit=1000"
+      },
+      {
+        "kind": "episode",
+        "href": "/api/v1/sync/library?kind=episode&limit=1000"
+      },
+      {
+        "kind": "artist",
+        "href": "/api/v1/sync/library?kind=artist&limit=1000"
+      },
+      {
+        "kind": "album",
+        "href": "/api/v1/sync/library?kind=album&limit=1000"
+      },
+      {
+        "kind": "track",
+        "href": "/api/v1/sync/library?kind=track&limit=1000"
+      },
+      {
+        "kind": "audiobook",
+        "href": "/api/v1/sync/library?kind=audiobook&limit=1000"
+      },
+      {
+        "kind": "watch_state",
+        "href": "/api/v1/sync/user-state?kind=watch_state&limit=500"
+      },
+      {
+        "kind": "listen_state",
+        "href": "/api/v1/sync/user-state?kind=listen_state&limit=500"
+      },
+      {
+        "kind": "rating",
+        "href": "/api/v1/sync/user-state?kind=rating&limit=500"
+      },
+      {
+        "kind": "watchlist",
+        "href": "/api/v1/sync/user-state?kind=watchlist&limit=500"
+      },
+      {
+        "kind": "playlist",
+        "href": "/api/v1/sync/user-state?kind=playlist&limit=500"
+      }
+    ]
+  },
+  "baselineProblems": []
+}

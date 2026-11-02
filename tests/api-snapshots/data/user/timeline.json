@@ -1,0 +1,22 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/playback/fb4e2182-5024-407f-91a3-66c54f0e4b42/timeline"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "fileId": "2a39c197-eeaa-4d43-b6d1-deb3829731de",
+    "durationMs": 682917,
+    "chapters": [],
+    "segments": [],
+    "segmentAnalysis": "pending",
+    "hasIntro": false,
+    "hasOutro": false,
+    "trickplay": {
+      "state": "pending",
+      "variants": []
+    }
+  },
+  "baselineProblems": []
+}

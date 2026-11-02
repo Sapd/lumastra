@@ -1,0 +1,68 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/seasons/4b373339-66ff-4fee-a061-cb220c3054fb"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "id": "4b373339-66ff-4fee-a061-cb220c3054fb",
+    "catalogId": "4b373339-66ff-4fee-a061-cb220c3054fb",
+    "type": "season",
+    "ids": {},
+    "ordering": "standard",
+    "virtual": false,
+    "title": "Season 1",
+    "seasonNumber": 1,
+    "overview": "",
+    "premiereDate": "1915-11-13T00:00:00.000Z",
+    "episodeCount": 10,
+    "watchedCount": 0,
+    "images": {
+      "poster": {
+        "href": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+        "variants": {
+          "thumb": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=thumb&v=7154aac0e68b",
+          "card": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+          "full": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=full&v=7154aac0e68b"
+        },
+        "revision": "7154aac0e68b",
+        "source": "self",
+        "placeholder": {
+          "blurhash": "L4CEtQ,?}X^PsWIp-U-UyW%1xtI;"
+        }
+      },
+      "backdrop": {
+        "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+        "variants": {
+          "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+          "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+          "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+          "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+        },
+        "revision": "d0093e27bc20",
+        "source": "series",
+        "placeholder": {
+          "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+        }
+      }
+    },
+    "progress": {
+      "positionMs": null,
+      "durationMs": null,
+      "fraction": 0,
+      "finished": false,
+      "updatedAt": null
+    },
+    "series": {
+      "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+      "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+      "href": "/api/v1/series/c4f76543-32a4-4e0c-9f30-ac985340836a"
+    },
+    "href": "/api/v1/seasons/4b373339-66ff-4fee-a061-cb220c3054fb",
+    "episodes": {
+      "href": "/api/v1/series/c4f76543-32a4-4e0c-9f30-ac985340836a/episodes?season=1&physicalSeasonId=4b373339-66ff-4fee-a061-cb220c3054fb"
+    }
+  },
+  "baselineProblems": []
+}

@@ -1,0 +1,61 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/series/c4f76543-32a4-4e0c-9f30-ac985340836a"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+    "ids": {
+      "imdb": "tt0006206",
+      "tmdb": "327121"
+    },
+    "title": "The Vampires",
+    "overview": "Les Vampires is a silent French crime thriller serial about a journalist trying to expose a bizarre secret society of criminals terrorizing Paris.",
+    "images": {
+      "poster": {
+        "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/poster?size=card&v=a4b85c63eb2a",
+        "variants": {
+          "thumb": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/poster?size=thumb&v=a4b85c63eb2a",
+          "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/poster?size=card&v=a4b85c63eb2a",
+          "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/poster?size=full&v=a4b85c63eb2a"
+        },
+        "revision": "a4b85c63eb2a",
+        "source": "self",
+        "placeholder": {
+          "blurhash": "L3C56k=d}D}ssDEL-V-UyW%2xtEf"
+        }
+      },
+      "backdrop": {
+        "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+        "variants": {
+          "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+          "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+          "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+          "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+        },
+        "revision": "d0093e27bc20",
+        "source": "self",
+        "placeholder": {
+          "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+        }
+      }
+    },
+    "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+    "type": "series",
+    "seasons": {
+      "href": "/api/v1/series/c4f76543-32a4-4e0c-9f30-ac985340836a/seasons"
+    },
+    "episodes": {
+      "href": "/api/v1/series/c4f76543-32a4-4e0c-9f30-ac985340836a/episodes"
+    },
+    "nextEpisode": {
+      "href": "/api/v1/series/c4f76543-32a4-4e0c-9f30-ac985340836a/next-episode"
+    },
+    "watchStatus": {
+      "href": "/api/v1/series/c4f76543-32a4-4e0c-9f30-ac985340836a/watch-status"
+    }
+  },
+  "baselineProblems": []
+}

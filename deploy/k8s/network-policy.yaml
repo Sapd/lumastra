@@ -1,0 +1,168 @@
+# Baseline network segmentation for the `lumastra` namespace.
+#
+# Kubernetes NetworkPolicies are ADDITIVE and per-direction: once ANY policy
+# selects a pod for a given direction (Ingress/Egress), that pod's traffic in
+# that direction becomes default-deny except what the union of all matching
+# policies allows. A pod not selected by ANY policy for a direction is
+# unrestricted in that direction (the CNI must support NetworkPolicy — Calico,
+# Cilium, etc.; a CNI without support silently ignores these, e.g. the default
+# kubenet on some managed clusters).
+#
+# Six policies:
+#   1. Default-deny INGRESS for every pod in the namespace (baseline).
+#   2. Web pods accept ingress on 3000 from anywhere — they're meant to be
+#      reached through your Ingress/Gateway, whose controller may run in any
+#      namespace. Tighten the `from:` below to your ingress controller's
+#      namespace/pod labels once you know them (see the commented example).
+#   3. Web + worker pods get an EGRESS allow-list: Postgres, both Valkey
+#      instances, DNS, and HTTPS (TMDB/plugin registries/webhooks/etc).
+#   4. Postgres accepts ingress ONLY from web/worker, on 5432.
+#   5. Both Valkey instances accept ingress ONLY from web/worker, on 6379.
+#   6. Postgres + both Valkey instances get a DNS-only EGRESS allow-list.
+#      Hardening, not a fix for a reachable finding: it closes a
+#      post-compromise exfiltration primitive (an attacker who already has
+#      code execution inside one of these pods), not a gap an outside
+#      attacker can reach directly. Scoped to DNS only — this manifest set
+#      ships no backup CronJob, metrics-scrape sidecar, or replication target
+#      for either tier (checked: no such manifest exists under deploy/k8s/),
+#      so neither pod has a legitimate reason to originate any other
+#      outbound connection.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: lumastra-default-deny-ingress
+    namespace: lumastra
+spec:
+    podSelector: {} # every pod in the namespace
+    policyTypes: [Ingress]
+    # No `ingress:` rules — matches nothing, i.e. deny all ingress by default.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: lumastra-web-allow-ingress
+    namespace: lumastra
+spec:
+    podSelector:
+        matchLabels: { app: lumastra, role: web }
+    policyTypes: [Ingress]
+    ingress:
+        - ports:
+              - { protocol: TCP, port: 3000 }
+          # Empty OR omitted `from` means ALL sources; deny-all requires no
+          # ingress rules. This example deliberately keeps web reachable until
+          # the operator supplies their controller's actual labels (not shipped
+          # here). Direct requests bypass ingress header sanitization/auth.
+          # Scope to BOTH namespace and controller pods in the same peer, e.g.:
+          # from:
+          #   - namespaceSelector:
+          #       matchLabels: { kubernetes.io/metadata.name: ingress-nginx }
+          #     podSelector:
+          #       matchLabels:
+          #         app.kubernetes.io/name: ingress-nginx
+          #         app.kubernetes.io/component: controller
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: lumastra-web-worker-egress
+    namespace: lumastra
+spec:
+    podSelector:
+        matchLabels: { app: lumastra }
+        matchExpressions:
+            - { key: role, operator: In, values: [web, worker] }
+    policyTypes: [Egress]
+    egress:
+        - to:
+              - podSelector: { matchLabels: { app: lumastra-postgres } }
+          ports:
+              - { protocol: TCP, port: 5432 }
+        - to:
+              - podSelector: { matchLabels: { app: lumastra-valkey-cache } }
+              - podSelector: { matchLabels: { app: lumastra-valkey-tasks } }
+          ports:
+              - { protocol: TCP, port: 6379 }
+        # DNS — needed to resolve the Service names above, the image registry,
+        # and every external host the app calls out to below. Kube-dns/CoreDNS
+        # normally lives in kube-system; not scoped further because that
+        # namespace's own labels vary by installer (kubeadm/EKS/GKE/AKS all
+        # differ) — if you want to lock this down, add a namespaceSelector for
+        # your cluster's DNS namespace.
+        - ports:
+              - { protocol: UDP, port: 53 }
+              - { protocol: TCP, port: 53 }
+        # HTTPS egress to the outside world: TMDB/metadata providers, the
+        # plugin repository index, outbound webhooks, and (worker) the plugin
+        # marketplace/signature-verification fetches. Not scoped to specific
+        # destination CIDRs since these are arbitrary third-party hosts an
+        # operator configures at runtime (TMDB_API_KEY, webhook URLs, plugin
+        # repos) — restrict further with an egress firewall/CNI policy if your
+        # cluster supports destination allow-lists by FQDN.
+        - ports:
+              - { protocol: TCP, port: 443 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: lumastra-postgres-allow-ingress
+    namespace: lumastra
+spec:
+    podSelector:
+        matchLabels: { app: lumastra-postgres }
+    policyTypes: [Ingress]
+    ingress:
+        - from:
+              - podSelector:
+                    matchLabels: { app: lumastra }
+                    matchExpressions:
+                        - { key: role, operator: In, values: [web, worker] }
+          ports:
+              - { protocol: TCP, port: 5432 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: lumastra-valkey-allow-ingress
+    namespace: lumastra
+spec:
+    podSelector:
+        matchExpressions:
+            - { key: app, operator: In, values: [lumastra-valkey-cache, lumastra-valkey-tasks] }
+    policyTypes: [Ingress]
+    ingress:
+        - from:
+              - podSelector:
+                    matchLabels: { app: lumastra }
+                    matchExpressions:
+                        - { key: role, operator: In, values: [web, worker] }
+          ports:
+              - { protocol: TCP, port: 6379 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: lumastra-data-tier-egress
+    namespace: lumastra
+spec:
+    podSelector:
+        matchExpressions:
+            - {
+                  key: app,
+                  operator: In,
+                  values: [lumastra-postgres, lumastra-valkey-cache, lumastra-valkey-tasks],
+              }
+    policyTypes: [Egress]
+    egress:
+        # DNS only — see policy 6 above for why. If you add a backup CronJob or
+        # metrics-scrape sidecar to either StatefulSet, add its destination
+        # here too; don't widen this to arbitrary HTTPS "just in case". No
+        # `to:` is given (unlike policy 3's HTTPS rule, which at least names a
+        # port), so this works against any DNS setup (CoreDNS in any
+        # namespace, a NodeLocal DNSCache link-local address, an off-cluster
+        # resolver) — the same lack of a destination restriction that makes it
+        # portable also leaves DNS-tunnel exfiltration on port 53 open; this
+        # policy accepts that trade rather than guessing a DNS namespace label.
+        - ports:
+              - { protocol: UDP, port: 53 }
+              - { protocol: TCP, port: 53 }

@@ -1,0 +1,1114 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+/* Tailwind CSS v4 - Import base styles */
+@import 'tailwindcss';
+
+/* Import global component styles */
+@import './lib/styles/global-components.css';
+
+/* Inter - Variable Font (weights 100-900).
+ * Defined here (not in static/) so Vite content-hashes the woff2 into
+ * _app/immutable/, which adapter-node serves with an immutable 1-year
+ * Cache-Control — static/ assets are served with no cache (TTL 0). */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('./lib/assets/fonts/inter-latin-variable-full.woff2') format('woff2-variations');
+    unicode-range:
+        U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+        U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Space Grotesk - Variable display face (weights 300-700). Used via the
+ * `font-heading` utility / var(--font-heading) for calendar dates and the
+ * highlighted movie name in "Because you watched" titles. Self-hosted (see
+ * the Inter note above re: cache headers). */
+@font-face {
+    font-family: 'Space Grotesk';
+    font-style: normal;
+    font-weight: 300 700;
+    font-display: swap;
+    src: url('./lib/assets/fonts/space-grotesk-latin-variable.woff2') format('woff2-variations');
+    unicode-range:
+        U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2074, U+20AC, U+2122, U+FEFF, U+FFFD;
+}
+
+/* ========================================
+   THEME CONFIGURATION (Tailwind v4)
+   ======================================== */
+@theme {
+    /* Display / heading typeface — generates the `font-heading` utility. */
+    --font-heading: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+
+    /* Surface colors - Blue-tinted palette (matches Skeleton theme) */
+    --color-surface-50: #f1f3f9;
+    --color-surface-100: #dee3f1;
+    --color-surface-200: #c0c9e0;
+    --color-surface-300: #9eabcc;
+    --color-surface-400: #7180a8;
+    --color-surface-500: #4f5e8a;
+    --color-surface-600: #3c4971;
+    --color-surface-700: #313d61;
+    --color-surface-800: #2c3656;
+    --color-surface-900: #242c46;
+    --color-surface-950: #171d30;
+
+    /* Primary colors - Indigo palette */
+    --color-primary-50: #eef2ff;
+    --color-primary-100: #e0e7ff;
+    --color-primary-200: #c7d2fe;
+    --color-primary-300: #a5b4fc;
+    --color-primary-400: #818cf8;
+    --color-primary-500: #6366f1;
+    --color-primary-600: #4f46e5;
+    --color-primary-700: #4338ca;
+    --color-primary-800: #3730a3;
+    --color-primary-900: #312e81;
+    --color-primary-950: #1e1b4b;
+
+    /* Secondary colors - Pink */
+    --color-secondary-50: #fdf2f8;
+    --color-secondary-100: #fce7f3;
+    --color-secondary-200: #fbcfe8;
+    --color-secondary-300: #f9a8d4;
+    --color-secondary-400: #f472b6;
+    --color-secondary-500: #ec4899;
+    --color-secondary-600: #db2777;
+    --color-secondary-700: #be185d;
+    --color-secondary-800: #9d174d;
+    --color-secondary-900: #831843;
+    --color-secondary-950: #500724;
+
+    /* Tertiary colors - Teal */
+    --color-tertiary-50: #f0fdfa;
+    --color-tertiary-100: #ccfbf1;
+    --color-tertiary-200: #99f6e4;
+    --color-tertiary-300: #5eead4;
+    --color-tertiary-400: #2dd4bf;
+    --color-tertiary-500: #14b8a6;
+    --color-tertiary-600: #0d9488;
+    --color-tertiary-700: #0f766e;
+    --color-tertiary-800: #115e59;
+    --color-tertiary-900: #134e4a;
+    --color-tertiary-950: #042f2e;
+
+    /* Success colors - Green */
+    --color-success-50: #f0fdf4;
+    --color-success-100: #dcfce7;
+    --color-success-200: #bbf7d0;
+    --color-success-300: #86efac;
+    --color-success-400: #4ade80;
+    --color-success-500: #22c55e;
+    --color-success-600: #16a34a;
+    --color-success-700: #15803d;
+    --color-success-800: #166534;
+    --color-success-900: #14532d;
+    --color-success-950: #052e16;
+
+    /* Warning colors - Yellow */
+    --color-warning-50: #fefce8;
+    --color-warning-100: #fef9c3;
+    --color-warning-200: #fef08a;
+    --color-warning-300: #fde047;
+    --color-warning-400: #facc15;
+    --color-warning-500: #eab308;
+    --color-warning-600: #ca8a04;
+    --color-warning-700: #a16207;
+    --color-warning-800: #854d0e;
+    --color-warning-900: #713f12;
+    --color-warning-950: #422006;
+
+    /* Error colors - Red */
+    --color-error-50: #fef2f2;
+    --color-error-100: #fee2e2;
+    --color-error-200: #fecaca;
+    --color-error-300: #fca5a5;
+    --color-error-400: #f87171;
+    --color-error-500: #ef4444;
+    --color-error-600: #dc2626;
+    --color-error-700: #b91c1c;
+    --color-error-800: #991b1b;
+    --color-error-900: #7f1d1d;
+    --color-error-950: #450a0a;
+}
+
+/* ========================================
+   VARIANT COMPONENT CLASSES (migrated from tailwind.config.ts plugin)
+   ======================================== */
+@layer components {
+    /* Filled variants (solid backgrounds) */
+    .variant-filled-primary {
+        background-color: var(--color-primary-500);
+        color: white;
+        &:hover {
+            background-color: var(--color-primary-600);
+        }
+    }
+    .dark .variant-filled-primary {
+        background-color: var(--color-primary-600);
+        &:hover {
+            background-color: var(--color-primary-700);
+        }
+    }
+
+    .variant-filled-secondary {
+        background-color: var(--color-secondary-500);
+        color: white;
+        &:hover {
+            background-color: var(--color-secondary-600);
+        }
+    }
+
+    .variant-filled-surface {
+        background-color: var(--color-surface-700);
+        color: var(--color-surface-100);
+        &:hover {
+            background-color: var(--color-surface-600);
+        }
+    }
+    .dark .variant-filled-surface {
+        background-color: var(--color-surface-800);
+        color: var(--color-surface-100);
+        &:hover {
+            background-color: var(--color-surface-700);
+        }
+    }
+
+    .variant-filled-error {
+        background-color: var(--color-error-500);
+        color: white;
+        &:hover {
+            background-color: var(--color-error-600);
+        }
+    }
+
+    .variant-filled-success {
+        background-color: var(--color-success-500);
+        color: white;
+        &:hover {
+            background-color: var(--color-success-600);
+        }
+    }
+
+    .variant-filled-warning {
+        background-color: var(--color-warning-500);
+        color: #422006;
+        &:hover {
+            background-color: var(--color-warning-600);
+        }
+    }
+
+    /* Ghost variants (subtle transparent backgrounds) */
+    .variant-ghost-primary {
+        background-color: rgb(var(--color-primary-500-rgb) / 0.1);
+        color: var(--color-primary-500);
+        &:hover {
+            background-color: rgb(var(--color-primary-500-rgb) / 0.2);
+        }
+    }
+    .dark .variant-ghost-primary {
+        background-color: rgb(var(--color-primary-400-rgb) / 0.1);
+        color: var(--color-primary-400);
+        &:hover {
+            background-color: rgb(var(--color-primary-400-rgb) / 0.2);
+        }
+    }
+
+    .variant-ghost-surface {
+        background-color: rgba(113, 128, 168, 0.1);
+        color: var(--color-surface-600);
+        &:hover {
+            background-color: rgba(113, 128, 168, 0.2);
+        }
+    }
+    .dark .variant-ghost-surface {
+        background-color: rgba(113, 128, 168, 0.15);
+        color: var(--color-surface-300);
+        &:hover {
+            background-color: rgba(113, 128, 168, 0.25);
+        }
+    }
+
+    .variant-ghost-error {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: var(--color-error-500);
+        &:hover {
+            background-color: rgba(239, 68, 68, 0.2);
+        }
+    }
+
+    .variant-ghost-secondary {
+        background-color: rgba(236, 72, 153, 0.1);
+        color: var(--color-secondary-500);
+        &:hover {
+            background-color: rgba(236, 72, 153, 0.2);
+        }
+    }
+
+    /* Base ghost variant (used by calendar buttons etc.) */
+    .variant-ghost {
+        background-color: rgba(113, 128, 168, 0.15);
+        color: var(--color-surface-200);
+        &:hover {
+            background-color: rgba(113, 128, 168, 0.25);
+        }
+    }
+    .dark .variant-ghost {
+        background-color: rgba(113, 128, 168, 0.15);
+        color: var(--color-surface-200);
+        &:hover {
+            background-color: rgba(113, 128, 168, 0.25);
+        }
+    }
+
+    /* Soft variants (subtle backgrounds with transparency) */
+    .variant-soft {
+        background-color: rgb(var(--color-surface-800-rgb) / 0.5);
+        color: var(--color-surface-100);
+    }
+    .dark .variant-soft {
+        background-color: rgb(var(--color-surface-800-rgb) / 0.5);
+    }
+
+    .variant-soft-primary {
+        background-color: var(--color-primary-100);
+        color: var(--color-primary-700);
+        &:hover {
+            background-color: var(--color-primary-200);
+        }
+    }
+    .dark .variant-soft-primary {
+        background-color: rgb(var(--color-primary-500-rgb) / 0.2);
+        color: var(--color-primary-300);
+        &:hover {
+            background-color: rgb(var(--color-primary-500-rgb) / 0.3);
+        }
+    }
+
+    .variant-soft-surface {
+        background-color: rgb(var(--color-surface-800-rgb) / 0.5);
+        color: var(--color-surface-100);
+        &:hover {
+            background-color: rgb(var(--color-surface-800-rgb) / 0.7);
+        }
+    }
+    .dark .variant-soft-surface {
+        background-color: rgb(var(--color-surface-800-rgb) / 0.5);
+        color: var(--color-surface-100);
+        &:hover {
+            background-color: rgb(var(--color-surface-800-rgb) / 0.7);
+        }
+    }
+
+    .variant-soft-success {
+        background-color: var(--color-success-100);
+        color: var(--color-success-700);
+        &:hover {
+            background-color: var(--color-success-200);
+        }
+    }
+    .dark .variant-soft-success {
+        background-color: rgba(34, 197, 94, 0.2);
+        color: var(--color-success-400);
+        &:hover {
+            background-color: rgba(34, 197, 94, 0.3);
+        }
+    }
+
+    .variant-soft-error {
+        background-color: var(--color-error-100);
+        color: var(--color-error-700);
+        &:hover {
+            background-color: var(--color-error-200);
+        }
+    }
+    .dark .variant-soft-error {
+        background-color: rgba(239, 68, 68, 0.2);
+        color: var(--color-error-400);
+        &:hover {
+            background-color: rgba(239, 68, 68, 0.3);
+        }
+    }
+
+    /* Ringed variants (outlined) */
+    .variant-ringed-surface {
+        background-color: transparent;
+        color: var(--color-surface-600);
+        border-width: 1px;
+        border-color: var(--color-surface-500);
+        &:hover {
+            border-color: var(--color-surface-400);
+        }
+    }
+    .dark .variant-ringed-surface {
+        color: var(--color-surface-400);
+        border-color: var(--color-surface-600);
+        &:hover {
+            border-color: var(--color-surface-500);
+        }
+    }
+}
+
+/* ========================================
+   BASE HEADING STYLES
+   ======================================== */
+@layer base {
+    /* Restore cursor-pointer on buttons (Tailwind 4 removed this default) */
+    button,
+    [role='button'] {
+        cursor: pointer;
+    }
+
+    h1 {
+        @apply text-5xl;
+    }
+    h2 {
+        @apply text-4xl;
+    }
+    h3 {
+        @apply text-2xl;
+    }
+    h4 {
+        @apply text-xl;
+    }
+    h5 {
+        @apply text-lg;
+    }
+    h6 {
+        @apply text-base;
+    }
+}
+
+/* ========================================
+   CUSTOM COMPONENT BASE CLASSES
+   ======================================== */
+@layer components {
+    /* Button base */
+    .btn {
+        @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
+        @apply inline-flex items-center justify-center gap-2;
+        @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    .btn-sm {
+        @apply px-3 py-1.5 text-sm;
+    }
+
+    .btn-lg {
+        @apply px-6 py-3 text-lg;
+    }
+
+    /* Card base - background can be overridden by variant classes */
+    .card {
+        @apply rounded-lg border border-surface-700 p-4;
+    }
+
+    /* Default card background (when no variant is used) */
+    .card:not([class*='variant-']) {
+        @apply bg-surface-800;
+    }
+
+    .dark .card:not([class*='variant-']) {
+        @apply bg-surface-900;
+    }
+
+    /* Alert base */
+    .alert {
+        @apply rounded-lg p-4 mb-4;
+    }
+
+    /* Badge base */
+    .badge {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    }
+
+    /* Badge color variants */
+    .badge-success {
+        @apply bg-green-500/20 text-green-400;
+    }
+
+    .badge-warning {
+        @apply bg-yellow-500/20 text-yellow-400;
+    }
+
+    .badge-error {
+        @apply bg-red-500/20 text-red-400;
+    }
+
+    .badge-info {
+        @apply bg-blue-500/20 text-blue-400;
+    }
+
+    .badge-purple {
+        @apply bg-purple-500/20 text-purple-400;
+    }
+
+    .badge-cyan {
+        @apply bg-cyan-500/20 text-cyan-400;
+    }
+
+    .badge-orange {
+        @apply bg-orange-500/20 text-orange-400;
+    }
+
+    /* Badge with border variants */
+    .badge-outline-success {
+        @apply bg-green-500/20 text-green-400 border border-green-500/30;
+    }
+
+    .badge-outline-warning {
+        @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/30;
+    }
+
+    .badge-outline-error {
+        @apply bg-red-500/20 text-red-400 border border-red-500/30;
+    }
+
+    .badge-outline-info {
+        @apply bg-blue-500/20 text-blue-400 border border-blue-500/30;
+    }
+
+    /* Skeleton-UI-style preset badge variants (Skeleton itself is not
+       installed — these names are load-bearing call sites across the
+       plugin/admin surfaces, e.g. ExternalPluginCard.svelte,
+       CapabilityBadges.svelte, the enterprise training pages). "tonal" is
+       a soft tinted chip (mirrors .badge-success/.badge-warning/etc above,
+       on the theme color tokens); "filled" is a solid chip. */
+    .preset-tonal-primary {
+        @apply bg-primary-500/20 text-primary-400;
+    }
+
+    .preset-tonal-success {
+        @apply bg-success-500/20 text-success-400;
+    }
+
+    .preset-tonal-warning {
+        @apply bg-warning-500/20 text-warning-400;
+    }
+
+    .preset-tonal-error {
+        @apply bg-error-500/20 text-error-400;
+    }
+
+    .preset-tonal-surface {
+        @apply bg-surface-500/20 text-surface-300;
+    }
+
+    .preset-filled-primary-500 {
+        @apply bg-primary-500 text-white;
+    }
+
+    .preset-filled-warning-500 {
+        @apply bg-warning-500 text-gray-900;
+    }
+
+    .preset-filled-error-500 {
+        @apply bg-error-500 text-white;
+    }
+
+    /* Input base (replaces Skeleton input class) */
+    .input {
+        @apply w-full px-3 py-2 rounded-lg;
+        @apply bg-surface-700/80 text-surface-100;
+        @apply placeholder:text-surface-400;
+        @apply border border-surface-500/50;
+        @apply disabled:opacity-50 disabled:cursor-not-allowed;
+        outline: none !important;
+        transition:
+            border-color 0.2s ease,
+            box-shadow 0.2s ease;
+        box-shadow: 0 0 0 0 rgb(var(--color-primary-500-rgb) / 0);
+    }
+
+    .input:focus {
+        border-color: rgb(var(--color-primary-500-rgb) / 0.7);
+        box-shadow:
+            0 0 0 3px rgb(var(--color-primary-500-rgb) / 0.15),
+            0 0 20px rgb(var(--color-primary-500-rgb) / 0.1);
+    }
+
+    /* Textarea base */
+    .textarea {
+        @apply w-full px-3 py-2 rounded-lg;
+        @apply bg-surface-700/80 text-surface-100;
+        @apply placeholder:text-surface-400;
+        @apply border border-surface-500/50;
+        @apply disabled:opacity-50 disabled:cursor-not-allowed;
+        @apply resize-y min-h-[80px];
+        outline: none !important;
+        transition:
+            border-color 0.2s ease,
+            box-shadow 0.2s ease;
+        box-shadow: 0 0 0 0 rgb(var(--color-primary-500-rgb) / 0);
+    }
+
+    .textarea:focus {
+        border-color: rgb(var(--color-primary-500-rgb) / 0.7);
+        box-shadow:
+            0 0 0 3px rgb(var(--color-primary-500-rgb) / 0.15),
+            0 0 20px rgb(var(--color-primary-500-rgb) / 0.1);
+    }
+
+    /* Select base */
+    .select {
+        @apply w-full px-3 py-2 rounded-lg;
+        @apply bg-surface-700/80 text-surface-100;
+        @apply border border-surface-500/50;
+        @apply disabled:opacity-50 disabled:cursor-not-allowed;
+        @apply cursor-pointer;
+        outline: none !important;
+        transition:
+            border-color 0.2s ease,
+            box-shadow 0.2s ease;
+        box-shadow: 0 0 0 0 rgb(var(--color-primary-500-rgb) / 0);
+    }
+
+    .select:focus {
+        border-color: rgb(var(--color-primary-500-rgb) / 0.7);
+        box-shadow:
+            0 0 0 3px rgb(var(--color-primary-500-rgb) / 0.15),
+            0 0 20px rgb(var(--color-primary-500-rgb) / 0.1);
+    }
+
+    /* Input size variants */
+    .input-sm {
+        @apply px-2 py-1.5 text-sm;
+    }
+
+    .input-xs {
+        @apply px-2 py-1 text-xs;
+    }
+
+    /* Input error state */
+    .input-error,
+    .textarea-error,
+    .select-error {
+        @apply border-red-500/70;
+    }
+
+    .input-error:focus,
+    .textarea-error:focus,
+    .select-error:focus {
+        border-color: rgba(239, 68, 68, 0.7);
+        box-shadow:
+            0 0 0 3px rgba(239, 68, 68, 0.15),
+            0 0 20px rgba(239, 68, 68, 0.1);
+    }
+
+    /* Disable default browser/Tailwind focus ring - using custom box-shadow instead */
+    .input:focus,
+    .textarea:focus,
+    .select:focus,
+    [type='text']:focus,
+    [type='email']:focus,
+    [type='url']:focus,
+    [type='password']:focus,
+    [type='number']:focus,
+    [type='date']:focus,
+    [type='search']:focus,
+    textarea:focus,
+    select:focus {
+        outline: none;
+    }
+
+    /* Icon button base (square buttons for icons) */
+    .btn-icon {
+        @apply p-2 rounded-lg transition-colors duration-200;
+        @apply inline-flex items-center justify-center;
+        @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    .btn-icon-sm {
+        @apply p-1.5 rounded-md;
+    }
+
+    .btn-icon-lg {
+        @apply p-3 rounded-lg;
+    }
+
+    /* Button color variants */
+    .btn-primary {
+        @apply bg-primary-600 hover:bg-primary-700 text-white;
+    }
+
+    .btn-red {
+        @apply bg-red-600 hover:bg-red-700 text-white;
+    }
+
+    .btn-blue {
+        @apply bg-blue-600 hover:bg-blue-700 text-white;
+    }
+
+    .btn-green {
+        @apply bg-green-600 hover:bg-green-700 text-white;
+    }
+
+    .btn-purple {
+        @apply bg-purple-600 hover:bg-purple-700 text-white;
+    }
+
+    .btn-cyan {
+        @apply bg-cyan-600 hover:bg-cyan-700 text-white;
+    }
+
+    .btn-orange {
+        @apply bg-orange-600 hover:bg-orange-700 text-white;
+    }
+
+    .btn-yellow {
+        @apply bg-yellow-500 hover:bg-yellow-400 text-gray-900;
+    }
+
+    .btn-gray {
+        @apply bg-gray-600 hover:bg-gray-700 text-white;
+    }
+
+    .btn-surface {
+        @apply bg-surface-600 hover:bg-surface-500 text-white;
+    }
+
+    /* Secondary/error action buttons. 20+ admin call sites use these bare
+       (`class="btn-secondary text-sm"`), so the bare form carries full button
+       chrome. Combined with `.btn` (`btn btn-secondary btn-sm`) only the
+       colours apply — the chrome here would otherwise override `.btn-sm` /
+       `.btn-lg` padding, since these rules come later in the file. */
+    .btn-secondary {
+        @apply bg-surface-700/80 hover:bg-surface-600 text-surface-100;
+        @apply border border-surface-500/50;
+    }
+
+    .btn-error {
+        @apply bg-error-600 hover:bg-error-700 text-white;
+    }
+
+    .btn-secondary:not(.btn),
+    .btn-error:not(.btn) {
+        @apply inline-flex items-center justify-center gap-2;
+        @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
+        @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    /* Ghost button variants (text with hover background) */
+    .btn-ghost {
+        @apply text-gray-300 hover:text-white hover:bg-gray-700 bg-transparent;
+    }
+
+    .btn-ghost-primary {
+        @apply text-primary-400 hover:text-primary-300 hover:bg-primary-500/10 bg-transparent;
+    }
+
+    .btn-ghost-red {
+        @apply text-red-400 hover:text-red-300 hover:bg-red-500/10 bg-transparent;
+    }
+
+    /* Soft button variants (translucent background for secondary actions) */
+    .btn-soft-red {
+        @apply bg-red-600/20 hover:bg-red-600/40 text-red-400;
+    }
+
+    .btn-soft-blue {
+        @apply bg-blue-600/20 hover:bg-blue-600/40 text-blue-400;
+    }
+
+    .btn-soft-purple {
+        @apply bg-purple-600/20 hover:bg-purple-600/40 text-purple-400;
+    }
+
+    .btn-soft-cyan {
+        @apply bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400;
+    }
+
+    .btn-soft-amber {
+        @apply bg-amber-600/20 hover:bg-amber-600/40 text-amber-400;
+    }
+
+    /* Modal width utility (replaces Skeleton w-modal) */
+    .w-modal {
+        @apply w-full max-w-md;
+    }
+
+    .w-modal-wide {
+        @apply w-full max-w-xl;
+    }
+
+    .w-modal-slim {
+        @apply w-full max-w-sm;
+    }
+
+    /* Checkbox styling (replaces Skeleton checkbox) */
+    .checkbox {
+        @apply w-4 h-4 rounded border-surface-500 bg-surface-700 text-primary-500;
+        @apply focus:ring-primary-500 focus:ring-offset-0 focus:ring-2;
+        @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    /* Hide popup elements by default - shown via .popup-visible class */
+    [data-popup] {
+        display: none !important;
+    }
+
+    [data-popup].popup-visible {
+        display: block !important;
+    }
+}
+
+/* ========================================
+   CSS CUSTOM PROPERTIES (for backwards compatibility)
+   ======================================== */
+:root {
+    /* ── Plugin UI contract tokens ──────────────────────────────────────────
+     * Aliases exposed to plugin widgets (see plugin-theme-tokens.ts). They
+     * exist as their own names so the host values behind them can be retuned
+     * without breaking third-party UI that styled itself against them.
+     * APPEND-ONLY: removing one breaks installed plugins. */
+    --lum-radius-card: 0.75rem;
+    --lum-radius-control: 0.5rem;
+    --lum-font-body: var(--font-sans, system-ui, sans-serif);
+    --lum-font-heading: var(--font-heading);
+
+    /* Height of the MiniPlayer bar (~56px). Fixed at both breakpoints. */
+    --miniplayer-h: 3.5rem;
+    /* Resolved height of the mobile music bottom nav. 0 by default and at lg+
+       so desktop is never affected; below lg it adopts the raw value
+       (--music-bottom-nav-h-raw). This rule is scoped to :root, so raw MUST be
+       set on document.documentElement (the actual <html> element, via a
+       $effect in +layout.svelte) rather than on any descendant element's
+       inline style — a :root-scoped rule resolves var() using :root's own
+       value of the referenced property, not a descendant's; custom
+       properties only inherit downward, never bubble up. */
+    --music-bottom-nav-h: 0px;
+
+    --accent-color: 167, 139, 250;
+    --accent-color-hover: rgb(var(--accent-color), 0.8);
+    --link-color: #6366f1;
+    --link-color-hover: #a78bfa;
+    --label-text-color: #000;
+    --text: #d1d5db;
+    --text-hover: #fff;
+    --text-muted: #9ca3af;
+    --main-bg-color: linear-gradient(360deg, hsl(221, 39%, 11%) 65%, hsl(215, 28%, 17%) 100%);
+    --main-bg-color-transparent: linear-gradient(
+        360deg,
+        hsla(221, 39%, 11%, 0.287) 65%,
+        hsla(215, 28%, 17%, 0.287) 100%
+    );
+
+    --movie-color: 79 70 229;
+    --audiobook-color: 249 115 22;
+    --book-color: 212 25 118;
+
+    --movie-color-background: 99, 102, 241;
+    --series-color-background: 59, 130, 246;
+    --audiobook-color-background: 249, 115, 22;
+    --music-color-background: 167, 56, 235;
+    --livetv-color-background: 107, 114, 128;
+
+    --transparency-dark-15: rgba(0, 0, 0, 0.15);
+
+    /* Skeleton-compatible color variables (RGB values for use with rgb()) */
+    /* Using SPACE-separated values for CSS Color Level 4 syntax: rgb(var(--color) / alpha) */
+    /* Surface colors - Skeleton theme blue-tinted palette */
+    --color-surface-50-rgb: 241 243 249;
+    --color-surface-100-rgb: 222 227 241;
+    --color-surface-200-rgb: 192 201 224;
+    --color-surface-300-rgb: 158 171 204;
+    --color-surface-400-rgb: 113 128 168;
+    --color-surface-500-rgb: 79 94 138;
+    --color-surface-600-rgb: 60 73 113;
+    --color-surface-700-rgb: 49 61 97;
+    --color-surface-800-rgb: 44 54 86;
+    --color-surface-900-rgb: 36 44 70;
+    --color-surface-950-rgb: 23 29 48;
+
+    /* Primary colors - Indigo palette */
+    --color-primary-50-rgb: 238 242 255;
+    --color-primary-100-rgb: 224 231 255;
+    --color-primary-200-rgb: 199 210 254;
+    --color-primary-300-rgb: 165 180 252;
+    --color-primary-400-rgb: 129 140 248;
+    --color-primary-500-rgb: 99 102 241;
+    --color-primary-600-rgb: 79 70 229;
+    --color-primary-700-rgb: 67 56 202;
+    --color-primary-800-rgb: 55 48 163;
+    --color-primary-900-rgb: 49 46 129;
+
+    /* Secondary colors - Pink */
+    --color-secondary-500-rgb: 236 72 153;
+    --color-secondary-600-rgb: 219 39 119;
+
+    /* Tertiary colors - Teal */
+    --color-tertiary-500-rgb: 20 184 166;
+
+    /* Success colors - Green */
+    --color-success-400-rgb: 74 222 128;
+    --color-success-500-rgb: 34 197 94;
+
+    /* Warning colors - Yellow */
+    --color-warning-400-rgb: 250 204 21;
+    --color-warning-500-rgb: 234 179 8;
+
+    /* Error colors - Red */
+    --color-error-400-rgb: 248 113 113;
+    --color-error-500-rgb: 239 68 68;
+}
+
+@media (max-width: 1023.98px) {
+    :root {
+        --music-bottom-nav-h: var(--music-bottom-nav-h-raw, 0px);
+    }
+}
+
+html,
+body {
+    font-family:
+        'Inter',
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        sans-serif;
+}
+
+/* Desktop app-shell: lock root scroll so inner .main-content owns scrolling.
+   Mobile (< 1024px) intentionally lets the document scroll so iOS Safari's
+   URL bar minimizes on scroll. */
+@media (min-width: 1024px) {
+    html,
+    body {
+        @apply h-full overflow-hidden;
+    }
+}
+
+/* Base text colors for dark mode (replaces Skeleton theme defaults) */
+body {
+    color: rgb(var(--color-surface-50-rgb));
+    /* Prevent iOS/Chrome pull-to-refresh from reloading the app and
+       destroying music player / modal state. `contain` still allows the
+       normal scroll bounce animation on iOS. */
+    overscroll-behavior-y: contain;
+}
+
+/* Ensure links have proper colors */
+a {
+    color: inherit;
+}
+
+/* Default text color utilities for dark mode */
+.dark body,
+body.dark {
+    color: rgb(var(--color-surface-50-rgb));
+}
+
+/* Additional responsive utilities for better mobile handling */
+@media (max-width: 475px) {
+    .xs\:hidden {
+        display: none !important;
+    }
+    .xs\:inline {
+        display: inline !important;
+    }
+}
+
+/* Base page background — a token color so non-default themes (e.g. a
+   graphite "marquee" theme) get their own page color instead of the
+   default theme's hardcoded navy. The decorative nebula/starfield image
+   itself now lives on `.app-starfield-image` (a dedicated fixed layer
+   rendered in the root layout) so it can be toggled off per-theme
+   independently of this base color. */
+body {
+    background-color: var(--color-surface-950);
+}
+
+/* Decorative starfield/nebula IMAGE layer: the background image that used to
+   be painted directly on `body`. Rendered once as a fixed, full-viewport,
+   non-interactive layer behind all page content (see root +layout.svelte).
+   Split from `.app-starfield` below so this positioning+image ruleset isn't
+   accidentally re-applied to the (differently-styled) animated stars
+   element on the homepage — both elements share the `.app-starfield` marker
+   class for the theme on/off hook, but only this one owns the image. */
+.app-starfield-image {
+    position: fixed;
+    inset: 0;
+    /* MUST be negative: a positioned element with z-index 0 paints ABOVE all
+       non-positioned page content, which blanked surfaces built from static
+       flow (the /admin shell). -1 keeps it behind everything, exactly like
+       the body background-image it replaced; body's background-color still
+       sits behind it. */
+    z-index: -1;
+    pointer-events: none;
+    /* Fallback for engines without image-set() type() support (e.g. Safari
+       16.0-16.6 / iOS 16, Chrome/Edge 94-112: they DO parse image-set(), but
+       not the type() hint inside it, so the whole declaration is invalid and
+       ignored). The AVIF/WebP pair is a re-encode of the same 1536x1024
+       nebula PNG (mean absolute per-channel diff <1/255 vs the PNG at these
+       settings, well under the 2/255 "visually identical" bar for a heavily
+       blurred image). Both are Vite/$lib assets so they're still
+       content-hashed, same as the fonts above.
+       MUST stay the only background-image in this base rule: lightningcss
+       dedups same-property declarations within one rule and keeps only the
+       last one (parcel-bundler/lightningcss#292), so a second
+       background-image here would silently delete this fallback from the
+       shipped CSS. The image-set() upgrade lives in a separate @supports
+       rule below instead, where the dedup can't reach it. */
+    background-image: url($lib/assets/back12-blurred.webp);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+/* type()-aware image-set() upgrade, split into its own rule (see the comment
+   above) so lightningcss's same-rule background-image dedup can't collapse
+   it into the plain url() fallback. Browsers that don't understand type()
+   inside image-set() fail this @supports test and keep the fallback above. */
+@supports (background-image: image-set(url('x.avif') type('image/avif'))) {
+    .app-starfield-image {
+        background-image: image-set(
+            url($lib/assets/back12-blurred.avif) type('image/avif'),
+            url($lib/assets/back12-blurred.webp) type('image/webp')
+        );
+    }
+}
+
+/* `.app-starfield` is a theme-toggle marker only (deliberately styleless
+   here). Any decorative starfield element — this nebula image layer, or the
+   homepage's animated twinkling-stars container — carries this class so a
+   starfield-less theme can hide it in one shot via
+   `[data-theme='x'] .app-starfield { display: none }`, without that rule
+   fighting each element's own positioning/visual CSS. */
+
+.readable-text {
+    text-shadow:
+        0.05em 0 black,
+        0 0.05em black,
+        -0.05em 0 black,
+        0 -0.05em black,
+        -0.05em -0.05em black,
+        -0.05em 0.05em black,
+        0.05em -0.05em black,
+        0.05em 0.05em black;
+}
+
+.navbar {
+    display: flex;
+}
+
+/* Desktop: navbar is a fixed chrome that stays visible as .main-content scrolls.
+   Mobile (< 1024px) leaves the navbar in document flow so it scrolls off with
+   content, matching the iOS Safari URL bar's shrink-on-scroll behavior. */
+@media (min-width: 1024px) {
+    .navbar {
+        position: fixed;
+        width: 100%;
+        z-index: 500;
+    }
+}
+
+/* Mobile: on pages with a hero section, float the navbar over the hero so the
+   image extends to the viewport top. Navbar stays in flow on non-hero pages
+   (browse, settings, etc.) so their content isn't obscured. */
+@media (max-width: 1023px) {
+    body:has(.hero-carousel) .navbar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        background: transparent !important;
+        backdrop-filter: none !important;
+        border-bottom: 0 !important;
+    }
+}
+
+.navbar-header {
+    /* Background and blur now handled by .navbar in app.html */
+    width: 100%;
+    border: 0;
+}
+
+.navbar-logo {
+    width: auto;
+    max-width: 220px;
+    padding-left: 10px;
+    float: left;
+    border-right: transparent;
+    display: inline-flex;
+    flex-wrap: nowrap;
+}
+
+.navbar-logo-img {
+    max-height: 40px;
+}
+
+/* Ensure Skeleton modals appear above navbar (z-index: 500) */
+.modal-backdrop {
+    z-index: 1010;
+}
+
+/* Modal mobile fullscreen - Skeleton UI wrapper overrides */
+@media (max-width: 639px) {
+    /* Ensure modal fills viewport on mobile */
+    .modal-backdrop {
+        padding: 0 !important;
+    }
+
+    /* Ensure modal content fills the viewport */
+    .modal-transition {
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        max-height: 100dvh !important;
+    }
+}
+
+/* PWA standalone safe area support.
+   Navbar standalone padding is handled in app.html's inline <style> using
+   calc(8px + env(safe-area-inset-top)) to preserve the base padding. */
+@media (display-mode: standalone) {
+    .modal-backdrop {
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+}
+
+/* Hero carousel overflow - force visible to allow the image to extend beyond
+   the container. (Overflow is also set in-component; kept here for global
+   precedence over any utility resets.) */
+.hero-carousel,
+.hero-carousel[class] {
+    overflow: visible !important;
+}
+
+.hero-carousel .hero-slide {
+    overflow: visible !important;
+}
+
+/* ToastContainer is shared by the eager root and admin chrome. Keep its tiny
+   rules in this already-loaded stylesheet instead of a blocking split asset. */
+@keyframes app-toast-shrink {
+    from {
+        width: 100%;
+    }
+    to {
+        width: 0%;
+    }
+}
+
+.app-toast.toast-success {
+    background-color: rgba(20, 83, 45, 0.95);
+}
+
+.app-toast.toast-error {
+    background-color: rgba(127, 29, 29, 0.95);
+}
+
+.app-toast.toast-warning {
+    background-color: rgba(113, 63, 18, 0.95);
+}
+
+.app-toast.toast-info {
+    background-color: rgb(var(--color-surface-800-rgb) / 0.95);
+}

@@ -1,0 +1,54 @@
+# Docker
+Dockerfile
+.dockerignore
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Environment and secrets
+.env
+.env.*
+**/.env
+**/.env.*
+*.pem
+*.key
+secrets/
+credentials/
+
+# IDE and editor
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Build artifacts
+.svelte-kit
+node_modules
+build
+package
+dist
+**/target
+
+# Config and docs
+README.md
+CLAUDE.md
+.npmrc
+.graphqlrc
+.editorconfig
+*.log
+
+# Tests
+**/*.test.ts
+**/*.spec.ts
+coverage/
+
+# Config files (should only exist in mounted volume, not baked into image)
+config/settings.json
+
+# Generated license manifest — produced inside the build from the production
+# dependency graph (see Dockerfile). Excluded so a stale local copy can't clobber
+# the freshly generated one via `COPY . ./`.
+third-party-npm-licenses.json

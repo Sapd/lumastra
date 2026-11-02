@@ -1,0 +1,205 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+
+Live TV stream proxy. Same image as the app (own tag/digest so app releases don't restart it).
+Gets only its shared secret (+ optional CACHE_URL, and TASK_CACHE_URL for its cluster heartbeat): no database, no /config, no libraries.
+Recreate: a surge would double upstream IPTV connections. preStop waits for live channels to end.
+*/ -}}
+{{- if .Values.proxy.enabled }}
+{{- $p := .Values.proxy -}}
+{{- if not (has ($p.runtime | default "rust") (list "rust")) }}
+{{- fail "Only the Rust proxy is supported; remove proxy.runtime" }}
+{{- end }}
+{{- $gpu := include "lumastra.gpuFor" (list . "proxy") -}}
+{{- $grace := add (int $p.drainSeconds) 30 -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "lumastra.component" (list . "proxy") }}
+  labels:
+    {{- include "lumastra.componentLabels" (list . "proxy") | nindent 4 }}
+spec:
+  selector:
+    {{- include "lumastra.selectorLabels" (list . "proxy") | nindent 4 }}
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "lumastra.component" (list . "proxy") }}
+  labels:
+    {{- include "lumastra.componentLabels" (list . "proxy") | nindent 4 }}
+spec:
+  replicas: {{ include "lumastra.singleReplicas" (list "proxy.replicas" $p.replicas) }}
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "lumastra.selectorLabels" (list . "proxy") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "lumastra.selectorLabels" (list . "proxy") | nindent 8 }}
+        {{- with include "lumastra.podLabels" (list . $p) }}
+        {{- . | nindent 8 }}
+        {{- end }}
+      {{- with include "lumastra.podAnnotations" (list . $p) }}
+      annotations:
+        {{- . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "lumastra.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- include "lumastra.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        {{- $psc := deepCopy .Values.podSecurityContext }}
+        {{- if and $gpu (ne (toString .Values.gpu.renderGroupId) "<nil>") }}
+        {{- $_ := set $psc "supplementalGroups" (append (default list $psc.supplementalGroups) (int .Values.gpu.renderGroupId)) }}
+        {{- end }}
+        {{- toYaml $psc | nindent 8 }}
+      terminationGracePeriodSeconds: {{ $grace }}
+      {{- include "lumastra.scheduling" (list . $p) | nindent 6 }}
+      {{- with $p.runtimeClassName }}
+      runtimeClassName: {{ . }}
+      {{- end }}
+      {{- if and .Values.persistence.ffmpegCache.enabled $p.ffmpegCacheReadOnly .Values.ffmpeg.autoDownload (gt (int $p.waitForFfmpegSeconds) 0) }}
+      # Opt-in for images built before 2026-10-01, which check for ffmpeg only at boot: wait until a
+      # web/worker pod has populated the read-only cache (proceeds without it after the timeout).
+      initContainers:
+        - name: wait-for-ffmpeg
+          image: {{ include "lumastra.image" (list . $p.image .Values.image) }}
+          imagePullPolicy: {{ include "lumastra.pullPolicy" (list $p.image .Values.image) }}
+          command:
+            - sh
+            - -c
+            - |
+              end=$(( $(date +%s) + {{ int $p.waitForFfmpegSeconds }} ))
+              until [ -x /config/bin/ffmpeg ] && /config/bin/ffmpeg -version >/dev/null 2>&1; do
+                if [ "$(date +%s)" -ge "$end" ]; then echo "ffmpeg not in the shared cache yet; starting without it"; exit 0; fi
+                echo "waiting for the shared ffmpeg cache…"; sleep 5
+              done
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+            - { name: ffmpeg-cache, mountPath: /config/bin, readOnly: true }
+      {{- end }}
+      containers:
+        - name: proxy
+          image: {{ include "lumastra.image" (list . $p.image .Values.image) }}
+          imagePullPolicy: {{ include "lumastra.pullPolicy" (list $p.image .Values.image) }}
+          args: ["sh", "start-proxy.sh"]
+          ports:
+            - name: http
+              containerPort: 3000
+          securityContext:
+            {{- $csc := deepCopy .Values.containerSecurityContext }}
+            {{- if and $gpu .Values.gpu.privileged }}
+            {{- $_ := set $csc "privileged" true }}
+            {{- $_ := set $csc "allowPrivilegeEscalation" true }}
+            {{- end }}
+            {{- toYaml $csc | nindent 12 }}
+          env:
+            - { name: NODE_ENV, value: production }
+            - { name: PORT, value: "3000" }
+            - { name: TZ, value: {{ .Values.app.timezone | quote }} }
+            - { name: LOG_LEVEL, value: {{ .Values.app.logLevel | quote }} }
+            - { name: FFMPEG_AUTO_DOWNLOAD, value: {{ .Values.ffmpeg.autoDownload | toString | quote }} }
+            {{- include "lumastra.podIdentityEnv" . | nindent 12 }}
+            {{- include "lumastra.proxySecretEnv" . | nindent 12 }}
+            {{- include "lumastra.valkeyEnv" (list . $p.useCache true) | nindent 12 }}
+            {{- if $gpu }}
+            - { name: GPU_ACCELERATION, value: {{ .Values.gpu.acceleration | quote }} }
+            {{- include "lumastra.envMap" .Values.gpu.env | nindent 12 }}
+            {{- end }}
+            {{- include "lumastra.envMap" $p.env | nindent 12 }}
+            {{- with $p.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with $p.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          # /status answers 200 even while shutting down; the body says "healthy":true|false.
+          startupProbe:
+            exec:
+              command: ["sh", "-c", "curl -sf --max-time 3 http://127.0.0.1:3000/status | grep -q '\"healthy\":true'"]
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "curl -sf --max-time 3 http://127.0.0.1:3000/status | grep -q '\"healthy\":true'"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "curl -sf --max-time 5 http://127.0.0.1:3000/status > /dev/null"]
+            periodSeconds: 30
+            timeoutSeconds: 8
+            failureThreshold: 4
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sh
+                  - -c
+                  - |
+                    end=$(( $(date +%s) + {{ int $p.drainSeconds }} ))
+                    while [ "$(date +%s)" -lt "$end" ]; do
+                      n=$(curl -sf --max-time 3 http://127.0.0.1:3000/status | sed -n 's/.*"activeChannels":\([0-9]*\).*/\1/p')
+                      [ "${n:-0}" = "0" ] && exit 0
+                      sleep 5
+                    done
+          resources:
+            {{- $res := deepCopy (default dict $p.resources) }}
+            {{- if and $gpu (eq .Values.gpu.mode "resource") }}
+            {{- $req := default dict $res.requests }}
+            {{- $lim := default dict $res.limits }}
+            {{- range $k, $q := .Values.gpu.resources }}
+            {{- $_ := set $req $k $q }}
+            {{- $_ := set $lim $k $q }}
+            {{- end }}
+            {{- $_ := set $res "requests" $req }}
+            {{- $_ := set $res "limits" $lim }}
+            {{- end }}
+            {{- toYaml $res | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.persistence.ffmpegCache.enabled }}
+            - { name: config, mountPath: /config }
+            - { name: ffmpeg-cache, mountPath: /config/bin, readOnly: {{ $p.ffmpegCacheReadOnly }} }
+            {{- else }}
+            - { name: config, mountPath: /config }
+            {{- end }}
+            - { name: tmp, mountPath: /tmp }
+            - { name: app-cache, mountPath: /app/.cache }
+            {{- if and $gpu (eq .Values.gpu.mode "hostPath") }}
+            - { name: dri, mountPath: {{ .Values.gpu.hostPath }} }
+            {{- end }}
+            {{- with $p.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        # Private scratch /config (the proxy never sees the app's /config).
+        - { name: config, emptyDir: {} }
+        {{- if .Values.persistence.ffmpegCache.enabled }}
+        - name: ffmpeg-cache
+          persistentVolumeClaim:
+            claimName: {{ default (include "lumastra.component" (list . "ffmpeg-cache")) .Values.persistence.ffmpegCache.existingClaim }}
+        {{- end }}
+        - { name: tmp, emptyDir: {} }
+        - { name: app-cache, emptyDir: {} }
+        {{- if and $gpu (eq .Values.gpu.mode "hostPath") }}
+        - name: dri
+          hostPath:
+            path: {{ .Values.gpu.hostPath }}
+            type: Directory
+        {{- end }}
+        {{- with $p.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end }}

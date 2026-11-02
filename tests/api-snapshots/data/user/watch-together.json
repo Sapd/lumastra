@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/watch-together/parties"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [],
+    "page": {
+      "limit": 0,
+      "offset": 0,
+      "hasMore": false,
+      "total": 0
+    }
+  },
+  "baselineProblems": []
+}

@@ -1,0 +1,8 @@
+{
+    "name": "sample-trickplay",
+    "kind": "trickplay",
+    "description": "Supplies trickplay tiles for scrubbing previews.",
+    "publisher": "Lumastra examples",
+    "license": "Apache-2.0",
+    "sourceUrl": "https://github.com/Sapd/lumastra/tree/main/examples/plugins/sample-trickplay"
+}

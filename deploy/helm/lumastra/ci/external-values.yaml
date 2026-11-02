@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+# Everything external: database and Valkey URLs from Secrets, pinned digests, mirror registry.
+global: { imageRegistry: registry.example.com/mirror }
+image: { digest: 'sha256:0000000000000000000000000000000000000000000000000000000000000000' }
+app: { origin: https://lumastra.example.com }
+secrets: { existingSecret: lumastra }
+database: { mode: external, external: { existingSecret: lumastra-db, urlKey: uri } }
+valkey: { mode: external, external: { existingSecret: lumastra-valkey } }
+branding: { existingConfigMap: lumastra-branding }

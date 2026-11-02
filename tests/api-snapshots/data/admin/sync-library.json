@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/sync/library?kind=movie&limit=5"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "04040f39-304a-4021-979e-5e269662cfe0"
+      },
+      {
+        "id": "0568c72b-a45c-4f9c-b59a-b7820124eca4"
+      },
+      {
+        "id": "062fce01-d15c-4724-888c-e5f669ef6929"
+      },
+      {
+        "id": "097380f8-8dd5-45ce-932b-8af917d3a964"
+      },
+      {
+        "id": "0c27418e-f75b-4ffc-8fd0-d943391695f7"
+      }
+    ],
+    "nextAfter": "0c27418e-f75b-4ffc-8fd0-d943391695f7"
+  },
+  "baselineProblems": []
+}

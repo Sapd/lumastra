@@ -1,0 +1,427 @@
+{
+    "description": "Ground-truth EPG matching dataset for accuracy testing",
+    "m3uChannels": [
+        {
+            "tvgId": "Nordwelle.de",
+            "tvgName": "Nordwelle FHD",
+            "name": "Nordwelle FHD",
+            "logoUrl": "http://logos.example/nordwellehd.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/501.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "Nordwelle.de",
+            "tvgName": "Nordwelle HD",
+            "name": "Nordwelle HD",
+            "logoUrl": "http://logos.example/nordwellehd.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/30452.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "3kult.de",
+            "tvgName": "3kult HD ¹",
+            "name": "3kult HD ¹",
+            "logoUrl": "http://logos.example/3kulthd.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/512.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "3kult.de",
+            "tvgName": "3kult HD ²",
+            "name": "3kult HD ²",
+            "logoUrl": "http://logos.example/3kulthd.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/30419.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "HLV 1.ch",
+            "tvgName": "HLV 1 HD *",
+            "name": "HLV 1 HD *",
+            "logoUrl": "http://logos.example/hlv1hd.png",
+            "groupTitle": "AT / CH *",
+            "streamUrl": "http://provider.example/live/user/pass/771.ts",
+            "countryCode": "ch",
+            "extras": {}
+        },
+        {
+            "tvgId": null,
+            "tvgName": "LRV Alpha",
+            "name": "LRV Alpha HD",
+            "logoUrl": "http://logos.example/lrvalpha.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/520.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": null,
+            "tvgName": "Alpenländisches Fernsehen",
+            "name": "AL Fernsehen HD",
+            "logoUrl": "http://logos.example/AL.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/521.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": null,
+            "tvgName": "RKV Köln",
+            "name": "RKV Koeln HD",
+            "logoUrl": "http://logos.example/rkv.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/522.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": null,
+            "tvgName": "Sat.4",
+            "name": "SAT 4 FHD",
+            "logoUrl": "http://logos.example/sat4.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/523.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": null,
+            "tvgName": null,
+            "name": "Unknown Channel XYZ",
+            "logoUrl": null,
+            "groupTitle": "Misc",
+            "streamUrl": "http://provider.example/live/user/pass/999.ts",
+            "countryCode": null,
+            "extras": {}
+        },
+        {
+            "tvgId": "KWF.de",
+            "tvgName": "KWF FHD",
+            "name": "KWF FHD",
+            "logoUrl": "http://logos.example/kwfhd.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/502.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "MTK.de",
+            "tvgName": "MTK FHD",
+            "name": "MTK FHD",
+            "logoUrl": "http://logos.example/mtkhd.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/503.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "Pinotopia.de",
+            "tvgName": "Pinotopia FHD",
+            "name": "Pinotopia FHD",
+            "logoUrl": "http://logos.example/pinotopiahd.png",
+            "groupTitle": "Kids",
+            "streamUrl": "http://provider.example/live/user/pass/800.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "Pinotopia.de",
+            "tvgName": "Pinotopia HD *",
+            "name": "Pinotopia HD *",
+            "logoUrl": "http://logos.example/pinotopiahd.png",
+            "groupTitle": "Kids *",
+            "streamUrl": "http://provider.example/live/user/pass/30800.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": null,
+            "tvgName": "Siebenstern",
+            "name": "Stern7 FHD",
+            "logoUrl": "http://logos.example/stern7.png",
+            "groupTitle": "FreeTV / HD+",
+            "streamUrl": "http://provider.example/live/user/pass/524.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "TukanPrime1.de",
+            "tvgName": "Tukan Prime 1",
+            "name": "Tukan Prime 1",
+            "logoUrl": "http://logos.example/tukanprime.png",
+            "groupTitle": "Tukan Prime",
+            "streamUrl": "http://provider.example/live/user/pass/1000.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": "VELO.us",
+            "tvgName": "VELO FHD",
+            "name": "VELO FHD",
+            "logoUrl": "http://logos.example/velohd.png",
+            "groupTitle": "USA Sport",
+            "streamUrl": "http://provider.example/live/user/pass/1100.ts",
+            "countryCode": "us",
+            "extras": {}
+        },
+        {
+            "tvgId": null,
+            "tvgName": "Südwestliche TV",
+            "name": "Suedwestliche TV HD",
+            "logoUrl": "http://logos.example/suedwestliche.png",
+            "groupTitle": "Regional",
+            "streamUrl": "http://provider.example/live/user/pass/525.ts",
+            "countryCode": "de",
+            "extras": {}
+        },
+        {
+            "tvgId": null,
+            "tvgName": null,
+            "name": "VOD Movie Channel",
+            "logoUrl": null,
+            "groupTitle": "VOD",
+            "streamUrl": "http://provider.example/vod/movie.mkv",
+            "countryCode": null,
+            "extras": {}
+        },
+        {
+            "tvgId": "4379",
+            "tvgName": "Pino Jr. FHD",
+            "name": "Pino Jr. FHD",
+            "logoUrl": "http://logos.example/pinojrhd.png",
+            "groupTitle": "Kids",
+            "streamUrl": "http://provider.example/live/user/pass/801.ts",
+            "countryCode": null,
+            "extras": {}
+        },
+        {
+            "tvgId": null,
+            "tvgName": "OSK 3",
+            "name": "OSK III HD",
+            "logoUrl": "http://logos.example/osk3.png",
+            "groupTitle": "AT / CH *",
+            "streamUrl": "http://provider.example/live/user/pass/526.ts",
+            "countryCode": "at",
+            "extras": {}
+        }
+    ],
+    "xmltvChannels": [
+        {
+            "id": "Nordwelle.de",
+            "displayName": "Nordwelle HD *",
+            "iconUrl": "http://logos.example/nordwellehd.png"
+        },
+        {
+            "id": "3kult.de",
+            "displayName": "3kult HD *",
+            "iconUrl": "http://logos.example/3kulthd.png"
+        },
+        {
+            "id": "HLV1.ch",
+            "displayName": "HLV 1 HD",
+            "iconUrl": "http://logos.example/hlv1hd.png"
+        },
+        {
+            "id": "LRVAlpha.de",
+            "displayName": "LRV Alpha HD",
+            "iconUrl": "http://logos.example/lrvalpha.png"
+        },
+        {
+            "id": "ALFernsehen.de",
+            "displayName": "Alpenländisches Fernsehen HD",
+            "iconUrl": "http://logos.example/AL.png"
+        },
+        {
+            "id": "RKV.de",
+            "displayName": "RKV Köln HD",
+            "iconUrl": "http://logos.example/rkv.png"
+        },
+        {
+            "id": "Sat4.de",
+            "displayName": "SAT.4 HD",
+            "iconUrl": "http://logos.example/sat4.png"
+        },
+        {
+            "id": "KWF.de",
+            "displayName": "KWF HD",
+            "iconUrl": "http://logos.example/kwfhd.png"
+        },
+        {
+            "id": "MTK.de",
+            "displayName": "MTK HD",
+            "iconUrl": "http://logos.example/mtkhd.png"
+        },
+        {
+            "id": "Pinotopia.de",
+            "displayName": "Pinotopia HD",
+            "iconUrl": "http://logos.example/pinotopiahd.png"
+        },
+        {
+            "id": "Siebenstern.de",
+            "displayName": "Siebenstern HD",
+            "iconUrl": "http://logos.example/stern7.png"
+        },
+        {
+            "id": "SuedwestlicheTV.de",
+            "displayName": "Südwestliche TV HD",
+            "iconUrl": "http://logos.example/suedwestliche.png"
+        },
+        {
+            "id": "4379",
+            "displayName": "Pino Jr. FHD",
+            "iconUrl": "http://logos.example/pinojrhd.png"
+        },
+        {
+            "id": "OSKIII.at",
+            "displayName": "OSK 3 HD",
+            "iconUrl": "http://logos.example/osk3.png"
+        }
+    ],
+    "xmltvPrograms": [
+        {
+            "channelId": "Nordwelle.de",
+            "title": "Nachrichtenblick",
+            "startTime": "2026-03-09T20:00:00+01:00",
+            "endTime": "2026-03-09T20:15:00+01:00",
+            "genres": ["News"],
+            "description": null,
+            "officialRating": null
+        },
+        {
+            "channelId": "3kult.de",
+            "title": "Kulturfenster",
+            "startTime": "2026-03-09T19:20:00+01:00",
+            "endTime": "2026-03-09T20:00:00+01:00",
+            "genres": ["Documentary"],
+            "description": null,
+            "officialRating": null
+        },
+        {
+            "channelId": "Pinotopia.de",
+            "title": "Harborfolk",
+            "startTime": "2026-03-09T08:00:00+01:00",
+            "endTime": "2026-03-09T08:30:00+01:00",
+            "genres": ["Kids", "Animation"],
+            "description": null,
+            "officialRating": null
+        },
+        {
+            "channelId": "4379",
+            "title": "Liora",
+            "startTime": "2026-03-09T09:00:00+01:00",
+            "endTime": "2026-03-09T09:30:00+01:00",
+            "genres": ["Kids"],
+            "description": null,
+            "officialRating": null
+        },
+        {
+            "channelId": "HLV1.ch",
+            "title": "Hafen aktuell",
+            "startTime": "2026-03-09T18:00:00+01:00",
+            "endTime": "2026-03-09T18:30:00+01:00",
+            "genres": ["News"],
+            "description": null,
+            "officialRating": null
+        }
+    ],
+    "expectedMatches": [
+        {
+            "channelName": "Nordwelle FHD",
+            "epgChannelId": "Nordwelle.de",
+            "expectedSignal": "tvg_id_exact"
+        },
+        {
+            "channelName": "Nordwelle HD",
+            "epgChannelId": "Nordwelle.de",
+            "expectedSignal": "backup_propagation"
+        },
+        {
+            "channelName": "3kult HD ¹",
+            "epgChannelId": "3kult.de",
+            "expectedSignal": "tvg_id_exact"
+        },
+        {
+            "channelName": "3kult HD ²",
+            "epgChannelId": "3kult.de",
+            "expectedSignal": "backup_propagation"
+        },
+        {
+            "channelName": "HLV 1 HD *",
+            "epgChannelId": "HLV1.ch",
+            "expectedSignal": "tvg_id_partial"
+        },
+        {
+            "channelName": "LRV Alpha HD",
+            "epgChannelId": "LRVAlpha.de",
+            "expectedSignal": "name_exact"
+        },
+        {
+            "channelName": "AL Fernsehen HD",
+            "epgChannelId": "ALFernsehen.de",
+            "expectedSignal": "tvg_name_match"
+        },
+        {
+            "channelName": "RKV Koeln HD",
+            "epgChannelId": "RKV.de",
+            "expectedSignal": "tvg_name_match"
+        },
+        {
+            "channelName": "SAT 4 FHD",
+            "epgChannelId": "Sat4.de",
+            "expectedSignal": "tvg_name_match"
+        },
+        {
+            "channelName": "KWF FHD",
+            "epgChannelId": "KWF.de",
+            "expectedSignal": "tvg_id_exact"
+        },
+        {
+            "channelName": "MTK FHD",
+            "epgChannelId": "MTK.de",
+            "expectedSignal": "tvg_id_exact"
+        },
+        {
+            "channelName": "Pinotopia FHD",
+            "epgChannelId": "Pinotopia.de",
+            "expectedSignal": "tvg_id_exact"
+        },
+        {
+            "channelName": "Pinotopia HD *",
+            "epgChannelId": "Pinotopia.de",
+            "expectedSignal": "backup_propagation"
+        },
+        {
+            "channelName": "Suedwestliche TV HD",
+            "epgChannelId": "SuedwestlicheTV.de",
+            "expectedSignal": "tvg_name_match"
+        },
+        {
+            "channelName": "Pino Jr. FHD",
+            "epgChannelId": "4379",
+            "expectedSignal": "tvg_id_exact"
+        },
+        {
+            "channelName": "OSK III HD",
+            "epgChannelId": "OSKIII.at",
+            "expectedSignal": "tvg_name_match"
+        },
+        {
+            "channelName": "Stern7 FHD",
+            "epgChannelId": "Siebenstern.de",
+            "expectedSignal": "tvg_name_match"
+        },
+        {
+            "channelName": "VELO FHD",
+            "epgChannelId": null,
+            "expectedSignal": "unmatched"
+        }
+    ],
+    "expectedUnmatched": ["Unknown Channel XYZ", "Tukan Prime 1", "VELO FHD"]
+}

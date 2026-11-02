@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8" ?><!DOCTYPE tv SYSTEM "xmltv.dtd">
+<tv generator-info-name="TestProvider">
+	<channel id="Nordwelle.de">
+		<display-name>Nordwelle HD *</display-name>
+		<icon src="http://logos.example/nordwellehd.png" />
+	</channel>
+	<channel id="3kult.de">
+		<display-name>3kult HD *</display-name>
+		<icon src="http://logos.example/3kulthd.png" />
+	</channel>
+	<channel id="OTZ.at">
+		<display-name>OTZ HD</display-name>
+		<icon src="http://logos.example/otzhd.png" />
+	</channel>
+	<channel id="OSKIII.at">
+		<display-name>OSK 3 HD</display-name>
+		<icon src="http://logos.example/osk3hd.png" />
+	</channel>
+	<channel id="Funk4.at">
+		<display-name>Funk 4 HD</display-name>
+		<icon src="http://logos.example/funk4hd.png" />
+	</channel>
+	<channel id="HLV1.ch">
+		<display-name>HLV 1 HD</display-name>
+		<icon src="http://logos.example/hlv1hd.png" />
+	</channel>
+	<channel id="">
+		<display-name>MTK+ Event HD 7 ²</display-name>
+		<icon src="http://logos.example/mtkplus.png" />
+	</channel>
+	<channel id="">
+		<display-name>MTK+ Event HD 8 ²</display-name>
+	</channel>
+	<channel id="DE: Cyan Sport 18">
+		<display-name>Cyan Sport 18 HD</display-name>
+		<icon src="http://logos.example/cyansport.png" />
+	</channel>
+	<channel id="MTK+ LIVE 2">
+		<display-name>MTK+ Event HD 10</display-name>
+		<icon src="http://logos.example/mtkplus.png" />
+	</channel>
+	<channel id="4379">
+		<display-name>Pino Jr. FHD</display-name>
+		<icon src="http://logos.example/pinojrhd.png" />
+	</channel>
+	<channel id="NoIcon.de">
+		<display-name>Channel Without Icon</display-name>
+	</channel>
+	<programme start="20260309032500 +0100" stop="20260309042500 +0100" start_timestamp="1773023100" stop_timestamp="1773026700" channel="Nordwelle.de" >
+		<title>Mara Fenwick</title>
+		<desc>Mara Fenwick spricht mit Gästen über die Zukunft einer erfundenen Hafenstadt.</desc>
+	</programme>
+	<programme start="20260309042500 +0100" stop="20260309044300 +0100" start_timestamp="1773026700" stop_timestamp="1773027780" channel="Nordwelle.de" >
+		<title>Hafenblick</title>
+		<desc>Das Magazin besucht Werkstätten und Gärten in der Hafenstadt.</desc>
+	</programme>
+	<programme start="20260309044300 +0100" stop="20260309044500 +0100" start_timestamp="1773027780" stop_timestamp="1773027900" channel="Nordwelle.de" >
+		<title>Nachrichtenblick</title>
+		<desc>Nachrichten aus der erfundenen Hafenregion.</desc>
+	</programme>
+	<programme start="20260309044500 +0100" stop="20260309053000 +0100" channel="Nordwelle.de" >
+		<title>Die Hafenärzte - Helfer mit Herz (19)</title>
+		<desc>Eine Hafenärztin hilft einem Fundtier und besucht die Nachbarn.</desc>
+	</programme>
+	<programme start="20260309053000 +0100" stop="20260309090000 +0100" channel="Nordwelle.de" >
+		<title>Hafen-Morgenmagazin</title>
+		<desc>Zum Frühstück gibt es Nachrichten und Gespräche aus der Hafenregion.</desc>
+		<category>News</category>
+		<category>Politics</category>
+	</programme>
+	<programme start="20260309060000 +0100" stop="20260309070000 +0100" channel="3kult.de" >
+		<title>Kulturfenster</title>
+		<desc>Das Magazin &quot;Kulturfenster&quot; zeigt neue Ausstellungen &amp; Projekte.</desc>
+	</programme>
+	<programme start="20260309070000 +0100" stop="20260309080000 +0100" channel="3kult.de" >
+		<title>Forschungsfenster</title>
+		<desc>Das Magazin stellt ein neues Forschungsprojekt vor.</desc>
+		<category>Science</category>
+		<rating>
+			<value>FSK 0</value>
+		</rating>
+	</programme>
+	<programme start="20260309051500 +0100" stop="20260309054500 +0100" channel="OTZ.at" >
+		<title>Fenwick und die Gäste - Weekend (Wh.)</title>
+		<desc>Dominik Fenwick erzählt von einem Fest am Hafen.</desc>
+	</programme>
+	<programme start="20260309030000 +0100" stop="20260309041500 +0100" channel="OTZ.at" >
+		<title>Harbor Neighbors (Wh.)</title>
+		<desc>Zwei Nachbarn planen einen gemeinsamen Garten.</desc>
+		<rating>
+			<value>FSK 12</value>
+		</rating>
+	</programme>
+	<programme start="20260309051500 +0100" stop="20260309060000 +0100" channel="OSKIII.at" >
+		<title>Hafenplätze - Der Hafen damals</title>
+		<desc>Patrice Vale betrachtet alte Bilder vom Hafen und seinen Plätzen.</desc>
+	</programme>
+	<programme start="20260309051000 +0100" stop="20260309053000 +0100" channel="Funk4.at" >
+		<title>The Blue Moon Society (Wh.)</title>
+		<desc>Lennarts Mutter Beatrix besucht die Wohngemeinschaft. Silvan sucht das passende Geschenk.</desc>
+	</programme>
+	<programme start="20260309060000 +0100" stop="20260309070000 +0100" channel="HLV1.ch" >
+		<title>Hafen aktuell</title>
+		<desc>Nachrichten und Hintergründe aus der erfundenen Hafenregion.</desc>
+		<category>News</category>
+	</programme>
+	<programme start="20260309034411 +0100" stop="20260309040632 +0100" channel="4379" >
+		<title>LUMA</title>
+		<desc>Luma rettet mit ihren Freunden ein Fest am Hafen.</desc>
+		<category>Kids</category>
+	</programme>
+	<programme start="20260309040632 +0100" stop="20260309042917 +0100" channel="4379" >
+		<title>Flare and the Harbor Machines</title>
+		<desc>Flare und seine Freunde bauen eine Maschine für den Hafenwettbewerb.</desc>
+		<category>Kids</category>
+		<category>Animation</category>
+	</programme>
+	<programme start="20260311163000 +0100" stop="20260311180000 +0100" start_timestamp="1773243000" stop_timestamp="1773248400" channel="DE: Cyan Sport 18" >
+		<title>Fußball: Kontinentalpokal</title>
+		<desc>Live-Übertragung eines erfundenen Fußballspiels.</desc>
+		<category>Sports</category>
+	</programme>
+	<programme start="20260309050000 +0100" stop="20260309060000 +0100" channel="MTK+ LIVE 2" >
+		<title>MTK+ Event Special</title>
+	</programme>
+	<programme start="20260309060000 +0100" stop="20260309070000 +0100" channel="NoIcon.de" >
+		<title>Testprogramm</title>
+		<desc>Ein Programm für den Kanal ohne Icon.</desc>
+	</programme>
+</tv>

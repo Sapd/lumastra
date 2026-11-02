@@ -1,0 +1,41 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+
+Prometheus-operator ServiceMonitor for /metrics on the HTTP pods (headless Service).
+/metrics needs LUMASTRA_METRICS_BEARER_TOKEN (secrets.env) unless LUMASTRA_METRICS_PUBLIC=true.
+*/ -}}
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "lumastra.fullname" . }}
+  labels:
+    {{- include "lumastra.labels" . | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  # Web pods and the worker (task-system metrics).
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "lumastra.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [{{ include "lumastra.httpComponent" . }}, worker]
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+      {{- with .Values.serviceMonitor.bearerTokenSecret }}
+      {{- if .name }}
+      authorization:
+        type: Bearer
+        credentials:
+          name: {{ .name }}
+          key: {{ .key }}
+      {{- end }}
+      {{- end }}
+{{- end }}

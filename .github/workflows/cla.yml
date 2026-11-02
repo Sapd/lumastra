@@ -1,0 +1,45 @@
+name: CLA Assistant
+
+# Records each contributor's agreement to CLA.md on their first pull request.
+#
+# Uses pull_request_target + issue_comment as the action documents. NEVER add a checkout of the
+# PR head to this workflow: pull_request_target runs with write permissions in this repo.
+
+on:
+    issue_comment:
+        types: [created]
+    pull_request_target:
+        types: [opened, closed, synchronize]
+
+permissions:
+    actions: write
+    contents: read
+    pull-requests: write
+    statuses: write
+
+jobs:
+    cla:
+        runs-on: ubuntu-latest
+        if: (github.event.comment.body == 'recheck' || github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA') || github.event_name == 'pull_request_target'
+        steps:
+            - name: CLA Assistant
+              uses: contributor-assistant/github-action@ca4a40a7d1004f18d9960b404b97e5f30a505a08 # v2.6.1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  PERSONAL_ACCESS_TOKEN: ${{ secrets.CLA_SIGNATURES_TOKEN }}
+              with:
+                  path-to-signatures: 'signatures/v1/cla.json'
+                  path-to-document: 'https://github.com/Sapd/lumastra/blob/682108fc03609b35a428f92b6393128dfbe876f6/.github/CLA.md'
+                  branch: 'main'
+                  remote-organization-name: 'Sapd'
+                  remote-repository-name: 'lumastra-cla-signatures'
+                  # Entries without a `*` are matched exactly, so `dependabot[bot]` would work too;
+                  # the wildcard is just the form the action documents. (Commit b64a79308 blamed a
+                  # character class for a failed first run — wrong: the very first run of this action
+                  # CREATES signatures/v1/cla.json in the signatures repo and fails in that same
+                  # run; the next run passes. Expect that once, not on every new contributor.)
+                  allowlist: 'Sapd,dependabot*'
+                  custom-notsigned-prcomment: 'Thank you for the contribution! Before it can be merged you need to sign the [Contributor License Agreement](https://github.com/Sapd/lumastra/blob/main/.github/CLA.md) — it lets Lumastra stay AGPL while remaining commercially licensable, and you keep your copyright. Please read it and reply with the sentence below.'
+                  custom-pr-sign-comment: 'I have read the CLA Document and I hereby sign the CLA'
+                  custom-allsigned-prcomment: 'All contributors have signed the CLA. Thank you!'
+                  lock-pullrequest-aftermerge: false

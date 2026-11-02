@@ -1,0 +1,139 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+
+Ingress segmentation (egress stays open: metadata providers, plugins, IPTV, push relay).
+Entry policies (opt-in, networkPolicy.enabled): router or HTTP pods ← networkPolicy.ingressFrom;
+HTTP pods ← router. Internal policies (on by default, networkPolicy.internal, or with enabled):
+worker ← networkPolicy.metricsFrom only; Valkey ← app pods + proxy; proxy/sonic ← app pods.
+The internal ones never depend on ingress-controller labels, so they are safe as a default.
+*/ -}}
+{{- define "lumastra.npPeers" -}}
+{{- $ := index . 0 -}}
+{{- range (index . 1) }}
+- podSelector:
+    matchLabels:
+      {{- include "lumastra.selectorLabels" (list $ .) | nindent 6 }}
+{{- end }}
+{{- end -}}
+{{- $entry := .Values.networkPolicy.enabled -}}
+{{- $internal := or .Values.networkPolicy.enabled (ne (toString .Values.networkPolicy.internal) "false") -}}
+{{- $http := include "lumastra.httpComponent" . -}}
+{{- $appPeers := list $http "worker" -}}
+{{- if and $internal .Values.serviceMonitor.enabled (not .Values.networkPolicy.metricsFrom) }}
+{{- fail "serviceMonitor scrapes the worker, but networkPolicy.internal denies all ingress to it: set networkPolicy.metricsFrom to your Prometheus pods (or networkPolicy.internal=false)" }}
+{{- end }}
+{{- if $entry }}
+{{- if .Values.router.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "lumastra.component" (list . "router") }}
+  labels:
+    {{- include "lumastra.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "lumastra.selectorLabels" (list . "router") | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - ports: [{ port: 8080, protocol: TCP }]
+      {{- with .Values.networkPolicy.ingressFrom }}
+      from:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "lumastra.component" (list . $http) }}
+  labels:
+    {{- include "lumastra.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "lumastra.selectorLabels" (list . $http) | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - ports: [{ port: 3000, protocol: TCP }]
+      {{- if .Values.router.enabled }}
+      from:
+        {{- include "lumastra.npPeers" (list . (list "router")) | nindent 8 }}
+      {{- else if .Values.networkPolicy.ingressFrom }}
+      from:
+        {{- toYaml .Values.networkPolicy.ingressFrom | nindent 8 }}
+      {{- end }}
+    {{- with .Values.networkPolicy.metricsFrom }}
+    - ports: [{ port: 3000, protocol: TCP }]
+      from:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+---
+{{- end }}
+{{- if $internal }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "lumastra.component" (list . "worker") }}
+  labels:
+    {{- include "lumastra.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "lumastra.selectorLabels" (list . "worker") | nindent 6 }}
+  policyTypes: [Ingress]
+  {{- with .Values.networkPolicy.metricsFrom }}
+  ingress:
+    - ports: [{ port: 3000, protocol: TCP }]
+      from:
+        {{- toYaml . | nindent 8 }}
+  {{- else }}
+  # Nothing in the release talks to the worker; deny all ingress (kubelet probes are exempt on
+  # common CNIs). Add scrapers via networkPolicy.metricsFrom.
+  ingress: []
+  {{- end }}
+{{- if eq .Values.valkey.mode "bundled" }}
+{{- $vks := list "valkey-cache" "valkey-tasks" }}
+{{- $vkPeers := $appPeers }}
+{{- if .Values.proxy.enabled }}{{ $vkPeers = append $vkPeers "proxy" }}{{ end }}
+{{- range $vks }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "lumastra.component" (list $ .) }}
+  labels:
+    {{- include "lumastra.labels" $ | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "lumastra.selectorLabels" (list $ .) | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - ports: [{ port: 6379, protocol: TCP }]
+      from:
+        {{- include "lumastra.npPeers" (list $ $vkPeers) | nindent 8 }}
+{{- end }}
+{{- end }}
+{{- range $comp, $port := dict "proxy" 3000 "sonic" 8000 }}
+{{- if (get $.Values $comp).enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "lumastra.component" (list $ $comp) }}
+  labels:
+    {{- include "lumastra.labels" $ | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "lumastra.selectorLabels" (list $ $comp) | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - ports: [{ port: {{ $port }}, protocol: TCP }]
+      from:
+        {{- include "lumastra.npPeers" (list $ $appPeers) | nindent 8 }}
+{{- end }}
+{{- end }}
+{{- end }}

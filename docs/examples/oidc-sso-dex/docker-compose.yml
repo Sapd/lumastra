@@ -1,0 +1,116 @@
+# Lumastra + Dex (OIDC SSO) — self-contained example stack.
+#
+# Brings up Lumastra with a real OpenID Connect provider (Dex) so you can try the
+# OIDC sign-in / onboarding flow end-to-end on a single machine, in a browser.
+#
+# WHY THE UNUSUAL NETWORKING: the OIDC issuer URL must resolve to the SAME Dex for
+# BOTH the browser (which gets redirected to the authorize endpoint) AND the
+# Lumastra container (which does server-side discovery/token exchange). The
+# cleanest way to guarantee that on one host is to give Lumastra and Dex a shared
+# network namespace (`network_mode: service:dex`) so `http://localhost:5556/dex`
+# means the same thing to both. That also keeps the session cookie working: SvelteKit
+# only marks it `Secure` on HTTPS (and exempts http://localhost), so plain-HTTP
+# localhost is fine here — see the README for the production (HTTPS) variant.
+name: lumastra-sso-example
+
+services:
+    postgres:
+        image: pgvector/pgvector:pg18
+        environment:
+            POSTGRES_DB: lumastra
+            POSTGRES_USER: lumastra
+            POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env (openssl rand -hex 32) - see README}
+        volumes:
+            - pgdata:/var/lib/postgresql
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U lumastra -d lumastra']
+            interval: 10s
+            timeout: 5s
+            retries: 10
+        restart: unless-stopped
+
+    valkey:
+        image: valkey/valkey:9-alpine
+        command: valkey-server --requirepass ${CACHE_PASSWORD:?set CACHE_PASSWORD in .env (openssl rand -hex 32) - see README} --maxmemory 256mb --maxmemory-policy allkeys-lru
+        healthcheck:
+            test: ['CMD', 'valkey-cli', '--no-auth-warning', '-a', '${CACHE_PASSWORD}', 'ping']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        restart: unless-stopped
+
+    valkey-tasks:
+        image: valkey/valkey:9-alpine
+        command: valkey-server --requirepass ${CACHE_PASSWORD} --maxmemory-policy noeviction --appendonly yes --appendfsync everysec
+        volumes:
+            - tasks:/data
+        healthcheck:
+            test: ['CMD', 'valkey-cli', '--no-auth-warning', '-a', '${CACHE_PASSWORD}', 'ping']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        restart: unless-stopped
+
+    dex:
+        image: ghcr.io/dexidp/dex:v2.41.1
+        command: ['dex', 'serve', '/etc/dex/config.yaml']
+        volumes:
+            - ./dex-config.yaml:/etc/dex/config.yaml:ro
+        # Publish BOTH Dex and Lumastra here, because Lumastra shares this
+        # container's network namespace (see the lumastra service below).
+        ports:
+            - '5556:5556' # Dex   → http://localhost:5556/dex
+            - '8080:3000' # Lumastra (its server listens on :3000 in this netns)
+        restart: unless-stopped
+
+    lumastra:
+        image: ghcr.io/lumastra/lumastra:stable
+        # Share Dex's network namespace so `localhost` is identical for both.
+        # Lumastra still reaches postgres/valkey by service name via Dex's
+        # membership in this compose network.
+        network_mode: 'service:dex'
+        depends_on:
+            postgres:
+                condition: service_healthy
+            valkey:
+                condition: service_healthy
+            valkey-tasks:
+                condition: service_healthy
+            dex:
+                condition: service_started
+        env_file: [.env]
+        environment:
+            NODE_ENV: 'production'
+            WORKER_MODE: 'disabled'
+            DEDICATED_WORKER: 'false'
+            BASE_PATH: '/config'
+            # Fail fast instead of booting with no master key (stored secrets could not be
+            # encrypted). The value itself still comes from .env.
+            LUMASTRA_MASTER_KEY: ${LUMASTRA_MASTER_KEY:?set LUMASTRA_MASTER_KEY in .env (openssl rand -hex 32) - see README}
+            DATABASE_URL: 'postgresql://lumastra:${DB_PASSWORD}@postgres:5432/lumastra'
+            CACHE_URL: 'redis://default:${CACHE_PASSWORD}@valkey:6379/0'
+            TASK_CACHE_URL: 'redis://default:${CACHE_PASSWORD}@valkey-tasks:6379/0'
+        volumes:
+            - config:/config
+        restart: unless-stopped
+
+    lumastra-worker:
+        extends:
+            service: lumastra
+        command: ['./start-worker.sh']
+        environment:
+            WORKER_MODE: 'enabled'
+            DEDICATED_WORKER: 'true'
+            # Both roles share Dex's network namespace; avoid the web HTTP port.
+            PORT: '3001'
+        healthcheck:
+            test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:3001/api/health/ready > /dev/null']
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 60s
+
+volumes:
+    pgdata:
+    tasks:
+    config:

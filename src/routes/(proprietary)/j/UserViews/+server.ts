@@ -1,0 +1,33 @@
+// SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
+// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+
+import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import { ApiResponses } from '$lib/server/utils/api-responses';
+import { withJellyfinAuth } from '$lib/server/proprietary/jellyfin-compat/middleware';
+import type { JellyfinItemsResponse } from '$lib/server/proprietary/jellyfin-compat/types';
+import { getDb } from '$lib/server/database';
+import { buildLibraryViews } from '$lib/server/proprietary/jellyfin-compat/library-views-utils';
+import {
+    parseDtoOptions,
+    shapeItemsResponse,
+} from '$lib/server/proprietary/jellyfin-compat/dto-options';
+
+export const GET: RequestHandler = withJellyfinAuth(async (event) => {
+    const { locals, url } = event;
+    const sql = getDb();
+    if (!sql) {
+        return ApiResponses.error('Database unavailable');
+    }
+
+    const items = await buildLibraryViews(sql, locals.user);
+
+    const response: JellyfinItemsResponse = {
+        Items: items,
+        TotalRecordCount: items.length,
+        StartIndex: 0,
+    };
+
+    return json(shapeItemsResponse(response, parseDtoOptions(url)));
+});

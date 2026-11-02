@@ -1,0 +1,9 @@
+// SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+// SPDX-License-Identifier: AGPL-3.0-only
+
+// GET /api/v1/me — self-scoped user profile.
+
+import { mount } from '$lib/server/api/mount.js';
+import { def } from '$lib/server/api/defs/user/profile.js';
+
+export const { GET } = mount(def, { surface: 'v1' });

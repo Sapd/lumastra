@@ -1,0 +1,59 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/sync/user-state?kind=watch_state&limit=5"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "04040f39-304a-4021-979e-5e269662cfe0",
+        "watchState": {
+          "progress": {
+            "positionMs": 0,
+            "durationMs": null,
+            "fraction": null,
+            "finished": false,
+            "updatedAt": "2026-10-20T00:25:07.714Z"
+          },
+          "playCount": 0,
+          "favorite": false,
+          "lastWatchedAt": null
+        }
+      },
+      {
+        "id": "545088a0-b025-4089-a870-5b6658e3188a",
+        "watchState": {
+          "progress": {
+            "positionMs": 0,
+            "durationMs": 2772463,
+            "fraction": 0,
+            "finished": false,
+            "updatedAt": "2026-10-20T00:24:25.949Z"
+          },
+          "playCount": 0,
+          "favorite": false,
+          "lastWatchedAt": null
+        }
+      },
+      {
+        "id": "90be567f-33c9-43fb-ac3f-e6bd8f842cf2",
+        "watchState": {
+          "progress": {
+            "positionMs": 0,
+            "durationMs": 1800000,
+            "fraction": 0,
+            "finished": false,
+            "updatedAt": "2026-10-20T00:25:14.133Z"
+          },
+          "playCount": 0,
+          "favorite": false,
+          "lastWatchedAt": null
+        }
+      }
+    ],
+    "nextAfter": null
+  },
+  "baselineProblems": []
+}

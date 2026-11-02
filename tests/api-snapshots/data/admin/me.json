@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/me"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "id": "ec4dabbb-2e4a-4ddf-8a4b-bfc45bbd81bc",
+    "username": "safetynet-admin",
+    "isAdmin": true,
+    "isAgeRestricted": false,
+    "permissions": {
+      "canRequest": true,
+      "canReview": true,
+      "canAnnotateMedia": true,
+      "canWatchLiveTv": true,
+      "canSeeAllPlayback": true
+    },
+    "groups": [
+      "Kreditoren"
+    ]
+  },
+  "baselineProblems": []
+}

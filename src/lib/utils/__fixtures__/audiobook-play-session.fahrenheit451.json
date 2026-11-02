@@ -1,0 +1,84 @@
+{
+    "audioTracks": [
+        {
+            "index": 1,
+            "ino": "8941",
+            "startOffset": 0,
+            "duration": 3161.835102,
+            "mimeType": "audio/mpeg",
+            "codec": "mp3",
+            "title": "01 - Lanternlight 451.mp3"
+        },
+        {
+            "index": 2,
+            "ino": "8997",
+            "startOffset": 3161.835102,
+            "duration": 2949.746939,
+            "mimeType": "audio/mpeg",
+            "codec": "mp3",
+            "title": "02 - Lanternlight 451.mp3"
+        },
+        {
+            "index": 3,
+            "ino": "8831",
+            "startOffset": 6111.582041,
+            "duration": 2940.133878,
+            "mimeType": "audio/mpeg",
+            "codec": "mp3",
+            "title": "03 - Lanternlight 451.mp3"
+        },
+        {
+            "index": 4,
+            "ino": "8942",
+            "startOffset": 9051.715919,
+            "duration": 2936.11102,
+            "mimeType": "audio/mpeg",
+            "codec": "mp3",
+            "title": "04 - Lanternlight 451.mp3"
+        },
+        {
+            "index": 5,
+            "ino": "9088",
+            "startOffset": 11987.826939,
+            "duration": 3534.096,
+            "mimeType": "audio/mpeg",
+            "codec": "mp3",
+            "title": "05 - Lanternlight 451.mp3"
+        }
+    ],
+    "chapters": [
+        {
+            "id": 0,
+            "start": 0,
+            "end": 3161.835102,
+            "title": "01 - Lanternlight 451"
+        },
+        {
+            "id": 1,
+            "start": 3161.835102,
+            "end": 6111.582041,
+            "title": "02 - Lanternlight 451"
+        },
+        {
+            "id": 2,
+            "start": 6111.582041,
+            "end": 9051.715919,
+            "title": "03 - Lanternlight 451"
+        },
+        {
+            "id": 3,
+            "start": 9051.715919,
+            "end": 11987.826939,
+            "title": "04 - Lanternlight 451"
+        },
+        {
+            "id": 4,
+            "start": 11987.826939,
+            "end": 15521.922939,
+            "title": "05 - Lanternlight 451"
+        }
+    ],
+    "duration": 15521.922939,
+    "playMethod": 0,
+    "id": "4323d1a2-cb6a-43eb-b87b-255fd831cc7a"
+}

@@ -1,0 +1,31 @@
+{
+  "ids": {
+    "movie": "fb4e2182-5024-407f-91a3-66c54f0e4b42",
+    "series": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+    "season": "4b373339-66ff-4fee-a061-cb220c3054fb",
+    "episode": "90be567f-33c9-43fb-ac3f-e6bd8f842cf2",
+    "album": "e736a07a-15c7-481c-afb2-bba15a733e12",
+    "artist": "2d145681-b396-4830-bf7d-d669d4575a5a",
+    "track": "0fff5c4d-3336-4809-82bc-cace172c5e07",
+    "audiobook": "545088a0-b025-4089-a870-5b6658e3188a",
+    "audiobookAuthor": "eb0430e8-19ed-424e-99f1-3871eff52a6c",
+    "audiobookSeries": "2b084279-6440-43b4-a43d-4893e1d3ce67",
+    "channel": "04e36f73-2c77-496a-a2a1-4ca41d9a23d9",
+    "person": "tmdb:1062048"
+  },
+  "skipped": [
+    {
+      "key": "station",
+      "reason": "No station content discovered"
+    },
+    {
+      "key": "channel",
+      "reason": "No channel content discovered"
+    }
+  ],
+  "missingPublicOperations": [
+    "system-health",
+    "client-diagnostics",
+    "api-conformance"
+  ]
+}

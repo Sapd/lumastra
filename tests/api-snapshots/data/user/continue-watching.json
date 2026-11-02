@@ -1,0 +1,128 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/continue-watching"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "23d8119d-627e-4d3a-a694-f93dd096f59b",
+        "catalogId": "23d8119d-627e-4d3a-a694-f93dd096f59b",
+        "type": "audiobook",
+        "ids": {},
+        "title": "20000 Leagues Under the Sea",
+        "subtitle": "Jules Verne",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/23d8119d-627e-4d3a-a694-f93dd096f59b/images/poster?size=card&v=93208994f30a",
+            "variants": {
+              "thumb": "/api/v1/media/23d8119d-627e-4d3a-a694-f93dd096f59b/images/poster?size=thumb&v=93208994f30a",
+              "card": "/api/v1/media/23d8119d-627e-4d3a-a694-f93dd096f59b/images/poster?size=card&v=93208994f30a",
+              "full": "/api/v1/media/23d8119d-627e-4d3a-a694-f93dd096f59b/images/poster?size=full&v=93208994f30a"
+            },
+            "revision": "93208994f30a",
+            "source": "self"
+          }
+        },
+        "progress": {
+          "positionMs": 42000,
+          "durationMs": 118864095,
+          "fraction": 0.0003533447169222968,
+          "finished": false,
+          "updatedAt": "2026-10-21T01:15:40.555Z"
+        },
+        "audiobook": {
+          "authors": [
+            {
+              "id": "6253f9df-477c-4618-a53a-820b5eee1e1e",
+              "name": "Jules Verne"
+            }
+          ],
+          "narrators": [],
+          "series": {
+            "id": "d4b37fcf-75f5-4b46-b2ff-481ee46262af",
+            "name": "Jules Verne",
+            "position": null
+          }
+        },
+        "lastPlayedAt": "2026-10-21T01:15:40.555Z",
+        "availability": {
+          "isAvailable": true,
+          "canRequest": false
+        },
+        "reason": {
+          "kind": "continue-watching"
+        }
+      },
+      {
+        "id": "274aa7e0-987f-4a57-aad6-f413f06b78e4",
+        "catalogId": "274aa7e0-987f-4a57-aad6-f413f06b78e4",
+        "type": "movie",
+        "ids": {
+          "tmdb": "10378"
+        },
+        "title": "Big Buck Bunny",
+        "images": {
+          "poster": {
+            "href": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/poster?size=card&v=9e65d188204c",
+            "variants": {
+              "thumb": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/poster?size=thumb&v=9e65d188204c",
+              "card": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/poster?size=card&v=9e65d188204c",
+              "full": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/poster?size=full&v=9e65d188204c"
+            },
+            "revision": "9e65d188204c",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LbM@vBkr%hx]]~xatRt6~qxaofoe"
+            }
+          },
+          "backdrop": {
+            "href": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=hd&v=267d9115bdcf",
+            "variants": {
+              "card": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=card&v=267d9115bdcf",
+              "hd": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=hd&v=267d9115bdcf",
+              "wide": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=wide&v=267d9115bdcf",
+              "full": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=full&v=267d9115bdcf"
+            },
+            "revision": "267d9115bdcf",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "L~IF*%tSoIS$?dR-s,kDW@M{jYay"
+            }
+          },
+          "logo": {
+            "href": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/logo?size=full&v=e947ecca05f5",
+            "variants": {
+              "full": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/logo?size=full&v=e947ecca05f5"
+            },
+            "revision": "e947ecca05f5",
+            "source": "self"
+          }
+        },
+        "progress": {
+          "positionMs": 90000,
+          "durationMs": 635000,
+          "fraction": 0.14173228346456693,
+          "finished": false,
+          "updatedAt": "2026-10-20T20:27:02.245Z"
+        },
+        "lastPlayedAt": "2026-10-20T20:27:02.245Z",
+        "availability": {
+          "isAvailable": true,
+          "canRequest": false
+        },
+        "reason": {
+          "kind": "continue-watching"
+        }
+      }
+    ],
+    "page": {
+      "limit": 20,
+      "offset": 0,
+      "hasMore": false
+    }
+  },
+  "baselineProblems": []
+}

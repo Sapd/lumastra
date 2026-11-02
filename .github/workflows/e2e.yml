@@ -1,0 +1,149 @@
+name: E2E (on demand)
+
+# Playwright end-to-end tests, run only when a maintainer asks for them:
+#   - add the label `run-e2e` to a pull request (also re-runs on every new push while the label
+#     stays on), or
+#   - start the workflow by hand (Actions tab, "Run workflow"), choosing the Playwright project.
+# Pull requests do not run it by default: the suite starts a dev server plus PostgreSQL and
+# Valkey and takes a while. The `api` project is the default; it needs no browser.
+#
+# Safety: the `pull_request` event gives fork PRs a read-only token and no secrets, and the job
+# runs on a GitHub-hosted runner. A maintainer should read the diff BEFORE adding the label, and
+# remove and re-add it after the contributor pushes new commits that were not reviewed.
+
+on:
+    pull_request:
+        types: [labeled, synchronize]
+    workflow_dispatch:
+        inputs:
+            project:
+                description: Playwright project to run
+                type: choice
+                options: [api, ui]
+                default: api
+
+permissions:
+    contents: read
+
+# A new push supersedes the running check. A label event for any OTHER label gets its own
+# throw-away group, so it can never cancel a running e2e job.
+concurrency:
+    group: >-
+        e2e-${{ github.event.pull_request.number || github.ref }}-${{
+        github.event.action == 'labeled' && github.event.label.name != 'run-e2e' && github.run_id || 'run' }}
+    cancel-in-progress: true
+
+jobs:
+    e2e:
+        name: Playwright (${{ inputs.project || 'api' }})
+        if: >-
+            github.event_name == 'workflow_dispatch' ||
+            contains(github.event.pull_request.labels.*.name, 'run-e2e')
+        runs-on: ubuntu-latest
+        timeout-minutes: 60
+        services:
+            postgres:
+                image: pgvector/pgvector:pg18
+                env:
+                    POSTGRES_DB: lumastra_e2e
+                    POSTGRES_USER: lumastra_ci
+                    POSTGRES_PASSWORD: lumastra_ci_test_password
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd="pg_isready -U lumastra_ci -d lumastra_e2e"
+                    --health-interval=5s
+                    --health-timeout=5s
+                    --health-retries=10
+            valkey:
+                image: valkey/valkey:9-alpine
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd="valkey-cli ping"
+                    --health-interval=5s
+                    --health-timeout=5s
+                    --health-retries=10
+        env:
+            DATABASE_URL: postgres://lumastra_ci:lumastra_ci_test_password@localhost:5432/lumastra_e2e
+            TEST_DATABASE_URL: postgres://lumastra_ci:lumastra_ci_test_password@localhost:5432/lumastra_e2e
+            CACHE_URL: redis://localhost:6379
+            PW_PROJECT: ${{ inputs.project || 'api' }}
+        steps:
+            - name: Check out the repo
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Set up Node
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+              with:
+                  node-version: 22
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci --legacy-peer-deps
+
+            - name: Generate build artifacts
+              run: |
+                  npx svelte-kit sync
+                  npm run paraglide:compile
+                  npm run openapi:types
+
+            # Some specs probe real ffmpeg/ffprobe; same pinned build as the integration tests.
+            - name: Provision ffmpeg (pinned jellyfin-ffmpeg build)
+              env:
+                  FFMPEG_AUTO_DOWNLOAD: 'true'
+              run: |
+                  CACHE_DIR="${RUNNER_TOOL_CACHE:-$RUNNER_TEMP}/lumastra-ffmpeg"
+                  {
+                      echo "FFMPEG_CACHE_DIR=$CACHE_DIR"
+                      echo "FFMPEG_PATH=$CACHE_DIR/ffmpeg"
+                      echo "FFPROBE_PATH=$CACHE_DIR/ffprobe"
+                  } >> "$GITHUB_ENV"
+                  echo "$CACHE_DIR" >> "$GITHUB_PATH"
+                  SHIM_DIR="$RUNNER_TEMP/ffmpeg-tsx-shim"
+                  mkdir -p "$SHIM_DIR"
+                  printf '#!/bin/sh\nexec npx --yes tsx "$@"\n' > "$SHIM_DIR/tsx"
+                  chmod +x "$SHIM_DIR/tsx"
+                  PATH="$SHIM_DIR:$PWD/node_modules/.bin:$PATH" \
+                  FFMPEG_CACHE_DIR="$CACHE_DIR" \
+                  FFMPEG_PATH="$CACHE_DIR/ffmpeg" \
+                  FFPROBE_PATH="$CACHE_DIR/ffprobe" \
+                      sh scripts/fetch-ffmpeg.sh
+
+            - name: Verify ffmpeg is usable
+              run: |
+                  "$FFMPEG_PATH" -version | head -1
+                  "$FFPROBE_PATH" -version | head -1
+
+            - name: Quieten the test Postgres log
+              env:
+                  QUIET_PG_SILENCE_ERRORS: '1'
+              run: node scripts/quiet-test-postgres.mjs
+
+            - name: Run database migrations
+              run: npm run db:test:migrate
+
+            # Only the browser projects need Chromium and its system libraries.
+            - name: Install Playwright Chromium
+              if: env.PW_PROJECT != 'api'
+              run: npx playwright install --with-deps chromium
+
+            - name: Pick a free dev-server port
+              run: |
+                  PORT=$(node -e "const s=require('net').createServer();s.listen(0,'127.0.0.1',()=>{console.log(s.address().port);s.close()})")
+                  echo "PLAYWRIGHT_PORT=$PORT" >> "$GITHUB_ENV"
+
+            - name: Run Playwright
+              env:
+                  TEST_USER: TestUser
+                  TEST_GROUPS: Users|Librarians|admin
+                  CORS_ALLOWED_ORIGINS: https://e2e-cors-client.example
+                  LUMASTRA_MASTER_KEY: '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff'
+                  NODE_OPTIONS: '--max-old-space-size=8192'
+                  PLAYWRIGHT_JSON_REPORT: ${{ runner.temp }}/playwright.json
+              run: npx playwright test --project="$PW_PROJECT"
+
+            # Writes the green and failing spec lists into the step summary.
+            - name: Summarise the Playwright result
+              if: always()
+              run: node scripts/check-playwright-json.mjs "${{ runner.temp }}/playwright.json"

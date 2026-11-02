@@ -1,0 +1,41 @@
+<!-- (c) 2026 Denis Arnst (Sapd). Lumastra brand asset - SPDX-License-Identifier: LicenseRef-Lumastra-Branding. All rights reserved; see LICENSES/LicenseRef-Lumastra-Branding.txt and TRADEMARKS.md. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Lumastra icon">
+  <defs>
+    <linearGradient id="lumastra-gradient" x1="38" y1="392" x2="454" y2="94" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#006BFF"/>
+      <stop offset="0.5" stop-color="#4540FF"/>
+      <stop offset="1" stop-color="#BE2DFF"/>
+    </linearGradient>
+    <mask id="play-cutout">
+      <rect width="512" height="512" fill="white"/>
+      <path d="M270 177
+               C262 172 256 176 256 185
+               L256 327
+               C256 336 263 340 270 335
+               L364 273
+               C388 257 388 255 364 239
+               L270 177
+               Z" fill="black"/>
+    </mask>
+  </defs>
+
+  <g fill="url(#lumastra-gradient)" mask="url(#play-cutout)">
+    <rect x="150" y="92" width="97" height="22" rx="11"/>
+    <rect x="106" y="138" width="141" height="23" rx="11.5"/>
+    <rect x="50" y="199" width="197" height="24" rx="12"/>
+    <rect x="22" y="259" width="225" height="24" rx="12"/>
+    <rect x="90" y="318" width="157" height="24" rx="12"/>
+    <rect x="142" y="382" width="105" height="22" rx="11"/>
+
+    <path d="M222 91
+             C240 86 258 90 275 101
+             L440 202
+             C462 216 475 240 472 266
+             C469 289 456 310 436 322
+             L276 414
+             C249 430 216 423 196 399
+             C183 384 178 362 178 338
+             L178 174
+             C178 132 192 100 222 91 Z"/>
+  </g>
+</svg>

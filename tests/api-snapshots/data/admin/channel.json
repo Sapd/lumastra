@@ -1,0 +1,35 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/livetv/stations/04e36f73-2c77-496a-a2a1-4ca41d9a23d9"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "id": "04e36f73-2c77-496a-a2a1-4ca41d9a23d9",
+    "name": "Meridian News",
+    "images": {
+      "primary": {
+        "href": "/api/v1/media/04e36f73-2c77-496a-a2a1-4ca41d9a23d9/images/poster?size=card&v=b37d8f7d61b8",
+        "variants": {
+          "thumb": "/api/v1/media/04e36f73-2c77-496a-a2a1-4ca41d9a23d9/images/poster?size=thumb&v=b37d8f7d61b8",
+          "card": "/api/v1/media/04e36f73-2c77-496a-a2a1-4ca41d9a23d9/images/poster?size=card&v=b37d8f7d61b8",
+          "full": "/api/v1/media/04e36f73-2c77-496a-a2a1-4ca41d9a23d9/images/poster?size=full&v=b37d8f7d61b8"
+        },
+        "revision": "b37d8f7d61b8",
+        "source": "self"
+      }
+    },
+    "category": "News",
+    "categoryId": "b3080357-7ccf-4769-b05d-b19fd714af36",
+    "sortOrder": 0,
+    "isVisible": true,
+    "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+    "feedId": "04e36f73-2c77-496a-a2a1-4ca41d9a23d9",
+    "nowNext": {
+      "current": null,
+      "next": null
+    }
+  },
+  "baselineProblems": []
+}

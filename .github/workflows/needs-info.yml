@@ -1,0 +1,82 @@
+name: Waiting for the author
+
+# Issues and pull requests labelled `status:needs-info` wait for their author.
+# - When the author comments, the label is removed and `status:needs-triage` is set,
+#   so a maintainer sees the reply.
+# - With no reply for 30 days after the label was added, a reminder is posted; seven
+#   days after that the item is closed. Nothing without the label is touched.
+# Only labels and comments are changed; no code from a pull request is checked out or
+# run, so this is safe on a public repository.
+
+on:
+    issue_comment:
+        types: [created]
+    schedule:
+        - cron: '17 5 * * *'
+    workflow_dispatch:
+
+permissions: {}
+
+jobs:
+    author-replied:
+        if: github.event_name == 'issue_comment'
+        runs-on: ubuntu-latest
+        permissions:
+            issues: write
+            pull-requests: write
+        steps:
+            - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+              with:
+                  script: |
+                      const issue = context.payload.issue;
+                      const labels = issue.labels.map((l) => l.name);
+                      if (!labels.includes('status:needs-info')) return;
+                      if (context.payload.comment.user.login !== issue.user.login) return;
+                      const params = { owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number };
+                      await github.rest.issues.removeLabel({ ...params, name: 'status:needs-info' }).catch(() => {});
+                      await github.rest.issues.addLabels({ ...params, labels: ['status:needs-triage'] });
+
+    close-without-reply:
+        if: github.event_name != 'issue_comment'
+        runs-on: ubuntu-latest
+        permissions:
+            issues: write
+            pull-requests: write
+        steps:
+            - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+              with:
+                  script: |
+                      const DAY = 24 * 60 * 60 * 1000;
+                      const MARKER = '<!-- needs-info-reminder -->';
+                      const { owner, repo } = context.repo;
+                      const items = await github.paginate(github.rest.issues.listForRepo, {
+                          owner, repo, state: 'open', labels: 'status:needs-info', per_page: 100,
+                      });
+                      for (const item of items) {
+                          const params = { owner, repo, issue_number: item.number };
+                          const events = await github.paginate(github.rest.issues.listEvents, { ...params, per_page: 100 });
+                          const labelled = events
+                              .filter((e) => e.event === 'labeled' && e.label?.name === 'status:needs-info')
+                              .map((e) => Date.parse(e.created_at))
+                              .pop();
+                          if (!labelled) continue;
+                          const comments = await github.paginate(github.rest.issues.listComments, {
+                              ...params, since: new Date(labelled).toISOString(), per_page: 100,
+                          });
+                          // The author answered: the comment workflow handles that; skip here.
+                          if (comments.some((c) => c.user.login === item.user.login)) continue;
+                          const reminder = comments.find((c) => c.body?.includes(MARKER));
+                          const now = Date.now();
+                          if (!reminder && now - labelled >= 30 * DAY) {
+                              await github.rest.issues.createComment({
+                                  ...params,
+                                  body: `${MARKER}\nThis has been waiting for more information for 30 days. If there is no reply within 7 days, it will be closed. You can always reopen it or comment with the details later.`,
+                              });
+                          } else if (reminder && now - Date.parse(reminder.created_at) >= 7 * DAY) {
+                              await github.rest.issues.createComment({
+                                  ...params,
+                                  body: 'Closing, as the information we asked for has not come in. Feel free to reopen with the details.',
+                              });
+                              await github.rest.issues.update({ ...params, state: 'closed', state_reason: 'not_planned' });
+                          }
+                      }

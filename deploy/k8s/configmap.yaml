@@ -1,0 +1,36 @@
+# Non-secret runtime configuration shared by the web + worker pods.
+# Secrets (DB/cache URLs, keys) live in secret.example.yaml instead.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: lumastra-config
+    namespace: lumastra
+data:
+    NODE_ENV: 'production'
+    # Where the app writes artwork / trickplay / the ffmpeg binary cache. Must be a
+    # ReadWriteMany volume shared by web + worker (see config-pvc.yaml).
+    BASE_PATH: '/config'
+    # Public origin — REQUIRED so built-in login cookies get their Secure flag and
+    # CSRF origin checks pass. Must match the hostname clients actually use.
+    ORIGIN: 'https://lumastra.example.com'
+    # Built-in username/password login (no reverse-proxy forward-auth needed).
+    # First boot with no admin redirects to /setup to create the first admin.
+    AUTH_NATIVE_LOGIN_ENABLED: 'true'
+    # Forward-auth proxy trust. ONLY needed if you authenticate via an identity
+    # proxy (Authentik/Authelia) injecting USERHEADER/GROUPHEADER. Set to your
+    # ingress controller's pod/CIDR range ONLY IF that ingress itself performs
+    # the auth_request/ForwardAuth check (the shipped ingress-nginx.yaml /
+    # gateway-traefik.yaml examples do NOT — see README.md's Authentication
+    # section for what you must add), or omit entirely when using native login.
+    # Forward auth is opt-in: the app reads identity headers only with this on.
+    # FORWARD_AUTH_ENABLED: 'true'
+    # The ingress pods' range (k3s default 10.42.0.0/16), never a whole private block:
+    # every address listed can send identity headers. Keep a NetworkPolicy so only the
+    # ingress reaches the app.
+    # TRUSTED_PROXY_IPS: "10.42.0.0/16"
+    # Request body cap (adapter-node default 512K): artwork uploads (MAX_IMAGE_UPLOAD_MB, default
+    # 10) and client diagnostics bundles (up to 3 MiB) need more. Keep the ingress's
+    # proxy-body-size at least this large.
+    BODY_SIZE_LIMIT: '50M'
+    TZ: 'UTC'
+    LOG_LEVEL: 'info'

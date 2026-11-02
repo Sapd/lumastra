@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "framework": "svelte",
+    "svelteVersion": "5",
+    "mappings": [
+        {
+            "from": "/.svelte-kit/generated/*",
+            "to": "file:///.svelte-kit/generated/*"
+        },
+        {
+            "from": "/src/*",
+            "to": "file:///src/*"
+        }
+    ]
+}

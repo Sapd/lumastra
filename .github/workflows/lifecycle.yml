@@ -1,0 +1,107 @@
+name: Issue and PR lifecycle
+
+# Keeps the status labels up to date so they need no hand work:
+# - A merged pull request, and every issue it closes ("Fixes #12"), gets `synced`
+#   (merged, waiting for a release); released.yml turns that into `status:released`.
+# - A commit pushed to main that says "Fixes #12" (also commits from the export of the
+#   private repository) labels issue #12 `synced`.
+# - Once an issue is triaged (confirmed, needs info, blocked, needs discussion or synced),
+#   `status:needs-triage` is removed.
+# Only labels are changed; no code from a pull request is checked out or run, so
+# pull_request_target is safe here.
+
+on:
+    pull_request_target:
+        types: [closed]
+    push:
+        branches: [main]
+    issues:
+        types: [labeled]
+
+permissions: {}
+
+jobs:
+    merged-pr:
+        if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
+        runs-on: ubuntu-latest
+        permissions:
+            issues: write
+            pull-requests: write
+        steps:
+            - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+              with:
+                  script: |
+                      const { owner, repo } = context.repo;
+                      const pr = context.payload.pull_request;
+                      const result = await github.graphql(
+                          `query($owner: String!, $repo: String!, $number: Int!) {
+                              repository(owner: $owner, name: $repo) {
+                                  pullRequest(number: $number) {
+                                      closingIssuesReferences(first: 50) { nodes { number } }
+                                  }
+                              }
+                          }`,
+                          { owner, repo, number: pr.number },
+                      );
+                      const issues = result.repository.pullRequest.closingIssuesReferences.nodes.map((n) => n.number);
+                      for (const number of [pr.number, ...issues]) {
+                          const params = { owner, repo, issue_number: number };
+                          await github.rest.issues.addLabels({ ...params, labels: ['synced'] });
+                          for (const name of ['status:needs-triage', 'status:needs-info']) {
+                              await github.rest.issues.removeLabel({ ...params, name }).catch(() => {});
+                          }
+                      }
+
+    fixes-in-commits:
+        if: github.event_name == 'push'
+        runs-on: ubuntu-latest
+        permissions:
+            issues: write
+        steps:
+            - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+              with:
+                  script: |
+                      const { owner, repo } = context.repo;
+                      const pattern = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)\b/gi;
+                      const numbers = new Set();
+                      for (const commit of context.payload.commits ?? []) {
+                          for (const match of commit.message.matchAll(pattern)) numbers.add(Number(match[1]));
+                      }
+                      for (const number of numbers) {
+                          const params = { owner, repo, issue_number: number };
+                          let issue;
+                          try {
+                              ({ data: issue } = await github.rest.issues.get(params));
+                          } catch {
+                              continue; // no such issue
+                          }
+                          const labels = issue.labels.map((l) => (typeof l === 'string' ? l : l.name));
+                          // Pull requests are labelled when they merge; released items stay released.
+                          if (issue.pull_request || labels.includes('status:released')) continue;
+                          await github.rest.issues.addLabels({ ...params, labels: ['synced'] });
+                          for (const name of ['status:needs-triage', 'status:needs-info']) {
+                              if (labels.includes(name)) {
+                                  await github.rest.issues.removeLabel({ ...params, name }).catch(() => {});
+                              }
+                          }
+                      }
+
+    triaged:
+        if: >-
+            github.event_name == 'issues' &&
+            contains(fromJSON('["status:confirmed","status:needs-info","status:blocked","status:needs-discussion","synced"]'), github.event.label.name)
+        runs-on: ubuntu-latest
+        permissions:
+            issues: write
+        steps:
+            - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+              with:
+                  script: |
+                      const labels = context.payload.issue.labels.map((l) => l.name);
+                      if (!labels.includes('status:needs-triage')) return;
+                      await github.rest.issues.removeLabel({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          issue_number: context.payload.issue.number,
+                          name: 'status:needs-triage',
+                      }).catch(() => {});

@@ -1,0 +1,215 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/livetv/guide?from=2026-10-21T01%3A16%3A45.474Z&to=2026-10-21T02%3A16%3A45.474Z"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "window": {
+      "from": "2026-10-21T01:16:45.474Z",
+      "to": "2026-10-21T02:16:45.474Z",
+      "asOf": "2026-10-21T01:16:45.479Z"
+    },
+    "stations": [
+      {
+        "stationId": "04e36f73-2c77-496a-a2a1-4ca41d9a23d9",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "16895523-64cc-477f-83bd-8d0405dbee54",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "e42f837e-cce6-4192-be09-6b135ac0e65e",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "53268f1e-3b14-4355-a3fb-9f732f53538c",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "8dd523dd-c43a-44fa-a2cb-2ce8d7a14b2c",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "c862f755-1234-40a6-b251-8411568201f7",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "b9794bac-9dd0-4890-8a8c-88b873f32ded",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "fc5485cc-30eb-493c-8946-1ae0c03da805",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "9a0ca962-f0a8-4378-93f8-f90ae169f624",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "1beb9deb-2d6c-413e-b322-27b7726f3048",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "96cd98e1-12e8-465c-a1a2-ca0d510b2e59",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "8f796344-75fa-4caa-9143-0b4d9ca52495",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "0ba7df8c-ccd7-44ab-837a-0e85f60f477f",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "242e32ce-ddea-4c54-9a19-bbd9508b38cf",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "48601f6c-253f-4947-b7f0-48619349243e",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "c7eac59c-1838-4e4c-979e-e322890c9d89",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "ecaf8e0a-e22b-4519-a6e6-36f104d17ad8",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "23b5c672-2a93-4e2c-8019-da4291caeedc",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "d7e7c06f-0034-4571-8dca-e66821dbb691",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "ee338e86-837a-4a58-94fb-970e261e50dc",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "b4320c0a-5cff-41db-983d-d6f3c26b0b1f",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "b216c6e2-9a67-4569-a9da-9c8e8a860d0e",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "43ef8b83-fd3d-44c3-88bf-2af046cb1288",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "stationId": "2356cf2e-a097-4ed7-af26-4b0aff11ac5e",
+        "airings": [],
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      }
+    ],
+    "page": {
+      "limit": 50,
+      "nextCursor": null,
+      "hasMore": false
+    }
+  },
+  "baselineProblems": []
+}

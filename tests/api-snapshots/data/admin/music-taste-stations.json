@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/me/music/taste-stations"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": []
+  },
+  "baselineProblems": []
+}

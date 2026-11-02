@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+# CNPG with an ICU default collation (match a source whose datlocprovider is 'i').
+app: { origin: https://lumastra.example.com }
+secrets: { existingSecret: lumastra }
+router: { enabled: false }
+database:
+    mode: cnpg
+    cnpg:
+        initdb: { localeProvider: icu, icuLocale: en-US, locale: en_US.utf8, dataChecksums: true }

@@ -1,0 +1,37 @@
+name: License boundary
+
+# Enforces the open-core licensing invariant (LICENSING.md §3): AGPL core never imports the
+# proprietary trees, and the proprietary SPDX headers appear exactly on the §3 paths.
+# Dependency-free node scripts — no npm install, ~10s.
+
+on:
+    push:
+        branches: [main, stable]
+    pull_request:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+# PRs: a new push supersedes the running check. main: queue, so every run finishes.
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+    license-boundary:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out the repo
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Set up Node
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+              with:
+                  node-version: 22
+
+            - name: License boundary check
+              run: node scripts/check-license-boundary.mjs
+
+            - name: SPDX header check
+              run: node scripts/license-headers.mjs --check

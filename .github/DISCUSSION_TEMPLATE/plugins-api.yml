@@ -1,0 +1,33 @@
+title: ''
+body:
+    - type: markdown
+      attributes:
+          value: |
+              For plugin authors and integrators: the SDK and its contracts, signing and repositories, the `/api/v1` surface, OAuth device flow, building a player. Start with [Writing a plugin](https://lumastra.org/developers/plugins/), [API & tokens](https://lumastra.org/developers/api/) and [Building a player](https://lumastra.org/developers/building-a-player/). Show what you built in Show and tell!
+
+              **House rules**, in short: keep it about media you own or are licensed to use (no references to pirated content of any kind), redact secrets and personal data before posting, and be kind. The full rules: [CODE_OF_CONDUCT.md](https://github.com/Sapd/lumastra/blob/main/.github/CODE_OF_CONDUCT.md#content-rules).
+    - type: dropdown
+      id: topic
+      attributes:
+          label: Topic
+          options:
+              - Plugin SDK / contracts
+              - Plugin signing, repositories, installation
+              - Public API (/api/v1)
+              - OAuth / tokens / device flow
+              - Building a player or client
+              - Webhooks / events
+              - Other
+      validations:
+          required: true
+    - type: input
+      id: version
+      attributes:
+          label: Lumastra version and SDK version (if relevant)
+    - type: textarea
+      id: question
+      attributes:
+          label: Your question
+          description: What you are building, what you tried, and where it went wrong. Code snippets and request/response pairs welcome.
+      validations:
+          required: true

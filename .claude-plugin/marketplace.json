@@ -1,0 +1,15 @@
+{
+    "name": "lumastra",
+    "description": "Claude Code plugins for Lumastra, the self-hosted media server.",
+    "owner": {
+        "name": "Lumastra",
+        "url": "https://lumastra.org"
+    },
+    "plugins": [
+        {
+            "name": "lumastra-skills",
+            "source": "./plugins/lumastra-skills",
+            "description": "Agent skills for installing and running a Lumastra media server."
+        }
+    ]
+}

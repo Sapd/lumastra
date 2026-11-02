@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+
+[package]
+name = "lumastra-task-queue"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-only"
+publish = false
+
+[dependencies]
+bullmq-official = "=1.4.0"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.153"
+tokio = { version = "=1.53.2", features = ["rt-multi-thread", "macros", "time"] }
+url = "=2.5.8"
+
+[profile.release]
+lto = "thin"
+strip = true

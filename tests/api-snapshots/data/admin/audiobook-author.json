@@ -1,0 +1,15 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/audiobooks/authors/eb0430e8-19ed-424e-99f1-3871eff52a6c"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "id": "eb0430e8-19ed-424e-99f1-3871eff52a6c",
+    "name": "Aesop",
+    "bookCount": 1,
+    "durationMs": 2772463
+  },
+  "baselineProblems": []
+}

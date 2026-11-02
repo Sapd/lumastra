@@ -1,0 +1,192 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+
+Bundled Valkey. cache: allkeys-lru under a memory cap, no persistence (may evict).
+tasks: noeviction, NO cap, AOF on a PVC (BullMQ run state / locks must never be evicted).
+single: one noeviction instance for both URLs.
+Context: list root name flags resources persistence replicasPath replicas rdbImport(dict|nil) passwordKey.
+*/ -}}
+{{- define "lumastra.valkeyInstance" -}}
+{{- $ := index . 0 -}}
+{{- $name := index . 1 -}}
+{{- $flags := index . 2 -}}
+{{- $resources := index . 3 -}}
+{{- $persist := index . 4 -}}
+{{- $replicas := include "lumastra.singleReplicas" (list (index . 5) (index . 6)) -}}
+{{- $import := index . 7 -}}
+{{- $pwKey := index . 8 -}}
+{{- $vk := $.Values.valkey -}}
+{{- $full := include "lumastra.component" (list $ $name) -}}
+{{- $usePvc := and $persist (ne (toString $persist.enabled) "false") -}}
+{{- $claim := "" -}}
+{{- if $usePvc }}{{ $claim = default (printf "%s-data" $full) $persist.existingClaim }}{{ end -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $full }}
+  labels:
+    {{- include "lumastra.componentLabels" (list $ $name) | nindent 4 }}
+spec:
+  selector:
+    {{- include "lumastra.selectorLabels" (list $ $name) | nindent 4 }}
+  ports:
+    - name: valkey
+      port: 6379
+      targetPort: valkey
+---
+{{- if and $usePvc (not $persist.existingClaim) }}
+{{ include "lumastra.pvc" (list $ $claim $persist) }}
+---
+{{- end }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $full }}
+  labels:
+    {{- include "lumastra.componentLabels" (list $ $name) | nindent 4 }}
+spec:
+  serviceName: {{ $full }}
+  replicas: {{ $replicas }}
+  selector:
+    matchLabels:
+      {{- include "lumastra.selectorLabels" (list $ $name) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "lumastra.selectorLabels" (list $ $name) | nindent 8 }}
+      {{- with include "lumastra.podAnnotations" (list $ $vk) }}
+      annotations:
+        {{- . | nindent 8 }}
+      {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- include "lumastra.imagePullSecrets" $ | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: { type: RuntimeDefault }
+      {{- include "lumastra.scheduling" (list $ $vk) | nindent 6 }}
+      {{- if and $import $import.enabled }}
+      {{- if not $usePvc }}
+      {{- fail "valkey.tasks.rdbImport needs valkey.tasks.persistence.enabled (the dump.rdb lives on the PVC)" }}
+      {{- end }}
+      initContainers:
+        # RDB → AOF import (README: Valkey → Importing an RDB snapshot). With AOF on, Valkey ignores
+        # dump.rdb at start and its first shutdown overwrites the dump with an empty snapshot. Runs
+        # only when /data/dump.rdb exists and no COMPLETE AOF does (a manifest in appendonlydir):
+        # loads the dump with AOF off on a loopback-only port, turns AOF on (CONFIG SET appendonly
+        # yes = a rewrite of the loaded data into appendonlydir), waits for the rewrite, shuts down
+        # and renames the dump. The import server never writes the dump (--save '', shutdown
+        # nosave); any failure removes the partial appendonlydir, so a retry imports again instead
+        # of skipping, and the main container never starts on an empty AOF.
+        - name: rdb-import
+          image: {{ include "lumastra.image" (list $ $vk.image) }}
+          imagePullPolicy: {{ $vk.image.pullPolicy }}
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -eu
+              if [ ! -f /data/dump.rdb ]; then echo "rdb-import: no /data/dump.rdb, nothing to import"; exit 0; fi
+              if ls /data/appendonlydir/*.manifest >/dev/null 2>&1; then
+                echo "rdb-import: a complete AOF exists in /data/appendonlydir, skipping (remove it to re-import dump.rdb)"; exit 0
+              fi
+              if [ -e /data/appendonlydir ]; then
+                echo "rdb-import: removing an incomplete /data/appendonlydir (interrupted import)"
+                rm -rf /data/appendonlydir || { echo "rdb-import: cannot remove /data/appendonlydir (owned by another user?)"; exit 1; }
+              fi
+              # temp files of a rewrite that was killed (they sit next to appendonlydir)
+              rm -f /data/temp-rewriteaof-*.aof
+              echo "rdb-import: loading /data/dump.rdb ($(wc -c < /data/dump.rdb) bytes)"
+              valkey-server --dir /data --dbfilename dump.rdb --appendonly no --save '' \
+                --bind 127.0.0.1 --port 6390 --protected-mode yes --maxmemory-policy noeviction &
+              pid=$!
+              fail() { echo "rdb-import: $1"; kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true
+                       rm -rf /data/appendonlydir; echo "rdb-import: dump.rdb left as it was"; exit 1; }
+              cli() { valkey-cli -p 6390 "$@"; }
+              info() { cli info persistence | tr -d '\r' | sed -n "s/^$1://p"; }
+              end=$(( $(date +%s) + {{ int $import.timeoutSeconds }} ))
+              check() { kill -0 "$pid" 2>/dev/null || fail "valkey-server exited (unreadable or incompatible dump?)"
+                        [ "$(date +%s)" -lt "$end" ] || fail "timed out after {{ int $import.timeoutSeconds }} s (valkey.tasks.rdbImport.timeoutSeconds)"; }
+              until [ "$(cli ping 2>/dev/null)" = "PONG" ]; do check; sleep 1; done
+              keys=$(cli info keyspace | tr -d '\r' | grep '^db' | tr '\n' ' ')
+              echo "rdb-import: loaded ${keys:-no keys}; rewriting to AOF"
+              [ "$(cli config set appendonly yes)" = "OK" ] || fail "CONFIG SET appendonly yes failed"
+              until [ "$(info aof_rewrites)" -ge 1 ] 2>/dev/null && [ "$(info aof_rewrite_in_progress)" = "0" ] \
+                    && [ "$(info aof_rewrite_scheduled)" = "0" ]; do check; sleep 1; done
+              [ "$(info aof_last_bgrewrite_status)" = "ok" ] || fail "AOF rewrite failed"
+              cli shutdown nosave >/dev/null 2>&1 || true
+              wait "$pid" || true
+              ls /data/appendonlydir/*.manifest >/dev/null 2>&1 || fail "no AOF manifest after the rewrite"
+              mv /data/dump.rdb "/data/dump.rdb.imported-$(date -u +%Y%m%dT%H%M%SZ)"
+              echo "rdb-import: done (${keys:-no keys}) now in appendonlydir; the dump was renamed"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            {{- toYaml $resources | nindent 12 }}
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: tmp, mountPath: /tmp }
+      {{- end }}
+      containers:
+        - name: valkey
+          image: {{ include "lumastra.image" (list $ $vk.image) }}
+          imagePullPolicy: {{ $vk.image.pullPolicy }}
+          # requirepass goes into a file (printf is a shell builtin) so the password never shows in
+          # the process list; probes authenticate via REDISCLI_AUTH for the same reason.
+          command: ["sh", "-c"]
+          args:
+            - umask 077 && printf 'requirepass %s\n' "$VALKEY_PASSWORD" > /tmp/valkey.conf && exec valkey-server /tmp/valkey.conf --dir /data {{ $flags }}
+          env:
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "valkey.auth.existingSecret (or secrets.existingSecret) is required for bundled Valkey" (default $.Values.secrets.existingSecret $vk.auth.existingSecret) }}
+                  key: {{ $pwKey }}
+          ports:
+            - name: valkey
+              containerPort: 6379
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "REDISCLI_AUTH=\"$VALKEY_PASSWORD\" valkey-cli ping | grep -q PONG"]
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "REDISCLI_AUTH=\"$VALKEY_PASSWORD\" valkey-cli ping | grep -q PONG"]
+            periodSeconds: 30
+            failureThreshold: 5
+          resources:
+            {{- toYaml $resources | nindent 12 }}
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: data
+          {{- if $usePvc }}
+          persistentVolumeClaim:
+            claimName: {{ $claim }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - { name: tmp, emptyDir: {} }
+{{- end -}}
+
+{{- if eq .Values.valkey.mode "bundled" }}
+{{- $vk := .Values.valkey }}
+{{- $tasksFlags := "--maxmemory-policy noeviction --appendonly yes" }}
+{{ include "lumastra.valkeyInstance" (list . "valkey-cache" (printf "--maxmemory %s --maxmemory-policy allkeys-lru --save \"\" --appendonly no" $vk.cache.maxmemory) $vk.cache.resources nil "valkey.cache.replicas" $vk.cache.replicas nil $vk.auth.passwordKey) }}
+---
+{{ include "lumastra.valkeyInstance" (list . "valkey-tasks" $tasksFlags $vk.tasks.resources $vk.tasks.persistence "valkey.tasks.replicas" $vk.tasks.replicas $vk.tasks.rdbImport (default $vk.auth.passwordKey $vk.auth.taskPasswordKey)) }}
+{{- else if ne .Values.valkey.mode "external" }}
+{{- fail "valkey.mode must be bundled or external" }}
+{{- end }}

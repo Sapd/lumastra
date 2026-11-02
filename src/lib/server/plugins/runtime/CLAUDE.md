@@ -1,0 +1,17 @@
+# runtime/
+
+External-plugin loader, field-authority computation, drain-backlog helpers, and the unified admin DTO.
+
+## Files
+
+| File                               | What                                                                                                                                                                                                  | When to read                                              |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `index.ts`                         | Runtime exports                                                                                                                                                                                       | Importing runtime functionality                           |
+| `loader.ts`                        | External drop-in plugin loader. Detects which SDK contract a default export implements (one of 11 `defineX` shapes) and registers it on `taskRegistry`. Also runs the field-authority wiring at boot. | Loading plugins from disk                                 |
+| `drain-backlog.ts`                 | Backlog-drain helpers used by native tasks                                                                                                                                                            | Implementing chunked-drain backlog                        |
+| `field-authority-loader.ts`        | Reads `ProviderDefinition.metadata.fieldAuthorities` + operator overrides from `plugin_settings`; merges them into the field-authority resolver. Cross-replica invalidation via Valkey pubsub.        | Configuring field-authority hierarchy                     |
+| `field-authority-resolver.ts`      | Field-authority resolution at write time                                                                                                                                                              | Resolving metadata conflicts                              |
+| `admin-providers-listing.ts`       | Unified admin DTO sourcing every provider-shaped plugin from the task registry (provider / integration / trickplay / watch-sync / external-service / media-source); NOT tasks/features                | Building `/admin/providers` page + `/api/admin/providers` |
+| `drain-backlog.test.ts`            | Backlog-drain helper tests                                                                                                                                                                            | Testing chunked-drain semantics                           |
+| `field-authority-loader.test.ts`   | Field-authority loader tests                                                                                                                                                                          | Testing provider-priority loading                         |
+| `field-authority-resolver.test.ts` | Field-authority resolver tests                                                                                                                                                                        | Testing metadata-conflict resolution                      |

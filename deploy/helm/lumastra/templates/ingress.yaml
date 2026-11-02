@@ -1,0 +1,50 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+
+Plain Ingress to the entry Service (affinity is the router's job). With className nginx the
+ingress-nginx body-size/buffering/timeout annotations are added (ingress.nginxDefaults); explicit
+annotations win.
+*/ -}}
+{{- if .Values.ingress.enabled }}
+{{- $ann := deepCopy (default dict .Values.ingress.annotations) }}
+{{- if and .Values.ingress.nginxDefaults (eq .Values.ingress.className "nginx") }}
+{{- $nginx := dict
+    "nginx.ingress.kubernetes.io/proxy-body-size" .Values.router.clientMaxBodySize
+    "nginx.ingress.kubernetes.io/proxy-buffering" "off"
+    "nginx.ingress.kubernetes.io/proxy-read-timeout" "3600"
+    "nginx.ingress.kubernetes.io/proxy-send-timeout" "3600" }}
+{{- $ann = merge $ann $nginx }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "lumastra.fullname" . }}
+  labels:
+    {{- include "lumastra.labels" . | nindent 4 }}
+  {{- with $ann }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  rules:
+    {{- range (required "ingress.hosts is required" .Values.ingress.hosts) }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "lumastra.fullname" $ }}
+                port:
+                  number: {{ $.Values.service.port }}
+    {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

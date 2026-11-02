@@ -1,0 +1,181 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+
+Sonic embedder sidecar (amd64). /health is 503 until the CLAP model is loaded (minutes on first
+start: the model downloads into HF_HOME). Reads the DB as the read-only role (sonic_reader) and
+the music libraries read-only at the SAME path as the app (the app sends stored file paths).
+
+Grant: media_audio_embeddings only exists after the app's first migration, so an init container
+connecting as the APP role (table owner) waits for it and runs the idempotent GRANTs. No Helm
+hook: GitOps tools render without the cluster.
+*/ -}}
+{{- if .Values.sonic.enabled }}
+{{- $s := .Values.sonic -}}
+{{- $db := $s.database -}}
+{{- $cnpg := eq .Values.database.mode "cnpg" -}}
+{{- $claim := default (include "lumastra.component" (list . "sonic-cache")) $s.persistence.existingClaim -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "lumastra.component" (list . "sonic") }}
+  labels:
+    {{- include "lumastra.componentLabels" (list . "sonic") | nindent 4 }}
+spec:
+  selector:
+    {{- include "lumastra.selectorLabels" (list . "sonic") | nindent 4 }}
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+---
+{{- if and $s.persistence.enabled (not $s.persistence.existingClaim) }}
+{{ include "lumastra.pvc" (list . $claim $s.persistence) }}
+---
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "lumastra.component" (list . "sonic") }}
+  labels:
+    {{- include "lumastra.componentLabels" (list . "sonic") | nindent 4 }}
+spec:
+  replicas: {{ include "lumastra.singleReplicas" (list "sonic.replicas" $s.replicas) }}
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "lumastra.selectorLabels" (list . "sonic") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "lumastra.selectorLabels" (list . "sonic") | nindent 8 }}
+        {{- with include "lumastra.podLabels" (list . $s) }}
+        {{- . | nindent 8 }}
+        {{- end }}
+      {{- with include "lumastra.podAnnotations" (list . $s) }}
+      annotations:
+        {{- . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "lumastra.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- include "lumastra.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: { type: RuntimeDefault }
+      {{- include "lumastra.scheduling" (list . $s) | nindent 6 }}
+      {{- if $db.grant.enabled }}
+      initContainers:
+        - name: grant-sonic-reader
+          image: {{ include "lumastra.image" (list . $db.grant.image) }}
+          imagePullPolicy: {{ $db.grant.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          env:
+            {{- include "lumastra.databaseEnv" . | nindent 12 }}
+            - { name: SONIC_ROLE, value: {{ $db.role | quote }} }
+            - { name: TIMEOUT, value: {{ $db.grant.timeoutSeconds | quote }} }
+          command:
+            - sh
+            - -c
+            - |
+              set -u
+              end=$(( $(date +%s) + TIMEOUT ))
+              until [ "$(psql "$DATABASE_URL" -tAc "SELECT to_regclass('public.media_audio_embeddings') IS NOT NULL" 2>/dev/null)" = "t" ]; do
+                if [ "$(date +%s)" -ge "$end" ]; then echo "media_audio_embeddings did not appear (app not migrated yet?)"; exit 1; fi
+                echo "waiting for the app's migrations (media_audio_embeddings)…"; sleep 10
+              done
+              # CONNECT needs DB ownership; PUBLIC usually has it already, so a failure is only a warning.
+              psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "DO \$\$BEGIN EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), '$SONIC_ROLE'); END\$\$" \
+                || echo "warning: GRANT CONNECT failed (not the database owner?)"
+              psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+                -c "GRANT USAGE ON SCHEMA public TO \"$SONIC_ROLE\"" \
+                -c "GRANT SELECT ON public.media_audio_embeddings TO \"$SONIC_ROLE\""
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      {{- end }}
+      containers:
+        - name: sonic
+          image: {{ include "lumastra.image" (list . $s.image) }}
+          imagePullPolicy: {{ include "lumastra.pullPolicy" (list $s.image) }}
+          ports:
+            - name: http
+              containerPort: 8000
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          env:
+            - { name: MODEL_ID, value: {{ $s.modelId | quote }} }
+            - { name: SONIC_EMBEDDER_THREADS, value: {{ $s.threads | toString | quote }} }
+            - { name: HF_HOME, value: /app/.cache/huggingface }
+            - { name: NUMBA_CACHE_DIR, value: /tmp/numba-cache }
+            {{- if $cnpg }}
+            - name: SONIC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "database.cnpg.sonicReader.passwordSecret is required for sonic with CNPG" .Values.database.cnpg.sonicReader.passwordSecret }}
+                  key: password
+            - name: DATABASE_URL
+              value: {{ printf "postgresql://%s:$(SONIC_DB_PASSWORD)@%s-rw:5432/%s" $db.role (include "lumastra.cnpgName" .) .Values.database.cnpg.database | quote }}
+            {{- else }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "sonic.database.existingSecret (or secrets.existingSecret) is required" (default .Values.secrets.existingSecret $db.existingSecret) }}
+                  key: {{ $db.urlKey }}
+            {{- end }}
+            {{- include "lumastra.envMap" $s.env | nindent 12 }}
+            {{- with $s.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with $s.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $s.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $s.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml $s.resources | nindent 12 }}
+          volumeMounts:
+            - { name: hf-cache, mountPath: /app/.cache/huggingface }
+            - { name: tmp, mountPath: /tmp }
+            {{- range .Values.libraries }}
+            {{- if .music }}
+            - { name: lib-{{ .name }}, mountPath: {{ .mountPath }}, readOnly: true }
+            {{- end }}
+            {{- end }}
+      volumes:
+        - name: hf-cache
+          {{- if $s.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ $claim }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: {{ $s.tmpSizeLimit }}
+        {{- range .Values.libraries }}
+        {{- if .music }}
+        - name: lib-{{ .name }}
+          {{- include "lumastra.librarySource" . | nindent 10 }}
+        {{- end }}
+        {{- end }}
+{{- end }}

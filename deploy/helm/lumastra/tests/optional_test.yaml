@@ -1,0 +1,421 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+suite: optional components
+set:
+    secrets.existingSecret: lumastra
+tests:
+    - it: proxy gets the Downward API pod identity env
+      template: templates/proxy.yaml
+      set:
+          proxy.enabled: true
+          persistence.ffmpegCache.enabled: true
+      documentIndex: 1
+      asserts:
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    { name: INSTANCE_ID, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    { name: K8S_NODE_NAME, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content: { name: K8S_POD_IP, valueFrom: { fieldRef: { fieldPath: status.podIP } } }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: K8S_NAMESPACE,
+                        valueFrom: { fieldRef: { fieldPath: metadata.namespace } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: K8S_CPU_REQUEST_MILLICORES,
+                        valueFrom: { resourceFieldRef: { resource: requests.cpu, divisor: 1m } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: K8S_MEMORY_REQUEST_BYTES,
+                        valueFrom:
+                            { resourceFieldRef: { resource: requests.memory, divisor: '1' } },
+                    }
+    - it: proxy uses its own tag, Recreate, no database, read-only ffmpeg cache, drains on preStop
+      template: templates/proxy.yaml
+      set:
+          proxy.enabled: true
+          proxy.image.tag: '0.1.0'
+          persistence.ffmpegCache.enabled: true
+      documentIndex: 1
+      asserts:
+          - equal:
+                {
+                    path: 'spec.template.spec.containers[0].image',
+                    value: ghcr.io/lumastra/lumastra:0.1.0,
+                }
+          - equal: { path: spec.strategy.type, value: Recreate }
+          - equal: { path: 'spec.template.spec.containers[0].args', value: [sh, start-proxy.sh] }
+          - notContains:
+                {
+                    path: 'spec.template.spec.containers[0].env',
+                    content: { name: DATABASE_URL },
+                    any: true,
+                }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: STREAM_PROXY_SECRET,
+                        valueFrom: { secretKeyRef: { name: lumastra, key: STREAM_PROXY_SECRET } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].volumeMounts'
+                content: { name: ffmpeg-cache, mountPath: /config/bin, readOnly: true }
+          - matchRegex:
+                {
+                    path: 'spec.template.spec.containers[0].lifecycle.preStop.exec.command[2]',
+                    pattern: activeChannels,
+                }
+          - equal: { path: spec.template.spec.terminationGracePeriodSeconds, value: 270 }
+    - it: proxy rejects the removed TypeScript runtime
+      template: templates/proxy.yaml
+      set: { proxy.enabled: true, proxy.ffmpegCacheReadOnly: false, proxy.runtime: typescript }
+      asserts:
+          - failedTemplate:
+                { errorMessage: 'Only the Rust proxy is supported; remove proxy.runtime' }
+    - it: proxy image follows the app image when not overridden
+      template: templates/proxy.yaml
+      set: { proxy.enabled: true, proxy.ffmpegCacheReadOnly: false }
+      documentIndex: 1
+      asserts:
+          - equal:
+                {
+                    path: 'spec.template.spec.containers[0].image',
+                    value: ghcr.io/lumastra/lumastra:stable,
+                }
+    - it: app env points at the proxy and the sonic sidecar when enabled
+      template: templates/configmap-env.yaml
+      set:
+          {
+              proxy.enabled: true,
+              proxy.ffmpegCacheReadOnly: false,
+              sonic.enabled: true,
+              features: { FEATURE_LIVETV: true },
+          }
+      asserts:
+          - equal: { path: data.STREAM_PROXY_URL, value: 'http://RELEASE-NAME-lumastra-proxy:3000' }
+          - equal:
+                { path: data.SONIC_EMBEDDER_URL, value: 'http://RELEASE-NAME-lumastra-sonic:8000' }
+          - equal: { path: data.FEATURE_LIVETV, value: 'true' }
+          - equal: { path: data.BODY_SIZE_LIMIT, value: 50M }
+          - equal: { path: data.FFMPEG_TRANSCODE_DIR, value: /transcode }
+          - notExists: { path: data.LUMASTRA_MASTER_KEY }
+    - it: sonic waits for the app's table and grants as the owner; music read-only at the app's path
+      template: templates/sonic.yaml
+      set:
+          sonic.enabled: true
+          sonic.database.existingSecret: sonic-db
+          libraries:
+              [
+                  { name: music, mountPath: /data/music, hostPath: /srv/music, music: true },
+                  { name: movies, mountPath: /data/movies, hostPath: /srv/movies },
+              ]
+      documentIndex: 2
+      asserts:
+          - equal: { path: 'spec.template.spec.initContainers[0].name', value: grant-sonic-reader }
+          - matchRegex:
+                {
+                    path: 'spec.template.spec.initContainers[0].command[2]',
+                    pattern: 'GRANT SELECT ON public.media_audio_embeddings',
+                }
+          - contains:
+                path: 'spec.template.spec.initContainers[0].env'
+                content:
+                    {
+                        name: DATABASE_URL,
+                        valueFrom: { secretKeyRef: { name: lumastra, key: DATABASE_URL } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: DATABASE_URL,
+                        valueFrom: { secretKeyRef: { name: sonic-db, key: SONIC_DATABASE_URL } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].volumeMounts'
+                content: { name: lib-music, mountPath: /data/music, readOnly: true }
+          - notContains:
+                path: 'spec.template.spec.containers[0].volumeMounts'
+                content: { name: lib-movies, mountPath: /data/movies, readOnly: true }
+          - equal: { path: 'spec.template.spec.nodeSelector["kubernetes.io/arch"]', value: amd64 }
+          - equal:
+                {
+                    path: 'spec.template.spec.containers[0].startupProbe.failureThreshold',
+                    value: 36,
+                }
+    - it: sonic grant init container can be turned off
+      template: templates/sonic.yaml
+      set: { sonic.enabled: true, sonic.database.grant.enabled: false }
+      documentIndex: 2
+      asserts:
+          - notExists: { path: spec.template.spec.initContainers }
+    - it: cache Valkey evicts under a cap; tasks Valkey never evicts, no cap, AOF
+      template: templates/valkey.yaml
+      asserts:
+          - matchRegex:
+                {
+                    path: 'spec.template.spec.containers[0].args[0]',
+                    pattern: '--maxmemory 768mb --maxmemory-policy allkeys-lru',
+                }
+            documentIndex: 1
+          - matchRegex:
+                {
+                    path: 'spec.template.spec.containers[0].args[0]',
+                    pattern: '--maxmemory-policy noeviction --appendonly yes',
+                }
+            documentIndex: 4
+          - notMatchRegex:
+                { path: 'spec.template.spec.containers[0].args[0]', pattern: '--maxmemory ' }
+            documentIndex: 4
+          - isKind: { of: PersistentVolumeClaim }
+            documentIndex: 3
+    - it: rejects the removed single Valkey topology
+      template: templates/app.yaml
+      set: { valkey.single: true }
+      asserts:
+          - failedTemplate: { errorPattern: 'valkey.single was removed' }
+    - it: CNPG Cluster creates the extensions at bootstrap and manages sonic_reader
+      template: templates/cnpg.yaml
+      set:
+          database.mode: cnpg
+          database.cnpg.sonicReader: { enabled: true, passwordSecret: sr }
+          persistence.dataAnnotations:
+              { argocd.argoproj.io/sync-options: 'Prune=false,Delete=false' }
+      asserts:
+          - isKind: { of: Cluster }
+          - contains:
+                {
+                    path: spec.bootstrap.initdb.postInitApplicationSQL,
+                    content: 'CREATE EXTENSION IF NOT EXISTS "vector" WITH SCHEMA public',
+                }
+          - contains:
+                {
+                    path: spec.bootstrap.initdb.postInitApplicationSQL,
+                    content: 'CREATE EXTENSION IF NOT EXISTS "unaccent" WITH SCHEMA public',
+                }
+          - equal: { path: 'spec.managed.roles[0].name', value: sonic_reader }
+          - equal: { path: 'spec.managed.roles[0].superuser', value: false }
+          - equal:
+                {
+                    path: 'metadata.annotations["argocd.argoproj.io/sync-options"]',
+                    value: 'Prune=false,Delete=false',
+                }
+    - it: no Helm hooks anywhere (GitOps renders offline)
+      templates:
+          [
+              templates/app.yaml,
+              templates/sonic.yaml,
+              templates/cnpg.yaml,
+              templates/valkey.yaml,
+              templates/proxy.yaml,
+          ]
+      set:
+          {
+              sonic.enabled: true,
+              proxy.enabled: true,
+              proxy.ffmpegCacheReadOnly: false,
+              database.mode: cnpg,
+              database.cnpg.sonicReader: { enabled: true, passwordSecret: sr },
+          }
+      asserts:
+          - notExists: { path: 'metadata.annotations["helm.sh/hook"]' }
+    - it: proxy waits for the shared ffmpeg cache before starting
+      template: templates/proxy.yaml
+      set:
+          {
+              proxy.enabled: true,
+              persistence.ffmpegCache.enabled: true,
+              proxy.waitForFfmpegSeconds: 600,
+          }
+      documentIndex: 1
+      asserts:
+          - equal: { path: 'spec.template.spec.initContainers[0].name', value: wait-for-ffmpeg }
+          - contains:
+                path: 'spec.template.spec.initContainers[0].volumeMounts'
+                content: { name: ffmpeg-cache, mountPath: /config/bin, readOnly: true }
+    - it: Valkey password never appears on a command line
+      template: templates/valkey.yaml
+      documentIndex: 1
+      asserts:
+          - matchRegex:
+                {
+                    path: 'spec.template.spec.containers[0].args[0]',
+                    pattern: 'requirepass %s.+> /tmp/valkey\.conf && exec valkey-server /tmp/valkey\.conf',
+                }
+          - notMatchRegex:
+                { path: 'spec.template.spec.containers[0].args[0]', pattern: '--requirepass' }
+          - matchRegex:
+                {
+                    path: 'spec.template.spec.containers[0].readinessProbe.exec.command[2]',
+                    pattern: '^REDISCLI_AUTH=',
+                }
+    - it: sonic, proxy and both Valkeys scale to 0 independently
+      templates: [templates/sonic.yaml, templates/proxy.yaml, templates/valkey.yaml]
+      set:
+          sonic.enabled: true
+          sonic.replicas: 0
+          proxy.enabled: true
+          proxy.replicas: 0
+          persistence.ffmpegCache.enabled: true
+          valkey.cache.replicas: 0
+          valkey.tasks.replicas: 0
+      asserts:
+          - equal: { path: spec.replicas, value: 0 }
+            template: templates/sonic.yaml
+            documentIndex: 2
+          - equal: { path: spec.replicas, value: 0 }
+            template: templates/proxy.yaml
+            documentIndex: 1
+          - equal: { path: spec.replicas, value: 0 }
+            template: templates/valkey.yaml
+            documentIndex: 1
+          - equal: { path: spec.replicas, value: 0 }
+            template: templates/valkey.yaml
+            documentIndex: 4
+    - it: a second tasks Valkey fails to render
+      template: templates/valkey.yaml
+      set: { valkey.tasks.replicas: 2 }
+      asserts:
+          - failedTemplate: { errorPattern: valkey.tasks.replicas must be 0 or 1 }
+    - it: tasks Valkey imports an RDB snapshot only when asked, before the server starts
+      template: templates/valkey.yaml
+      set: { valkey.tasks.rdbImport.enabled: true }
+      asserts:
+          - notExists: { path: spec.template.spec.initContainers }
+            documentIndex: 1
+          - equal: { path: 'spec.template.spec.initContainers[0].name', value: rdb-import }
+            documentIndex: 4
+          - matchRegex:
+                {
+                    path: 'spec.template.spec.initContainers[0].args[0]',
+                    pattern: 'ls /data/appendonlydir/\*\.manifest',
+                }
+            documentIndex: 4
+          - matchRegex:
+                {
+                    path: 'spec.template.spec.initContainers[0].args[0]',
+                    pattern: 'rm -rf /data/appendonlydir; echo "rdb-import: dump.rdb left as it was"',
+                }
+            documentIndex: 4
+          - matchRegex:
+                {
+                    path: 'spec.template.spec.initContainers[0].args[0]',
+                    pattern: 'config set appendonly yes',
+                }
+            documentIndex: 4
+    - it: RDB import without a PVC fails
+      template: templates/valkey.yaml
+      set: { valkey.tasks.rdbImport.enabled: true, valkey.tasks.persistence.enabled: false }
+      asserts:
+          - failedTemplate: { errorPattern: rdbImport needs valkey.tasks.persistence.enabled }
+    - it: CNPG initdb locale options pass through; hibernation annotation
+      template: templates/cnpg.yaml
+      set:
+          database.mode: cnpg
+          database.cnpg.hibernate: true
+          database.cnpg.initdb:
+              { encoding: UTF8, localeCollate: en_US.utf8, localeCType: en_US.utf8 }
+      asserts:
+          - equal: { path: spec.bootstrap.initdb.localeCollate, value: en_US.utf8 }
+          - equal: { path: spec.bootstrap.initdb.localeCType, value: en_US.utf8 }
+          - equal: { path: spec.bootstrap.initdb.encoding, value: UTF8 }
+          - equal: { path: 'metadata.annotations["cnpg.io/hibernation"]', value: 'on' }
+    - it: CNPG ICU locale renders booleans as booleans
+      template: templates/cnpg.yaml
+      set:
+          database.mode: cnpg
+          database.cnpg.initdb: { localeProvider: icu, icuLocale: en-US, dataChecksums: true }
+      asserts:
+          - equal: { path: spec.bootstrap.initdb.localeProvider, value: icu }
+          - equal: { path: spec.bootstrap.initdb.icuLocale, value: en-US }
+          - equal: { path: spec.bootstrap.initdb.dataChecksums, value: true }
+    - it: unknown initdb keys fail
+      template: templates/cnpg.yaml
+      set: { database.mode: cnpg, database.cnpg.initdb: { lcCollate: C } }
+      asserts:
+          - failedTemplate: { errorPattern: database.cnpg.initdb.lcCollate is not supported }
+    - it: fractional or string replica counts do not truncate
+      template: templates/valkey.yaml
+      set: { valkey.cache.replicas: 0.5 }
+      asserts:
+          - failedTemplate: { errorPattern: valkey.cache.replicas must be 0 or 1 }
+    - it: a hibernated database suspends its scheduled backup
+      template: templates/cnpg.yaml
+      set:
+          database.mode: cnpg
+          database.cnpg.hibernate: true
+          database.cnpg.backup: { enabled: true, configuration: { destinationPath: 's3://b/l' } }
+      asserts:
+          - equal: { path: spec.suspend, value: true }
+            documentIndex: 2
+    - it: proxy runtimeClassName is rendered only when set
+      template: templates/proxy.yaml
+      set: { proxy.enabled: true, proxy.ffmpegCacheReadOnly: false, proxy.runtimeClassName: nvidia }
+      documentIndex: 1
+      asserts:
+          - equal: { path: spec.template.spec.runtimeClassName, value: nvidia }
+    - it: proxy has no runtimeClassName by default
+      template: templates/proxy.yaml
+      set: { proxy.enabled: true, proxy.ffmpegCacheReadOnly: false }
+      documentIndex: 1
+      asserts:
+          - notExists: { path: spec.template.spec.runtimeClassName }
+    - it: proxy gets TASK_CACHE_URL (cluster heartbeat) even without the cache URL
+      template: templates/proxy.yaml
+      set:
+          proxy.enabled: true
+          proxy.useCache: false
+          persistence.ffmpegCache.enabled: true
+      documentIndex: 1
+      asserts:
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: TASK_CACHE_URL,
+                        value: 'redis://default:$(VALKEY_PASSWORD)@RELEASE-NAME-lumastra-valkey-tasks:6379/0',
+                    }
+          - notContains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: CACHE_URL,
+                        value: 'redis://default:$(VALKEY_PASSWORD)@RELEASE-NAME-lumastra-valkey-cache:6379/0',
+                    }
+    - it: a separate tasks password key feeds the tasks URL and the tasks instance only
+      template: templates/proxy.yaml
+      set:
+          proxy.enabled: true
+          persistence.ffmpegCache.enabled: true
+          valkey.auth.taskPasswordKey: TASK_CACHE_PASSWORD
+      documentIndex: 1
+      asserts:
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: VALKEY_TASK_PASSWORD,
+                        valueFrom: { secretKeyRef: { name: lumastra, key: TASK_CACHE_PASSWORD } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: TASK_CACHE_URL,
+                        value: 'redis://default:$(VALKEY_TASK_PASSWORD)@RELEASE-NAME-lumastra-valkey-tasks:6379/0',
+                    }

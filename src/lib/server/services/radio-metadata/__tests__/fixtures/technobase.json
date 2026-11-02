@@ -1,0 +1,26 @@
+{
+    "playhistory": [
+        {
+            "title": "Lanter - Lantern Tale",
+            "artist": "Lanter",
+            "songtitle": "Lantern Tale",
+            "trackduration": 287
+        },
+        {
+            "title": "Harborhunterz - Lanternlight",
+            "artist": "Harborhunterz",
+            "songtitle": "Lanternlight"
+        }
+    ],
+    "currentshow": {
+        "name": "Hardstyle Hour",
+        "description": "Two hours of the hardest beats",
+        "image": "https://cdn.example.com/shows/hardstyle.jpg",
+        "starts": "2026-04-24T20:00:00Z",
+        "ends": "2026-04-24T22:00:00Z"
+    },
+    "currentdj": {
+        "name": "DJ Solara",
+        "avatar": "https://cdn.example.com/djs/thera.png"
+    }
+}

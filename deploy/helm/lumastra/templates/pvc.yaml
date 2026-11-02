@@ -1,0 +1,33 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+
+Chart-created PVCs (skipped when existingClaim is set). The Valkey and sonic PVCs live with
+their workloads.
+*/ -}}
+{{- $p := .Values.persistence -}}
+{{- if and .Values.proxy.enabled .Values.ffmpeg.autoDownload .Values.proxy.ffmpegCacheReadOnly (not $p.ffmpegCache.enabled) }}
+{{- fail "proxy.enabled with ffmpeg.autoDownload and proxy.ffmpegCacheReadOnly needs persistence.ffmpegCache.enabled (the proxy mounts the shared ffmpeg cache read-only); or set proxy.ffmpegCacheReadOnly=false to let the proxy download its own" }}
+{{- end }}
+{{- if and $p.config.enabled (not $p.config.existingClaim) }}
+{{ include "lumastra.pvc" (list . (include "lumastra.component" (list . "config")) $p.config) }}
+{{- end }}
+{{- if and (eq $p.transcode.type "pvc") (not $p.transcode.existingClaim) }}
+---
+{{ include "lumastra.pvc" (list . (include "lumastra.component" (list . "transcode")) $p.transcode) }}
+{{- end }}
+{{- if and $p.ffmpegCache.enabled (not $p.ffmpegCache.existingClaim) }}
+---
+{{ include "lumastra.pvc" (list . (include "lumastra.component" (list . "ffmpeg-cache")) $p.ffmpegCache) }}
+{{- end }}
+{{- if and $p.plugins.enabled (not $p.plugins.existingClaim) }}
+---
+{{ include "lumastra.pvc" (list . (include "lumastra.component" (list . "plugins")) $p.plugins) }}
+{{- end }}
+{{- if and (include "lumastra.appCacheEnabled" .) (not $p.appCache.existingClaim) }}
+---
+{{ include "lumastra.pvc" (list . (include "lumastra.component" (list . "app-cache")) $p.appCache) }}
+{{- end }}
+{{- if not (has $p.transcode.type (list "pvc" "emptyDir")) }}
+{{- fail "persistence.transcode.type must be pvc or emptyDir" }}
+{{- end }}

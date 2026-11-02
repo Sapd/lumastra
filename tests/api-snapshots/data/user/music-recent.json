@@ -1,0 +1,62 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/me/music/recently-played"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "74ae424f-d360-43ad-af35-f9002fff2049",
+        "type": "track",
+        "title": "Aria",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": null,
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 1,
+        "discNumber": null,
+        "durationMs": 228000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:20.974Z"
+        }
+      }
+    ],
+    "page": {
+      "limit": 20,
+      "truncated": false
+    }
+  },
+  "baselineProblems": []
+}

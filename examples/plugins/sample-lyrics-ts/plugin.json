@@ -1,0 +1,8 @@
+{
+    "name": "sample-lyrics-ts",
+    "kind": "lyrics-provider",
+    "description": "A lyrics provider written in TypeScript, to show a .ts entry point.",
+    "publisher": "Lumastra examples",
+    "license": "Apache-2.0",
+    "sourceUrl": "https://github.com/Sapd/lumastra/tree/main/examples/plugins/sample-lyrics-ts"
+}

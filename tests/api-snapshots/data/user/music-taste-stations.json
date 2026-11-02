@@ -1,0 +1,67 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/me/music/taste-stations"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "448518d1f3c5.0",
+        "label": "Johann Sebastian Bach",
+        "playedTrackCount": 1,
+        "tagline": "1 tracks you love + more like them",
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=74ae424f-d360-43ad-af35-f9002fff2049&size=card&v=60c6e5fa671d89af",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=74ae424f-d360-43ad-af35-f9002fff2049&size=thumb&v=60c6e5fa671d89af",
+              "card": "/api/v1/music/images/collage?ids=74ae424f-d360-43ad-af35-f9002fff2049&size=card&v=60c6e5fa671d89af",
+              "full": "/api/v1/music/images/collage?ids=74ae424f-d360-43ad-af35-f9002fff2049&size=full&v=60c6e5fa671d89af"
+            },
+            "revision": "60c6e5fa671d89af",
+            "source": "generated"
+          }
+        }
+      },
+      {
+        "id": "448518d1f3c5.1",
+        "label": "Franz Schubert",
+        "playedTrackCount": 26,
+        "tagline": "26 tracks you love + more like them",
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=0fff5c4d-3336-4809-82bc-cace172c5e07,d41d51bf-00b9-4e53-8c9e-c282f3ccdb56,41d1738c-869b-41f9-b1c2-6e96ec8d3a94,10770945-c9fa-4b7f-9c4b-1a6f33bd3b2f,c1fea11f-94d4-46d8-bd71-2d3802d40d65&size=card&v=0caaa8fe8323a82a",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=0fff5c4d-3336-4809-82bc-cace172c5e07,d41d51bf-00b9-4e53-8c9e-c282f3ccdb56,41d1738c-869b-41f9-b1c2-6e96ec8d3a94,10770945-c9fa-4b7f-9c4b-1a6f33bd3b2f,c1fea11f-94d4-46d8-bd71-2d3802d40d65&size=thumb&v=0caaa8fe8323a82a",
+              "card": "/api/v1/music/images/collage?ids=0fff5c4d-3336-4809-82bc-cace172c5e07,d41d51bf-00b9-4e53-8c9e-c282f3ccdb56,41d1738c-869b-41f9-b1c2-6e96ec8d3a94,10770945-c9fa-4b7f-9c4b-1a6f33bd3b2f,c1fea11f-94d4-46d8-bd71-2d3802d40d65&size=card&v=0caaa8fe8323a82a",
+              "full": "/api/v1/music/images/collage?ids=0fff5c4d-3336-4809-82bc-cace172c5e07,d41d51bf-00b9-4e53-8c9e-c282f3ccdb56,41d1738c-869b-41f9-b1c2-6e96ec8d3a94,10770945-c9fa-4b7f-9c4b-1a6f33bd3b2f,c1fea11f-94d4-46d8-bd71-2d3802d40d65&size=full&v=0caaa8fe8323a82a"
+            },
+            "revision": "0caaa8fe8323a82a",
+            "source": "generated"
+          }
+        }
+      },
+      {
+        "id": "448518d1f3c5.2",
+        "label": "Claude Debussy",
+        "playedTrackCount": 1,
+        "tagline": "1 tracks you love + more like them",
+        "images": {
+          "primary": {
+            "href": "/api/v1/music/images/collage?ids=ec637303-3f9a-466a-b9b8-d7dde59f934f&size=card&v=9d3ba4482f1f674c",
+            "variants": {
+              "thumb": "/api/v1/music/images/collage?ids=ec637303-3f9a-466a-b9b8-d7dde59f934f&size=thumb&v=9d3ba4482f1f674c",
+              "card": "/api/v1/music/images/collage?ids=ec637303-3f9a-466a-b9b8-d7dde59f934f&size=card&v=9d3ba4482f1f674c",
+              "full": "/api/v1/music/images/collage?ids=ec637303-3f9a-466a-b9b8-d7dde59f934f&size=full&v=9d3ba4482f1f674c"
+            },
+            "revision": "9d3ba4482f1f674c",
+            "source": "generated"
+          }
+        }
+      }
+    ]
+  },
+  "baselineProblems": []
+}

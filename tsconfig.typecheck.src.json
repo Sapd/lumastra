@@ -1,0 +1,38 @@
+{
+    // Source pass of the tsgo typecheck gate (see scripts/typecheck/tsgo-check.mjs).
+    //
+    // Splits the batch typecheck into a source pass (this file) and a test pass
+    // (tsconfig.typecheck.test.json), with zero coverage loss — every source file is
+    // checked here, every test file in the test pass. IDE/tsserver is unaffected (it
+    // type-checks per-file, not the whole program at once) and still uses the full
+    // tsconfig.json.
+    //
+    // This split is MARGIN, not a fix for TS2859 "excessive complexity" floods. It
+    // cannot be: the expensive generated type ($app/types in
+    // .svelte-kit/non-ambient.d.ts) is loaded by every pass regardless of how the
+    // files are partitioned. If TS2859 appears, re-sync .svelte-kit and then find the
+    // hot call site — see scripts/typecheck/README.md. Do not split further.
+    //
+    // NOTE: `exclude` does NOT merge across `extends` — it must restate every
+    // exclusion from the inherited configs (node_modules, paraglide, the
+    // service-worker files from .svelte-kit/tsconfig.json) plus the test carve-out.
+    "extends": "./tsconfig.json",
+    "exclude": [
+        "node_modules/**",
+        "**/node_modules/**",
+        "src/paraglide/**",
+        "src/lib/paraglide/**",
+        "src/service-worker.js",
+        "src/service-worker/**/*.js",
+        "src/service-worker.ts",
+        "src/service-worker/**/*.ts",
+        "src/service-worker.d.ts",
+        "src/service-worker/**/*.d.ts",
+        "src/**/*.test.ts",
+        "src/**/*.spec.ts",
+        "src/**/__tests__/**",
+        "src/**/__fixtures__/**",
+        "test/**",
+        "tests/**"
+    ]
+}

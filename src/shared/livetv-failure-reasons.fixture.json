@@ -1,0 +1,625 @@
+{
+    "version": 1,
+    "cases": [
+        {
+            "fn": "upstream",
+            "input": { "status": 200 },
+            "expected": null,
+            "note": "2xx is not a failure"
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 302 },
+            "expected": null,
+            "note": "redirects are followed, never a failure"
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 404 },
+            "expected": { "reason": "channel_offline" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 410, "bodySnippet": "gone" },
+            "expected": { "reason": "channel_offline" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 401 },
+            "expected": { "reason": "provider_auth_failed" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 403, "bodySnippet": "Forbidden" },
+            "expected": { "reason": "provider_auth_failed" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 403, "bodySnippet": "Not available in your country" },
+            "expected": { "reason": "geo_blocked" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 403, "bodySnippet": "GEO-BLOCKED" },
+            "expected": { "reason": "geo_blocked" },
+            "note": "case-insensitive"
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 401, "bodySnippet": "This content is restricted in your REGION" },
+            "expected": { "reason": "geo_blocked" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 403, "bodySnippet": "Max connections reached" },
+            "expected": { "reason": "provider_connection_limit" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 401, "bodySnippet": "{\"error\":\"connection limit exceeded\"}" },
+            "expected": { "reason": "provider_connection_limit" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 403, "bodySnippet": "Too many users on this line" },
+            "expected": { "reason": "provider_connection_limit" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 403, "bodySnippet": "TOO MANY CONNECTIONS" },
+            "expected": { "reason": "provider_connection_limit" },
+            "note": "case-insensitive"
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 403, "bodySnippet": "maximum streams for this account" },
+            "expected": { "reason": "provider_connection_limit" }
+        },
+        {
+            "fn": "upstream",
+            "input": {
+                "status": 403,
+                "bodySnippet": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx max connections"
+            },
+            "expected": { "reason": "provider_auth_failed" },
+            "note": "only the first 512 characters of the body are matched; the keyword starts after them"
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 403, "bodySnippet": "Invalid geometry parameter" },
+            "expected": { "reason": "provider_auth_failed" },
+            "note": "geo only as a geo-block phrase, not as part of another word"
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 401, "bodySnippet": "invalid region token" },
+            "expected": { "reason": "provider_auth_failed" },
+            "note": "region alone is not a geo-block"
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 403, "bodySnippet": "Country not allowed" },
+            "expected": { "reason": "geo_blocked" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 403, "bodySnippet": "Geolocation check failed" },
+            "expected": { "reason": "geo_blocked" }
+        },
+        { "fn": "upstream", "input": { "status": 451 }, "expected": { "reason": "geo_blocked" } },
+        {
+            "fn": "upstream",
+            "input": { "status": 429 },
+            "expected": { "reason": "provider_connection_limit" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 458 },
+            "expected": { "reason": "provider_connection_limit" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 509 },
+            "expected": { "reason": "provider_connection_limit" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 503, "bodySnippet": "max connections" },
+            "expected": { "reason": "provider_connection_limit" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 503, "bodySnippet": "Service Unavailable" },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 500 },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 502 },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 504 },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 408 },
+            "expected": { "reason": "provider_unreachable" },
+            "note": "request timeout behaves like a timeout"
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 400 },
+            "expected": { "reason": "channel_offline" },
+            "note": "any other 4xx: the URL does not serve a stream"
+        },
+        {
+            "fn": "upstream",
+            "input": { "status": 500, "bodySnippet": "max connections" },
+            "expected": { "reason": "provider_unreachable" },
+            "note": "the limit body rule applies to 401/403/503 only"
+        },
+
+        {
+            "fn": "guard",
+            "input": { "status": 504, "diagnostic": "upstream DNS timeout" },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "guard",
+            "input": { "status": 504, "diagnostic": "upstream CONNECT timeout" },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "guard",
+            "input": { "status": 504, "diagnostic": "upstream response timeout" },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "guard",
+            "input": { "status": 504, "diagnostic": "upstream inactivity timeout" },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "guard",
+            "input": { "status": 502, "diagnostic": "upstream connection failed" },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "guard",
+            "input": { "status": 403, "diagnostic": "private upstream destination" },
+            "expected": { "reason": "provider_unreachable" },
+            "note": "URL blocked by the private-URL policy"
+        },
+        {
+            "fn": "guard",
+            "input": { "status": 403, "diagnostic": "unsupported upstream protocol" },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "guard",
+            "input": { "status": 502, "diagnostic": "invalid upstream playlist" },
+            "expected": { "reason": "channel_offline" }
+        },
+        {
+            "fn": "guard",
+            "input": { "status": 502, "diagnostic": "incomplete upstream playlist" },
+            "expected": { "reason": "channel_offline" }
+        },
+        {
+            "fn": "guard",
+            "input": { "status": 403, "diagnostic": "invalid upstream URI attribute" },
+            "expected": { "reason": "channel_offline" }
+        },
+        {
+            "fn": "guard",
+            "input": { "status": 502, "diagnostic": "Invalid Upstream PLAYLIST" },
+            "expected": { "reason": "channel_offline" },
+            "note": "case-insensitive"
+        },
+
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[http @ 0x1] HTTP error 401 Unauthorized\nServer returned 401 Unauthorized (authorization failed)\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": { "reason": "provider_auth_failed" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Server returned 403 Forbidden (access denied)\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": { "reason": "provider_auth_failed" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Error opening input: Server returned 404 Not Found\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": { "reason": "channel_offline" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "SERVER RETURNED 404 NOT FOUND\n",
+                "source": "ingest",
+                "producedSegments": true
+            },
+            "expected": { "reason": "channel_offline" },
+            "note": "case-insensitive"
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Server returned 5XX Server Error reply\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Server returned 503 Service Unavailable\n",
+                "source": "ingest",
+                "producedSegments": true
+            },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[tcp @ 0x2] Connection to tcp://127.0.0.1:39123 failed: Connection refused\n",
+                "source": "ingest",
+                "producedSegments": true
+            },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[tcp @ 0x2] Failed to resolve hostname iptv.example.com: Name or service not known\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[tcp @ 0x2] Connection to tcp://203.0.113.5:80 failed: Connection timed out\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[tls @ 0x3] Error in the pull function.\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[https @ 0x3] SSL routines: certificate verify failed\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": { "reason": "provider_unreachable" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Error opening input: Invalid data found when processing input\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": { "reason": "channel_offline" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Error during demuxing: Invalid data found when processing input\n",
+                "source": "ingest",
+                "producedSegments": true
+            },
+            "expected": null,
+            "note": "after segments the exit itself decides (upstream_stalled)"
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Output file #0 does not contain any stream\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": { "reason": "no_video" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Stream map '0:a:0' matches no streams.\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": { "reason": "no_video" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Stream map '0:v:0' matches no streams.\nTo ignore this, add a trailing '?' to the map.\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": null,
+            "note": "audio-only (radio) is valid, never no_video"
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Decoder (codec av1) not found for input stream #0:0\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": { "reason": "no_video" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "frame=  100 fps= 25 q=-1.0 size=N/A time=00:00:04.00\n",
+                "source": "ingest",
+                "producedSegments": true
+            },
+            "expected": null
+        },
+        {
+            "fn": "stderr",
+            "input": { "tail": "", "source": "ingest", "producedSegments": false },
+            "expected": null
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Conversion failed!\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": null,
+            "note": "ingest prints this after every failure; it says nothing on its own"
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[h264_vaapi @ 0x4] Failed to initialise VAAPI connection: -1 (unknown libva error).\n",
+                "source": "egress",
+                "producedSegments": false
+            },
+            "expected": { "reason": "encoder_failed" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[h264_qsv @ 0x4] Error initializing an internal MFX session\n",
+                "source": "egress",
+                "producedSegments": true
+            },
+            "expected": { "reason": "encoder_failed" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[h264_nvenc @ 0x4] OpenEncodeSessionEx failed: out of memory (10)\n",
+                "source": "adaptive-egress",
+                "producedSegments": false
+            },
+            "expected": { "reason": "encoder_failed" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[hevc_cuda @ 0x4] CUDA_ERROR_NO_DEVICE\n",
+                "source": "egress",
+                "producedSegments": false
+            },
+            "expected": { "reason": "encoder_failed" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Error initializing output stream 0:0 -- Error while opening encoder\n",
+                "source": "egress",
+                "producedSegments": false
+            },
+            "expected": { "reason": "encoder_failed" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "x264 [error]: malloc of size 0 failed\nConversion failed!\n",
+                "source": "adaptive-egress",
+                "producedSegments": true
+            },
+            "expected": { "reason": "encoder_failed" }
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Server returned 404 Not Found\n",
+                "source": "egress",
+                "producedSegments": false
+            },
+            "expected": null,
+            "note": "egress reads the proxy's own loopback; upstream rules apply to ingest only"
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Server returned 404 Not Found\n[tcp @ 0x2] Connection to tcp://203.0.113.5:80 failed: Connection refused\n",
+                "source": "ingest",
+                "producedSegments": false
+            },
+            "expected": { "reason": "provider_unreachable" },
+            "note": "several recognisable lines: the last one wins"
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[tcp @ 0x2] Connection reset by peer\nServer returned 403 Forbidden (access denied)\n",
+                "source": "ingest",
+                "producedSegments": true
+            },
+            "expected": { "reason": "provider_auth_failed" },
+            "note": "the last line wins whatever the rule order"
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[h264_vaapi @ 0x4] Failed to initialise VAAPI connection: -1 (unknown libva error).\nConversion failed!\n",
+                "source": "ingest",
+                "producedSegments": false,
+                "transcoding": true
+            },
+            "expected": { "reason": "encoder_failed" },
+            "note": "an ingest that transcodes runs an encoder"
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[h264_qsv @ 0x4] Error initializing an internal MFX session\n",
+                "source": "ingest",
+                "producedSegments": false,
+                "transcoding": false
+            },
+            "expected": null,
+            "note": "a copying ingest runs no encoder"
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "Conversion failed!\n",
+                "source": "ingest",
+                "producedSegments": false,
+                "transcoding": true
+            },
+            "expected": null,
+            "note": "ingest prints this after every failure, also when it transcodes"
+        },
+        {
+            "fn": "stderr",
+            "input": {
+                "tail": "[h264_vaapi @ 0x4] Failed to initialise VAAPI connection\nServer returned 404 Not Found\n",
+                "source": "ingest",
+                "producedSegments": false,
+                "transcoding": true
+            },
+            "expected": { "reason": "channel_offline" },
+            "note": "an upstream line after the encoder line wins"
+        },
+
+        {
+            "fn": "combine",
+            "input": {
+                "feeds": [{ "index": 0, "reason": "channel_offline", "upstreamStatus": 404 }]
+            },
+            "expected": { "reason": "channel_offline", "retryable": false }
+        },
+        {
+            "fn": "combine",
+            "input": { "feeds": [{ "index": 0, "reason": "provider_unreachable" }] },
+            "expected": {
+                "reason": "provider_unreachable",
+                "retryable": true,
+                "retryAfterMs": 10000
+            }
+        },
+        {
+            "fn": "combine",
+            "input": {
+                "feeds": [
+                    {
+                        "index": 0,
+                        "feedId": "feed-a",
+                        "reason": "provider_connection_limit",
+                        "upstreamStatus": 458
+                    }
+                ]
+            },
+            "expected": {
+                "reason": "provider_connection_limit",
+                "retryable": true,
+                "retryAfterMs": 30000
+            }
+        },
+        {
+            "fn": "combine",
+            "input": { "feeds": [{ "index": 0, "reason": "upstream_stalled" }] },
+            "expected": { "reason": "upstream_stalled", "retryable": true, "retryAfterMs": 3000 }
+        },
+        {
+            "fn": "combine",
+            "input": {
+                "feeds": [
+                    { "index": 0, "reason": "channel_offline" },
+                    { "index": 1, "reason": "provider_auth_failed" }
+                ]
+            },
+            "expected": { "reason": "all_feeds_failed", "retryable": false },
+            "note": "no feed retryable"
+        },
+        {
+            "fn": "combine",
+            "input": {
+                "feeds": [
+                    { "index": 0, "reason": "channel_offline" },
+                    { "index": 1, "reason": "provider_connection_limit" },
+                    { "index": 2, "reason": "provider_unreachable" }
+                ]
+            },
+            "expected": { "reason": "all_feeds_failed", "retryable": true, "retryAfterMs": 10000 },
+            "note": "retryAfterMs is the minimum over retryable feeds"
+        },
+        {
+            "fn": "combine",
+            "input": {
+                "feeds": [
+                    { "index": 0, "reason": "geo_blocked" },
+                    { "index": 1, "reason": "encoder_failed" }
+                ]
+            },
+            "expected": { "reason": "all_feeds_failed", "retryable": true, "retryAfterMs": 5000 }
+        },
+        {
+            "fn": "combine",
+            "input": {
+                "feeds": [
+                    { "index": 0, "reason": "no_video" },
+                    { "index": 0, "reason": "channel_offline" }
+                ]
+            },
+            "expected": { "reason": "channel_offline", "retryable": false },
+            "note": "one URL tried twice is still a single feed; the last attempt decides"
+        },
+        {
+            "fn": "combine",
+            "input": { "feeds": [] },
+            "expected": { "reason": "all_feeds_failed", "retryable": false }
+        }
+    ]
+}

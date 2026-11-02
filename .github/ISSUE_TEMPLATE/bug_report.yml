@@ -1,0 +1,90 @@
+name: 🐛 Bug report
+description: Something is broken or behaves incorrectly. (Playback, streaming or transcoding problem? Use the Playback form instead.)
+labels: ['type:bug', 'status:needs-triage']
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for the report. A bug we can reproduce is a bug we can fix, and the diagnostics export and precise steps are what make that possible.
+
+              **Not a bug?** Feature proposals go to [Discussions → Features](https://github.com/Sapd/lumastra/discussions/categories/features), questions to [Q&A](https://github.com/Sapd/lumastra/discussions/categories/q-a). Feature requests filed as issues are closed.
+    - type: checkboxes
+      id: prereqs
+      attributes:
+          label: Before you file
+          options:
+              - label: I searched existing issues and discussions and this isn't a duplicate.
+                required: true
+              - label: I reproduced this on a real instance myself (not an AI-generated or hypothetical report).
+                required: true
+              - label: I removed secrets and personal data from logs and screenshots, and I have read the content rules in CODE_OF_CONDUCT.md.
+                required: true
+    - type: input
+      id: version
+      attributes:
+          label: Version / image tag
+          description: Shown in the About dialog and on Admin → System. e.g. `ghcr.io/lumastra/lumastra:stable`, `v0.1.0`, or a commit SHA.
+      validations:
+          required: true
+    - type: dropdown
+      id: deploy
+      attributes:
+          label: How are you running it?
+          options:
+              - Docker Compose
+              - Kubernetes
+              - Local dev (npm run dev)
+              - Other (describe below)
+      validations:
+          required: true
+    - type: dropdown
+      id: where
+      attributes:
+          label: Where do you see it?
+          multiple: true
+          options:
+              - Web app (browser)
+              - Lumastra iPhone / iPad app
+              - Lumastra Apple TV app
+              - Admin pages
+              - Jellyfin-compatible client (Streamyfin, Swiftfin, Infuse, …)
+              - Subsonic music client
+              - Server / background tasks
+      validations:
+          required: true
+    - type: input
+      id: app_version
+      attributes:
+          label: App version and diagnostics reference (iPhone, iPad, Apple TV)
+          description: For the Apple apps, the app version from the app's Settings, and if you sent diagnostics from the app (Settings → Send Diagnostics), the reference it showed, e.g. `1557-17C4`.
+    - type: textarea
+      id: steps
+      attributes:
+          label: Steps to reproduce
+          description: What did you do, what did you expect, what happened instead?
+          placeholder: |
+              1. Go to …
+              2. Click …
+              3. Expected … but saw …
+      validations:
+          required: true
+    - type: textarea
+      id: diagnostics
+      attributes:
+          label: Diagnostics export
+          description: |
+              **Admin → System → Diagnostics → Export Diagnostics → Copy for GitHub**, then paste here. It captures version, platform, feature flags, integrations and recent errors in one go and replaces most back-and-forth. Skim it for anything you consider sensitive before pasting.
+          render: markdown
+      validations:
+          required: true
+    - type: textarea
+      id: logs
+      attributes:
+          label: Relevant logs
+          description: Server (`docker compose logs --tail=200 lumastra`) or browser-console output around the moment it happened. If the UI showed a `REFERENCE:` id, include it. It ties your report to the matching server-log line. Redact anything sensitive.
+          render: shell
+    - type: input
+      id: flags
+      attributes:
+          label: Relevant feature flags / config
+          description: Anything non-default that might matter (e.g. Jellyfin sync on, a specific provider, a reverse proxy).

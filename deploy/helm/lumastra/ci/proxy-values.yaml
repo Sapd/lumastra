@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+# Live TV: stream proxy with its own image tag, shared ffmpeg cache mounted read-only.
+app: { origin: https://lumastra.example.com }
+secrets: { existingSecret: lumastra }
+features: { FEATURE_LIVETV: true }
+proxy:
+    enabled: true
+    image: { tag: '0.1.0' } # a release tag (vX.Y.Z → X.Y.Z), or pin a digest
+    env: { LIVETV_MAX_EGRESS_ENCODERS: 6 }
+persistence:
+    ffmpegCache: { enabled: true }
+gpu:
+    {
+        mode: hostPath,
+        privileged: true,
+        acceleration: vaapi,
+        renderGroupId: 109,
+        components: [web, worker, proxy],
+    }

@@ -1,0 +1,1021 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/feed"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "sections": [
+      {
+        "id": "for-you",
+        "type": "carousel",
+        "title": "Highlights from Your Library",
+        "icon": "star",
+        "items": [
+          {
+            "id": "8fda2968-9fa5-4b88-bcda-0354caf35b1a",
+            "catalogId": "8fda2968-9fa5-4b88-bcda-0354caf35b1a",
+            "type": "movie",
+            "ids": {
+              "tmdb": "653"
+            },
+            "title": "Nosferatu",
+            "year": 1922,
+            "overview": "The mysterious Count Orlok summons a happily married real estate agent to his castle, located up in the Transylvanian mountains, to finalise a terrifying deal.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/poster?size=card&v=55503413a3ca",
+                "variants": {
+                  "thumb": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/poster?size=thumb&v=55503413a3ca",
+                  "card": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/poster?size=card&v=55503413a3ca",
+                  "full": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/poster?size=full&v=55503413a3ca"
+                },
+                "revision": "55503413a3ca",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "L39@bHS+00_200Wn_3D*D]_0s*4p"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/backdrop?size=hd&v=549544e6d56e",
+                "variants": {
+                  "card": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/backdrop?size=card&v=549544e6d56e",
+                  "hd": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/backdrop?size=hd&v=549544e6d56e",
+                  "wide": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/backdrop?size=wide&v=549544e6d56e",
+                  "full": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/backdrop?size=full&v=549544e6d56e"
+                },
+                "revision": "549544e6d56e",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "L27x5P008x_2o{xuDkV@03_1E3ob"
+                }
+              },
+              "logo": {
+                "href": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/logo?size=full&v=97b546fdb7fc",
+                "variants": {
+                  "full": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/logo?size=full&v=97b546fdb7fc"
+                },
+                "revision": "97b546fdb7fc",
+                "source": "self"
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 7.654,
+            "genres": [
+              "Horror",
+              "Fantasy"
+            ],
+            "durationMs": 5640000,
+            "score": 0.7654,
+            "reason": {
+              "kind": "trending"
+            }
+          },
+          {
+            "id": "d795821f-4d51-491d-a81b-53a6c543cf00",
+            "catalogId": "d795821f-4d51-491d-a81b-53a6c543cf00",
+            "type": "movie",
+            "ids": {
+              "tmdb": "775"
+            },
+            "title": "A Trip to the Moon",
+            "year": 1902,
+            "overview": "Professor Barbenfouillis and five of his colleagues from the Academy of Astronomy travel to the Moon aboard a rocket propelled by a giant cannon. Once on the lunar surface, the bold explorers face the many perils hidden in the caves of the mysterious planet.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/d795821f-4d51-491d-a81b-53a6c543cf00/images/poster?size=card&v=f3e6a60ec69a",
+                "variants": {
+                  "thumb": "/api/v1/media/d795821f-4d51-491d-a81b-53a6c543cf00/images/poster?size=thumb&v=f3e6a60ec69a",
+                  "card": "/api/v1/media/d795821f-4d51-491d-a81b-53a6c543cf00/images/poster?size=card&v=f3e6a60ec69a",
+                  "full": "/api/v1/media/d795821f-4d51-491d-a81b-53a6c543cf00/images/poster?size=full&v=f3e6a60ec69a"
+                },
+                "revision": "f3e6a60ec69a",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LA9jM%oJ02oz~9jG4;kC9]oe-URj"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/d795821f-4d51-491d-a81b-53a6c543cf00/images/backdrop?size=hd&v=549285e32e0b",
+                "variants": {
+                  "card": "/api/v1/media/d795821f-4d51-491d-a81b-53a6c543cf00/images/backdrop?size=card&v=549285e32e0b",
+                  "hd": "/api/v1/media/d795821f-4d51-491d-a81b-53a6c543cf00/images/backdrop?size=hd&v=549285e32e0b",
+                  "wide": "/api/v1/media/d795821f-4d51-491d-a81b-53a6c543cf00/images/backdrop?size=wide&v=549285e32e0b",
+                  "full": "/api/v1/media/d795821f-4d51-491d-a81b-53a6c543cf00/images/backdrop?size=full&v=549285e32e0b"
+                },
+                "revision": "549285e32e0b",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LGFFssIU9FIU?bIUD%IU%Mt7~qRj"
+                }
+              },
+              "logo": {
+                "href": "/api/v1/media/d795821f-4d51-491d-a81b-53a6c543cf00/images/logo?size=full&v=8feabb4b52b7",
+                "variants": {
+                  "full": "/api/v1/media/d795821f-4d51-491d-a81b-53a6c543cf00/images/logo?size=full&v=8feabb4b52b7"
+                },
+                "revision": "8feabb4b52b7",
+                "source": "self"
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 7.89,
+            "durationMs": 900000,
+            "score": 0.7889999999999999,
+            "reason": {
+              "kind": "trending"
+            }
+          },
+          {
+            "id": "867cfb1e-d5c0-4ce9-b974-9aeea5d9abda",
+            "catalogId": "867cfb1e-d5c0-4ce9-b974-9aeea5d9abda",
+            "type": "movie",
+            "ids": {
+              "tmdb": "26317"
+            },
+            "title": "Man with a Movie Camera",
+            "year": 1929,
+            "overview": "A cameraman wanders around with a camera slung over his shoulder, documenting urban life with dazzling inventiveness.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/867cfb1e-d5c0-4ce9-b974-9aeea5d9abda/images/poster?size=card&v=a40c0ba16f7c",
+                "variants": {
+                  "thumb": "/api/v1/media/867cfb1e-d5c0-4ce9-b974-9aeea5d9abda/images/poster?size=thumb&v=a40c0ba16f7c",
+                  "card": "/api/v1/media/867cfb1e-d5c0-4ce9-b974-9aeea5d9abda/images/poster?size=card&v=a40c0ba16f7c",
+                  "full": "/api/v1/media/867cfb1e-d5c0-4ce9-b974-9aeea5d9abda/images/poster?size=full&v=a40c0ba16f7c"
+                },
+                "revision": "a40c0ba16f7c",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LZMP?y=dv~=|QmwJr?so?^bvoyR+"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/867cfb1e-d5c0-4ce9-b974-9aeea5d9abda/images/backdrop?size=hd&v=6699da055b89",
+                "variants": {
+                  "card": "/api/v1/media/867cfb1e-d5c0-4ce9-b974-9aeea5d9abda/images/backdrop?size=card&v=6699da055b89",
+                  "hd": "/api/v1/media/867cfb1e-d5c0-4ce9-b974-9aeea5d9abda/images/backdrop?size=hd&v=6699da055b89",
+                  "wide": "/api/v1/media/867cfb1e-d5c0-4ce9-b974-9aeea5d9abda/images/backdrop?size=wide&v=6699da055b89",
+                  "full": "/api/v1/media/867cfb1e-d5c0-4ce9-b974-9aeea5d9abda/images/backdrop?size=full&v=6699da055b89"
+                },
+                "revision": "6699da055b89",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "L7EMLD4n0000IU00~qWB00D%_3WB"
+                }
+              },
+              "logo": {
+                "href": "/api/v1/media/867cfb1e-d5c0-4ce9-b974-9aeea5d9abda/images/logo?size=full&v=528cb9749756",
+                "variants": {
+                  "full": "/api/v1/media/867cfb1e-d5c0-4ce9-b974-9aeea5d9abda/images/logo?size=full&v=528cb9749756"
+                },
+                "revision": "528cb9749756",
+                "source": "self"
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 7.842,
+            "genres": [
+              "Documentary"
+            ],
+            "durationMs": 4080000,
+            "score": 0.7842,
+            "reason": {
+              "kind": "trending"
+            }
+          },
+          {
+            "id": "932daacf-977a-471f-b85e-f5db60c6628a",
+            "catalogId": "932daacf-977a-471f-b85e-f5db60c6628a",
+            "type": "movie",
+            "ids": {
+              "tmdb": "409421"
+            },
+            "title": "BLAME!",
+            "year": 2017,
+            "overview": "In the distant technological future, civilization has reached its ultimate Net-based form. An \"infection\" in the past caused the automated systems to spiral out of order, resulting in a multi-leveled city structure that replicates itself infinitely in all directions. Now humanity has lost access to the city's controls, and is hunted down and purged by the defense system known as the Safeguard. In a tiny corner of the city, a little enclave known as the Electro-Fishers is facing eventual extinction, trapped between the threat of the Safeguard and dwindling food supplies. A girl named Zuru goes on a journey to find food for her village, only to inadvertently cause doom when an observation tower senses her and summons a Safeguard pack to eliminate the threat. With her companions dead and all escape routes blocked, the only thing that can save her now is the sudden arrival of Killy the Wanderer, on his quest for the Net Terminal Genes, the key to restoring order to the world.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/poster?size=card&v=fe3dc9f43e56",
+                "variants": {
+                  "thumb": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/poster?size=thumb&v=fe3dc9f43e56",
+                  "card": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/poster?size=card&v=fe3dc9f43e56",
+                  "full": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/poster?size=full&v=fe3dc9f43e56"
+                },
+                "revision": "fe3dc9f43e56",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LEF#anGY+I-;_2oz%Mt7l-]:0eae"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/backdrop?size=hd&v=e3e3ff4b0cb0",
+                "variants": {
+                  "card": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/backdrop?size=card&v=e3e3ff4b0cb0",
+                  "hd": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/backdrop?size=hd&v=e3e3ff4b0cb0",
+                  "wide": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/backdrop?size=wide&v=e3e3ff4b0cb0",
+                  "full": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/backdrop?size=full&v=e3e3ff4b0cb0"
+                },
+                "revision": "e3e3ff4b0cb0",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LHBN1lM{4n?byZRPVrx]OtnhslS3"
+                }
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 6.526,
+            "genres": [
+              "Action",
+              "Drama",
+              "Science Fiction",
+              "Animation"
+            ],
+            "durationMs": 6360000,
+            "score": 0.6526,
+            "reason": {
+              "kind": "trending"
+            }
+          },
+          {
+            "id": "274aa7e0-987f-4a57-aad6-f413f06b78e4",
+            "catalogId": "274aa7e0-987f-4a57-aad6-f413f06b78e4",
+            "type": "movie",
+            "ids": {
+              "tmdb": "10378"
+            },
+            "title": "Big Buck Bunny",
+            "year": 2008,
+            "overview": "Follow a day of the life of Big Buck Bunny when he meets three bullying rodents: Frank, Rinky, and Gamera. The rodents amuse themselves by harassing helpless creatures by throwing fruits, nuts and rocks at them. After the deaths of two of Bunny's favorite butterflies, and an offensive attack on Bunny himself, Bunny sets aside his gentle nature and orchestrates a complex plan for revenge.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/poster?size=card&v=9e65d188204c",
+                "variants": {
+                  "thumb": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/poster?size=thumb&v=9e65d188204c",
+                  "card": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/poster?size=card&v=9e65d188204c",
+                  "full": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/poster?size=full&v=9e65d188204c"
+                },
+                "revision": "9e65d188204c",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LbM@vBkr%hx]]~xatRt6~qxaofoe"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=hd&v=267d9115bdcf",
+                "variants": {
+                  "card": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=card&v=267d9115bdcf",
+                  "hd": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=hd&v=267d9115bdcf",
+                  "wide": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=wide&v=267d9115bdcf",
+                  "full": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=full&v=267d9115bdcf"
+                },
+                "revision": "267d9115bdcf",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "L~IF*%tSoIS$?dR-s,kDW@M{jYay"
+                }
+              },
+              "logo": {
+                "href": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/logo?size=full&v=e947ecca05f5",
+                "variants": {
+                  "full": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/logo?size=full&v=e947ecca05f5"
+                },
+                "revision": "e947ecca05f5",
+                "source": "self"
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 6.5,
+            "genres": [
+              "Animation",
+              "Comedy",
+              "Family"
+            ],
+            "durationMs": 480000,
+            "score": 0.65,
+            "reason": {
+              "kind": "trending"
+            }
+          },
+          {
+            "id": "599758e2-d81c-49e5-82ca-b05ccbe413a1",
+            "catalogId": "599758e2-d81c-49e5-82ca-b05ccbe413a1",
+            "type": "movie",
+            "ids": {
+              "tmdb": "631"
+            },
+            "title": "Sunrise: A Song of Two Humans",
+            "year": 1927,
+            "overview": "A married farmer falls under the spell of a slatternly woman from the city, who tries to convince him to drown his wife.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/599758e2-d81c-49e5-82ca-b05ccbe413a1/images/poster?size=card&v=05ed1585fff5",
+                "variants": {
+                  "thumb": "/api/v1/media/599758e2-d81c-49e5-82ca-b05ccbe413a1/images/poster?size=thumb&v=05ed1585fff5",
+                  "card": "/api/v1/media/599758e2-d81c-49e5-82ca-b05ccbe413a1/images/poster?size=card&v=05ed1585fff5",
+                  "full": "/api/v1/media/599758e2-d81c-49e5-82ca-b05ccbe413a1/images/poster?size=full&v=05ed1585fff5"
+                },
+                "revision": "05ed1585fff5",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LVID{%~VtR-:^jkWENS40fIpIUM{"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/599758e2-d81c-49e5-82ca-b05ccbe413a1/images/backdrop?size=hd&v=1e4b46db8bc8",
+                "variants": {
+                  "card": "/api/v1/media/599758e2-d81c-49e5-82ca-b05ccbe413a1/images/backdrop?size=card&v=1e4b46db8bc8",
+                  "hd": "/api/v1/media/599758e2-d81c-49e5-82ca-b05ccbe413a1/images/backdrop?size=hd&v=1e4b46db8bc8",
+                  "wide": "/api/v1/media/599758e2-d81c-49e5-82ca-b05ccbe413a1/images/backdrop?size=wide&v=1e4b46db8bc8",
+                  "full": "/api/v1/media/599758e2-d81c-49e5-82ca-b05ccbe413a1/images/backdrop?size=full&v=1e4b46db8bc8"
+                },
+                "revision": "1e4b46db8bc8",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LGGSAZ~qE0-;RjWB4nD%WBofoMRj"
+                }
+              },
+              "logo": {
+                "href": "/api/v1/media/599758e2-d81c-49e5-82ca-b05ccbe413a1/images/logo?size=full&v=9627320d9e01",
+                "variants": {
+                  "full": "/api/v1/media/599758e2-d81c-49e5-82ca-b05ccbe413a1/images/logo?size=full&v=9627320d9e01"
+                },
+                "revision": "9627320d9e01",
+                "source": "self"
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 7.8,
+            "durationMs": 5640000,
+            "score": 0.78,
+            "reason": {
+              "kind": "trending"
+            }
+          },
+          {
+            "id": "f39786b4-b164-49e3-8bd7-06cc5ae8dcba",
+            "catalogId": "f39786b4-b164-49e3-8bd7-06cc5ae8dcba",
+            "type": "movie",
+            "ids": {
+              "tmdb": "45745"
+            },
+            "title": "Sintel",
+            "year": 2010,
+            "overview": "A wandering warrior finds an unlikely friend in the form of a young dragon. The two develop a close bond, until one day the dragon is snatched away. She then sets out on a relentless quest to reclaim her friend, finding in the end that her quest exacts a far greater price than she had ever imagined.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/f39786b4-b164-49e3-8bd7-06cc5ae8dcba/images/poster?size=card&v=6c57e77e58a7",
+                "variants": {
+                  "thumb": "/api/v1/media/f39786b4-b164-49e3-8bd7-06cc5ae8dcba/images/poster?size=thumb&v=6c57e77e58a7",
+                  "card": "/api/v1/media/f39786b4-b164-49e3-8bd7-06cc5ae8dcba/images/poster?size=card&v=6c57e77e58a7",
+                  "full": "/api/v1/media/f39786b4-b164-49e3-8bd7-06cc5ae8dcba/images/poster?size=full&v=6c57e77e58a7"
+                },
+                "revision": "6c57e77e58a7",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "L85rMh?w%h%hXUtmtSo#9GIAM{RP"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/f39786b4-b164-49e3-8bd7-06cc5ae8dcba/images/backdrop?size=hd&v=ef7a958f5173",
+                "variants": {
+                  "card": "/api/v1/media/f39786b4-b164-49e3-8bd7-06cc5ae8dcba/images/backdrop?size=card&v=ef7a958f5173",
+                  "hd": "/api/v1/media/f39786b4-b164-49e3-8bd7-06cc5ae8dcba/images/backdrop?size=hd&v=ef7a958f5173",
+                  "wide": "/api/v1/media/f39786b4-b164-49e3-8bd7-06cc5ae8dcba/images/backdrop?size=wide&v=ef7a958f5173",
+                  "full": "/api/v1/media/f39786b4-b164-49e3-8bd7-06cc5ae8dcba/images/backdrop?size=full&v=ef7a958f5173"
+                },
+                "revision": "ef7a958f5173",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LAC5;et613~Ur=NykW%10gNH-UIp"
+                }
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 7.333,
+            "genres": [
+              "Animation",
+              "Fantasy"
+            ],
+            "durationMs": 840000,
+            "score": 0.7333000000000001,
+            "reason": {
+              "kind": "trending"
+            }
+          },
+          {
+            "id": "488d0eaa-0fc6-443d-a441-5b19fa0e1dcc",
+            "catalogId": "488d0eaa-0fc6-443d-a441-5b19fa0e1dcc",
+            "type": "movie",
+            "ids": {
+              "tmdb": "2963"
+            },
+            "title": "The Impossible Voyage",
+            "year": 1904,
+            "overview": "Using every known means of transportation, several savants from the Geographic Society undertake a journey through the Alps to the Sun which finishes under the sea.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/488d0eaa-0fc6-443d-a441-5b19fa0e1dcc/images/poster?size=card&v=3dbfc91c00f5",
+                "variants": {
+                  "thumb": "/api/v1/media/488d0eaa-0fc6-443d-a441-5b19fa0e1dcc/images/poster?size=thumb&v=3dbfc91c00f5",
+                  "card": "/api/v1/media/488d0eaa-0fc6-443d-a441-5b19fa0e1dcc/images/poster?size=card&v=3dbfc91c00f5",
+                  "full": "/api/v1/media/488d0eaa-0fc6-443d-a441-5b19fa0e1dcc/images/poster?size=full&v=3dbfc91c00f5"
+                },
+                "revision": "3dbfc91c00f5",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LA9?p+xs0PNI~8s.9dR-0jR+^ht5"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/488d0eaa-0fc6-443d-a441-5b19fa0e1dcc/images/backdrop?size=hd&v=73fdcfa5a6d4",
+                "variants": {
+                  "card": "/api/v1/media/488d0eaa-0fc6-443d-a441-5b19fa0e1dcc/images/backdrop?size=card&v=73fdcfa5a6d4",
+                  "hd": "/api/v1/media/488d0eaa-0fc6-443d-a441-5b19fa0e1dcc/images/backdrop?size=hd&v=73fdcfa5a6d4",
+                  "wide": "/api/v1/media/488d0eaa-0fc6-443d-a441-5b19fa0e1dcc/images/backdrop?size=wide&v=73fdcfa5a6d4",
+                  "full": "/api/v1/media/488d0eaa-0fc6-443d-a441-5b19fa0e1dcc/images/backdrop?size=full&v=73fdcfa5a6d4"
+                },
+                "revision": "73fdcfa5a6d4",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LYI|j*?HIoxD~Bxuxtof%LW=WBWC"
+                }
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 7.3,
+            "genres": [
+              "Adventure",
+              "Comedy",
+              "Fantasy",
+              "Science Fiction"
+            ],
+            "durationMs": 1200000,
+            "score": 0.73,
+            "reason": {
+              "kind": "trending"
+            }
+          },
+          {
+            "id": "0c27418e-f75b-4ffc-8fd0-d943391695f7",
+            "catalogId": "0c27418e-f75b-4ffc-8fd0-d943391695f7",
+            "type": "movie",
+            "ids": {
+              "tmdb": "100246"
+            },
+            "title": "Gertie the Dinosaur",
+            "year": 1914,
+            "overview": "Although not the first feature-length animated film, as is sometimes thought, it was the first cartoon to feature a character with an appealing personality. The appearance of a true character distinguished it from earlier animated \"trick films\", such as those of Blackton and Cohl, and makes it the predecessor to later popular cartoons such as those by Walt Disney. The film was also the first to be created using keyframe animation.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/0c27418e-f75b-4ffc-8fd0-d943391695f7/images/poster?size=card&v=cbed8102fc1e",
+                "variants": {
+                  "thumb": "/api/v1/media/0c27418e-f75b-4ffc-8fd0-d943391695f7/images/poster?size=thumb&v=cbed8102fc1e",
+                  "card": "/api/v1/media/0c27418e-f75b-4ffc-8fd0-d943391695f7/images/poster?size=card&v=cbed8102fc1e",
+                  "full": "/api/v1/media/0c27418e-f75b-4ffc-8fd0-d943391695f7/images/poster?size=full&v=cbed8102fc1e"
+                },
+                "revision": "cbed8102fc1e",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LQHdZ~$LbdxZ~Cn$bbkC-pS2S0t6"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/0c27418e-f75b-4ffc-8fd0-d943391695f7/images/backdrop?size=hd&v=136c2b3760ad",
+                "variants": {
+                  "card": "/api/v1/media/0c27418e-f75b-4ffc-8fd0-d943391695f7/images/backdrop?size=card&v=136c2b3760ad",
+                  "hd": "/api/v1/media/0c27418e-f75b-4ffc-8fd0-d943391695f7/images/backdrop?size=hd&v=136c2b3760ad",
+                  "wide": "/api/v1/media/0c27418e-f75b-4ffc-8fd0-d943391695f7/images/backdrop?size=wide&v=136c2b3760ad",
+                  "full": "/api/v1/media/0c27418e-f75b-4ffc-8fd0-d943391695f7/images/backdrop?size=full&v=136c2b3760ad"
+                },
+                "revision": "136c2b3760ad",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LKP${_009Y%M~poLV@ayR*bFofae"
+                }
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 6.6,
+            "genres": [
+              "Animation",
+              "Comedy"
+            ],
+            "durationMs": 720000,
+            "score": 0.6599999999999999,
+            "reason": {
+              "kind": "trending"
+            }
+          },
+          {
+            "id": "29928899-4e6b-4a31-8ce6-092ec7a0bb28",
+            "catalogId": "29928899-4e6b-4a31-8ce6-092ec7a0bb28",
+            "type": "movie",
+            "ids": {
+              "tmdb": "5698"
+            },
+            "title": "The Great Train Robbery",
+            "year": 1903,
+            "overview": "After the train station clerk is assaulted and left bound and gagged, then the departing train and its passengers robbed, a posse goes in hot pursuit of the fleeing bandits.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/29928899-4e6b-4a31-8ce6-092ec7a0bb28/images/poster?size=card&v=c73fe85ee2b5",
+                "variants": {
+                  "thumb": "/api/v1/media/29928899-4e6b-4a31-8ce6-092ec7a0bb28/images/poster?size=thumb&v=c73fe85ee2b5",
+                  "card": "/api/v1/media/29928899-4e6b-4a31-8ce6-092ec7a0bb28/images/poster?size=card&v=c73fe85ee2b5",
+                  "full": "/api/v1/media/29928899-4e6b-4a31-8ce6-092ec7a0bb28/images/poster?size=full&v=c73fe85ee2b5"
+                },
+                "revision": "c73fe85ee2b5",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "L7B3?2oy00~qxb-;%MRjWB-;xuIU"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/29928899-4e6b-4a31-8ce6-092ec7a0bb28/images/backdrop?size=hd&v=6fac00e6cfda",
+                "variants": {
+                  "card": "/api/v1/media/29928899-4e6b-4a31-8ce6-092ec7a0bb28/images/backdrop?size=card&v=6fac00e6cfda",
+                  "hd": "/api/v1/media/29928899-4e6b-4a31-8ce6-092ec7a0bb28/images/backdrop?size=hd&v=6fac00e6cfda",
+                  "wide": "/api/v1/media/29928899-4e6b-4a31-8ce6-092ec7a0bb28/images/backdrop?size=wide&v=6fac00e6cfda",
+                  "full": "/api/v1/media/29928899-4e6b-4a31-8ce6-092ec7a0bb28/images/backdrop?size=full&v=6fac00e6cfda"
+                },
+                "revision": "6fac00e6cfda",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "L48z.GD%00~q%Mj[IUt7%Mt7M{M{"
+                }
+              },
+              "logo": {
+                "href": "/api/v1/media/29928899-4e6b-4a31-8ce6-092ec7a0bb28/images/logo?size=full&v=8f9b548fefdb",
+                "variants": {
+                  "full": "/api/v1/media/29928899-4e6b-4a31-8ce6-092ec7a0bb28/images/logo?size=full&v=8f9b548fefdb"
+                },
+                "revision": "8f9b548fefdb",
+                "source": "self"
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 6.982,
+            "genres": [
+              "Western",
+              "Crime",
+              "Action",
+              "Adventure"
+            ],
+            "durationMs": 720000,
+            "score": 0.6982,
+            "reason": {
+              "kind": "trending"
+            }
+          }
+        ],
+        "source": {
+          "href": "/api/v1/recommendations?type=for-you"
+        }
+      },
+      {
+        "id": "recently-added",
+        "type": "carousel",
+        "title": "Recently Added",
+        "icon": "clock",
+        "items": [
+          {
+            "id": "7bf9e033-d93c-475d-b839-906b4192625e",
+            "catalogId": "7bf9e033-d93c-475d-b839-906b4192625e",
+            "type": "movie",
+            "ids": {},
+            "title": "The Glass Orchard",
+            "year": 2028,
+            "overview": "SYNTHETIC TEST FIXTURE, invented title, no real work. A bitmap subtitle test film.",
+            "images": {},
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "durationMs": 120000,
+            "reason": {
+              "kind": "recently-added"
+            }
+          },
+          {
+            "id": "f8ea578c-a51a-4207-82f3-51ce49ce1105",
+            "catalogId": "f8ea578c-a51a-4207-82f3-51ce49ce1105",
+            "type": "movie",
+            "ids": {},
+            "title": "Copperline Tracks",
+            "year": 2029,
+            "overview": "SYNTHETIC TEST FIXTURE, invented title, no real work. A rail film for test runs.",
+            "images": {},
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "durationMs": 120000,
+            "reason": {
+              "kind": "recently-added"
+            }
+          },
+          {
+            "id": "db473182-38b8-47a7-a017-4464681517db",
+            "catalogId": "db473182-38b8-47a7-a017-4464681517db",
+            "type": "series",
+            "ids": {},
+            "title": "Quillon Harbour",
+            "year": 2031,
+            "images": {},
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "reason": {
+              "kind": "recently-added"
+            }
+          },
+          {
+            "id": "e0c0246e-7fc8-45b0-967a-6339a2e2a4a1",
+            "catalogId": "e0c0246e-7fc8-45b0-967a-6339a2e2a4a1",
+            "type": "movie",
+            "ids": {},
+            "title": "Northlight Static",
+            "year": 2027,
+            "overview": "SYNTHETIC TEST FIXTURE, invented title, no real work. Control case: no subtitles, no chapters.",
+            "images": {},
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "durationMs": 120000,
+            "reason": {
+              "kind": "recently-added"
+            }
+          },
+          {
+            "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "type": "series",
+            "ids": {},
+            "title": "The Vampires",
+            "year": 1915,
+            "overview": "Les Vampires is a silent French crime thriller serial about a journalist trying to expose a bizarre secret society of criminals terrorizing Paris.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/poster?size=card&v=a4b85c63eb2a",
+                "variants": {
+                  "thumb": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/poster?size=thumb&v=a4b85c63eb2a",
+                  "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/poster?size=card&v=a4b85c63eb2a",
+                  "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/poster?size=full&v=a4b85c63eb2a"
+                },
+                "revision": "a4b85c63eb2a",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "L3C56k=d}D}ssDEL-V-UyW%2xtEf"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+                "variants": {
+                  "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+                  "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+                  "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+                  "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+                },
+                "revision": "d0093e27bc20",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+                }
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "reason": {
+              "kind": "recently-added"
+            }
+          },
+          {
+            "id": "932daacf-977a-471f-b85e-f5db60c6628a",
+            "catalogId": "932daacf-977a-471f-b85e-f5db60c6628a",
+            "type": "movie",
+            "ids": {},
+            "title": "BLAME!",
+            "year": 2017,
+            "overview": "In the distant technological future, civilization has reached its ultimate Net-based form. An \"infection\" in the past caused the automated systems to spiral out of order, resulting in a multi-leveled city structure that replicates itself infinitely in all directions. Now humanity has lost access to the city's controls, and is hunted down and purged by the defense system known as the Safeguard. In a tiny corner of the city, a little enclave known as the Electro-Fishers is facing eventual extinction, trapped between the threat of the Safeguard and dwindling food supplies. A girl named Zuru goes on a journey to find food for her village, only to inadvertently cause doom when an observation tower senses her and summons a Safeguard pack to eliminate the threat. With her companions dead and all escape routes blocked, the only thing that can save her now is the sudden arrival of Killy the Wanderer, on his quest for the Net Terminal Genes, the key to restoring order to the world.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/poster?size=card&v=fe3dc9f43e56",
+                "variants": {
+                  "thumb": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/poster?size=thumb&v=fe3dc9f43e56",
+                  "card": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/poster?size=card&v=fe3dc9f43e56",
+                  "full": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/poster?size=full&v=fe3dc9f43e56"
+                },
+                "revision": "fe3dc9f43e56",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LEF#anGY+I-;_2oz%Mt7l-]:0eae"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/backdrop?size=hd&v=e3e3ff4b0cb0",
+                "variants": {
+                  "card": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/backdrop?size=card&v=e3e3ff4b0cb0",
+                  "hd": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/backdrop?size=hd&v=e3e3ff4b0cb0",
+                  "wide": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/backdrop?size=wide&v=e3e3ff4b0cb0",
+                  "full": "/api/v1/media/932daacf-977a-471f-b85e-f5db60c6628a/images/backdrop?size=full&v=e3e3ff4b0cb0"
+                },
+                "revision": "e3e3ff4b0cb0",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LHBN1lM{4n?byZRPVrx]OtnhslS3"
+                }
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 6.526,
+            "genres": [
+              "Action",
+              "Drama",
+              "Science Fiction",
+              "Animation"
+            ],
+            "durationMs": 6360000,
+            "reason": {
+              "kind": "recently-added"
+            }
+          },
+          {
+            "id": "eac75218-6865-42b9-9217-06c91cbde65b",
+            "catalogId": "eac75218-6865-42b9-9217-06c91cbde65b",
+            "type": "movie",
+            "ids": {},
+            "title": "Way Down East",
+            "year": 1920,
+            "overview": "A naïve country girl is tricked into a sham marriage by a wealthy womanizer, then must rebuild her life despite the taint of having borne a child out of wedlock.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/eac75218-6865-42b9-9217-06c91cbde65b/images/poster?size=card&v=a40a690f0286",
+                "variants": {
+                  "thumb": "/api/v1/media/eac75218-6865-42b9-9217-06c91cbde65b/images/poster?size=thumb&v=a40a690f0286",
+                  "card": "/api/v1/media/eac75218-6865-42b9-9217-06c91cbde65b/images/poster?size=card&v=a40a690f0286",
+                  "full": "/api/v1/media/eac75218-6865-42b9-9217-06c91cbde65b/images/poster?size=full&v=a40a690f0286"
+                },
+                "revision": "a40a690f0286",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LIFF.{MKEevM}tO?WBaM00tlx]Sg"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/eac75218-6865-42b9-9217-06c91cbde65b/images/backdrop?size=hd&v=01c33a12650a",
+                "variants": {
+                  "card": "/api/v1/media/eac75218-6865-42b9-9217-06c91cbde65b/images/backdrop?size=card&v=01c33a12650a",
+                  "hd": "/api/v1/media/eac75218-6865-42b9-9217-06c91cbde65b/images/backdrop?size=hd&v=01c33a12650a",
+                  "wide": "/api/v1/media/eac75218-6865-42b9-9217-06c91cbde65b/images/backdrop?size=wide&v=01c33a12650a",
+                  "full": "/api/v1/media/eac75218-6865-42b9-9217-06c91cbde65b/images/backdrop?size=full&v=01c33a12650a"
+                },
+                "revision": "01c33a12650a",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LGN^e:Rj~q%MM{00M{%M4nof%MD%"
+                }
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 7,
+            "genres": [
+              "Drama",
+              "Romance"
+            ],
+            "durationMs": 9000000,
+            "reason": {
+              "kind": "recently-added"
+            }
+          },
+          {
+            "id": "24d32eff-7182-4ca0-9f51-418b7de1093a",
+            "catalogId": "24d32eff-7182-4ca0-9f51-418b7de1093a",
+            "type": "movie",
+            "ids": {},
+            "title": "Sita Sings the Blues",
+            "year": 2008,
+            "overview": "Utilizing the 1920s jazz vocals of Annette Hanshaw, the epic Indian tale of exiled prince Ramayana and his bride Sita is mirrored by a spurned woman's contemporary personal life, and light-hearted but knowledgeable discussion of historical background by a trio of Indian shadow puppets.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/24d32eff-7182-4ca0-9f51-418b7de1093a/images/poster?size=card&v=5df85e18c3ee",
+                "variants": {
+                  "thumb": "/api/v1/media/24d32eff-7182-4ca0-9f51-418b7de1093a/images/poster?size=thumb&v=5df85e18c3ee",
+                  "card": "/api/v1/media/24d32eff-7182-4ca0-9f51-418b7de1093a/images/poster?size=card&v=5df85e18c3ee",
+                  "full": "/api/v1/media/24d32eff-7182-4ca0-9f51-418b7de1093a/images/poster?size=full&v=5df85e18c3ee"
+                },
+                "revision": "5df85e18c3ee",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "L8M4_u}p5m^30CRn0%EQ1Nso1dJ9"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/24d32eff-7182-4ca0-9f51-418b7de1093a/images/backdrop?size=hd&v=84c201ec6fc4",
+                "variants": {
+                  "card": "/api/v1/media/24d32eff-7182-4ca0-9f51-418b7de1093a/images/backdrop?size=card&v=84c201ec6fc4",
+                  "hd": "/api/v1/media/24d32eff-7182-4ca0-9f51-418b7de1093a/images/backdrop?size=hd&v=84c201ec6fc4",
+                  "wide": "/api/v1/media/24d32eff-7182-4ca0-9f51-418b7de1093a/images/backdrop?size=wide&v=84c201ec6fc4",
+                  "full": "/api/v1/media/24d32eff-7182-4ca0-9f51-418b7de1093a/images/backdrop?size=full&v=84c201ec6fc4"
+                },
+                "revision": "84c201ec6fc4",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "L59QX9*I0yL$G5X2ofSP8_#8=}l8"
+                }
+              },
+              "logo": {
+                "href": "/api/v1/media/24d32eff-7182-4ca0-9f51-418b7de1093a/images/logo?size=full&v=57aa073deec1",
+                "variants": {
+                  "full": "/api/v1/media/24d32eff-7182-4ca0-9f51-418b7de1093a/images/logo?size=full&v=57aa073deec1"
+                },
+                "revision": "57aa073deec1",
+                "source": "self"
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 7.012,
+            "genres": [
+              "Animation",
+              "Drama",
+              "Music",
+              "Romance",
+              "Fantasy"
+            ],
+            "durationMs": 4920000,
+            "reason": {
+              "kind": "recently-added"
+            }
+          },
+          {
+            "id": "274aa7e0-987f-4a57-aad6-f413f06b78e4",
+            "catalogId": "274aa7e0-987f-4a57-aad6-f413f06b78e4",
+            "type": "movie",
+            "ids": {},
+            "title": "Big Buck Bunny",
+            "year": 2008,
+            "overview": "Follow a day of the life of Big Buck Bunny when he meets three bullying rodents: Frank, Rinky, and Gamera. The rodents amuse themselves by harassing helpless creatures by throwing fruits, nuts and rocks at them. After the deaths of two of Bunny's favorite butterflies, and an offensive attack on Bunny himself, Bunny sets aside his gentle nature and orchestrates a complex plan for revenge.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/poster?size=card&v=9e65d188204c",
+                "variants": {
+                  "thumb": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/poster?size=thumb&v=9e65d188204c",
+                  "card": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/poster?size=card&v=9e65d188204c",
+                  "full": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/poster?size=full&v=9e65d188204c"
+                },
+                "revision": "9e65d188204c",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "LbM@vBkr%hx]]~xatRt6~qxaofoe"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=hd&v=267d9115bdcf",
+                "variants": {
+                  "card": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=card&v=267d9115bdcf",
+                  "hd": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=hd&v=267d9115bdcf",
+                  "wide": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=wide&v=267d9115bdcf",
+                  "full": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/backdrop?size=full&v=267d9115bdcf"
+                },
+                "revision": "267d9115bdcf",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "L~IF*%tSoIS$?dR-s,kDW@M{jYay"
+                }
+              },
+              "logo": {
+                "href": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/logo?size=full&v=e947ecca05f5",
+                "variants": {
+                  "full": "/api/v1/media/274aa7e0-987f-4a57-aad6-f413f06b78e4/images/logo?size=full&v=e947ecca05f5"
+                },
+                "revision": "e947ecca05f5",
+                "source": "self"
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 6.5,
+            "genres": [
+              "Animation",
+              "Comedy",
+              "Family"
+            ],
+            "durationMs": 480000,
+            "reason": {
+              "kind": "recently-added"
+            }
+          },
+          {
+            "id": "8fda2968-9fa5-4b88-bcda-0354caf35b1a",
+            "catalogId": "8fda2968-9fa5-4b88-bcda-0354caf35b1a",
+            "type": "movie",
+            "ids": {},
+            "title": "Nosferatu",
+            "year": 1922,
+            "overview": "The mysterious Count Orlok summons a happily married real estate agent to his castle, located up in the Transylvanian mountains, to finalise a terrifying deal.",
+            "images": {
+              "poster": {
+                "href": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/poster?size=card&v=55503413a3ca",
+                "variants": {
+                  "thumb": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/poster?size=thumb&v=55503413a3ca",
+                  "card": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/poster?size=card&v=55503413a3ca",
+                  "full": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/poster?size=full&v=55503413a3ca"
+                },
+                "revision": "55503413a3ca",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "L39@bHS+00_200Wn_3D*D]_0s*4p"
+                }
+              },
+              "backdrop": {
+                "href": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/backdrop?size=hd&v=549544e6d56e",
+                "variants": {
+                  "card": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/backdrop?size=card&v=549544e6d56e",
+                  "hd": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/backdrop?size=hd&v=549544e6d56e",
+                  "wide": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/backdrop?size=wide&v=549544e6d56e",
+                  "full": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/backdrop?size=full&v=549544e6d56e"
+                },
+                "revision": "549544e6d56e",
+                "source": "self",
+                "placeholder": {
+                  "blurhash": "L27x5P008x_2o{xuDkV@03_1E3ob"
+                }
+              },
+              "logo": {
+                "href": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/logo?size=full&v=97b546fdb7fc",
+                "variants": {
+                  "full": "/api/v1/media/8fda2968-9fa5-4b88-bcda-0354caf35b1a/images/logo?size=full&v=97b546fdb7fc"
+                },
+                "revision": "97b546fdb7fc",
+                "source": "self"
+              }
+            },
+            "availability": {
+              "isAvailable": true,
+              "canRequest": false
+            },
+            "rating": 7.654,
+            "genres": [
+              "Horror",
+              "Fantasy"
+            ],
+            "durationMs": 5640000,
+            "reason": {
+              "kind": "recently-added"
+            }
+          }
+        ],
+        "source": {
+          "href": "/api/v1/recommendations?type=recently-added"
+        }
+      }
+    ]
+  },
+  "baselineProblems": []
+}

@@ -1,0 +1,41 @@
+title: ''
+body:
+    - type: markdown
+      attributes:
+          value: |
+              **New to self-hosting? You are in the right place.** No question is too basic here, everyone ran their first `docker compose up` once. Tell us what you did and what you saw, and someone will walk you through it. The [Quick Start](https://lumastra.org/start/quick-start/) is the page to have open while you post.
+
+              **House rules**, in short: keep it about media you own or are licensed to use (no references to pirated content of any kind), redact secrets and personal data before posting, and be kind. The full rules: [CODE_OF_CONDUCT.md](https://github.com/Sapd/lumastra/blob/main/.github/CODE_OF_CONDUCT.md#content-rules).
+    - type: dropdown
+      id: stage
+      attributes:
+          label: How far did you get?
+          options:
+              - I have not started yet and want to know what I need
+              - The containers do not start
+              - The containers start but I cannot open the web page
+              - I can open the page but setup / login fails
+              - It runs, but my media does not show up
+              - Something else
+      validations:
+          required: true
+    - type: input
+      id: platform
+      attributes:
+          label: What are you installing on?
+          placeholder: e.g. a Windows PC with Docker Desktop, a Raspberry Pi, Synology NAS, Unraid, a Linux server
+      validations:
+          required: true
+    - type: textarea
+      id: what
+      attributes:
+          label: What did you do, and what happened?
+          description: The commands you ran and what came back. Paste the output as-is. It is more useful than a summary. Remove passwords and API keys first.
+      validations:
+          required: true
+    - type: textarea
+      id: logs
+      attributes:
+          label: Container logs (if the containers start)
+          description: '`docker compose logs --tail=100`, paste here. Remove anything that looks like a secret.'
+          render: shell

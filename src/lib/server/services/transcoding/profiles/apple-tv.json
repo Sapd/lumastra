@@ -1,0 +1,197 @@
+{
+    "Name": "Apple TV 4K",
+    "EnableAlbumArtInDidl": false,
+    "EnableSingleAlbumArtLimit": false,
+    "EnableSingleSubtitleLimit": false,
+    "SupportedMediaTypes": "Audio,Photo,Video",
+    "MaxAlbumArtWidth": 0,
+    "MaxAlbumArtHeight": 0,
+    "MaxStreamingBitrate": 120000000,
+    "MaxStaticBitrate": 100000000,
+    "MusicStreamingTranscodingBitrate": 384000,
+    "TimelineOffsetSeconds": 0,
+    "RequiresPlainVideoItems": false,
+    "RequiresPlainFolders": false,
+    "EnableMSMediaReceiverRegistrar": false,
+    "IgnoreTranscodeByteRangeRequests": false,
+    "DirectPlayProfiles": [
+        {
+            "Container": "mp4,m4v,mov",
+            "Type": "Video",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac,ac3,eac3,alac"
+        },
+        {
+            "Container": "hls",
+            "Type": "Video",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac,ac3,eac3"
+        },
+        {
+            "Container": "aac,m4a,m4b",
+            "Type": "Audio"
+        },
+        {
+            "Container": "alac",
+            "Type": "Audio"
+        },
+        {
+            "Container": "mp3",
+            "Type": "Audio"
+        },
+        {
+            "Container": "flac",
+            "Type": "Audio"
+        }
+    ],
+    "TranscodingProfiles": [
+        {
+            "Container": "mp4",
+            "Type": "Video",
+            "AudioCodec": "aac,ac3,eac3",
+            "VideoCodec": "hevc,h264",
+            "Context": "Streaming",
+            "Protocol": "hls",
+            "MaxAudioChannels": "6",
+            "MinSegments": "2",
+            "BreakOnNonKeyFrames": false
+        },
+        {
+            "Container": "mp4",
+            "Type": "Audio",
+            "AudioCodec": "aac",
+            "Context": "Streaming",
+            "Protocol": "hls",
+            "MaxAudioChannels": "6",
+            "MinSegments": "2",
+            "BreakOnNonKeyFrames": false
+        }
+    ],
+    "ContainerProfiles": [],
+    "CodecProfiles": [
+        {
+            "Type": "Video",
+            "Codec": "h264",
+            "Conditions": [
+                {
+                    "Condition": "NotEquals",
+                    "Property": "IsAnamorphic",
+                    "Value": "true",
+                    "IsRequired": false
+                },
+                {
+                    "Condition": "EqualsAny",
+                    "Property": "VideoProfile",
+                    "Value": "high|main|baseline|constrained baseline",
+                    "IsRequired": false
+                },
+                {
+                    "Condition": "EqualsAny",
+                    "Property": "VideoRangeType",
+                    "Value": "SDR",
+                    "IsRequired": false
+                },
+                {
+                    "Condition": "LessThanEqual",
+                    "Property": "VideoLevel",
+                    "Value": "52",
+                    "IsRequired": false
+                },
+                {
+                    "Condition": "NotEquals",
+                    "Property": "IsInterlaced",
+                    "Value": "true",
+                    "IsRequired": false
+                },
+                {
+                    "Condition": "LessThanEqual",
+                    "Property": "RefFrames",
+                    "Value": "16",
+                    "IsRequired": false
+                }
+            ]
+        },
+        {
+            "Type": "Video",
+            "Codec": "hevc",
+            "Conditions": [
+                {
+                    "Condition": "NotEquals",
+                    "Property": "IsAnamorphic",
+                    "Value": "true",
+                    "IsRequired": false
+                },
+                {
+                    "Condition": "EqualsAny",
+                    "Property": "VideoProfile",
+                    "Value": "main|main 10",
+                    "IsRequired": false
+                },
+                {
+                    "Condition": "EqualsAny",
+                    "Property": "VideoRangeType",
+                    "Value": "SDR|HDR10|HLG|DOVI|DOVIWithHDR10|DOVIWithHLG|DOVIWithSDR",
+                    "IsRequired": false
+                },
+                {
+                    "Condition": "LessThanEqual",
+                    "Property": "VideoLevel",
+                    "Value": "153",
+                    "IsRequired": false
+                },
+                {
+                    "Condition": "NotEquals",
+                    "Property": "IsInterlaced",
+                    "Value": "true",
+                    "IsRequired": false
+                }
+            ]
+        },
+        {
+            "Type": "VideoAudio",
+            "Codec": "aac",
+            "Conditions": [
+                {
+                    "Condition": "LessThanEqual",
+                    "Property": "AudioChannels",
+                    "Value": "8",
+                    "IsRequired": false
+                }
+            ]
+        },
+        {
+            "Type": "VideoAudio",
+            "Codec": "ac3,eac3",
+            "Conditions": [
+                {
+                    "Condition": "LessThanEqual",
+                    "Property": "AudioChannels",
+                    "Value": "6",
+                    "IsRequired": false
+                }
+            ]
+        }
+    ],
+    "SubtitleProfiles": [
+        {
+            "Format": "vtt",
+            "Method": "External"
+        },
+        {
+            "Format": "ttml",
+            "Method": "External"
+        },
+        {
+            "Format": "srt",
+            "Method": "External"
+        }
+    ],
+    "ResponseProfiles": [
+        {
+            "Type": "Video",
+            "Container": "m4v",
+            "MimeType": "video/mp4"
+        }
+    ],
+    "userAgentMatch": "AppleTV|tvOS"
+}

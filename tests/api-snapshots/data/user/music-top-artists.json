@@ -1,0 +1,53 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/me/music/top-artists"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+        "type": "artist",
+        "title": "Johann Sebastian Bach",
+        "images": {
+          "backdrop": {
+            "href": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/backdrop?size=hd&v=259dcfade98a",
+            "variants": {
+              "card": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/backdrop?size=card&v=259dcfade98a",
+              "hd": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/backdrop?size=hd&v=259dcfade98a",
+              "wide": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/backdrop?size=wide&v=259dcfade98a",
+              "full": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/backdrop?size=full&v=259dcfade98a"
+            },
+            "revision": "259dcfade98a",
+            "source": "self"
+          },
+          "primary": {
+            "href": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/poster?size=card&v=c62393b07a2d",
+            "variants": {
+              "thumb": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/poster?size=thumb&v=c62393b07a2d",
+              "card": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/poster?size=card&v=c62393b07a2d",
+              "full": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/poster?size=full&v=c62393b07a2d"
+            },
+            "revision": "c62393b07a2d",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LKD+rKRk0gxu~VWVENt79ukCw]WB"
+            }
+          }
+        },
+        "albumCount": 1,
+        "trackCount": 23,
+        "isVariousArtists": false,
+        "playCount": 14,
+        "source": "personal"
+      }
+    ],
+    "page": {
+      "limit": 20,
+      "truncated": false
+    }
+  },
+  "baselineProblems": []
+}

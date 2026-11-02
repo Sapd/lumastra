@@ -1,0 +1,303 @@
+{
+    "$schema": "./holidays.schema.json",
+    "settings": {
+        "enabled": true,
+        "defaultLimit": 20,
+        "enableAiPersonalization": true,
+        "cacheTtlMinutes": 30,
+        "jellyfinCacheTtlHours": 6
+    },
+    "holidays": [
+        {
+            "id": "christmas",
+            "name": "Christmas",
+            "localizedNames": { "de": "Weihnachten" },
+            "emoji": "🎄",
+            "startMonth": 11,
+            "startDay": 20,
+            "endMonth": 12,
+            "endDay": 27,
+            "sources": [
+                {
+                    "type": "tmdb",
+                    "keywordIds": [
+                        207317, 6152, 4270, 207335, 10683, 191469, 258261, 283373, 312042
+                    ],
+                    "keywords": ["christmas", "santa claus", "xmas"],
+                    "collectionIds": [9888, 743824, 1570, 108693, 53159, 642638, 201873, 526203],
+                    "genreIds": [10751, 35, 16],
+                    "includeNewReleases": true,
+                    "minVoteCount": 50,
+                    "minVoteAverage": 5.5
+                }
+            ],
+            "backgroundColor": "#165B33",
+            "textColor": "#FFFFFF",
+            "preHoliday": {
+                "name": "Getting into Christmas spirit?",
+                "localizedNames": { "de": "Schon in Weihnachtsstimmung?" },
+                "emoji": "🕯️",
+                "startMonth": 11,
+                "startDay": 20,
+                "endMonth": 12,
+                "endDay": 22
+            },
+            "validation": {
+                "requiredTerms": [
+                    "christmas",
+                    "weihnacht",
+                    "xmas",
+                    "santa claus",
+                    "nikolaus",
+                    "weihnachtsmann",
+                    "advent",
+                    "noel",
+                    "navidad",
+                    "natale",
+                    "heiligabend",
+                    "rudolph",
+                    "reindeer",
+                    "rentier",
+                    "snowman",
+                    "schneemann",
+                    "grinch",
+                    "scrooge",
+                    "carol",
+                    "nutcracker",
+                    "nussknacker",
+                    "north pole",
+                    "nordpol",
+                    "mistletoe",
+                    "mistel",
+                    "christmas tree",
+                    "weihnachtsbaum",
+                    "christbaum",
+                    "home alone",
+                    "allein zu hause",
+                    "jingle",
+                    "krampus"
+                ],
+                "skipForFeatured": true
+            },
+            "enabled": true,
+            "priority": 10
+        },
+        {
+            "id": "halloween",
+            "name": "Halloween",
+            "localizedNames": { "de": "Halloween" },
+            "emoji": "🎃",
+            "startMonth": 10,
+            "startDay": 15,
+            "endMonth": 11,
+            "endDay": 3,
+            "sources": [
+                {
+                    "type": "tmdb",
+                    "keywordIds": [3335, 180193, 40931, 3358],
+                    "keywords": [
+                        "halloween",
+                        "horror",
+                        "scary",
+                        "ghost",
+                        "monster",
+                        "vampire",
+                        "zombie"
+                    ],
+                    "collectionIds": [91361, 8581, 1733, 751156, 945475, 11716, 185103, 8819],
+                    "genreIds": [27, 53],
+                    "featuredMovieIds": [10439, 4011, 2907, 14836, 76492, 3933, 9297, 8839, 6435],
+                    "includeNewReleases": true
+                }
+            ],
+            "backgroundColor": "#FF6B35",
+            "textColor": "#000000",
+            "enabled": true,
+            "priority": 9
+        },
+        {
+            "id": "newyear",
+            "name": "New Year's",
+            "localizedNames": { "de": "Neujahr" },
+            "emoji": "🎆",
+            "startMonth": 12,
+            "startDay": 28,
+            "endMonth": 1,
+            "endDay": 7,
+            "sources": [
+                {
+                    "type": "tmdb",
+                    "keywordIds": [613, 252123],
+                    "keywords": ["new year", "celebration", "party", "new years eve", "silvester"],
+                    "genreIds": [35, 18],
+                    "featuredMovieIds": [6166, 878, 62838, 639, 551, 634, 1621, 1581],
+                    "featuredTvIds": [11578]
+                }
+            ],
+            "backgroundColor": "#4ECDC4",
+            "textColor": "#000000",
+            "enabled": true,
+            "priority": 8
+        },
+        {
+            "id": "valentines",
+            "name": "Valentine's Day",
+            "localizedNames": { "de": "Valentinstag" },
+            "emoji": "❤️",
+            "startMonth": 2,
+            "startDay": 1,
+            "endMonth": 2,
+            "endDay": 14,
+            "sources": [
+                {
+                    "type": "tmdb",
+                    "keywordIds": [160404, 212796, 9840, 818],
+                    "keywords": ["valentine", "romance", "love", "romantic"],
+                    "genreIds": [10749, 35],
+                    "featuredMovieIds": [11036, 114, 858, 313369, 509, 639]
+                }
+            ],
+            "backgroundColor": "#FF6B9D",
+            "textColor": "#FFFFFF",
+            "enabled": true,
+            "priority": 7
+        },
+        {
+            "id": "easter",
+            "name": "Easter",
+            "localizedNames": { "de": "Ostern" },
+            "emoji": "🐰",
+            "startMonth": 3,
+            "startDay": 15,
+            "endMonth": 4,
+            "endDay": 25,
+            "sources": [
+                {
+                    "type": "tmdb",
+                    "keywordIds": [9923],
+                    "keywords": ["easter", "spring", "bunny", "egg"],
+                    "collectionIds": [595693],
+                    "genreIds": [10751, 16, 35],
+                    "featuredMovieIds": [50359, 381719, 81188]
+                }
+            ],
+            "backgroundColor": "#FFE66D",
+            "textColor": "#000000",
+            "enabled": true,
+            "priority": 6
+        },
+        {
+            "id": "oktoberfest",
+            "name": "Oktoberfest",
+            "localizedNames": { "de": "Oktoberfest" },
+            "emoji": "🍺",
+            "startMonth": 9,
+            "startDay": 16,
+            "endMonth": 9,
+            "endDay": 20,
+            "sources": [
+                {
+                    "type": "tmdb",
+                    "keywordIds": [8971, 2279, 4552],
+                    "keywords": ["oktoberfest", "beer", "munich", "bavaria", "germany", "festival"],
+                    "genreIds": [35, 99, 10402]
+                }
+            ],
+            "backgroundColor": "#0099CC",
+            "textColor": "#FFFFFF",
+            "enabled": true,
+            "priority": 5
+        },
+        {
+            "id": "german-unity",
+            "name": "German Unity Day",
+            "localizedNames": { "de": "Tag der Deutschen Einheit" },
+            "emoji": "🇩🇪",
+            "startMonth": 10,
+            "startDay": 1,
+            "endMonth": 10,
+            "endDay": 5,
+            "sources": [
+                {
+                    "type": "tmdb",
+                    "keywordIds": [156026, 74, 292, 2106, 6421, 220],
+                    "keywords": [
+                        "germany",
+                        "german",
+                        "berlin",
+                        "history",
+                        "reunification",
+                        "deutsche"
+                    ],
+                    "genreIds": [18, 99, 36],
+                    "featuredMovieIds": [338, 582, 296098, 483983, 341013]
+                }
+            ],
+            "backgroundColor": "#DD0000",
+            "textColor": "#FFCC00",
+            "enabled": true,
+            "priority": 4
+        },
+        {
+            "id": "europe-day",
+            "name": "Europe Day",
+            "localizedNames": { "de": "Europatag" },
+            "emoji": "🇪🇺",
+            "startMonth": 5,
+            "startDay": 5,
+            "endMonth": 5,
+            "endDay": 12,
+            "sources": [
+                {
+                    "type": "tmdb",
+                    "keywordIds": [181046, 3023, 230255, 6740],
+                    "keywords": [
+                        "europe",
+                        "european",
+                        "union",
+                        "eu",
+                        "unity",
+                        "peace",
+                        "democracy"
+                    ],
+                    "genreIds": [99, 18, 36]
+                }
+            ],
+            "backgroundColor": "#003399",
+            "textColor": "#FFCC00",
+            "enabled": true,
+            "priority": 3
+        },
+        {
+            "id": "karneval",
+            "name": "Carnival",
+            "localizedNames": { "de": "Karneval" },
+            "emoji": "🎭",
+            "startMonth": 2,
+            "startDay": 10,
+            "endMonth": 2,
+            "endDay": 14,
+            "sources": [
+                {
+                    "type": "tmdb",
+                    "keywordIds": [3473, 220511, 5497, 281505, 223368, 2404, 188404],
+                    "keywords": [
+                        "carnival",
+                        "karneval",
+                        "party",
+                        "costume",
+                        "celebration",
+                        "masquerade"
+                    ],
+                    "collectionIds": [229932],
+                    "genreIds": [35, 10402, 10751],
+                    "featuredMovieIds": [40423, 46195, 10198]
+                }
+            ],
+            "backgroundColor": "#9C27B0",
+            "textColor": "#FFFFFF",
+            "enabled": true,
+            "priority": 2
+        }
+    ]
+}

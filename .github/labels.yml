@@ -1,0 +1,77 @@
+# Label taxonomy — feed to a label-sync action (e.g. EndBug/label-sync) so the
+# repo's labels match the issue forms + labeler config. type: / area: / status: /
+# size: + a few specials.
+
+# --- type ---
+- name: 'type:bug'
+  color: 'd73a4a'
+  description: Something is broken.
+- name: 'type:feature'
+  color: '0e8a16'
+  description: Accepted feature proposal being built (opened by a maintainer from a Features discussion — never filed directly).
+- name: 'type:docs'
+  color: '0075ca'
+  description: Documentation.
+- name: 'type:question-migrated'
+  color: 'c5def5'
+  description: Converted from/to a Discussion.
+
+# --- area ---
+- { name: 'area:player', color: '5319e7', description: Video/audio player + streaming }
+- { name: 'area:music', color: '5319e7', description: Music / Subsonic / sonic embeddings }
+- { name: 'area:livetv', color: '5319e7', description: Live TV }
+- { name: 'area:tasks', color: '5319e7', description: Task system }
+- { name: 'area:admin', color: '5319e7', description: Admin surfaces }
+- { name: 'area:ui', color: '5319e7', description: Web interface, layout and UX }
+- { name: 'area:ai', color: '5319e7', description: AI / recommendations / assistant }
+- { name: 'area:database', color: '5319e7', description: DB / migrations }
+- { name: 'area:auth', color: '5319e7', description: Auth / OAuth / middleware }
+- { name: 'area:compat-j', color: '5319e7', description: Jellyfin-compat /j surface }
+- { name: 'area:subsonic', color: '5319e7', description: Subsonic-compat surface }
+- { name: 'area:plugins', color: '5319e7', description: Plugins / SDK }
+- { name: 'area:licensing', color: '5319e7', description: Licensing / entitlements }
+- { name: 'area:docker', color: '5319e7', description: Docker / deploy }
+- { name: 'area:docs', color: '5319e7', description: Docs }
+- { name: 'area:ios-app', color: '5319e7', description: iPhone and iPad app }
+- { name: 'area:tvos-app', color: '5319e7', description: Apple TV app }
+- { name: 'area:i18n', color: '1d76db', description: Translations / locale strings }
+
+# --- status ---
+- { name: 'status:needs-triage', color: 'fbca04', description: Awaiting maintainer review }
+- { name: 'status:confirmed', color: 'fef2c0', description: Reproduced / accepted }
+- { name: 'status:needs-info', color: 'd4c5f9', description: 'Waiting on the author (auto-closes)' }
+- { name: 'status:blocked', color: 'b60205', description: Blocked on something else }
+- {
+      name: 'status:needs-discussion',
+      color: 'd4c5f9',
+      description: Needs an accepted Features discussion before it can be reviewed,
+  }
+
+# --- size (auto-applied by pr-size-labeler) ---
+- { name: 'size:XS', color: 'ededed' }
+- { name: 'size:S', color: 'd9d9d9' }
+- { name: 'size:M', color: 'bfbfbf' }
+- { name: 'size:L', color: 'a6a6a6' }
+- { name: 'size:XL', color: '8c8c8c', description: Large — should reference an accepted issue }
+
+# --- specials ---
+- {
+      name: 'ai-assisted',
+      color: 'c5def5',
+      description: Author disclosed substantial AI assistance (auto-applied from the PR template),
+  }
+- { name: 'good-first-issue', color: '7057ff', description: Good for newcomers }
+- { name: 'help-wanted', color: '008672', description: Extra attention welcome }
+- { name: 'best-effort', color: 'c5def5', description: Outside the core; fixed when time allows }
+- {
+      name: 'licensing',
+      color: 'e99695',
+      description: Touches the AGPL/proprietary boundary — review with care,
+  }
+- { name: 'synced', color: 'c2e0c6', description: 'Merged, waiting for the next release' }
+- { name: 'status:released', color: '0e8a16', description: 'Included in a published release' }
+- {
+      name: 'run-e2e',
+      color: 'fbca04',
+      description: Maintainer-only. Runs the Playwright end-to-end tests on this pull request.,
+  }

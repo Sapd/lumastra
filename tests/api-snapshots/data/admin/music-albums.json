@@ -1,0 +1,747 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/music/albums"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+        "type": "album",
+        "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince",
+        "year": 2013,
+        "artist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "trackCount": 23,
+        "durationMs": 2959000
+      },
+      {
+        "id": "ca7853a1-bcf9-4ee1-9e47-3004740b34f2",
+        "type": "album",
+        "title": "Early Dixieland",
+        "year": 2002,
+        "artist": {
+          "id": "c9115bc8-b2fc-4fb9-b6f9-b3dac6e0a891",
+          "title": "Various Artists"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/ca7853a1-bcf9-4ee1-9e47-3004740b34f2/images/poster?size=card&v=d8ae66bb7a1b",
+            "variants": {
+              "thumb": "/api/v1/media/ca7853a1-bcf9-4ee1-9e47-3004740b34f2/images/poster?size=thumb&v=d8ae66bb7a1b",
+              "card": "/api/v1/media/ca7853a1-bcf9-4ee1-9e47-3004740b34f2/images/poster?size=card&v=d8ae66bb7a1b",
+              "full": "/api/v1/media/ca7853a1-bcf9-4ee1-9e47-3004740b34f2/images/poster?size=full&v=d8ae66bb7a1b"
+            },
+            "revision": "d8ae66bb7a1b",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LML;QyDh~pM_Rh-=IUIT-o-pM_R*"
+            }
+          }
+        },
+        "trackCount": 3,
+        "durationMs": 511000
+      },
+      {
+        "id": "be5a4c85-03dc-468e-a625-e896dc0cf1b6",
+        "type": "album",
+        "title": "Blues Collection",
+        "year": null,
+        "artist": {
+          "id": "c9115bc8-b2fc-4fb9-b6f9-b3dac6e0a891",
+          "title": "Various Artists"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/be5a4c85-03dc-468e-a625-e896dc0cf1b6/images/poster?size=card&v=1f787f05d1f1",
+            "variants": {
+              "thumb": "/api/v1/media/be5a4c85-03dc-468e-a625-e896dc0cf1b6/images/poster?size=thumb&v=1f787f05d1f1",
+              "card": "/api/v1/media/be5a4c85-03dc-468e-a625-e896dc0cf1b6/images/poster?size=card&v=1f787f05d1f1",
+              "full": "/api/v1/media/be5a4c85-03dc-468e-a625-e896dc0cf1b6/images/poster?size=full&v=1f787f05d1f1"
+            },
+            "revision": "1f787f05d1f1",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LBA0Ba},9x9#$$smR+oL0Q9#$}=@"
+            }
+          }
+        },
+        "trackCount": 1,
+        "durationMs": 140000
+      },
+      {
+        "id": "5f422637-fc6a-4511-bba7-1894618d4a43",
+        "type": "album",
+        "title": "Tango Collection",
+        "year": null,
+        "artist": {
+          "id": "c9115bc8-b2fc-4fb9-b6f9-b3dac6e0a891",
+          "title": "Various Artists"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/5f422637-fc6a-4511-bba7-1894618d4a43/images/poster?size=card&v=9857a40cfb9f",
+            "variants": {
+              "thumb": "/api/v1/media/5f422637-fc6a-4511-bba7-1894618d4a43/images/poster?size=thumb&v=9857a40cfb9f",
+              "card": "/api/v1/media/5f422637-fc6a-4511-bba7-1894618d4a43/images/poster?size=card&v=9857a40cfb9f",
+              "full": "/api/v1/media/5f422637-fc6a-4511-bba7-1894618d4a43/images/poster?size=full&v=9857a40cfb9f"
+            },
+            "revision": "9857a40cfb9f",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LBA0Ba},9x9#$$smR+oL0Q9#$}=@"
+            }
+          }
+        },
+        "trackCount": 4,
+        "durationMs": 580000
+      },
+      {
+        "id": "38ea39a6-d13b-4dac-aa87-32f199eaea50",
+        "type": "album",
+        "title": "Choral Works",
+        "year": null,
+        "artist": {
+          "id": "c9115bc8-b2fc-4fb9-b6f9-b3dac6e0a891",
+          "title": "Various Artists"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/38ea39a6-d13b-4dac-aa87-32f199eaea50/images/poster?size=card&v=7c72f451ed14",
+            "variants": {
+              "thumb": "/api/v1/media/38ea39a6-d13b-4dac-aa87-32f199eaea50/images/poster?size=thumb&v=7c72f451ed14",
+              "card": "/api/v1/media/38ea39a6-d13b-4dac-aa87-32f199eaea50/images/poster?size=card&v=7c72f451ed14",
+              "full": "/api/v1/media/38ea39a6-d13b-4dac-aa87-32f199eaea50/images/poster?size=full&v=7c72f451ed14"
+            },
+            "revision": "7c72f451ed14",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LBA0Ba},9x9#$$smR+oL0Q9#$}=@"
+            }
+          }
+        },
+        "trackCount": 3,
+        "durationMs": 204000
+      },
+      {
+        "id": "3d6266a3-4a8a-443b-bb74-40b00aaa6d3c",
+        "type": "album",
+        "title": "Courtly Dances",
+        "year": 1994,
+        "artist": {
+          "id": "a2972116-da3c-4c7d-b104-eec4f79c3030",
+          "title": "Scott Joplin"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/3d6266a3-4a8a-443b-bb74-40b00aaa6d3c/images/poster?size=card&v=e1cb026c142a",
+            "variants": {
+              "thumb": "/api/v1/media/3d6266a3-4a8a-443b-bb74-40b00aaa6d3c/images/poster?size=thumb&v=e1cb026c142a",
+              "card": "/api/v1/media/3d6266a3-4a8a-443b-bb74-40b00aaa6d3c/images/poster?size=card&v=e1cb026c142a",
+              "full": "/api/v1/media/3d6266a3-4a8a-443b-bb74-40b00aaa6d3c/images/poster?size=full&v=e1cb026c142a"
+            },
+            "revision": "e1cb026c142a",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LQKd}K%M?bj[~qj[xuay00RjM{of"
+            }
+          }
+        },
+        "trackCount": 1,
+        "durationMs": 199000
+      },
+      {
+        "id": "d104f2b3-16a5-4960-98c8-2081a16ccbde",
+        "type": "album",
+        "title": "Joplin - Ragtime",
+        "year": null,
+        "artist": {
+          "id": "a2972116-da3c-4c7d-b104-eec4f79c3030",
+          "title": "Scott Joplin"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/d104f2b3-16a5-4960-98c8-2081a16ccbde/images/poster?size=card&v=de4fc39836cd",
+            "variants": {
+              "thumb": "/api/v1/media/d104f2b3-16a5-4960-98c8-2081a16ccbde/images/poster?size=thumb&v=de4fc39836cd",
+              "card": "/api/v1/media/d104f2b3-16a5-4960-98c8-2081a16ccbde/images/poster?size=card&v=de4fc39836cd",
+              "full": "/api/v1/media/d104f2b3-16a5-4960-98c8-2081a16ccbde/images/poster?size=full&v=de4fc39836cd"
+            },
+            "revision": "de4fc39836cd",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LQKd}K%M?bj[~qj[xuay00RjM{of"
+            }
+          }
+        },
+        "trackCount": 6,
+        "durationMs": 1605000
+      },
+      {
+        "id": "1cde940b-65df-4722-9317-aebe155931f4",
+        "type": "album",
+        "title": "Beethoven - Selected Works",
+        "year": 2012,
+        "artist": {
+          "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+          "title": "Ludwig van Beethoven"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "trackCount": 14,
+        "durationMs": 4794000
+      },
+      {
+        "id": "f768398c-416c-4b01-af10-64613589bf60",
+        "type": "album",
+        "title": "Satie - Selected Works",
+        "year": null,
+        "artist": {
+          "id": "12650c09-d4bd-4d93-8ee5-c7393ec5a34a",
+          "title": "Erik Satie"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/f768398c-416c-4b01-af10-64613589bf60/images/poster?size=card&v=41a2e5cf5766",
+            "variants": {
+              "thumb": "/api/v1/media/f768398c-416c-4b01-af10-64613589bf60/images/poster?size=thumb&v=41a2e5cf5766",
+              "card": "/api/v1/media/f768398c-416c-4b01-af10-64613589bf60/images/poster?size=card&v=41a2e5cf5766",
+              "full": "/api/v1/media/f768398c-416c-4b01-af10-64613589bf60/images/poster?size=full&v=41a2e5cf5766"
+            },
+            "revision": "41a2e5cf5766",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "L$Gu,m~q-;%Mt7ofWBWBIURjt7j["
+            }
+          }
+        },
+        "trackCount": 8,
+        "durationMs": 1002000
+      },
+      {
+        "id": "4bd09b9b-064d-414b-a21c-3860e14d6fa6",
+        "type": "album",
+        "title": "Sousa - Marches",
+        "year": 1997,
+        "artist": {
+          "id": "351a27b3-4351-4432-b7fc-cb2b132a28f2",
+          "title": "John Philip Sousa"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/4bd09b9b-064d-414b-a21c-3860e14d6fa6/images/poster?size=card&v=739770e6d27c",
+            "variants": {
+              "thumb": "/api/v1/media/4bd09b9b-064d-414b-a21c-3860e14d6fa6/images/poster?size=thumb&v=739770e6d27c",
+              "card": "/api/v1/media/4bd09b9b-064d-414b-a21c-3860e14d6fa6/images/poster?size=card&v=739770e6d27c",
+              "full": "/api/v1/media/4bd09b9b-064d-414b-a21c-3860e14d6fa6/images/poster?size=full&v=739770e6d27c"
+            },
+            "revision": "739770e6d27c",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LWJa+P-:~pRk-:-;ofIB%Mt79GRj"
+            }
+          }
+        },
+        "trackCount": 8,
+        "durationMs": 1448000
+      },
+      {
+        "id": "2c4e26a0-2600-4277-8efe-d02eb67730a0",
+        "type": "album",
+        "title": "Debussy - Selected Works",
+        "year": null,
+        "artist": {
+          "id": "a19cc070-64cc-4632-b020-c3ea69c6cdbc",
+          "title": "Claude Debussy"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/2c4e26a0-2600-4277-8efe-d02eb67730a0/images/poster?size=card&v=0de881338646",
+            "variants": {
+              "thumb": "/api/v1/media/2c4e26a0-2600-4277-8efe-d02eb67730a0/images/poster?size=thumb&v=0de881338646",
+              "card": "/api/v1/media/2c4e26a0-2600-4277-8efe-d02eb67730a0/images/poster?size=card&v=0de881338646",
+              "full": "/api/v1/media/2c4e26a0-2600-4277-8efe-d02eb67730a0/images/poster?size=full&v=0de881338646"
+            },
+            "revision": "0de881338646",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LF7or2S$I9t6*0o}WrbIk[S6f,of"
+            }
+          }
+        },
+        "trackCount": 17,
+        "durationMs": 2978000
+      },
+      {
+        "id": "436d417d-3b3a-4839-a91f-45a48962218d",
+        "type": "album",
+        "title": "Mozart - Selected Works",
+        "year": null,
+        "artist": {
+          "id": "63cec61b-788e-49cb-b12c-dde76b8849d6",
+          "title": "Wolfgang Amadeus Mozart"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/436d417d-3b3a-4839-a91f-45a48962218d/images/poster?size=card&v=c004c5b58108",
+            "variants": {
+              "thumb": "/api/v1/media/436d417d-3b3a-4839-a91f-45a48962218d/images/poster?size=thumb&v=c004c5b58108",
+              "card": "/api/v1/media/436d417d-3b3a-4839-a91f-45a48962218d/images/poster?size=card&v=c004c5b58108",
+              "full": "/api/v1/media/436d417d-3b3a-4839-a91f-45a48962218d/images/poster?size=full&v=c004c5b58108"
+            },
+            "revision": "c004c5b58108",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "L697IL9hobxrD#Iqs,t5_4%0RkWE"
+            }
+          }
+        },
+        "trackCount": 16,
+        "durationMs": 5425000
+      },
+      {
+        "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+        "type": "album",
+        "title": "Schubert - Selected Works",
+        "year": null,
+        "artist": {
+          "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+          "title": "Franz Schubert"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "trackCount": 25,
+        "durationMs": 4700000
+      },
+      {
+        "id": "71a6db32-2332-4dc9-a4a7-3f8172d1d593",
+        "type": "album",
+        "title": "World & Medieval",
+        "year": 2018,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/71a6db32-2332-4dc9-a4a7-3f8172d1d593/images/poster?size=card&v=4eff6561731b",
+            "variants": {
+              "thumb": "/api/v1/media/71a6db32-2332-4dc9-a4a7-3f8172d1d593/images/poster?size=thumb&v=4eff6561731b",
+              "card": "/api/v1/media/71a6db32-2332-4dc9-a4a7-3f8172d1d593/images/poster?size=card&v=4eff6561731b",
+              "full": "/api/v1/media/71a6db32-2332-4dc9-a4a7-3f8172d1d593/images/poster?size=full&v=4eff6561731b"
+            },
+            "revision": "4eff6561731b",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "L8GACV?w4;%i03fmD+WE00IoxUjE"
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 2336000
+      },
+      {
+        "id": "a9daa756-58d2-4bf5-8bdd-b0c48da11407",
+        "type": "album",
+        "title": "Waltzes",
+        "year": 2021,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/a9daa756-58d2-4bf5-8bdd-b0c48da11407/images/poster?size=card&v=0e4fbad94bba",
+            "variants": {
+              "thumb": "/api/v1/media/a9daa756-58d2-4bf5-8bdd-b0c48da11407/images/poster?size=thumb&v=0e4fbad94bba",
+              "card": "/api/v1/media/a9daa756-58d2-4bf5-8bdd-b0c48da11407/images/poster?size=card&v=0e4fbad94bba",
+              "full": "/api/v1/media/a9daa756-58d2-4bf5-8bdd-b0c48da11407/images/poster?size=full&v=0e4fbad94bba"
+            },
+            "revision": "0e4fbad94bba",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LqH_=B_3fQxu~qxuayt7ayRjj[WB"
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 4544000
+      },
+      {
+        "id": "97780b1b-cf7d-4cbc-a2f2-33d246f366b7",
+        "type": "album",
+        "title": "Stings & Shorts",
+        "year": 2016,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/97780b1b-cf7d-4cbc-a2f2-33d246f366b7/images/poster?size=card&v=362802f861b3",
+            "variants": {
+              "thumb": "/api/v1/media/97780b1b-cf7d-4cbc-a2f2-33d246f366b7/images/poster?size=thumb&v=362802f861b3",
+              "card": "/api/v1/media/97780b1b-cf7d-4cbc-a2f2-33d246f366b7/images/poster?size=card&v=362802f861b3",
+              "full": "/api/v1/media/97780b1b-cf7d-4cbc-a2f2-33d246f366b7/images/poster?size=full&v=362802f861b3"
+            },
+            "revision": "362802f861b3",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "L27KuMIUWB%M00D%xuay~qofWBWB"
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 284000
+      },
+      {
+        "id": "cf464117-c28c-4d84-8d7c-b6f19fa2b166",
+        "type": "album",
+        "title": "Ragtime & Novelty",
+        "year": 2022,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/cf464117-c28c-4d84-8d7c-b6f19fa2b166/images/poster?size=card&v=d425f774e261",
+            "variants": {
+              "thumb": "/api/v1/media/cf464117-c28c-4d84-8d7c-b6f19fa2b166/images/poster?size=thumb&v=d425f774e261",
+              "card": "/api/v1/media/cf464117-c28c-4d84-8d7c-b6f19fa2b166/images/poster?size=card&v=d425f774e261",
+              "full": "/api/v1/media/cf464117-c28c-4d84-8d7c-b6f19fa2b166/images/poster?size=full&v=d425f774e261"
+            },
+            "revision": "d425f774e261",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "L8GACW?w4;%i04fmD+WE00IoxUe."
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 2399000
+      },
+      {
+        "id": "4818cc70-81c1-4021-9e5c-47ed5352504f",
+        "type": "album",
+        "title": "Light Classical",
+        "year": null,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/4818cc70-81c1-4021-9e5c-47ed5352504f/images/poster?size=card&v=63d93b325fe4",
+            "variants": {
+              "thumb": "/api/v1/media/4818cc70-81c1-4021-9e5c-47ed5352504f/images/poster?size=thumb&v=63d93b325fe4",
+              "card": "/api/v1/media/4818cc70-81c1-4021-9e5c-47ed5352504f/images/poster?size=card&v=63d93b325fe4",
+              "full": "/api/v1/media/4818cc70-81c1-4021-9e5c-47ed5352504f/images/poster?size=full&v=63d93b325fe4"
+            },
+            "revision": "63d93b325fe4",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "L8GACW?w4;%i04bJD+R+00IpxBjF"
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 2697000
+      },
+      {
+        "id": "dd556fa4-908d-4883-9db2-87f9cb4340f8",
+        "type": "album",
+        "title": "Latin Grooves",
+        "year": 2019,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/dd556fa4-908d-4883-9db2-87f9cb4340f8/images/poster?size=card&v=58d3a352132e",
+            "variants": {
+              "thumb": "/api/v1/media/dd556fa4-908d-4883-9db2-87f9cb4340f8/images/poster?size=thumb&v=58d3a352132e",
+              "card": "/api/v1/media/dd556fa4-908d-4883-9db2-87f9cb4340f8/images/poster?size=card&v=58d3a352132e",
+              "full": "/api/v1/media/dd556fa4-908d-4883-9db2-87f9cb4340f8/images/poster?size=full&v=58d3a352132e"
+            },
+            "revision": "58d3a352132e",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "L8GACW?w4;%i04fmD+WE00IoxUe."
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 1853000
+      },
+      {
+        "id": "766b0570-87ad-4532-a2b1-4da8bbc800f0",
+        "type": "album",
+        "title": "Jazz Club",
+        "year": 2023,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/766b0570-87ad-4532-a2b1-4da8bbc800f0/images/poster?size=card&v=5553991dd082",
+            "variants": {
+              "thumb": "/api/v1/media/766b0570-87ad-4532-a2b1-4da8bbc800f0/images/poster?size=thumb&v=5553991dd082",
+              "card": "/api/v1/media/766b0570-87ad-4532-a2b1-4da8bbc800f0/images/poster?size=card&v=5553991dd082",
+              "full": "/api/v1/media/766b0570-87ad-4532-a2b1-4da8bbc800f0/images/poster?size=full&v=5553991dd082"
+            },
+            "revision": "5553991dd082",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "L8GACW?w4;%i04fmD+WE00IoxUe."
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 2405000
+      },
+      {
+        "id": "d3578988-dd61-461a-92b2-2ba481f871c1",
+        "type": "album",
+        "title": "Holiday Album",
+        "year": 2021,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/d3578988-dd61-461a-92b2-2ba481f871c1/images/poster?size=card&v=75faea3c8bd3",
+            "variants": {
+              "thumb": "/api/v1/media/d3578988-dd61-461a-92b2-2ba481f871c1/images/poster?size=thumb&v=75faea3c8bd3",
+              "card": "/api/v1/media/d3578988-dd61-461a-92b2-2ba481f871c1/images/poster?size=card&v=75faea3c8bd3",
+              "full": "/api/v1/media/d3578988-dd61-461a-92b2-2ba481f871c1/images/poster?size=full&v=75faea3c8bd3"
+            },
+            "revision": "75faea3c8bd3",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LEKne+IU0ex]~qMxtlbHo~%Mn%s:"
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 2007000
+      },
+      {
+        "id": "6425210c-0111-4a93-affd-7c9212267dd6",
+        "type": "album",
+        "title": "Funk Sessions",
+        "year": 2022,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/6425210c-0111-4a93-affd-7c9212267dd6/images/poster?size=card&v=b789ea6e8d8b",
+            "variants": {
+              "thumb": "/api/v1/media/6425210c-0111-4a93-affd-7c9212267dd6/images/poster?size=thumb&v=b789ea6e8d8b",
+              "card": "/api/v1/media/6425210c-0111-4a93-affd-7c9212267dd6/images/poster?size=card&v=b789ea6e8d8b",
+              "full": "/api/v1/media/6425210c-0111-4a93-affd-7c9212267dd6/images/poster?size=full&v=b789ea6e8d8b"
+            },
+            "revision": "b789ea6e8d8b",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LqH_=B_3fQxu~qxuayt7ayRjj[WB"
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 1777000
+      },
+      {
+        "id": "bbbe4876-5e11-46a3-9fa7-8cd63d491fc4",
+        "type": "album",
+        "title": "Electronica",
+        "year": null,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/bbbe4876-5e11-46a3-9fa7-8cd63d491fc4/images/poster?size=card&v=d197370b1d2e",
+            "variants": {
+              "thumb": "/api/v1/media/bbbe4876-5e11-46a3-9fa7-8cd63d491fc4/images/poster?size=thumb&v=d197370b1d2e",
+              "card": "/api/v1/media/bbbe4876-5e11-46a3-9fa7-8cd63d491fc4/images/poster?size=card&v=d197370b1d2e",
+              "full": "/api/v1/media/bbbe4876-5e11-46a3-9fa7-8cd63d491fc4/images/poster?size=full&v=d197370b1d2e"
+            },
+            "revision": "d197370b1d2e",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LpH_=B_3fQxu~q%Mayt7ayRjj[WB"
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 1733000
+      },
+      {
+        "id": "29133426-828b-46b1-92fa-13ac70892a84",
+        "type": "album",
+        "title": "Dark & Cinematic",
+        "year": 2020,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/29133426-828b-46b1-92fa-13ac70892a84/images/poster?size=card&v=3ad8eccda788",
+            "variants": {
+              "thumb": "/api/v1/media/29133426-828b-46b1-92fa-13ac70892a84/images/poster?size=thumb&v=3ad8eccda788",
+              "card": "/api/v1/media/29133426-828b-46b1-92fa-13ac70892a84/images/poster?size=card&v=3ad8eccda788",
+              "full": "/api/v1/media/29133426-828b-46b1-92fa-13ac70892a84/images/poster?size=full&v=3ad8eccda788"
+            },
+            "revision": "3ad8eccda788",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LqH_=B_3fQxu~qxuayt7ayRjj[WB"
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 2424000
+      },
+      {
+        "id": "9be30965-7a17-4aca-953b-d13844b69fee",
+        "type": "album",
+        "title": "Boogie & Swing",
+        "year": 2022,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/9be30965-7a17-4aca-953b-d13844b69fee/images/poster?size=card&v=366dc5f0ed38",
+            "variants": {
+              "thumb": "/api/v1/media/9be30965-7a17-4aca-953b-d13844b69fee/images/poster?size=thumb&v=366dc5f0ed38",
+              "card": "/api/v1/media/9be30965-7a17-4aca-953b-d13844b69fee/images/poster?size=card&v=366dc5f0ed38",
+              "full": "/api/v1/media/9be30965-7a17-4aca-953b-d13844b69fee/images/poster?size=full&v=366dc5f0ed38"
+            },
+            "revision": "366dc5f0ed38",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LpH_=B_3fQxu~q%Mayt7ayRjj[WB"
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 2004000
+      },
+      {
+        "id": "9904116c-d142-4f3a-8e5e-fbe1a23ab304",
+        "type": "album",
+        "title": "Americana",
+        "year": 2023,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/9904116c-d142-4f3a-8e5e-fbe1a23ab304/images/poster?size=card&v=642d72cf2a7d",
+            "variants": {
+              "thumb": "/api/v1/media/9904116c-d142-4f3a-8e5e-fbe1a23ab304/images/poster?size=thumb&v=642d72cf2a7d",
+              "card": "/api/v1/media/9904116c-d142-4f3a-8e5e-fbe1a23ab304/images/poster?size=card&v=642d72cf2a7d",
+              "full": "/api/v1/media/9904116c-d142-4f3a-8e5e-fbe1a23ab304/images/poster?size=full&v=642d72cf2a7d"
+            },
+            "revision": "642d72cf2a7d",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LpH_=B_3fQxu~q%Mayt7ayRjj[WB"
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 1822000
+      },
+      {
+        "id": "0baa8e18-6035-4d6c-b5bf-41c7d097ccb4",
+        "type": "album",
+        "title": "Adventure Scores",
+        "year": 2023,
+        "artist": {
+          "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+          "title": "Kevin MacLeod"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/0baa8e18-6035-4d6c-b5bf-41c7d097ccb4/images/poster?size=card&v=013e30018368",
+            "variants": {
+              "thumb": "/api/v1/media/0baa8e18-6035-4d6c-b5bf-41c7d097ccb4/images/poster?size=thumb&v=013e30018368",
+              "card": "/api/v1/media/0baa8e18-6035-4d6c-b5bf-41c7d097ccb4/images/poster?size=card&v=013e30018368",
+              "full": "/api/v1/media/0baa8e18-6035-4d6c-b5bf-41c7d097ccb4/images/poster?size=full&v=013e30018368"
+            },
+            "revision": "013e30018368",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LqH_=B_3fQxu~qxuayt7ayRjj[WB"
+            }
+          }
+        },
+        "trackCount": 9,
+        "durationMs": 3636000
+      }
+    ],
+    "page": {
+      "limit": 50,
+      "offset": 0,
+      "hasMore": false
+    }
+  },
+  "baselineProblems": []
+}

@@ -1,0 +1,8 @@
+{
+    "name": "sample-feature",
+    "kind": "feature",
+    "description": "A feature plugin exposing its own HTTP routes under /api/plugins/.",
+    "publisher": "Lumastra examples",
+    "license": "Apache-2.0",
+    "sourceUrl": "https://github.com/Sapd/lumastra/tree/main/examples/plugins/sample-feature"
+}

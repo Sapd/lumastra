@@ -1,0 +1,102 @@
+{
+    "version": 1,
+    "fencingImplemented": false,
+    "currentAuthority": "existing-typescript-task-system",
+    "futureAdapter": "supported-typescript-bullmq-storage-adapter",
+    "seams": [
+        {
+            "paths": ["src/hooks.server.ts", "src/task-runtime/lifecycle.ts"],
+            "role": "startup, registration, heartbeat, watcher, scheduler, runner and orchestrator lifecycle",
+            "futureOwner": "selected-task-runtime"
+        },
+        {
+            "paths": [
+                "src/lib/server/tasks/registry.ts",
+                "src/lib/server/plugins/runtime/loader.ts",
+                "packages/@sapd/lumastra-plugin-sdk/src/types.ts"
+            ],
+            "role": "11-contract catalog, manifests, signatures, capability policy, dynamic registration",
+            "futureOwner": "typescript-sdk-host"
+        },
+        {
+            "paths": [
+                "src/lib/server/tasks/context-primitives.ts",
+                "src/lib/server/tasks/plugin-context.ts",
+                "src/lib/server/tasks/runner.ts",
+                "src/lib/server/tasks/isolation/"
+            ],
+            "role": "real contexts, SQL/HTTP/cache/secrets/provider/dep/drain, progress, cancellation and execution",
+            "futureOwner": "typescript-executors; direct SQL/external effects require drain or audited mediation"
+        },
+        {
+            "paths": [
+                "src/lib/server/tasks/orchestrator.ts",
+                "src/task-runtime/facade.ts",
+                "src/lib/server/api/defs/tasks/",
+                "src/lib/server/api/defs/runs/"
+            ],
+            "role": "submission, identity, quotas, priority, cancellation, admin mutation and history",
+            "futureOwner": "facade to fenced adapter"
+        },
+        {
+            "paths": [
+                "src/lib/server/tasks/scheduler.ts",
+                "src/lib/server/tasks/scheduler-state.ts",
+                "src/lib/server/tasks/leader-lock.ts"
+            ],
+            "role": "schedule bucket admission, durable schedule state and leader renewals",
+            "futureOwner": "one selected control owner per coherent partition"
+        },
+        {
+            "paths": [
+                "src/lib/server/tasks/state-machine.ts",
+                "src/lib/server/tasks/lua/",
+                "src/lib/server/tasks/task-history.ts",
+                "src/lib/server/tasks/pending-write-drain.ts"
+            ],
+            "role": "atomic hot state, PostgreSQL mirror, buffered mutation replay, claims, terminal transitions",
+            "futureOwner": "generation-validated adapter mutations"
+        },
+        {
+            "paths": [
+                "src/lib/server/tasks/boot-recovery.ts",
+                "src/lib/server/tasks/reconciler.ts",
+                "src/lib/server/tasks/orphan-sweep.ts",
+                "src/lib/server/tasks/run-liveness-authority.ts",
+                "src/lib/server/tasks/run-resume.ts"
+            ],
+            "role": "boot/orphan/recovery/resume state and interrupted outcomes",
+            "futureOwner": "selected control owner through fenced adapter"
+        },
+        {
+            "paths": [
+                "src/lib/server/tasks/pipeline-builder.ts",
+                "src/lib/server/tasks/stage-disposition-runner.ts",
+                "src/lib/server/database/queries/stage-state.queries.ts",
+                "src/lib/server/database/queries/stage-sweep.queries.ts",
+                "src/lib/server/database/queries/task-quota.queries.ts"
+            ],
+            "role": "dependency fan-in, stage parking and transitions, quotas; unsupported diamond topology remains rejected",
+            "futureOwner": "selected control plus fenced adapter/executor boundary"
+        },
+        {
+            "paths": [
+                "src/lib/server/tasks/builtin/",
+                "src/lib/server/services/",
+                "src/lib/server/database/queries/"
+            ],
+            "role": "built-in direct stage/SQL writes, service producers, webhook/outbox/retry triggers and maintenance; enumerate concrete mutation callsites before T03",
+            "futureOwner": "audited executor or adapter; not automatically fenced by IPC"
+        }
+    ],
+    "remainingAcceptance": [
+        "exhaustive mutation and producer callsite ledger",
+        "durable command receipts",
+        "atomic ownership generations",
+        "every writer fenced",
+        "task/plugin integration and fault tests",
+        "confirmed drain of generic SQL/external capabilities",
+        "per-task queue claim boundary proof",
+        "forced newer-generation rollback"
+    ]
+}

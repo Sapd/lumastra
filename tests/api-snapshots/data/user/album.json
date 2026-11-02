@@ -1,0 +1,1145 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/music/albums/e736a07a-15c7-481c-afb2-bba15a733e12"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+    "type": "album",
+    "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince",
+    "year": 2013,
+    "artist": {
+      "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+      "title": "Johann Sebastian Bach"
+    },
+    "images": {
+      "primary": {
+        "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+        "variants": {
+          "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+          "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+          "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+        },
+        "revision": "d121bc5060fa",
+        "source": "self",
+        "placeholder": {
+          "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+        }
+      }
+    },
+    "trackCount": 23,
+    "durationMs": 2959000,
+    "overview": null,
+    "genres": [],
+    "addedAt": "2026-09-15 10:28:04.488511+02",
+    "tracks": [
+      {
+        "id": "74ae424f-d360-43ad-af35-f9002fff2049",
+        "type": "track",
+        "title": "Aria",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 1,
+        "discNumber": null,
+        "durationMs": 228000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:20.974Z"
+        }
+      },
+      {
+        "id": "ad0182df-2042-431c-9e6b-9eed895461b2",
+        "type": "track",
+        "title": "Variatio 1 a 1 Clav.",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 2,
+        "discNumber": null,
+        "durationMs": 121000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:26.226Z"
+        }
+      },
+      {
+        "id": "3f46650e-4113-41b7-aff5-637b4be5adfc",
+        "type": "track",
+        "title": "Variatio 2 a 1 Clav.",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 3,
+        "discNumber": null,
+        "durationMs": 81000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:19.220Z"
+        }
+      },
+      {
+        "id": "8e7d4bfe-86d9-4bfe-9dd1-1fe42b9863a2",
+        "type": "track",
+        "title": "Variatio 3 a 1 Clav. Canone all'Unisuono",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 4,
+        "discNumber": null,
+        "durationMs": 121000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:33.687Z"
+        }
+      },
+      {
+        "id": "4372ecab-a92e-47a0-996c-ca194ea99bb8",
+        "type": "track",
+        "title": "Variatio 4 a 1 Clav.",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 5,
+        "discNumber": null,
+        "durationMs": 62000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:19.706Z"
+        }
+      },
+      {
+        "id": "2309d7d0-ff0d-4f37-8fd5-f20f398dee8a",
+        "type": "track",
+        "title": "Variatio 5 a 1 ovvero 2 Clav.",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 6,
+        "discNumber": null,
+        "durationMs": 121000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:21.492Z"
+        }
+      },
+      {
+        "id": "04091254-9117-41e9-ae46-54462a67a8b3",
+        "type": "track",
+        "title": "Variatio 6 a 1 Clav. Canone alla Seconda",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 7,
+        "discNumber": null,
+        "durationMs": 62000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:23.352Z"
+        }
+      },
+      {
+        "id": "a1d98d2f-f89b-4ba0-9c0b-ab5c77bf61cd",
+        "type": "track",
+        "title": "Variatio 7 a 1 ovvero 2 Clav.",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 8,
+        "discNumber": null,
+        "durationMs": 121000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:20.416Z"
+        }
+      },
+      {
+        "id": "ec2b97a3-7501-41ce-a018-01a91f56b9ee",
+        "type": "track",
+        "title": "Variatio 8 a 2 Clav.",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 9,
+        "discNumber": null,
+        "durationMs": 121000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:23.981Z"
+        }
+      },
+      {
+        "id": "0c363519-ae86-4f11-a2d4-eece2685e74e",
+        "type": "track",
+        "title": "Variatio 9 a 1 Clav. Canone alla Terza",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 10,
+        "discNumber": null,
+        "durationMs": 84000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:27.479Z"
+        }
+      },
+      {
+        "id": "b5cdc3fb-d605-4812-9f38-4758aa0a53b7",
+        "type": "track",
+        "title": "Variatio 10 a 1 Clav. Fughetta",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 11,
+        "discNumber": null,
+        "durationMs": 81000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:00.146Z"
+        }
+      },
+      {
+        "id": "922da493-821d-4009-98ea-fe57254a0e32",
+        "type": "track",
+        "title": "Variatio 11 a 2 Clav.",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 12,
+        "discNumber": null,
+        "durationMs": 121000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:09.940Z"
+        }
+      },
+      {
+        "id": "3d4aa372-3569-4bb3-8ca6-c5f51929508b",
+        "type": "track",
+        "title": "Variatio 12 Canone alla Quarta",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 13,
+        "discNumber": null,
+        "durationMs": 129000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:00.706Z"
+        }
+      },
+      {
+        "id": "e2033b3d-7002-4ab3-a9b9-5689c16837d3",
+        "type": "track",
+        "title": "Variatio 13 a 2 Clav.",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 14,
+        "discNumber": null,
+        "durationMs": 318000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:01.139Z"
+        }
+      },
+      {
+        "id": "ed78605f-b3eb-421d-bf79-99732d90709b",
+        "type": "track",
+        "title": "Variatio 14 a 2 Clav.",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 15,
+        "discNumber": null,
+        "durationMs": 128000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:01.668Z"
+        }
+      },
+      {
+        "id": "f1728cd1-14b5-48e3-b1af-1dc2f73f0f3c",
+        "type": "track",
+        "title": "Variatio 15 a 1 Clav. Canone alla Quinta",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 16,
+        "discNumber": null,
+        "durationMs": 254000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:04.463Z"
+        }
+      },
+      {
+        "id": "35dbc6b6-bcd9-4b57-a18b-9e3eb8785ddf",
+        "type": "track",
+        "title": "Variatio 16 a 1 Clav. Ouverture",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 17,
+        "discNumber": null,
+        "durationMs": 149000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:11.231Z"
+        }
+      },
+      {
+        "id": "b41bfd00-ff6e-4adb-b163-20b3553d38a2",
+        "type": "track",
+        "title": "Variatio 17 a 2 Clav.",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 18,
+        "discNumber": null,
+        "durationMs": 120000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:09.668Z"
+        }
+      },
+      {
+        "id": "fe72c6b0-d33f-4632-9217-f1517f3fbdef",
+        "type": "track",
+        "title": "Variatio 18 a 1 Clav. Canone alla Sexta",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 19,
+        "discNumber": null,
+        "durationMs": 81000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:06.194Z"
+        }
+      },
+      {
+        "id": "362d5a35-2268-43ca-83ed-66dd66d20070",
+        "type": "track",
+        "title": "Variatio 19 a 1 Clav.",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 20,
+        "discNumber": null,
+        "durationMs": 91000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:10.242Z"
+        }
+      },
+      {
+        "id": "77ae44fc-8844-4961-9f20-fa669bbbe359",
+        "type": "track",
+        "title": "Variatio 20 a 2 Clav.",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 21,
+        "discNumber": null,
+        "durationMs": 124000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:05.688Z"
+        }
+      },
+      {
+        "id": "bf532754-9746-4bde-b05b-24fd8c38ca7a",
+        "type": "track",
+        "title": "Variatio 21 Canone alla Settima",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 22,
+        "discNumber": null,
+        "durationMs": 160000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:15.442Z"
+        }
+      },
+      {
+        "id": "6252dae9-2166-4183-855f-117eaefb5ec0",
+        "type": "track",
+        "title": "Variatio 22 a 1 Clav",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": {
+          "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+          "title": "Johann Sebastian Bach"
+        },
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 23,
+        "discNumber": null,
+        "durationMs": 81000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:10.676Z"
+        }
+      }
+    ]
+  },
+  "baselineProblems": []
+}

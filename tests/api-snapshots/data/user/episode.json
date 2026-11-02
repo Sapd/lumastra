@@ -1,0 +1,83 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/episodes/90be567f-33c9-43fb-ac3f-e6bd8f842cf2"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "id": "90be567f-33c9-43fb-ac3f-e6bd8f842cf2",
+    "catalogId": "90be567f-33c9-43fb-ac3f-e6bd8f842cf2",
+    "type": "episode",
+    "ids": {
+      "tmdb": "7453702"
+    },
+    "title": "The Severed Head",
+    "overview": "Philippe Guerande (Edouard Mathé), a reporter working for \"Le Mondial\", and his friend Oscar Mazamette (Marcel Levesque), investigate the muder of Inspector Dural, decapitated by the sinister gang known as the \"Vampires\". The leader of the gang, the \"Great Vampire\" (Jean Aymé), is unmasked but manages to escape.",
+    "images": {
+      "poster": {
+        "href": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+        "variants": {
+          "thumb": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=thumb&v=7154aac0e68b",
+          "card": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+          "full": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=full&v=7154aac0e68b"
+        },
+        "revision": "7154aac0e68b",
+        "source": "season",
+        "placeholder": {
+          "blurhash": "L4CEtQ,?}X^PsWIp-U-UyW%1xtI;"
+        }
+      },
+      "backdrop": {
+        "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+        "variants": {
+          "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+          "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+          "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+          "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+        },
+        "revision": "d0093e27bc20",
+        "source": "series",
+        "placeholder": {
+          "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+        }
+      },
+      "thumb": {
+        "href": "/api/v1/media/90be567f-33c9-43fb-ac3f-e6bd8f842cf2/images/thumb?size=card&v=fb12d41e0360",
+        "variants": {
+          "thumb": "/api/v1/media/90be567f-33c9-43fb-ac3f-e6bd8f842cf2/images/thumb?size=thumb&v=fb12d41e0360",
+          "card": "/api/v1/media/90be567f-33c9-43fb-ac3f-e6bd8f842cf2/images/thumb?size=card&v=fb12d41e0360",
+          "full": "/api/v1/media/90be567f-33c9-43fb-ac3f-e6bd8f842cf2/images/thumb?size=full&v=fb12d41e0360"
+        },
+        "revision": "fb12d41e0360",
+        "source": "self"
+      }
+    },
+    "progress": {
+      "positionMs": 0,
+      "durationMs": 1863797,
+      "fraction": 0,
+      "finished": false,
+      "updatedAt": "2026-10-20T19:03:28.298Z"
+    },
+    "availability": {
+      "isAvailable": true,
+      "hasFile": true,
+      "canRequest": false
+    },
+    "context": {
+      "series": {
+        "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+        "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+        "title": "The Vampires"
+      },
+      "seasonId": "4b373339-66ff-4fee-a061-cb220c3054fb",
+      "seasonNumber": 1,
+      "episodeNumber": 1,
+      "nextId": "c0427de9-f6ef-45e8-b572-cd8ca3c019cc",
+      "airDate": "1915-11-13T00:00:00.000Z"
+    },
+    "durationMs": 1863797
+  },
+  "baselineProblems": []
+}

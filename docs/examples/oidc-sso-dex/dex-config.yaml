@@ -1,0 +1,48 @@
+# Dex configuration for the Lumastra OIDC example.
+#
+# issuer is http://localhost:5556/dex so the same URL resolves for the browser
+# (published port) and the Lumastra container (shared network namespace).
+issuer: http://localhost:5556/dex
+
+storage:
+    type: memory
+
+web:
+    http: 0.0.0.0:5556
+
+oauth2:
+    # Show the consent screen so the browser round-trip is visible.
+    skipApprovalScreen: false
+
+staticClients:
+    - id: lumastra
+      name: Lumastra
+      # DEMO secret — must match AUTH_OIDC_CLIENT_SECRET in .env. Change both for
+      # anything beyond a local test.
+      secret: lumastra-dex-demo-secret-change-me
+      redirectURIs:
+          - http://localhost:8080/auth/oidc/callback
+
+# A local password database → a real username/password login form in the browser.
+# NOTE: Dex's local connector does NOT emit a `groups` claim, so these users sign
+# in as NON-admin (no group ∈ ADMIN_GROUPS). Use them to exercise regular-user
+# provisioning. Passwords below are alicepass123 / bobpass123 (bcrypt).
+enablePasswordDB: true
+staticPasswords:
+    - email: 'alice@example.com'
+      hash: '$2y$10$IlGXLQqyhEanxzZcAII4m.O6kWQZl6K.3jkngcz0zy0eCS.9TGKQi'
+      username: 'alice'
+      userID: 'alice-0001'
+    - email: 'bob@example.com'
+      hash: '$2y$10$U5IZf2zZ2eZNqSkwrmwE.emoACI2XLaVcY1d.sDMPiSMm/Un.POVC'
+      username: 'bob'
+      userID: 'bob-0001'
+
+# A mock connector → a FIXED identity that DOES carry a groups claim
+# (groups: ["authors"]). With ADMIN_GROUPS=authors (see .env) this user becomes an
+# admin, so it can complete first-run onboarding via OIDC. No password prompt —
+# it auto-approves the fixed identity (kilgore@kilgore.trout).
+connectors:
+    - type: mockCallback
+      id: mock
+      name: 'Mock admin (groups=authors)'

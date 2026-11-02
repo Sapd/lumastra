@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+# No GPU: every transcode is libx264 in the web pod (~1 GiB each, README "Sizing"). The per-pod
+# transcode cap keeps the pod under its memory limit: 1.5 GiB base + 6 x 1 GiB = 7.5 GiB < 8 Gi.
+app: { origin: https://lumastra.example.com }
+secrets: { existingSecret: lumastra }
+gpu: { mode: none, acceleration: none }
+concurrency:
+    LUMASTRA_MAX_CONCURRENT_TRANSCODES: 6
+web:
+    replicas: 2
+    resources:
+        requests: { cpu: '4', memory: 2Gi }
+        limits: { memory: 8Gi }
+worker:
+    resources:
+        requests: { cpu: '1', memory: 1Gi }
+        limits: { memory: 6Gi }

@@ -1,0 +1,20 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/v1/watch-state/90be567f-33c9-43fb-ac3f-e6bd8f842cf2"
+    },
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+        "mediaId": "90be567f-33c9-43fb-ac3f-e6bd8f842cf2",
+        "watched": false,
+        "positionMs": 0,
+        "resumeAnchor": null,
+        "watchCount": 0,
+        "lastWatchedAt": null,
+        "lastEventAt": null,
+        "favorite": false,
+        "rating": null
+    },
+    "baselineProblems": []
+}

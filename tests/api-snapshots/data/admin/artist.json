@@ -1,0 +1,112 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/music/artists/2d145681-b396-4830-bf7d-d669d4575a5a"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "id": "2d145681-b396-4830-bf7d-d669d4575a5a",
+    "type": "artist",
+    "title": "Unbekannter Interpret",
+    "images": {
+      "primary": {
+        "href": "/api/v1/media/2d145681-b396-4830-bf7d-d669d4575a5a/images/poster?size=card&v=30d7baefe239",
+        "variants": {
+          "thumb": "/api/v1/media/2d145681-b396-4830-bf7d-d669d4575a5a/images/poster?size=thumb&v=30d7baefe239",
+          "card": "/api/v1/media/2d145681-b396-4830-bf7d-d669d4575a5a/images/poster?size=card&v=30d7baefe239",
+          "full": "/api/v1/media/2d145681-b396-4830-bf7d-d669d4575a5a/images/poster?size=full&v=30d7baefe239"
+        },
+        "revision": "30d7baefe239",
+        "source": "self",
+        "placeholder": {
+          "blurhash": "L76bSYw6RQW-.hVcWCkTInMyt7tQ"
+        }
+      }
+    },
+    "albumCount": 1,
+    "trackCount": 1,
+    "isVariousArtists": false,
+    "biography": null,
+    "genres": [],
+    "countryCode": null,
+    "addedAt": "2026-09-12 15:03:44.098646+02",
+    "albums": [
+      {
+        "id": "5f422637-fc6a-4511-bba7-1894618d4a43",
+        "type": "album",
+        "title": "Tango Collection",
+        "year": null,
+        "artist": {
+          "id": "c9115bc8-b2fc-4fb9-b6f9-b3dac6e0a891",
+          "title": "Various Artists"
+        },
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/5f422637-fc6a-4511-bba7-1894618d4a43/images/poster?size=card&v=9857a40cfb9f",
+            "variants": {
+              "thumb": "/api/v1/media/5f422637-fc6a-4511-bba7-1894618d4a43/images/poster?size=thumb&v=9857a40cfb9f",
+              "card": "/api/v1/media/5f422637-fc6a-4511-bba7-1894618d4a43/images/poster?size=card&v=9857a40cfb9f",
+              "full": "/api/v1/media/5f422637-fc6a-4511-bba7-1894618d4a43/images/poster?size=full&v=9857a40cfb9f"
+            },
+            "revision": "9857a40cfb9f",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LBA0Ba},9x9#$$smR+oL0Q9#$}=@"
+            }
+          }
+        },
+        "trackCount": 4,
+        "durationMs": 580000
+      }
+    ],
+    "tracks": [
+      {
+        "id": "5a11a56d-95f0-4261-958b-eda87210d59b",
+        "type": "track",
+        "title": "Tango XVIII by James Peace (James Peace, piano)",
+        "artists": [
+          {
+            "id": "2d145681-b396-4830-bf7d-d669d4575a5a",
+            "title": "Unbekannter Interpret"
+          }
+        ],
+        "albumArtist": null,
+        "album": {
+          "id": "5f422637-fc6a-4511-bba7-1894618d4a43",
+          "title": "Tango Collection"
+        },
+        "trackNumber": null,
+        "discNumber": null,
+        "durationMs": 221000,
+        "genres": [
+          "Unbekanntes Genre"
+        ],
+        "year": 2021,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/5f422637-fc6a-4511-bba7-1894618d4a43/images/poster?size=card&v=9857a40cfb9f",
+            "variants": {
+              "thumb": "/api/v1/media/5f422637-fc6a-4511-bba7-1894618d4a43/images/poster?size=thumb&v=9857a40cfb9f",
+              "card": "/api/v1/media/5f422637-fc6a-4511-bba7-1894618d4a43/images/poster?size=card&v=9857a40cfb9f",
+              "full": "/api/v1/media/5f422637-fc6a-4511-bba7-1894618d4a43/images/poster?size=full&v=9857a40cfb9f"
+            },
+            "revision": "9857a40cfb9f",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LBA0Ba},9x9#$$smR+oL0Q9#$}=@"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:30.662Z"
+        }
+      }
+    ]
+  },
+  "baselineProblems": []
+}

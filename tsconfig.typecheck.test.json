@@ -1,0 +1,36 @@
+{
+    // Test pass of the tsgo typecheck gate (see scripts/typecheck/tsgo-check.mjs).
+    //
+    // Companion to tsconfig.typecheck.src.json — see that file for why the batch
+    // typecheck is split. This pass checks every test/spec file (and the source it
+    // imports, pulled in transitively); the source-only pass checks the rest.
+    //
+    // The `include` is restated (it does NOT merge across `extends`) and lists ONLY
+    // test files plus the ambient/global declarations that source relies on —
+    // .svelte-kit/{ambient,non-ambient}.d.ts, the generated route $types, src/app.d.ts
+    // (App.Locals et al.), and hand-written *.d.ts shims. Non-test source files are
+    // deliberately NOT entry points here (they are checked in the source pass); they
+    // are still pulled in — and checked — wherever a test imports them.
+    "extends": "./tsconfig.json",
+    "include": [
+        ".svelte-kit/ambient.d.ts",
+        ".svelte-kit/non-ambient.d.ts",
+        ".svelte-kit/types/**/$types.d.ts",
+        "src/app.d.ts",
+        "src/**/*.d.ts",
+        "src/**/*.test.ts",
+        "src/**/*.spec.ts",
+        "src/**/__tests__/**/*.ts",
+        "src/**/__fixtures__/**/*.ts",
+        "test/**/*.ts",
+        "tests/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules/**",
+        "**/node_modules/**",
+        "src/paraglide/**",
+        "src/lib/paraglide/**",
+        "src/service-worker.d.ts",
+        "src/service-worker/**/*.d.ts"
+    ]
+}

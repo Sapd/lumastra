@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/watchlist"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [],
+    "page": {
+      "limit": 0,
+      "offset": 0,
+      "hasMore": false
+    }
+  },
+  "baselineProblems": []
+}

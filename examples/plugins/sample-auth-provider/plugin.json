@@ -1,0 +1,8 @@
+{
+    "name": "sample-auth-provider",
+    "kind": "auth-provider",
+    "description": "A credentials-kind auth provider: verifies a login and returns claims. The host mints the session.",
+    "publisher": "Lumastra examples",
+    "license": "Apache-2.0",
+    "sourceUrl": "https://github.com/Sapd/lumastra/tree/main/examples/plugins/sample-auth-provider"
+}

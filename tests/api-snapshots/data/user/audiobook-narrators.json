@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/audiobooks/narrators"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "63cda1d2-6f01-49d1-ab1c-90307c1bcad5",
+        "name": "J Hall",
+        "bookCount": 1
+      },
+      {
+        "id": "f1be97cf-6211-4b19-b0c2-6f8af36481bd",
+        "name": "Vinny Bove",
+        "bookCount": 1
+      }
+    ],
+    "page": {
+      "limit": 60,
+      "offset": 0,
+      "hasMore": false,
+      "total": 2
+    }
+  },
+  "baselineProblems": []
+}

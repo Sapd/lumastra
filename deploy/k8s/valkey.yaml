@@ -1,0 +1,149 @@
+# Two Valkey instances (names match the Helm chart: valkey-cache and valkey-tasks):
+#   lumastra-valkey-cache        - disposable app cache (allkeys-lru, capped, no disk) -> CACHE_URL
+#   lumastra-valkey-tasks        - durable task/coordination store (noeviction, AOF)   -> TASK_CACHE_URL
+#
+# The split matters: ANY eviction policy (allkeys-* or volatile-*) on the instance
+# holding task/BullMQ state can evict run state and TTL'd lock keys under memory
+# pressure and cause double-run jobs. The two URLs must point at two different instances;
+# startup rejects equal URLs. The tasks instance has NO --maxmemory: with noeviction a hard cap
+# turns into write errors under load. Its container memory limit is the only ceiling; size it.
+apiVersion: v1
+kind: Service
+metadata:
+    name: lumastra-valkey-cache
+    namespace: lumastra
+spec:
+    clusterIP: None
+    selector: { app: lumastra-valkey-cache }
+    ports: [{ port: 6379, targetPort: 6379 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: lumastra-valkey-cache
+    namespace: lumastra
+spec:
+    serviceName: lumastra-valkey-cache
+    replicas: 1
+    selector: { matchLabels: { app: lumastra-valkey-cache } }
+    template:
+        metadata:
+            labels: { app: lumastra-valkey-cache }
+        spec:
+            securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                fsGroup: 1000
+                seccompProfile: { type: RuntimeDefault }
+            containers:
+                - name: valkey
+                  image: valkey/valkey:9-alpine
+                  command:
+                      - sh
+                      - -c
+                      - exec valkey-server --requirepass "$CACHE_PASSWORD" --maxmemory 768mb --maxmemory-policy allkeys-lru --save ""
+                  env:
+                      - name: CACHE_PASSWORD
+                        valueFrom: { secretKeyRef: { name: lumastra-secrets, key: CACHE_PASSWORD } }
+                  ports: [{ containerPort: 6379 }]
+                  # `--save ""` means this instance never persists to disk — its only
+                  # write is /tmp for its own housekeeping, so readOnlyRootFilesystem
+                  # needs nothing but that mounted.
+                  securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities: { drop: [ALL] }
+                      readOnlyRootFilesystem: true
+                  volumeMounts:
+                      - { name: tmp, mountPath: /tmp }
+                  readinessProbe:
+                      exec:
+                          {
+                              command:
+                                  [
+                                      'sh',
+                                      '-c',
+                                      'REDISCLI_AUTH="$CACHE_PASSWORD" valkey-cli ping | grep -q PONG',
+                                  ],
+                          }
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                  resources:
+                      requests: { cpu: '100m', memory: '256Mi' }
+                      limits: { memory: '1Gi' }
+            volumes:
+                - { name: tmp, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: lumastra-valkey-tasks
+    namespace: lumastra
+spec:
+    clusterIP: None
+    selector: { app: lumastra-valkey-tasks }
+    ports: [{ port: 6379, targetPort: 6379 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: lumastra-valkey-tasks
+    namespace: lumastra
+spec:
+    serviceName: lumastra-valkey-tasks
+    replicas: 1
+    selector: { matchLabels: { app: lumastra-valkey-tasks } }
+    template:
+        metadata:
+            labels: { app: lumastra-valkey-tasks }
+        spec:
+            securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                fsGroup: 1000
+                seccompProfile: { type: RuntimeDefault }
+            containers:
+                - name: valkey
+                  image: valkey/valkey:9-alpine
+                  command:
+                      - sh
+                      - -c
+                      - exec valkey-server --requirepass "$CACHE_PASSWORD" --maxmemory-policy noeviction --appendonly yes --appendfsync everysec
+                  env:
+                      - name: CACHE_PASSWORD
+                        valueFrom: { secretKeyRef: { name: lumastra-secrets, key: CACHE_PASSWORD } }
+                  ports: [{ containerPort: 6379 }]
+                  # appendonly yes → its real persistence goes to the `data` PVC
+                  # below; readOnlyRootFilesystem still needs /tmp for housekeeping.
+                  securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities: { drop: [ALL] }
+                      readOnlyRootFilesystem: true
+                  readinessProbe:
+                      exec:
+                          {
+                              command:
+                                  [
+                                      'sh',
+                                      '-c',
+                                      'REDISCLI_AUTH="$CACHE_PASSWORD" valkey-cli ping | grep -q PONG',
+                                  ],
+                          }
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                  volumeMounts:
+                      - { name: data, mountPath: /data }
+                      - { name: tmp, mountPath: /tmp }
+                  resources:
+                      requests: { cpu: '100m', memory: '512Mi' }
+                      limits: { memory: '2Gi' }
+            volumes:
+                - { name: tmp, emptyDir: {} }
+    volumeClaimTemplates:
+        - metadata:
+              name: data
+          spec:
+              accessModes: ['ReadWriteOnce']
+              storageClassName: standard
+              resources:
+                  requests:
+                      storage: 5Gi

@@ -1,0 +1,21 @@
+name: 📖 Documentation issue
+description: Something in the docs is wrong, missing, or unclear.
+labels: ['type:docs', 'status:needs-triage']
+body:
+    - type: input
+      id: where
+      attributes:
+          label: Which doc / page?
+          description: A URL on lumastra.org, or a path in this repo (e.g. docs/dev/QUICK-START.md).
+      validations:
+          required: true
+    - type: textarea
+      id: problem
+      attributes:
+          label: What's wrong or missing?
+      validations:
+          required: true
+    - type: textarea
+      id: suggestion
+      attributes:
+          label: Suggested fix (optional)

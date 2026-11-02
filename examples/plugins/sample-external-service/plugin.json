@@ -1,0 +1,8 @@
+{
+    "name": "sample-external-service",
+    "kind": "external-service",
+    "description": "Reports reachability of an external service on the admin health surface.",
+    "publisher": "Lumastra examples",
+    "license": "Apache-2.0",
+    "sourceUrl": "https://github.com/Sapd/lumastra/tree/main/examples/plugins/sample-external-service"
+}

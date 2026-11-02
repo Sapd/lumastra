@@ -1,0 +1,25 @@
+# GitHub Actions and Node Docker pins. npm updates arrive from the development line.
+version: 2
+updates:
+    - package-ecosystem: github-actions
+      directory: /
+      schedule:
+          interval: monthly
+      groups:
+          actions:
+              patterns: ['*']
+
+    # Group all Node stages so builder/prod-deps/runtime stay on the same release.
+    # Major upgrades need an explicit ABI/dependency compatibility decision.
+    - package-ecosystem: docker
+      directory: /
+      schedule:
+          interval: daily
+      allow:
+          - dependency-name: node
+      ignore:
+          - dependency-name: node
+            update-types: ['version-update:semver-major']
+      groups:
+          node:
+              patterns: ['node']

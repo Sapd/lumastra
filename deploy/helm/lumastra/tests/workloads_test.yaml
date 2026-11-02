@@ -1,0 +1,539 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+suite: app workloads
+templates: [templates/app.yaml]
+set:
+    secrets.existingSecret: lumastra
+tests:
+    - it: web runs start.sh via args (tini stays the entrypoint) with WORKER_MODE=disabled
+      documentIndex: 0
+      asserts:
+          - isKind: { of: StatefulSet }
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-web }
+          - equal: { path: spec.serviceName, value: RELEASE-NAME-lumastra-web-headless }
+          - equal: { path: spec.podManagementPolicy, value: Parallel }
+          - equal: { path: spec.minReadySeconds, value: 10 }
+          - equal: { path: 'spec.template.spec.containers[0].args', value: [./start.sh] }
+          - notExists: { path: 'spec.template.spec.containers[0].command' }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content: { name: WORKER_MODE, value: disabled }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    { name: INSTANCE_ID, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+    - it: web gets pod identity + placement from the Downward API (no ServiceAccount token)
+      documentIndex: 0
+      asserts:
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    { name: INSTANCE_ID, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    { name: K8S_NODE_NAME, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content: { name: K8S_POD_IP, valueFrom: { fieldRef: { fieldPath: status.podIP } } }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: K8S_NAMESPACE,
+                        valueFrom: { fieldRef: { fieldPath: metadata.namespace } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: K8S_CPU_REQUEST_MILLICORES,
+                        valueFrom: { resourceFieldRef: { resource: requests.cpu, divisor: 1m } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: K8S_MEMORY_REQUEST_BYTES,
+                        valueFrom:
+                            { resourceFieldRef: { resource: requests.memory, divisor: '1' } },
+                    }
+          - equal: { path: spec.template.spec.automountServiceAccountToken, value: false }
+    - it: worker gets the same Downward API env
+      documentIndex: 1
+      asserts:
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    { name: INSTANCE_ID, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    { name: K8S_NODE_NAME, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content: { name: K8S_POD_IP, valueFrom: { fieldRef: { fieldPath: status.podIP } } }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: K8S_NAMESPACE,
+                        valueFrom: { fieldRef: { fieldPath: metadata.namespace } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: K8S_CPU_REQUEST_MILLICORES,
+                        valueFrom: { resourceFieldRef: { resource: requests.cpu, divisor: 1m } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: K8S_MEMORY_REQUEST_BYTES,
+                        valueFrom:
+                            { resourceFieldRef: { resource: requests.memory, divisor: '1' } },
+                    }
+    - it: web rolls one pod at a time and waits on SIGTERM
+      documentIndex: 0
+      asserts:
+          - equal: { path: spec.replicas, value: 2 }
+          - equal: { path: spec.updateStrategy.type, value: RollingUpdate }
+          - equal: { path: spec.template.spec.terminationGracePeriodSeconds, value: 90 }
+          - equal:
+                {
+                    path: 'spec.template.spec.containers[0].lifecycle.preStop.exec.command',
+                    value: [sleep, '15'],
+                }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content: { name: SHUTDOWN_TIMEOUT, value: '30' }
+          - equal:
+                {
+                    path: 'spec.template.spec.containers[0].readinessProbe.httpGet.path',
+                    value: /api/health/ready,
+                }
+          - equal:
+                {
+                    path: 'spec.template.spec.containers[0].startupProbe.httpGet.path',
+                    value: /api/health,
+                }
+    - it: web refuses a grace period too short for preStop + drain + cleanup
+      set:
+          web.terminationGracePeriodSeconds: 60
+      asserts:
+          - failedTemplate:
+                {
+                    errorPattern: 'web.terminationGracePeriodSeconds \(60\) must be at least web.preStopSleepSeconds \+ web.drainSeconds \+ 30 \(75\)',
+                }
+    - it: web refuses drainSeconds 0
+      set:
+          web.drainSeconds: 0
+      asserts:
+          - failedTemplate: { errorPattern: 'web.drainSeconds must be at least 1' }
+    - it: web drainSeconds becomes the adapter-node SHUTDOWN_TIMEOUT
+      documentIndex: 0
+      set:
+          web.drainSeconds: 45
+          web.terminationGracePeriodSeconds: 120
+      asserts:
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content: { name: SHUTDOWN_TIMEOUT, value: '45' }
+    - it: worker is exactly one Recreate pod running start-worker.sh, readiness on /api/health/ready
+      documentIndex: 1
+      asserts:
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-worker }
+          - equal: { path: spec.replicas, value: 1 }
+          - equal: { path: spec.strategy.type, value: Recreate }
+          - equal: { path: 'spec.template.spec.containers[0].args', value: [./start-worker.sh] }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content: { name: WORKER_MODE, value: enabled }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content: { name: DEDICATED_WORKER, value: 'true' }
+          - equal:
+                {
+                    path: 'spec.template.spec.containers[0].readinessProbe.httpGet.path',
+                    value: /api/health/ready,
+                }
+          - equal:
+                {
+                    path: 'spec.template.spec.containers[0].livenessProbe.httpGet.path',
+                    value: /api/health,
+                }
+    - it: rejects the removed allInOne topology
+      set: { mode: allInOne }
+      asserts:
+          - failedTemplate: { errorPattern: 'mode must be split' }
+    - it: rejects removed allInOne options even when mode is omitted
+      set: { allInOne.replicas: 1 }
+      asserts:
+          - failedTemplate: { errorPattern: 'allInOne values were removed' }
+    - it: rejects an unknown mode
+      set: { mode: cluster }
+      asserts:
+          - failedTemplate: { errorPattern: 'mode must be split' }
+    - it: secrets are only ever secretKeyRefs, never inline values
+      set:
+          secrets.env.JWT_SECRET: JWT_SECRET
+          secrets.env.TMDB_API_KEY: { secret: other, key: tmdb, optional: true }
+      documentIndex: 0
+      asserts:
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: JWT_SECRET,
+                        valueFrom: { secretKeyRef: { name: lumastra, key: JWT_SECRET } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: TMDB_API_KEY,
+                        valueFrom: { secretKeyRef: { name: other, key: tmdb, optional: true } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: DATABASE_URL,
+                        valueFrom: { secretKeyRef: { name: lumastra, key: DATABASE_URL } },
+                    }
+    - it: bundled Valkey URLs are composed from the password Secret at runtime
+      documentIndex: 0
+      asserts:
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: VALKEY_PASSWORD,
+                        valueFrom: { secretKeyRef: { name: lumastra, key: CACHE_PASSWORD } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: CACHE_URL,
+                        value: 'redis://default:$(VALKEY_PASSWORD)@RELEASE-NAME-lumastra-valkey-cache:6379/0',
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: TASK_CACHE_URL,
+                        value: 'redis://default:$(VALKEY_PASSWORD)@RELEASE-NAME-lumastra-valkey-tasks:6379/0',
+                    }
+    - it: cnpg mode reads DATABASE_URL from the operator's app Secret
+      set: { database.mode: cnpg }
+      documentIndex: 0
+      asserts:
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: DATABASE_URL,
+                        valueFrom:
+                            {
+                                secretKeyRef:
+                                    { name: RELEASE-NAME-lumastra-postgres-app, key: uri },
+                            },
+                    }
+    - it: GPU resource mode adds the device resource and the render group
+      set:
+          gpu.mode: resource
+          gpu.resources: { gpu.intel.com/i915: 1 }
+          gpu.renderGroupId: 993
+      documentIndex: 0
+      asserts:
+          - equal:
+                {
+                    path: 'spec.template.spec.containers[0].resources.limits["gpu.intel.com/i915"]',
+                    value: 1,
+                }
+          - equal:
+                {
+                    path: 'spec.template.spec.containers[0].resources.requests["gpu.intel.com/i915"]',
+                    value: 1,
+                }
+          - contains: { path: spec.template.spec.securityContext.supplementalGroups, content: 993 }
+    - it: libraries mount on web and worker; read-only by default, writable with alongside storage
+      set:
+          libraries: [{ name: movies, mountPath: /data/movies, hostPath: /srv/movies }]
+      asserts:
+          - contains:
+                path: 'spec.template.spec.containers[0].volumeMounts'
+                content: { name: lib-movies, mountPath: /data/movies, readOnly: true }
+          - contains:
+                path: spec.template.spec.volumes
+                content: { name: lib-movies, hostPath: { path: /srv/movies, type: Directory } }
+    - it: alongside metadata storage mounts libraries read-write
+      set:
+          app.metadataStorageLocation: alongside
+          libraries: [{ name: movies, mountPath: /data/movies, existingClaim: movies }]
+      documentIndex: 1
+      asserts:
+          - contains:
+                path: 'spec.template.spec.containers[0].volumeMounts'
+                content: { name: lib-movies, mountPath: /data/movies, readOnly: false }
+    - it: a library needs exactly one source
+      set:
+          libraries: [{ name: bad, mountPath: /data, hostPath: /a, existingClaim: b }]
+      asserts:
+          - failedTemplate:
+                { errorMessage: 'library "bad" needs exactly one of hostPath, existingClaim, nfs' }
+    - it: shared transcode volume is mounted at FFMPEG_TRANSCODE_DIR on web and worker
+      asserts:
+          - contains:
+                path: 'spec.template.spec.containers[0].volumeMounts'
+                content: { name: transcode, mountPath: /transcode }
+          - contains:
+                path: spec.template.spec.volumes
+                content:
+                    {
+                        name: transcode,
+                        persistentVolumeClaim: { claimName: RELEASE-NAME-lumastra-transcode },
+                    }
+    - it: image digest wins over tag and the global registry overrides
+      set:
+          global.imageRegistry: mirror.example.com
+          image.digest: sha256:abc
+      documentIndex: 0
+      asserts:
+          - equal:
+                {
+                    path: 'spec.template.spec.containers[0].image',
+                    value: mirror.example.com/lumastra/lumastra@sha256:abc,
+                }
+    - it: split mode refuses per-pod /config (web and worker must share it)
+      set: { persistence.config.enabled: false }
+      asserts:
+          - failedTemplate:
+                errorPattern: 'persistence.config.enabled=false is unsupported'
+    - it: forward-auth refuses to render without NetworkPolicies (identity trust = pod network)
+      set: { auth.forwardAuth.enabled: true, auth.forwardAuth.trustedProxyIps: 10.42.0.0/16 }
+      asserts:
+          - failedTemplate:
+                errorPattern: 'auth.forwardAuth needs networkPolicy.enabled'
+    - it: forward-auth renders with NetworkPolicies, or with the explicit opt-out
+      set:
+          {
+              auth.forwardAuth.enabled: true,
+              auth.forwardAuth.trustedProxyIps: 10.42.0.0/16,
+              auth.forwardAuth.allowWithoutNetworkPolicy: true,
+          }
+      documentIndex: 0
+      asserts:
+          - isKind: { of: StatefulSet }
+    - it: forward-auth needs trustedProxyIps
+      set: { auth.forwardAuth.enabled: true, networkPolicy.enabled: true }
+      asserts:
+          - failedTemplate: { errorPattern: auth.forwardAuth.trustedProxyIps is required }
+    - it: forward-auth without the router needs a restricted ingressFrom
+      set:
+          {
+              auth.forwardAuth: { enabled: true, trustedProxyIps: 10.0.0.0/8 },
+              networkPolicy.enabled: true,
+              router.enabled: false,
+          }
+      asserts:
+          - failedTemplate: { errorPattern: needs networkPolicy.ingressFrom restricted }
+    - it: web and worker scale to 0 independently (maintenance, data moves)
+      set: { web.replicas: 0, worker.replicas: 0 }
+      asserts:
+          - equal: { path: spec.replicas, value: 0 }
+            documentIndex: 0
+          - equal: { path: spec.replicas, value: 0 }
+            documentIndex: 1
+          - equal: { path: spec.strategy.type, value: Recreate }
+            documentIndex: 1
+    - it: a second worker fails to render
+      set: { worker.replicas: 2 }
+      asserts:
+          - failedTemplate: { errorPattern: worker.replicas must be 0 or 1 }
+    - it: library names must be DNS labels and unique
+      set: { libraries: [{ name: Movies_1, mountPath: /a, hostPath: /a }] }
+      asserts:
+          - failedTemplate: { errorPattern: must be a lowercase DNS label }
+    - it: duplicate library names fail
+      set:
+          {
+              libraries:
+                  [
+                      { name: m, mountPath: /a, hostPath: /a },
+                      { name: m, mountPath: /b, hostPath: /b },
+                  ],
+          }
+      asserts:
+          - failedTemplate: { errorPattern: is used twice }
+    - it: a secrets.env entry without a Secret fails instead of being dropped
+      set:
+          {
+              secrets.existingSecret: '',
+              valkey.mode: external,
+              valkey.external.existingSecret: v,
+              database.external.existingSecret: d,
+          }
+      asserts:
+          - failedTemplate:
+                { errorPattern: 'secrets.env.LUMASTRA_MASTER_KEY: no Secret to read it from' }
+    - it: a moving tag is always pulled; a digest or release tag is not
+      documentIndex: 0
+      asserts:
+          - equal: { path: 'spec.template.spec.containers[0].imagePullPolicy', value: Always }
+    - it: digest pins → IfNotPresent
+      set: { image.digest: 'sha256:abc' }
+      documentIndex: 0
+      asserts:
+          - equal: { path: 'spec.template.spec.containers[0].imagePullPolicy', value: IfNotPresent }
+    - it: integration API keys come from Secrets only
+      set:
+          integrations.audiobookshelf: { url: 'http://abs:13378', apiKey: { key: ABS_KEY } }
+          integrations.kavita: { url: 'http://kavita:5000', apiKey: { secret: kavita, key: api } }
+      documentIndex: 0
+      asserts:
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    {
+                        name: AUDIOAPIKEY,
+                        valueFrom: { secretKeyRef: { name: lumastra, key: ABS_KEY } },
+                    }
+          - contains:
+                path: 'spec.template.spec.containers[0].env'
+                content:
+                    { name: KAVITAAPIKEY, valueFrom: { secretKeyRef: { name: kavita, key: api } } }
+    - it: the same key in secrets.env and integrations fails
+      set:
+          secrets.env.AUDIOAPIKEY: ABS_KEY
+          integrations.audiobookshelf: { apiKey: { key: ABS_KEY } }
+      asserts:
+          - failedTemplate:
+                {
+                    errorPattern: AUDIOAPIKEY is set both in secrets.env and integrations.audiobookshelf.apiKey,
+                }
+    - it: unknown integrations fail
+      set: { integrations.plex: { url: 'http://plex' } }
+      asserts:
+          - failedTemplate: { errorPattern: integrations.plex is not a known integration }
+    - it: runtimeClassName is not rendered by default
+      asserts:
+          - notExists: { path: spec.template.spec.runtimeClassName }
+    - it: runtimeClassName is set per component (web and worker independently)
+      set: { web.runtimeClassName: nvidia }
+      asserts:
+          - equal: { path: spec.template.spec.runtimeClassName, value: nvidia }
+            documentIndex: 0
+          - notExists: { path: spec.template.spec.runtimeClassName }
+            documentIndex: 1
+    - it: worker runtimeClassName
+      set: { worker.runtimeClassName: nvidia }
+      documentIndex: 1
+      asserts:
+          - equal: { path: spec.template.spec.runtimeClassName, value: nvidia }
+    # Sign-in check: mirrors the app's startup preflight (config-doctor forward-auth.fail-closed).
+    - it: native login off without OIDC or forward-auth fails to render
+      set: { auth.native.enabled: false }
+      asserts:
+          - failedTemplate: { errorPattern: 'web: no sign-in method' }
+    - it: native login off fails when only the worker would refuse
+      set:
+          auth.native.enabled: false
+          web.env: { LUMASTRA_TRUST_ANY_PROXY: 'true' }
+      asserts:
+          - failedTemplate: { errorPattern: 'worker: no sign-in method' }
+    - it: native login off renders with OIDC
+      set:
+          auth.native.enabled: false
+          auth.oidc: { enabled: true, issuer: 'https://idp.example.com/', clientId: lumastra }
+      documentIndex: 0
+      asserts:
+          - isKind: { of: StatefulSet }
+    - it: native login off renders with forward-auth
+      set:
+          auth.native.enabled: false
+          auth.forwardAuth: { enabled: true, trustedProxyIps: 10.42.0.0/16 }
+          networkPolicy.enabled: true
+      documentIndex: 0
+      asserts:
+          - isKind: { of: StatefulSet }
+    - it: native login off renders when OIDC lives only in the Admin UI (settings.json)
+      set: { auth.native.enabled: false, auth.oidc.configuredInAdminUi: true }
+      documentIndex: 0
+      asserts:
+          - isKind: { of: StatefulSet }
+    - it: native login off renders when app.env turns on what the app accepts
+      set:
+          auth.native.enabled: false
+          app.env:
+              {
+                  AUTH_OIDC_ENABLED: 'true',
+                  AUTH_OIDC_ISSUER: 'https://idp.example.com/',
+                  AUTH_OIDC_CLIENT_ID: lumastra,
+              }
+      documentIndex: 0
+      asserts:
+          - isKind: { of: StatefulSet }
+    - it: native login off renders with LUMASTRA_SKIP_PREFLIGHT (case-insensitive, like the app)
+      set:
+          auth.native.enabled: false
+          app.env: { LUMASTRA_SKIP_PREFLIGHT: 'TRUE' }
+      documentIndex: 0
+      asserts:
+          - isKind: { of: StatefulSet }
+    - it: native login off renders when a sign-in value comes from a Secret the chart cannot read
+      set:
+          auth.native.enabled: false
+          secrets.env: { LUMASTRA_MASTER_KEY: LUMASTRA_MASTER_KEY, AUTH_OIDC_ISSUER: OIDC_ISSUER }
+          app.env: { AUTH_OIDC_ENABLED: 'true', AUTH_OIDC_CLIENT_ID: lumastra }
+      documentIndex: 0
+      asserts:
+          - isKind: { of: StatefulSet }
+    - it: native login off renders with extraEnvFrom on every app pod (contents unknown)
+      set:
+          auth.native.enabled: false
+          web.extraEnvFrom: [{ secretRef: { name: auth } }]
+          worker.extraEnvFrom: [{ secretRef: { name: auth } }]
+      documentIndex: 0
+      asserts:
+          - isKind: { of: StatefulSet }
+    - it: OIDC enabled without a client id still counts as no sign-in method
+      set:
+          auth.native.enabled: false
+          app.env: { AUTH_OIDC_ENABLED: 'true', AUTH_OIDC_ISSUER: 'https://idp.example.com/' }
+      asserts:
+          - failedTemplate: { errorPattern: 'web: no sign-in method' }
+    - it: native login via a per-component env value is accepted
+      set:
+          auth.native.enabled: false
+          web.env: { AUTH_NATIVE_LOGIN_ENABLED: 'yes' }
+          worker.extraEnv: [{ name: AUTH_NATIVE_LOGIN_ENABLED, value: '1' }]
+      documentIndex: 0
+      asserts:
+          - isKind: { of: StatefulSet }
+    - it: web and worker mount the app cache PVC when persistence.appCache is on
+      set: { persistence.appCache.enabled: true }
+      asserts:
+          - contains:
+                path: spec.template.spec.volumes
+                content:
+                    {
+                        name: app-cache,
+                        persistentVolumeClaim: { claimName: RELEASE-NAME-lumastra-app-cache },
+                    }
+            documentIndex: 0
+          - contains:
+                path: spec.template.spec.volumes
+                content:
+                    {
+                        name: app-cache,
+                        persistentVolumeClaim: { claimName: RELEASE-NAME-lumastra-app-cache },
+                    }
+            documentIndex: 1
+          - contains:
+                path: 'spec.template.spec.containers[0].volumeMounts'
+                content: { name: app-cache, mountPath: /app/.cache }
+            documentIndex: 0

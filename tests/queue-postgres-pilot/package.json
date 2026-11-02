@@ -1,0 +1,17 @@
+{
+  "name": "lumastra-queue-postgres-pilot",
+  "private": true,
+  "type": "module",
+  "description": "Opt-in isolated PostgreSQL queue qualification; never imported by the application",
+  "scripts": {
+    "test:safety": "node --test safety.test.mjs",
+    "test": "node --test --test-concurrency=1 *.test.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "bullmq": "6.3.15",
+    "pg": "8.23.1"
+  }
+}

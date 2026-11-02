@@ -1,0 +1,333 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/me/music/top-artists"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+        "type": "artist",
+        "title": "Kevin MacLeod",
+        "images": {
+          "backdrop": {
+            "href": "/api/v1/media/cce23344-1c18-4d99-81cd-1c872b3486b4/images/backdrop?size=hd&v=05f72f0882d3",
+            "variants": {
+              "card": "/api/v1/media/cce23344-1c18-4d99-81cd-1c872b3486b4/images/backdrop?size=card&v=05f72f0882d3",
+              "hd": "/api/v1/media/cce23344-1c18-4d99-81cd-1c872b3486b4/images/backdrop?size=hd&v=05f72f0882d3",
+              "wide": "/api/v1/media/cce23344-1c18-4d99-81cd-1c872b3486b4/images/backdrop?size=wide&v=05f72f0882d3",
+              "full": "/api/v1/media/cce23344-1c18-4d99-81cd-1c872b3486b4/images/backdrop?size=full&v=05f72f0882d3"
+            },
+            "revision": "05f72f0882d3",
+            "source": "self"
+          },
+          "primary": {
+            "href": "/api/v1/media/cce23344-1c18-4d99-81cd-1c872b3486b4/images/poster?size=card&v=9a411478563d",
+            "variants": {
+              "thumb": "/api/v1/media/cce23344-1c18-4d99-81cd-1c872b3486b4/images/poster?size=thumb&v=9a411478563d",
+              "card": "/api/v1/media/cce23344-1c18-4d99-81cd-1c872b3486b4/images/poster?size=card&v=9a411478563d",
+              "full": "/api/v1/media/cce23344-1c18-4d99-81cd-1c872b3486b4/images/poster?size=full&v=9a411478563d"
+            },
+            "revision": "9a411478563d",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LqH_=B_3fQxu~qxuayt7ayRjj[WB"
+            }
+          }
+        },
+        "albumCount": 14,
+        "trackCount": 126,
+        "isVariousArtists": false,
+        "playCount": 0,
+        "source": "catalog"
+      },
+      {
+        "id": "a2972116-da3c-4c7d-b104-eec4f79c3030",
+        "type": "artist",
+        "title": "Scott Joplin",
+        "images": {
+          "backdrop": {
+            "href": "/api/v1/media/a2972116-da3c-4c7d-b104-eec4f79c3030/images/backdrop?size=hd&v=a0404d6358dc",
+            "variants": {
+              "card": "/api/v1/media/a2972116-da3c-4c7d-b104-eec4f79c3030/images/backdrop?size=card&v=a0404d6358dc",
+              "hd": "/api/v1/media/a2972116-da3c-4c7d-b104-eec4f79c3030/images/backdrop?size=hd&v=a0404d6358dc",
+              "wide": "/api/v1/media/a2972116-da3c-4c7d-b104-eec4f79c3030/images/backdrop?size=wide&v=a0404d6358dc",
+              "full": "/api/v1/media/a2972116-da3c-4c7d-b104-eec4f79c3030/images/backdrop?size=full&v=a0404d6358dc"
+            },
+            "revision": "a0404d6358dc",
+            "source": "self"
+          },
+          "primary": {
+            "href": "/api/v1/media/a2972116-da3c-4c7d-b104-eec4f79c3030/images/poster?size=card&v=93281d02281e",
+            "variants": {
+              "thumb": "/api/v1/media/a2972116-da3c-4c7d-b104-eec4f79c3030/images/poster?size=thumb&v=93281d02281e",
+              "card": "/api/v1/media/a2972116-da3c-4c7d-b104-eec4f79c3030/images/poster?size=card&v=93281d02281e",
+              "full": "/api/v1/media/a2972116-da3c-4c7d-b104-eec4f79c3030/images/poster?size=full&v=93281d02281e"
+            },
+            "revision": "93281d02281e",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LQKd}K%M?bj[~qj[xuay00RjM{of"
+            }
+          }
+        },
+        "albumCount": 2,
+        "trackCount": 7,
+        "isVariousArtists": false,
+        "playCount": 0,
+        "source": "catalog"
+      },
+      {
+        "id": "63cec61b-788e-49cb-b12c-dde76b8849d6",
+        "type": "artist",
+        "title": "Wolfgang Amadeus Mozart",
+        "images": {
+          "backdrop": {
+            "href": "/api/v1/media/63cec61b-788e-49cb-b12c-dde76b8849d6/images/backdrop?size=hd&v=462cbcf3c359",
+            "variants": {
+              "card": "/api/v1/media/63cec61b-788e-49cb-b12c-dde76b8849d6/images/backdrop?size=card&v=462cbcf3c359",
+              "hd": "/api/v1/media/63cec61b-788e-49cb-b12c-dde76b8849d6/images/backdrop?size=hd&v=462cbcf3c359",
+              "wide": "/api/v1/media/63cec61b-788e-49cb-b12c-dde76b8849d6/images/backdrop?size=wide&v=462cbcf3c359",
+              "full": "/api/v1/media/63cec61b-788e-49cb-b12c-dde76b8849d6/images/backdrop?size=full&v=462cbcf3c359"
+            },
+            "revision": "462cbcf3c359",
+            "source": "self"
+          },
+          "primary": {
+            "href": "/api/v1/media/63cec61b-788e-49cb-b12c-dde76b8849d6/images/poster?size=card&v=7cd27f81c0ef",
+            "variants": {
+              "thumb": "/api/v1/media/63cec61b-788e-49cb-b12c-dde76b8849d6/images/poster?size=thumb&v=7cd27f81c0ef",
+              "card": "/api/v1/media/63cec61b-788e-49cb-b12c-dde76b8849d6/images/poster?size=card&v=7cd27f81c0ef",
+              "full": "/api/v1/media/63cec61b-788e-49cb-b12c-dde76b8849d6/images/poster?size=full&v=7cd27f81c0ef"
+            },
+            "revision": "7cd27f81c0ef",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LCDarn}Y020#G?F^ICidIWsV=_$i"
+            }
+          }
+        },
+        "albumCount": 1,
+        "trackCount": 16,
+        "isVariousArtists": false,
+        "playCount": 0,
+        "source": "catalog"
+      },
+      {
+        "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+        "type": "artist",
+        "title": "Johann Sebastian Bach",
+        "images": {
+          "backdrop": {
+            "href": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/backdrop?size=hd&v=259dcfade98a",
+            "variants": {
+              "card": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/backdrop?size=card&v=259dcfade98a",
+              "hd": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/backdrop?size=hd&v=259dcfade98a",
+              "wide": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/backdrop?size=wide&v=259dcfade98a",
+              "full": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/backdrop?size=full&v=259dcfade98a"
+            },
+            "revision": "259dcfade98a",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LKD+rJRk0gxu~VayENt79ukCw]WB"
+            }
+          },
+          "primary": {
+            "href": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/poster?size=card&v=c62393b07a2d",
+            "variants": {
+              "thumb": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/poster?size=thumb&v=c62393b07a2d",
+              "card": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/poster?size=card&v=c62393b07a2d",
+              "full": "/api/v1/media/7143ff5c-2823-4009-a0f8-b829790bc699/images/poster?size=full&v=c62393b07a2d"
+            },
+            "revision": "c62393b07a2d",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LKD+rKRk0gxu~VWVENt79ukCw]WB"
+            }
+          }
+        },
+        "albumCount": 1,
+        "trackCount": 23,
+        "isVariousArtists": false,
+        "playCount": 0,
+        "source": "catalog"
+      },
+      {
+        "id": "a19cc070-64cc-4632-b020-c3ea69c6cdbc",
+        "type": "artist",
+        "title": "Claude Debussy",
+        "images": {
+          "backdrop": {
+            "href": "/api/v1/media/a19cc070-64cc-4632-b020-c3ea69c6cdbc/images/backdrop?size=hd&v=4d73791c652e",
+            "variants": {
+              "card": "/api/v1/media/a19cc070-64cc-4632-b020-c3ea69c6cdbc/images/backdrop?size=card&v=4d73791c652e",
+              "hd": "/api/v1/media/a19cc070-64cc-4632-b020-c3ea69c6cdbc/images/backdrop?size=hd&v=4d73791c652e",
+              "wide": "/api/v1/media/a19cc070-64cc-4632-b020-c3ea69c6cdbc/images/backdrop?size=wide&v=4d73791c652e",
+              "full": "/api/v1/media/a19cc070-64cc-4632-b020-c3ea69c6cdbc/images/backdrop?size=full&v=4d73791c652e"
+            },
+            "revision": "4d73791c652e",
+            "source": "self"
+          },
+          "primary": {
+            "href": "/api/v1/media/a19cc070-64cc-4632-b020-c3ea69c6cdbc/images/poster?size=card&v=21e3765115da",
+            "variants": {
+              "thumb": "/api/v1/media/a19cc070-64cc-4632-b020-c3ea69c6cdbc/images/poster?size=thumb&v=21e3765115da",
+              "card": "/api/v1/media/a19cc070-64cc-4632-b020-c3ea69c6cdbc/images/poster?size=card&v=21e3765115da",
+              "full": "/api/v1/media/a19cc070-64cc-4632-b020-c3ea69c6cdbc/images/poster?size=full&v=21e3765115da"
+            },
+            "revision": "21e3765115da",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "L69tJv~q0000ayof9F9F9FM{t7M{"
+            }
+          }
+        },
+        "albumCount": 1,
+        "trackCount": 17,
+        "isVariousArtists": false,
+        "playCount": 0,
+        "source": "catalog"
+      },
+      {
+        "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+        "type": "artist",
+        "title": "Ludwig van Beethoven",
+        "images": {
+          "backdrop": {
+            "href": "/api/v1/media/cbd9b365-26d1-4665-8cb8-caebf5509b2c/images/backdrop?size=hd&v=bd231ae21603",
+            "variants": {
+              "card": "/api/v1/media/cbd9b365-26d1-4665-8cb8-caebf5509b2c/images/backdrop?size=card&v=bd231ae21603",
+              "hd": "/api/v1/media/cbd9b365-26d1-4665-8cb8-caebf5509b2c/images/backdrop?size=hd&v=bd231ae21603",
+              "wide": "/api/v1/media/cbd9b365-26d1-4665-8cb8-caebf5509b2c/images/backdrop?size=wide&v=bd231ae21603",
+              "full": "/api/v1/media/cbd9b365-26d1-4665-8cb8-caebf5509b2c/images/backdrop?size=full&v=bd231ae21603"
+            },
+            "revision": "bd231ae21603",
+            "source": "self"
+          },
+          "primary": {
+            "href": "/api/v1/media/cbd9b365-26d1-4665-8cb8-caebf5509b2c/images/poster?size=card&v=9153ab568464",
+            "variants": {
+              "thumb": "/api/v1/media/cbd9b365-26d1-4665-8cb8-caebf5509b2c/images/poster?size=thumb&v=9153ab568464",
+              "card": "/api/v1/media/cbd9b365-26d1-4665-8cb8-caebf5509b2c/images/poster?size=card&v=9153ab568464",
+              "full": "/api/v1/media/cbd9b365-26d1-4665-8cb8-caebf5509b2c/images/poster?size=full&v=9153ab568464"
+            },
+            "revision": "9153ab568464",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "albumCount": 1,
+        "trackCount": 14,
+        "isVariousArtists": false,
+        "playCount": 0,
+        "source": "catalog"
+      },
+      {
+        "id": "12650c09-d4bd-4d93-8ee5-c7393ec5a34a",
+        "type": "artist",
+        "title": "Erik Satie",
+        "images": {
+          "backdrop": {
+            "href": "/api/v1/media/12650c09-d4bd-4d93-8ee5-c7393ec5a34a/images/backdrop?size=hd&v=c87b7555991c",
+            "variants": {
+              "card": "/api/v1/media/12650c09-d4bd-4d93-8ee5-c7393ec5a34a/images/backdrop?size=card&v=c87b7555991c",
+              "hd": "/api/v1/media/12650c09-d4bd-4d93-8ee5-c7393ec5a34a/images/backdrop?size=hd&v=c87b7555991c",
+              "wide": "/api/v1/media/12650c09-d4bd-4d93-8ee5-c7393ec5a34a/images/backdrop?size=wide&v=c87b7555991c",
+              "full": "/api/v1/media/12650c09-d4bd-4d93-8ee5-c7393ec5a34a/images/backdrop?size=full&v=c87b7555991c"
+            },
+            "revision": "c87b7555991c",
+            "source": "self"
+          },
+          "primary": {
+            "href": "/api/v1/media/12650c09-d4bd-4d93-8ee5-c7393ec5a34a/images/poster?size=card&v=f17da559515d",
+            "variants": {
+              "thumb": "/api/v1/media/12650c09-d4bd-4d93-8ee5-c7393ec5a34a/images/poster?size=thumb&v=f17da559515d",
+              "card": "/api/v1/media/12650c09-d4bd-4d93-8ee5-c7393ec5a34a/images/poster?size=card&v=f17da559515d",
+              "full": "/api/v1/media/12650c09-d4bd-4d93-8ee5-c7393ec5a34a/images/poster?size=full&v=f17da559515d"
+            },
+            "revision": "f17da559515d",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "L$Gu,m~q-;%Mt7ofWBWBIURjt7j["
+            }
+          }
+        },
+        "albumCount": 1,
+        "trackCount": 8,
+        "isVariousArtists": false,
+        "playCount": 0,
+        "source": "catalog"
+      },
+      {
+        "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+        "type": "artist",
+        "title": "Franz Schubert",
+        "images": {
+          "backdrop": {
+            "href": "/api/v1/media/d86929f5-6d36-4e05-9a5c-7f991d1840e9/images/backdrop?size=hd&v=d134beda150f",
+            "variants": {
+              "card": "/api/v1/media/d86929f5-6d36-4e05-9a5c-7f991d1840e9/images/backdrop?size=card&v=d134beda150f",
+              "hd": "/api/v1/media/d86929f5-6d36-4e05-9a5c-7f991d1840e9/images/backdrop?size=hd&v=d134beda150f",
+              "wide": "/api/v1/media/d86929f5-6d36-4e05-9a5c-7f991d1840e9/images/backdrop?size=wide&v=d134beda150f",
+              "full": "/api/v1/media/d86929f5-6d36-4e05-9a5c-7f991d1840e9/images/backdrop?size=full&v=d134beda150f"
+            },
+            "revision": "d134beda150f",
+            "source": "self"
+          },
+          "primary": {
+            "href": "/api/v1/media/d86929f5-6d36-4e05-9a5c-7f991d1840e9/images/poster?size=card&v=46c6728e2547",
+            "variants": {
+              "thumb": "/api/v1/media/d86929f5-6d36-4e05-9a5c-7f991d1840e9/images/poster?size=thumb&v=46c6728e2547",
+              "card": "/api/v1/media/d86929f5-6d36-4e05-9a5c-7f991d1840e9/images/poster?size=card&v=46c6728e2547",
+              "full": "/api/v1/media/d86929f5-6d36-4e05-9a5c-7f991d1840e9/images/poster?size=full&v=46c6728e2547"
+            },
+            "revision": "46c6728e2547",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "albumCount": 1,
+        "trackCount": 25,
+        "isVariousArtists": false,
+        "playCount": 0,
+        "source": "catalog"
+      },
+      {
+        "id": "351a27b3-4351-4432-b7fc-cb2b132a28f2",
+        "type": "artist",
+        "title": "John Philip Sousa",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/351a27b3-4351-4432-b7fc-cb2b132a28f2/images/poster?size=card&v=e380b42c3235",
+            "variants": {
+              "thumb": "/api/v1/media/351a27b3-4351-4432-b7fc-cb2b132a28f2/images/poster?size=thumb&v=e380b42c3235",
+              "card": "/api/v1/media/351a27b3-4351-4432-b7fc-cb2b132a28f2/images/poster?size=card&v=e380b42c3235",
+              "full": "/api/v1/media/351a27b3-4351-4432-b7fc-cb2b132a28f2/images/poster?size=full&v=e380b42c3235"
+            },
+            "revision": "e380b42c3235",
+            "source": "self",
+            "placeholder": {
+              "blurhash": "LRLN.4D%D%~qM{M{D%%MxufQt7Rj"
+            }
+          }
+        },
+        "albumCount": 1,
+        "trackCount": 8,
+        "isVariousArtists": false,
+        "playCount": 0,
+        "source": "catalog"
+      }
+    ],
+    "page": {
+      "limit": 20,
+      "truncated": false
+    }
+  },
+  "baselineProblems": []
+}

@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+# Plain Ingress in front of the router; OIDC login.
+app: { origin: https://lumastra.example.com }
+secrets:
+    existingSecret: lumastra
+    env:
+        LUMASTRA_MASTER_KEY: LUMASTRA_MASTER_KEY
+        AUTH_OIDC_CLIENT_SECRET: OIDC_CLIENT_SECRET
+auth:
+    native: { enabled: false }
+    oidc:
+        {
+            enabled: true,
+            issuer: https://idp.example.com/application/o/lumastra/,
+            clientId: lumastra,
+        }
+ingress:
+    enabled: true
+    className: nginx
+    annotations:
+        nginx.ingress.kubernetes.io/proxy-body-size: 50m
+        nginx.ingress.kubernetes.io/proxy-buffering: 'off'
+        nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
+    hosts: [{ host: lumastra.example.com }]
+    tls: [{ hosts: [lumastra.example.com], secretName: lumastra-tls }]

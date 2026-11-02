@@ -1,0 +1,172 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/lists"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "latest-anime-movies",
+        "name": "🎌 Anime Movies",
+        "description": "Recently released anime movies",
+        "source": "mdblist",
+        "listPath": "iamscallywag/latest-anime-movies",
+        "itemCount": 50,
+        "lastSyncedAt": "2026-09-29T19:00:04.994Z"
+      },
+      {
+        "id": "apple-tv-all",
+        "name": "Apple TV+ All",
+        "description": "All content on Apple TV+",
+        "source": "mdblist",
+        "listPath": "slimshizn/all-apple-tv-plus",
+        "itemCount": 30,
+        "lastSyncedAt": "2026-09-29T13:35:41.872Z"
+      },
+      {
+        "id": "apple-tv-movies",
+        "name": "Apple TV+ Movies",
+        "description": "Movies available on Apple TV+",
+        "source": "mdblist",
+        "listPath": "slimshizn/apple-tv-movies",
+        "itemCount": 30,
+        "lastSyncedAt": "2026-09-29T13:35:40.562Z"
+      },
+      {
+        "id": "trending-shows",
+        "name": "🔥 Best New Shows",
+        "description": "Best new TV shows released recently",
+        "source": "mdblist",
+        "listPath": "linaspurinis/best-new-shows",
+        "itemCount": 30,
+        "lastSyncedAt": "2026-09-29T13:35:28.231Z"
+      },
+      {
+        "id": "box-office",
+        "name": "🎬 Box Office Top 50",
+        "description": "Current box office top performers",
+        "source": "mdblist",
+        "listPath": "linaspurinis/box-office-50",
+        "itemCount": 8,
+        "lastSyncedAt": "2026-09-29T13:35:44.653Z"
+      },
+      {
+        "id": "certified-fresh",
+        "name": "🍅 Certified Fresh",
+        "description": "Rotten Tomatoes Certified Fresh movies",
+        "source": "mdblist",
+        "listPath": "linaspurinis/certified-fresh",
+        "itemCount": 30,
+        "lastSyncedAt": "2026-09-29T13:35:43.439Z"
+      },
+      {
+        "id": "disney-movies",
+        "name": "🏰 Disney+ Movies",
+        "description": "Movies available on Disney+",
+        "source": "mdblist",
+        "listPath": "garycrawfordgc/disney-movies",
+        "itemCount": 30,
+        "lastSyncedAt": "2026-09-29T13:35:34.058Z"
+      },
+      {
+        "id": "disney-shows",
+        "name": "🏰 Disney+ Shows",
+        "description": "TV shows available on Disney+",
+        "source": "mdblist",
+        "listPath": "garycrawfordgc/disney-shows",
+        "itemCount": 30,
+        "lastSyncedAt": "2026-09-29T13:35:35.356Z"
+      },
+      {
+        "id": "hbo-shows",
+        "name": "🟣 HBO/Max Shows",
+        "description": "TV shows available on HBO/Max",
+        "source": "mdblist",
+        "listPath": "garycrawfordgc/hbo-shows",
+        "itemCount": 30,
+        "lastSyncedAt": "2026-09-29T13:35:39.259Z"
+      },
+      {
+        "id": "latest-anime",
+        "name": "🎌 Latest Anime",
+        "description": "Recently released anime shows",
+        "source": "mdblist",
+        "listPath": "iamscallywag/latest-anime",
+        "itemCount": 30,
+        "lastSyncedAt": "2026-09-29T13:35:45.678Z"
+      },
+      {
+        "id": "netflix-movies",
+        "name": "🔴 Netflix Movies",
+        "description": "Movies available on Netflix",
+        "source": "mdblist",
+        "listPath": "garycrawfordgc/netflix-movies",
+        "itemCount": 30,
+        "lastSyncedAt": "2026-09-29T13:35:31.431Z"
+      },
+      {
+        "id": "netflix-shows",
+        "name": "🔴 Netflix Shows",
+        "description": "TV shows available on Netflix",
+        "source": "mdblist",
+        "listPath": "garycrawfordgc/netflix-shows",
+        "itemCount": 30,
+        "lastSyncedAt": "2026-09-29T13:35:32.743Z"
+      },
+      {
+        "id": "popular-movies",
+        "name": "⭐ Popular Movies",
+        "description": "Most popular movies right now",
+        "source": "mdblist",
+        "listPath": "linaspurinis/most-popular-movies-top-20",
+        "itemCount": 20,
+        "lastSyncedAt": "2026-10-01T07:21:05.315Z"
+      },
+      {
+        "id": "popular-shows",
+        "name": "⭐ Popular Shows",
+        "description": "Most popular TV shows right now",
+        "source": "mdblist",
+        "listPath": "linaspurinis/most-popular-shows-top-50",
+        "itemCount": 50,
+        "lastSyncedAt": "2026-10-01T07:21:05.113Z"
+      },
+      {
+        "id": "amazon-prime-movies",
+        "name": "📦 Prime Movies",
+        "description": "Movies available on Amazon Prime Video",
+        "source": "mdblist",
+        "listPath": "garycrawfordgc/amazon-prime-movies",
+        "itemCount": 30,
+        "lastSyncedAt": "2026-09-29T13:35:36.650Z"
+      },
+      {
+        "id": "amazon-prime-shows",
+        "name": "📦 Prime Shows",
+        "description": "TV shows available on Amazon Prime Video",
+        "source": "mdblist",
+        "listPath": "garycrawfordgc/amazon-prime-shows",
+        "itemCount": 30,
+        "lastSyncedAt": "2026-09-29T13:35:37.956Z"
+      },
+      {
+        "id": "trending-movies",
+        "name": "🔥 Trending Movies",
+        "description": "Top watched movies this week globally",
+        "source": "mdblist",
+        "listPath": "linaspurinis/top-watched-movies-of-the-week",
+        "itemCount": 40,
+        "lastSyncedAt": "2026-10-01T07:21:05.138Z"
+      }
+    ],
+    "page": {
+      "limit": 17,
+      "offset": 0,
+      "hasMore": false
+    },
+    "syncing": true
+  },
+  "baselineProblems": []
+}

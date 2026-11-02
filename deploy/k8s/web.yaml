@@ -1,0 +1,145 @@
+# Web tier — UI / API / SSE / HLS. Scale freely (replicas / HPA). WORKER_MODE=disabled.
+# Needs the shared RWX /config volume (serves artwork the worker writes) AND the media
+# library: direct play, remux and transcoding read the files on the web pod.
+# For several web replicas, prefer the Helm chart (deploy/helm/lumastra): its router pins
+# HLS sessions by stream token / PlaySessionId, which cookie affinity cannot do for
+# native clients.
+apiVersion: v1
+kind: Service
+metadata:
+    name: lumastra-web
+    namespace: lumastra
+    # Sticky sessions: whatever fans out across web pods must pin each client to one
+    # pod (cookie affinity or source-IP hash) — NEVER round-robin. With nginx-ingress
+    # the affinity is set on the Ingress (see ingress-nginx.yaml). With Traefik's
+    # Gateway provider it's read from this Service — uncomment:
+    # annotations:
+    #   traefik.ingress.kubernetes.io/service.sticky.cookie: "true"
+    #   traefik.ingress.kubernetes.io/service.sticky.cookie.name: "lumastra-sticky"
+    #   traefik.ingress.kubernetes.io/service.sticky.cookie.secure: "true"
+spec:
+    # Only set sessionAffinity: ClientIP if clients hit this Service DIRECTLY
+    # (type LoadBalancer/NodePort). Behind an ingress it would pin by the ingress
+    # pod's IP, not the client's — use ingress/gateway affinity instead.
+    selector:
+        app: lumastra
+        role: web
+    ports:
+        - name: http
+          port: 80
+          targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: lumastra-web
+    namespace: lumastra
+spec:
+    replicas: 2
+    selector:
+        matchLabels: { app: lumastra, role: web }
+    template:
+        metadata:
+            labels: { app: lumastra, role: web }
+        spec:
+            automountServiceAccountToken: false # app has no Kubernetes API client
+            # If your registry image is private, create a pull secret and reference it:
+            # imagePullSecrets:
+            #   - name: ghcr-pull
+            #
+            # Non-root, fixed uid/gid so the mounted volumes below (fsGroup) are
+            # readable/writable regardless of what uid the image's own user
+            # happens to be. seccompProfile RuntimeDefault applies the
+            # container-runtime's default syscall filter (blocks the syscalls no
+            # normal app needs — module loading, mount, etc.).
+            securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                fsGroup: 1000
+                seccompProfile: { type: RuntimeDefault }
+            containers:
+                - name: lumastra
+                  image: ghcr.io/lumastra/lumastra:stable
+                  ports:
+                      - containerPort: 3000
+                  # allowPrivilegeEscalation:false + dropping every Linux capability
+                  # is safe for this container — it never needs setuid/setgid binaries
+                  # or raw sockets. readOnlyRootFilesystem:true is why the volumeMounts
+                  # below add emptyDirs for every path the app writes to outside
+                  # /config (see the README's Hardening section for the full list and
+                  # how to verify it after an image update).
+                  securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities: { drop: [ALL] }
+                      readOnlyRootFilesystem: true
+                  env:
+                      - name: WORKER_MODE
+                        value: 'disabled'
+                      # Unique per pod — keys Valkey coordination + the admin cluster view.
+                      - name: INSTANCE_ID
+                        valueFrom:
+                            fieldRef:
+                                fieldPath: metadata.name
+                  envFrom:
+                      - configMapRef: { name: lumastra-config }
+                      - secretRef: { name: lumastra-secrets }
+                  volumeMounts:
+                      - { name: config, mountPath: /config }
+                      - { name: media, mountPath: /data, readOnly: true }
+                      # Every other path the app writes to (readOnlyRootFilesystem
+                      # needs each one mounted explicitly — see README Hardening).
+                      # `cache` and `plugins` are emptyDir, so their contents do NOT
+                      # survive a pod restart: fine for cache (subtitle extraction
+                      # etc — re-derived on demand), but an installed EXTERNAL
+                      # plugin (Admin → Plugins) will need reinstalling after a
+                      # restart unless you swap `plugins` for a PVC (mirror
+                      # config-pvc.yaml) — see the README.
+                      - { name: cache, mountPath: /app/.cache }
+                      - { name: plugins, mountPath: /app/plugins }
+                      # /tmp also holds HLS segments (FFMPEG_TRANSCODE_DIR, default
+                      # /tmp/lumastra-transcode). Per pod here: a pod taking over another
+                      # pod's session restarts FFmpeg. With an RWX class, mount ONE shared
+                      # volume for FFMPEG_TRANSCODE_DIR on every web pod + the worker (same
+                      # path everywhere) so a takeover serves the segments already written.
+                      - { name: tmp, mountPath: /tmp }
+                  # Startup and liveness stay on /api/health, which answers 200
+                  # while the process is up and checks NO dependencies. That is
+                  # deliberate for both: startup must not block on Postgres during
+                  # first-boot migrations, and liveness must never restart a pod
+                  # over a transient database blip — a restart cannot fix a DB
+                  # outage, it only removes capacity while it recovers.
+                  startupProbe:
+                      httpGet: { path: /api/health, port: 3000 }
+                      periodSeconds: 10
+                      failureThreshold: 60 # allow up to ~10 min for first-boot migrations
+                  # Readiness is the one probe that must check dependencies:
+                  # it decides whether this pod receives traffic. On /api/health
+                  # it answered 200 with Postgres down, so a pod that could not
+                  # serve a single request stayed in the Service endpoints.
+                  # /api/health/ready gates on orchestrator + Postgres + Valkey.
+                  #
+                  # timeoutSeconds is NOT the default 1: the endpoint runs the
+                  # three checks sequentially with a 2s timeout each, so a
+                  # degraded-but-recovering backend can legitimately take ~6s to
+                  # answer. At 1s a healthy pod would flap out of the endpoints
+                  # on latency alone, which is worse than the gap this closes.
+                  readinessProbe:
+                      httpGet: { path: /api/health/ready, port: 3000 }
+                      periodSeconds: 15
+                      timeoutSeconds: 8
+                      failureThreshold: 3
+                  livenessProbe:
+                      httpGet: { path: /api/health, port: 3000 }
+                      initialDelaySeconds: 60
+                      periodSeconds: 30
+                  resources:
+                      requests: { cpu: '250m', memory: '768Mi' }
+                      limits: { memory: '2Gi' }
+            volumes:
+                - name: config
+                  persistentVolumeClaim: { claimName: lumastra-config }
+                - name: media
+                  persistentVolumeClaim: { claimName: lumastra-media }
+                - { name: cache, emptyDir: {} }
+                - { name: plugins, emptyDir: {} }
+                - { name: tmp, emptyDir: {} }

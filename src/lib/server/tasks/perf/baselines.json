@@ -1,0 +1,57 @@
+{
+    "_meta": {
+        "captureEnvironment": "remote test host via SSH tunnel",
+        "captureCommand": "BENCH_CAPTURE=1 npm run test:integration -- src/lib/server/tasks/perf/baselines.integration.test.ts",
+        "gateComparable": false,
+        "warning": "Latencies include SSH tunnel RTT (~50-100ms). NOT directly comparable to the plan §16.3 gates (5ms / 500ms p95) which assume direct-network access. For true gate-comparable baselines run the bench next to the database and Valkey, or in CI.",
+        "capturedAt": "2026-05-15T14:13:47.117Z"
+    },
+    "transition-run-pending-to-active": {
+        "schemaVersion": 1,
+        "p50": 45.03083399999923,
+        "p95": 109.43337500000052,
+        "p99": 138.85949999999866,
+        "iterations": 200,
+        "gate": {
+            "metric": "p95",
+            "limitMs": 5
+        },
+        "capturedAt": "2026-05-15T14:56:32.533Z"
+    },
+    "transition-run-active-to-completed": {
+        "schemaVersion": 1,
+        "p50": 44.84633299999405,
+        "p95": 111.32062500000029,
+        "p99": 154.46204200000648,
+        "iterations": 200,
+        "gate": {
+            "metric": "p95",
+            "limitMs": 5
+        },
+        "capturedAt": "2026-05-15T14:57:01.412Z"
+    },
+    "runs-list-limit-50": {
+        "schemaVersion": 1,
+        "p50": 97.67195899999933,
+        "p95": 180.1293330000044,
+        "p99": 191.74454099999275,
+        "iterations": 100,
+        "gate": {
+            "metric": "p95",
+            "limitMs": 500
+        },
+        "capturedAt": "2026-05-15T14:57:23.945Z"
+    },
+    "runs-list-limit-200": {
+        "schemaVersion": 1,
+        "p50": 100.14295799999672,
+        "p95": 161.87766600000032,
+        "p99": 181.29845899999782,
+        "iterations": 100,
+        "gate": {
+            "metric": "p95",
+            "limitMs": 500
+        },
+        "capturedAt": "2026-05-15T14:57:34.570Z"
+    }
+}

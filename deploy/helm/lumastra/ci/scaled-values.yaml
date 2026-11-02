@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+# Split: 3 web pods behind the router + one worker, two Valkeys, shared RWX volumes.
+app: { origin: https://lumastra.example.com, metadataStorageLocation: alongside }
+secrets:
+    existingSecret: lumastra
+    env:
+        LUMASTRA_MASTER_KEY: LUMASTRA_MASTER_KEY
+        JWT_SECRET: JWT_SECRET
+        TMDB_API_KEY: { secret: lumastra-integrations, key: tmdb, optional: true }
+web: { replicas: 3 }
+features: { FEATURE_MUSIC_SONIC: false }
+concurrency: { LUMASTRA_CONCURRENCY_CPU: 4, LUMASTRA_DB_POOL_TASK_MAX: 20 }
+persistence:
+    dataAnnotations: { argocd.argoproj.io/sync-options: 'Prune=false,Delete=false' }
+    config: { storageClassName: nfs-rwx }
+    transcode: { storageClassName: nfs-rwx }
+libraries:
+    - { name: movies, mountPath: /data/movies, nfs: { server: 10.0.0.1, path: /export/movies } }
+    - {
+          name: music,
+          mountPath: /data/music,
+          existingClaim: media-music,
+          readOnly: { web: true },
+          music: true,
+      }
+gpu:
+    mode: resource
+    acceleration: qsv
+    resources: { gpu.intel.com/i915: 1 }
+    renderGroupId: 993
+    env: { QSV_DEVICE: /dev/dri/renderD128 }
+global:
+    nodeSelector: { node-role/media: 'true' }
+    tolerations: [{ key: media, operator: Equal, value: 'true', effect: NoSchedule }]
+    podAnnotations: { prometheus.io/scrape: 'true' }

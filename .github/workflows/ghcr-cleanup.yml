@@ -1,0 +1,40 @@
+name: GHCR cleanup
+
+# Every `main` build moves :edge to a new digest and leaves the previous one behind as an
+# untagged package version — GHCR never garbage-collects those. This prunes them weekly,
+# on a schedule rather than after each build so it never races an in-flight push.
+# Tagged versions (:edge, :sha-*, releases) are never touched.
+
+on:
+    schedule:
+        - cron: '30 3 * * 0' # Sunday 03:30 UTC
+    workflow_dispatch:
+        inputs:
+            dry-run:
+                description: 'Log what would be deleted without deleting anything'
+                type: boolean
+                default: false
+
+permissions: {}
+
+jobs:
+    cleanup:
+        runs-on: ubuntu-latest
+        # The packages live in the lumastra organization, so the job token can't reach them;
+        # GHCR_TOKEN (classic PAT) needs delete:packages as well as write:packages.
+        permissions: {}
+        steps:
+            - name: Delete orphaned GHCR image versions
+              uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
+              with:
+                  token: ${{ secrets.GHCR_TOKEN }}
+                  owner: lumastra
+                  packages: 'lumastra,lumastra-sonic-embedder'
+                  # Multi-arch aware: an untagged manifest that is still a platform child of
+                  # a live tag (e.g. :stable's arm64 image) is kept; only versions no tag
+                  # references at all are deleted.
+                  delete-untagged: true
+                  # Margin so this never deletes a digest a mid-push build still needs.
+                  older-than: '2 days'
+                  validate: true
+                  dry-run: ${{ inputs.dry-run || false }}

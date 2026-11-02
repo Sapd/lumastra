@@ -1,0 +1,22 @@
+{
+    "$schema": "https://unpkg.com/knip@5/schema.json",
+    "entry": [
+        "src/routes/**/+*.ts",
+        "src/routes/**/+*.svelte",
+        "src/hooks.ts",
+        "src/hooks.server.ts",
+        "src/app.d.ts",
+        "scripts/*.ts",
+        "vite.config.ts",
+        "svelte.config.js"
+    ],
+    "project": ["src/**/*.ts", "src/**/*.svelte", "scripts/*.ts"],
+    "ignore": [
+        "src/paraglide/**",
+        "src/lib/paraglide/**",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "demo/**"
+    ],
+    "ignoreDependencies": ["@inlang/paraglide-sveltekit"]
+}

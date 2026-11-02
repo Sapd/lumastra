@@ -1,0 +1,53 @@
+# actions/labeler v5 config → automatic `area:*` labels on PRs by changed paths.
+# Paths are best-effort; refine as the tree moves.
+'area:player':
+    - changed-files:
+          - any-glob-to-any-file:
+                ['src/lib/components/player/**', 'src/lib/server/handlers/**', 'static/worklets/**']
+'area:music':
+    - changed-files:
+          - any-glob-to-any-file: ['src/lib/server/subsonic-compat/**', 'workers/sonic-embedder/**']
+'area:livetv':
+    - changed-files:
+          - any-glob-to-any-file:
+                ['src/routes/livetv/**', 'src/routes/api/livetv/**', 'src/lib/server/**/livetv/**']
+'area:tasks':
+    - changed-files:
+          - any-glob-to-any-file: ['src/lib/server/tasks/**']
+'area:admin':
+    - changed-files:
+          - any-glob-to-any-file: ['src/routes/admin/**', 'src/routes/api/admin/**']
+'area:ai':
+    - changed-files:
+          - any-glob-to-any-file: ['src/lib/server/ai/**']
+'area:database':
+    - changed-files:
+          - any-glob-to-any-file: ['src/lib/server/database/**']
+'area:auth':
+    - changed-files:
+          - any-glob-to-any-file:
+                [
+                    'src/lib/server/oauth/**',
+                    'src/lib/server/auth*.ts',
+                    'src/lib/server/middleware/**',
+                ]
+'area:compat-j':
+    - changed-files:
+          - any-glob-to-any-file:
+                ['src/routes/(proprietary)/j/**', 'src/lib/server/proprietary/jellyfin-compat/**']
+'area:plugins':
+    - changed-files:
+          - any-glob-to-any-file: ['plugins/**', 'packages/@sapd/**']
+'area:licensing':
+    - changed-files:
+          - any-glob-to-any-file:
+                ['src/lib/server/licensing/**', 'src/lib/server/proprietary/licensing/**']
+'area:docker':
+    - changed-files:
+          - any-glob-to-any-file: ['Dockerfile*', 'docker-compose*.yml', 'deploy/**']
+'area:i18n':
+    - changed-files:
+          - any-glob-to-any-file: ['messages/**', 'project.inlang/**']
+'area:docs':
+    - changed-files:
+          - any-glob-to-any-file: ['docs/**', '**/*.md']

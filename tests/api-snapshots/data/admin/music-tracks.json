@@ -1,0 +1,2430 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/music/tracks"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "0fff5c4d-3336-4809-82bc-cace172c5e07",
+        "type": "track",
+        "title": "01 - Gute Nacht (CK 2946-2, ES 383)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 1,
+        "discNumber": null,
+        "durationMs": 249000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:07.489Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.693205+02"
+      },
+      {
+        "id": "ebc46617-a589-4491-8cfb-ac89975a6dec",
+        "type": "track",
+        "title": "01 Horenstein 9. Beethoven Pantheon XP 2250 - 1. Satz",
+        "artists": [
+          {
+            "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+            "title": "Ludwig van Beethoven"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Ludwig van Beethoven"
+        },
+        "album": {
+          "id": "1cde940b-65df-4722-9317-aebe155931f4",
+          "title": "Beethoven - Selected Works"
+        },
+        "trackNumber": 1,
+        "discNumber": null,
+        "durationMs": 917000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:18.298Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.978139+02"
+      },
+      {
+        "id": "9c5c383f-09bc-48cc-874d-86694dc8f067",
+        "type": "track",
+        "title": "02 - Die Wetterfahne (CK 2947-2, ES 383)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 2,
+        "discNumber": null,
+        "durationMs": 142000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:40.921Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.180656+02"
+      },
+      {
+        "id": "813b931b-2936-4dec-a9bc-40d7d3525bb2",
+        "type": "track",
+        "title": "02 Horenstein 9. Beethoven Pantheon XP 2250 - 2. Satz",
+        "artists": [
+          {
+            "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+            "title": "Ludwig van Beethoven"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Ludwig van Beethoven"
+        },
+        "album": {
+          "id": "1cde940b-65df-4722-9317-aebe155931f4",
+          "title": "Beethoven - Selected Works"
+        },
+        "trackNumber": 2,
+        "discNumber": null,
+        "durationMs": 685000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:16.545Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.957448+02"
+      },
+      {
+        "id": "57f1d8f5-e32d-4958-a134-00ea8d1067fe",
+        "type": "track",
+        "title": "03 - Gefrorene Tränen (CK 2948-1, ER 270)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 3,
+        "discNumber": null,
+        "durationMs": 142000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:47:44.774Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.745673+02"
+      },
+      {
+        "id": "69b638c9-996a-4ec9-851c-f8a9c17e0eaf",
+        "type": "track",
+        "title": "03 Horenstein 9. Beethoven Pantheon XP 2250 - 3. Satz",
+        "artists": [
+          {
+            "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+            "title": "Ludwig van Beethoven"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Ludwig van Beethoven"
+        },
+        "album": {
+          "id": "1cde940b-65df-4722-9317-aebe155931f4",
+          "title": "Beethoven - Selected Works"
+        },
+        "trackNumber": 3,
+        "discNumber": null,
+        "durationMs": 899000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:18.851Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.979647+02"
+      },
+      {
+        "id": "e7a61f16-14a4-4614-b7c6-67c70faec429",
+        "type": "track",
+        "title": "03 Mozart KV 421 2",
+        "artists": [
+          {
+            "id": "63cec61b-788e-49cb-b12c-dde76b8849d6",
+            "title": "Wolfgang Amadeus Mozart"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Wolfgang Amadeus Mozart"
+        },
+        "album": {
+          "id": "436d417d-3b3a-4839-a91f-45a48962218d",
+          "title": "Mozart - Selected Works"
+        },
+        "trackNumber": 1,
+        "discNumber": null,
+        "durationMs": 255000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/436d417d-3b3a-4839-a91f-45a48962218d/images/poster?size=card&v=c004c5b58108",
+            "variants": {
+              "thumb": "/api/v1/media/436d417d-3b3a-4839-a91f-45a48962218d/images/poster?size=thumb&v=c004c5b58108",
+              "card": "/api/v1/media/436d417d-3b3a-4839-a91f-45a48962218d/images/poster?size=card&v=c004c5b58108",
+              "full": "/api/v1/media/436d417d-3b3a-4839-a91f-45a48962218d/images/poster?size=full&v=c004c5b58108"
+            },
+            "revision": "c004c5b58108",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "L697IL9hobxrD#Iqs,t5_4%0RkWE"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:47:43.567Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.724553+02"
+      },
+      {
+        "id": "285af037-e0b7-4225-9f2d-f9dffdc8b6a9",
+        "type": "track",
+        "title": "04 - Erstarrung (CK 2949-1, ER 270)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 4,
+        "discNumber": null,
+        "durationMs": 199000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:47:41.828Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.721162+02"
+      },
+      {
+        "id": "a4a121f5-92b9-407a-a8e3-b34ec68afcde",
+        "type": "track",
+        "title": "04 Mozart KV 421 3",
+        "artists": [
+          {
+            "id": "63cec61b-788e-49cb-b12c-dde76b8849d6",
+            "title": "Wolfgang Amadeus Mozart"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Wolfgang Amadeus Mozart"
+        },
+        "album": {
+          "id": "436d417d-3b3a-4839-a91f-45a48962218d",
+          "title": "Mozart - Selected Works"
+        },
+        "trackNumber": 2,
+        "discNumber": null,
+        "durationMs": 254000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/436d417d-3b3a-4839-a91f-45a48962218d/images/poster?size=card&v=c004c5b58108",
+            "variants": {
+              "thumb": "/api/v1/media/436d417d-3b3a-4839-a91f-45a48962218d/images/poster?size=thumb&v=c004c5b58108",
+              "card": "/api/v1/media/436d417d-3b3a-4839-a91f-45a48962218d/images/poster?size=card&v=c004c5b58108",
+              "full": "/api/v1/media/436d417d-3b3a-4839-a91f-45a48962218d/images/poster?size=full&v=c004c5b58108"
+            },
+            "revision": "c004c5b58108",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "L697IL9hobxrD#Iqs,t5_4%0RkWE"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:44.370Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.208637+02"
+      },
+      {
+        "id": "90fd813b-eda6-4ed9-a45a-fb995828cdd2",
+        "type": "track",
+        "title": "05 - Der Lindenbaum (CK 2950-2, ES 384)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 5,
+        "discNumber": null,
+        "durationMs": 256000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:39.444Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.167642+02"
+      },
+      {
+        "id": "5e23ba13-e0c8-4b7b-adad-46125aeee781",
+        "type": "track",
+        "title": "06 - Wasserfluth (CK 2951-2, ES 384)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 6,
+        "discNumber": null,
+        "durationMs": 241000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:42.018Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.189768+02"
+      },
+      {
+        "id": "3d145926-9556-4c3b-af2e-060b4d87da95",
+        "type": "track",
+        "title": "07 - Auf dem Flusse (CK 2952-2, ES 385)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 7,
+        "discNumber": null,
+        "durationMs": 252000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:42.629Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.19284+02"
+      },
+      {
+        "id": "df1b9283-8cc9-4cf6-9080-22a63a1e63c6",
+        "type": "track",
+        "title": "08 - Rückblick (CK 2953-1, ES 385)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 8,
+        "discNumber": null,
+        "durationMs": 172000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:08.004Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.693613+02"
+      },
+      {
+        "id": "1ed2f4c1-c42f-45d6-ab4e-b61f2272ad2a",
+        "type": "track",
+        "title": "09 - Irrlicht (BK 2954-2, ES 271)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 9,
+        "discNumber": null,
+        "durationMs": 166000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:38.914Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.155047+02"
+      },
+      {
+        "id": "04005047-5c56-493f-9c51-d79e27e158fa",
+        "type": "track",
+        "title": "10 - Rast (BK 2955-2, ER 271)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 10,
+        "discNumber": null,
+        "durationMs": 199000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:40.362Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.174499+02"
+      },
+      {
+        "id": "467bd7ca-53dd-40a1-a8cb-a51df8f3fc03",
+        "type": "track",
+        "title": "11 - Frühlingstraum (CK 2956-1, ES 386)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 11,
+        "discNumber": null,
+        "durationMs": 259000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:41.419Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.187566+02"
+      },
+      {
+        "id": "2062199a-b54e-416a-932d-5d05f7d1dba1",
+        "type": "track",
+        "title": "12 - Einsamkeit (CK 2957-2, ES 386)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 12,
+        "discNumber": null,
+        "durationMs": 186000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:47:40.014Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.693278+02"
+      },
+      {
+        "id": "34e2d0b4-7195-444d-9ee2-86f69cda93cb",
+        "type": "track",
+        "title": "13 - Die Post (CK 2958-2, ER 272)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 13,
+        "discNumber": null,
+        "durationMs": 162000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:47:42.401Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.721564+02"
+      },
+      {
+        "id": "bad6624f-bd75-4a21-8f22-0a389597da1a",
+        "type": "track",
+        "title": "14 - Der greise Kopf (BK 2959-2, ER 272)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 14,
+        "discNumber": null,
+        "durationMs": 182000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:39.922Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.172014+02"
+      },
+      {
+        "id": "8a3daaa7-84a0-48ff-b742-f36040d6ea9b",
+        "type": "track",
+        "title": "15 - Die Krähe (CK 2960-2, ER 274)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 15,
+        "discNumber": null,
+        "durationMs": 168000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:43.146Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.200377+02"
+      },
+      {
+        "id": "997708a0-4a5b-4dc7-b919-8a6c887b959f",
+        "type": "track",
+        "title": "16 - Letzte Hoffnung (CL 4400-2, ES 392)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 16,
+        "discNumber": null,
+        "durationMs": 194000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:43.763Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.206796+02"
+      },
+      {
+        "id": "320bda62-539d-4cea-a3ad-c60bf7e61a32",
+        "type": "track",
+        "title": "17 - Im Dorfe (CL 4399-1, ES 392)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 17,
+        "discNumber": null,
+        "durationMs": 215000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:02.285Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.359103+02"
+      },
+      {
+        "id": "d727411f-2a37-40e4-bb87-2c0c1eea34af",
+        "type": "track",
+        "title": "18 - Der stürmische Morgen (BK 2963-1, ER 274)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 18,
+        "discNumber": null,
+        "durationMs": 65000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:02.773Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.36969+02"
+      },
+      {
+        "id": "beab5186-8169-4b48-9b85-608a295c119f",
+        "type": "track",
+        "title": "19 - Täuschung (BL 4398-2, ER 275)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 19,
+        "discNumber": null,
+        "durationMs": 105000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:04.652Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.90102+02"
+      },
+      {
+        "id": "10871bdf-c028-4b97-92e9-a7a8230e6700",
+        "type": "track",
+        "title": "20 - Der Wegweiser (CL 4402-1, ES 393)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 20,
+        "discNumber": null,
+        "durationMs": 251000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:02.689Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.90281+02"
+      },
+      {
+        "id": "c1fea11f-94d4-46d8-bd71-2d3802d40d65",
+        "type": "track",
+        "title": "21 - Das Wirtshaus (CL 4403-1, ES 393)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 21,
+        "discNumber": null,
+        "durationMs": 224000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:01.451Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.897537+02"
+      },
+      {
+        "id": "10770945-c9fa-4b7f-9c4b-1a6f33bd3b2f",
+        "type": "track",
+        "title": "22 - Mut (BK 2967-1, ER 275)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 22,
+        "discNumber": null,
+        "durationMs": 113000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:03.274Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.908361+02"
+      },
+      {
+        "id": "41d1738c-869b-41f9-b1c2-6e96ec8d3a94",
+        "type": "track",
+        "title": "23 - Die Nebensonnen (BL 4401-1, ER 276)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 23,
+        "discNumber": null,
+        "durationMs": 178000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:07.449Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.374364+02"
+      },
+      {
+        "id": "d41d51bf-00b9-4e53-8c9e-c282f3ccdb56",
+        "type": "track",
+        "title": "24 - Der Leiermann (BK 2969-1, ER 276)",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Franz Schubert"
+        },
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": 24,
+        "discNumber": null,
+        "durationMs": 196000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:08.595Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.388491+02"
+      },
+      {
+        "id": "ec637303-3f9a-466a-b9b8-d7dde59f934f",
+        "type": "track",
+        "title": "2nd Arabic Suite (Arabesque) - Spring Butterfly, Performer JMC, Han",
+        "artists": [
+          {
+            "id": "a19cc070-64cc-4632-b020-c3ea69c6cdbc",
+            "title": "Claude Debussy"
+          }
+        ],
+        "albumArtist": null,
+        "album": {
+          "id": "2c4e26a0-2600-4277-8efe-d02eb67730a0",
+          "title": "Debussy - Selected Works"
+        },
+        "trackNumber": null,
+        "discNumber": null,
+        "durationMs": 286000,
+        "genres": [],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/2c4e26a0-2600-4277-8efe-d02eb67730a0/images/poster?size=card&v=0de881338646",
+            "variants": {
+              "thumb": "/api/v1/media/2c4e26a0-2600-4277-8efe-d02eb67730a0/images/poster?size=thumb&v=0de881338646",
+              "card": "/api/v1/media/2c4e26a0-2600-4277-8efe-d02eb67730a0/images/poster?size=card&v=0de881338646",
+              "full": "/api/v1/media/2c4e26a0-2600-4277-8efe-d02eb67730a0/images/poster?size=full&v=0de881338646"
+            },
+            "revision": "0de881338646",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LF7or2S$I9t6*0o}WrbIk[S6f,of"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:47:47.618Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.769544+02"
+      },
+      {
+        "id": "aa7e23d3-f4c1-4687-a6a7-959ca9a95537",
+        "type": "track",
+        "title": "Adeste Fideles (Shorter)",
+        "artists": [
+          {
+            "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+            "title": "Kevin MacLeod"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Kevin MacLeod"
+        },
+        "album": {
+          "id": "d3578988-dd61-461a-92b2-2ba481f871c1",
+          "title": "Holiday Album"
+        },
+        "trackNumber": 1,
+        "discNumber": null,
+        "durationMs": 85000,
+        "genres": [
+          "Holiday"
+        ],
+        "year": 2021,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/d3578988-dd61-461a-92b2-2ba481f871c1/images/poster?size=card&v=75faea3c8bd3",
+            "variants": {
+              "thumb": "/api/v1/media/d3578988-dd61-461a-92b2-2ba481f871c1/images/poster?size=thumb&v=75faea3c8bd3",
+              "card": "/api/v1/media/d3578988-dd61-461a-92b2-2ba481f871c1/images/poster?size=card&v=75faea3c8bd3",
+              "full": "/api/v1/media/d3578988-dd61-461a-92b2-2ba481f871c1/images/poster?size=full&v=75faea3c8bd3"
+            },
+            "revision": "75faea3c8bd3",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LEKne+IU0ex]~qMxtlbHo~%Mn%s:"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:46:48.384Z"
+        },
+        "addedAt": "2026-09-12 14:56:17.668755+02"
+      },
+      {
+        "id": "87cafc78-138e-4c2e-90ae-d36cb74c31c7",
+        "type": "track",
+        "title": "Adeste Fideles Waltz",
+        "artists": [
+          {
+            "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+            "title": "Kevin MacLeod"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Kevin MacLeod"
+        },
+        "album": {
+          "id": "d3578988-dd61-461a-92b2-2ba481f871c1",
+          "title": "Holiday Album"
+        },
+        "trackNumber": 2,
+        "discNumber": null,
+        "durationMs": 140000,
+        "genres": [
+          "Holiday"
+        ],
+        "year": 2021,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/d3578988-dd61-461a-92b2-2ba481f871c1/images/poster?size=card&v=75faea3c8bd3",
+            "variants": {
+              "thumb": "/api/v1/media/d3578988-dd61-461a-92b2-2ba481f871c1/images/poster?size=thumb&v=75faea3c8bd3",
+              "card": "/api/v1/media/d3578988-dd61-461a-92b2-2ba481f871c1/images/poster?size=card&v=75faea3c8bd3",
+              "full": "/api/v1/media/d3578988-dd61-461a-92b2-2ba481f871c1/images/poster?size=full&v=75faea3c8bd3"
+            },
+            "revision": "75faea3c8bd3",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LEKne+IU0ex]~qMxtlbHo~%Mn%s:"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:46:48.991Z"
+        },
+        "addedAt": "2026-09-12 14:56:17.669504+02"
+      },
+      {
+        "id": "fa0af0ab-3f0a-4dfc-a684-ba61313cb245",
+        "type": "track",
+        "title": "Adventures in Adventureland",
+        "artists": [
+          {
+            "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+            "title": "Kevin MacLeod"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Kevin MacLeod"
+        },
+        "album": {
+          "id": "71a6db32-2332-4dc9-a4a7-3f8172d1d593",
+          "title": "World & Medieval"
+        },
+        "trackNumber": 3,
+        "discNumber": null,
+        "durationMs": 261000,
+        "genres": [
+          "World"
+        ],
+        "year": 2021,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/71a6db32-2332-4dc9-a4a7-3f8172d1d593/images/poster?size=card&v=4eff6561731b",
+            "variants": {
+              "thumb": "/api/v1/media/71a6db32-2332-4dc9-a4a7-3f8172d1d593/images/poster?size=thumb&v=4eff6561731b",
+              "card": "/api/v1/media/71a6db32-2332-4dc9-a4a7-3f8172d1d593/images/poster?size=card&v=4eff6561731b",
+              "full": "/api/v1/media/71a6db32-2332-4dc9-a4a7-3f8172d1d593/images/poster?size=full&v=4eff6561731b"
+            },
+            "revision": "4eff6561731b",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "L8GACV?w4;%i03fmD+WE00IoxUjE"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:47:33.626Z"
+        },
+        "addedAt": "2026-09-12 14:56:17.978842+02"
+      },
+      {
+        "id": "fd7b0e56-be5f-4ea0-9f61-3b8f0943d74c",
+        "type": "track",
+        "title": "Ak, cik gaiši iznira tavs tēlsLa.4-18068",
+        "artists": [
+          {
+            "id": "d86929f5-6d36-4e05-9a5c-7f991d1840e9",
+            "title": "Franz Schubert"
+          }
+        ],
+        "albumArtist": null,
+        "album": {
+          "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+          "title": "Schubert - Selected Works"
+        },
+        "trackNumber": null,
+        "discNumber": null,
+        "durationMs": 184000,
+        "genres": [],
+        "year": 2015,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+            "variants": {
+              "thumb": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb&v=5117ea152dbc",
+              "card": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=card&v=5117ea152dbc",
+              "full": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=full&v=5117ea152dbc"
+            },
+            "revision": "5117ea152dbc",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LUD[:?IuH@oI~9IqRQt5n#S4ozWU"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:49:08.030Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.379803+02"
+      },
+      {
+        "id": "0d44f2ab-8bec-4a50-ad4a-3df1cdeb92b2",
+        "type": "track",
+        "title": "Aquarium",
+        "artists": [
+          {
+            "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+            "title": "Kevin MacLeod"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Kevin MacLeod"
+        },
+        "album": {
+          "id": "4818cc70-81c1-4021-9e5c-47ed5352504f",
+          "title": "Light Classical"
+        },
+        "trackNumber": 9,
+        "discNumber": null,
+        "durationMs": 144000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2019,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/4818cc70-81c1-4021-9e5c-47ed5352504f/images/poster?size=card&v=63d93b325fe4",
+            "variants": {
+              "thumb": "/api/v1/media/4818cc70-81c1-4021-9e5c-47ed5352504f/images/poster?size=thumb&v=63d93b325fe4",
+              "card": "/api/v1/media/4818cc70-81c1-4021-9e5c-47ed5352504f/images/poster?size=card&v=63d93b325fe4",
+              "full": "/api/v1/media/4818cc70-81c1-4021-9e5c-47ed5352504f/images/poster?size=full&v=63d93b325fe4"
+            },
+            "revision": "63d93b325fe4",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "L8GACW?w4;%i04bJD+R+00IpxBjF"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:06.995Z"
+        },
+        "addedAt": "2026-09-12 14:56:17.842999+02"
+      },
+      {
+        "id": "74ae424f-d360-43ad-af35-f9002fff2049",
+        "type": "track",
+        "title": "Aria",
+        "artists": [
+          {
+            "id": "7143ff5c-2823-4009-a0f8-b829790bc699",
+            "title": "Johann Sebastian Bach"
+          }
+        ],
+        "albumArtist": null,
+        "album": {
+          "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+          "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince"
+        },
+        "trackNumber": 1,
+        "discNumber": null,
+        "durationMs": 228000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+            "variants": {
+              "thumb": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb&v=d121bc5060fa",
+              "card": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=card&v=d121bc5060fa",
+              "full": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=full&v=d121bc5060fa"
+            },
+            "revision": "d121bc5060fa",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LKDv7kRk0gxu~UayENt79ukCw]WB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:20.974Z"
+        },
+        "addedAt": "2026-09-15 10:28:04.497208+02"
+      },
+      {
+        "id": "a53bc035-fc19-430d-a822-723b54b196d8",
+        "type": "track",
+        "title": "Arroz Con Pollo",
+        "artists": [
+          {
+            "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+            "title": "Kevin MacLeod"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Kevin MacLeod"
+        },
+        "album": {
+          "id": "dd556fa4-908d-4883-9db2-87f9cb4340f8",
+          "title": "Latin Grooves"
+        },
+        "trackNumber": 3,
+        "discNumber": null,
+        "durationMs": 162000,
+        "genres": [
+          "Latin"
+        ],
+        "year": 2018,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/dd556fa4-908d-4883-9db2-87f9cb4340f8/images/poster?size=card&v=58d3a352132e",
+            "variants": {
+              "thumb": "/api/v1/media/dd556fa4-908d-4883-9db2-87f9cb4340f8/images/poster?size=thumb&v=58d3a352132e",
+              "card": "/api/v1/media/dd556fa4-908d-4883-9db2-87f9cb4340f8/images/poster?size=card&v=58d3a352132e",
+              "full": "/api/v1/media/dd556fa4-908d-4883-9db2-87f9cb4340f8/images/poster?size=full&v=58d3a352132e"
+            },
+            "revision": "58d3a352132e",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "L8GACW?w4;%i04fmD+WE00IoxUe."
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:46:58.751Z"
+        },
+        "addedAt": "2026-09-12 14:56:17.780123+02"
+      },
+      {
+        "id": "4b87b4bc-47da-48d3-b1bb-be4d03c8d803",
+        "type": "track",
+        "title": "Ashton Manor",
+        "artists": [
+          {
+            "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+            "title": "Kevin MacLeod"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Kevin MacLeod"
+        },
+        "album": {
+          "id": "97780b1b-cf7d-4cbc-a2f2-33d246f366b7",
+          "title": "Stings & Shorts"
+        },
+        "trackNumber": 4,
+        "discNumber": null,
+        "durationMs": 44000,
+        "genres": [
+          "Stings"
+        ],
+        "year": 2013,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/97780b1b-cf7d-4cbc-a2f2-33d246f366b7/images/poster?size=card&v=362802f861b3",
+            "variants": {
+              "thumb": "/api/v1/media/97780b1b-cf7d-4cbc-a2f2-33d246f366b7/images/poster?size=thumb&v=362802f861b3",
+              "card": "/api/v1/media/97780b1b-cf7d-4cbc-a2f2-33d246f366b7/images/poster?size=card&v=362802f861b3",
+              "full": "/api/v1/media/97780b1b-cf7d-4cbc-a2f2-33d246f366b7/images/poster?size=full&v=362802f861b3"
+            },
+            "revision": "362802f861b3",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "L27KuMIUWB%M00D%xuay~qofWBWB"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:47:22.949Z"
+        },
+        "addedAt": "2026-09-12 14:56:17.902454+02"
+      },
+      {
+        "id": "b18e5a77-0268-416e-a63b-97d729fa0f1d",
+        "type": "track",
+        "title": "A Very Brady Special",
+        "artists": [
+          {
+            "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+            "title": "Kevin MacLeod"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Kevin MacLeod"
+        },
+        "album": {
+          "id": "71a6db32-2332-4dc9-a4a7-3f8172d1d593",
+          "title": "World & Medieval"
+        },
+        "trackNumber": 7,
+        "discNumber": null,
+        "durationMs": 388000,
+        "genres": [
+          "World"
+        ],
+        "year": 2019,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/71a6db32-2332-4dc9-a4a7-3f8172d1d593/images/poster?size=card&v=4eff6561731b",
+            "variants": {
+              "thumb": "/api/v1/media/71a6db32-2332-4dc9-a4a7-3f8172d1d593/images/poster?size=thumb&v=4eff6561731b",
+              "card": "/api/v1/media/71a6db32-2332-4dc9-a4a7-3f8172d1d593/images/poster?size=card&v=4eff6561731b",
+              "full": "/api/v1/media/71a6db32-2332-4dc9-a4a7-3f8172d1d593/images/poster?size=full&v=4eff6561731b"
+            },
+            "revision": "4eff6561731b",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "L8GACV?w4;%i03fmD+WE00IoxUjE"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-15T13:47:11.070Z"
+        },
+        "addedAt": "2026-09-12 14:56:18.00122+02"
+      },
+      {
+        "id": "fb56dc73-10df-4957-9b33-31b937e0f94a",
+        "type": "track",
+        "title": "Beachfront Celebration",
+        "artists": [
+          {
+            "id": "cce23344-1c18-4d99-81cd-1c872b3486b4",
+            "title": "Kevin MacLeod"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Kevin MacLeod"
+        },
+        "album": {
+          "id": "dd556fa4-908d-4883-9db2-87f9cb4340f8",
+          "title": "Latin Grooves"
+        },
+        "trackNumber": 9,
+        "discNumber": null,
+        "durationMs": 187000,
+        "genres": [
+          "Latin"
+        ],
+        "year": 2012,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/dd556fa4-908d-4883-9db2-87f9cb4340f8/images/poster?size=card&v=58d3a352132e",
+            "variants": {
+              "thumb": "/api/v1/media/dd556fa4-908d-4883-9db2-87f9cb4340f8/images/poster?size=thumb&v=58d3a352132e",
+              "card": "/api/v1/media/dd556fa4-908d-4883-9db2-87f9cb4340f8/images/poster?size=card&v=58d3a352132e",
+              "full": "/api/v1/media/dd556fa4-908d-4883-9db2-87f9cb4340f8/images/poster?size=full&v=58d3a352132e"
+            },
+            "revision": "58d3a352132e",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "L8GACW?w4;%i04fmD+WE00IoxUe."
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:47:02.763Z"
+        },
+        "addedAt": "2026-09-12 14:56:17.811888+02"
+      },
+      {
+        "id": "52976a0d-380e-4e72-9220-7aac849eff4a",
+        "type": "track",
+        "title": "Beethoven Appassionata Sonata 3 final bars of Andante",
+        "artists": [
+          {
+            "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+            "title": "Ludwig van Beethoven"
+          }
+        ],
+        "albumArtist": null,
+        "album": {
+          "id": "1cde940b-65df-4722-9317-aebe155931f4",
+          "title": "Beethoven - Selected Works"
+        },
+        "trackNumber": null,
+        "discNumber": null,
+        "durationMs": 21000,
+        "genres": [],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:23.027Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.016681+02"
+      },
+      {
+        "id": "182aefc4-5150-4d0e-b902-055eca8aaf07",
+        "type": "track",
+        "title": "Beethoven authentic cadence",
+        "artists": [
+          {
+            "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+            "title": "Ludwig van Beethoven"
+          }
+        ],
+        "albumArtist": null,
+        "album": {
+          "id": "1cde940b-65df-4722-9317-aebe155931f4",
+          "title": "Beethoven - Selected Works"
+        },
+        "trackNumber": null,
+        "discNumber": null,
+        "durationMs": 8000,
+        "genres": [],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:17.716Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.970692+02"
+      },
+      {
+        "id": "a6b4dde6-6bb2-4cca-9a83-a07b626a19f0",
+        "type": "track",
+        "title": "Beethoven Op 131 Trio from Scherzo, bars 69-76",
+        "artists": [
+          {
+            "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+            "title": "Ludwig van Beethoven"
+          }
+        ],
+        "albumArtist": null,
+        "album": {
+          "id": "1cde940b-65df-4722-9317-aebe155931f4",
+          "title": "Beethoven - Selected Works"
+        },
+        "trackNumber": null,
+        "discNumber": null,
+        "durationMs": 10000,
+        "genres": [],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:20.739Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.999622+02"
+      },
+      {
+        "id": "54ea8f05-7fd9-4732-aae2-71af32e4624c",
+        "type": "track",
+        "title": "Beethoven Op 131 Trio from Scherzo, bars 93-100",
+        "artists": [
+          {
+            "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+            "title": "Ludwig van Beethoven"
+          }
+        ],
+        "albumArtist": null,
+        "album": {
+          "id": "1cde940b-65df-4722-9317-aebe155931f4",
+          "title": "Beethoven - Selected Works"
+        },
+        "trackNumber": null,
+        "discNumber": null,
+        "durationMs": 10000,
+        "genres": [],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:24.212Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.026722+02"
+      },
+      {
+        "id": "e354b058-83c4-438d-83ac-5e135315820e",
+        "type": "track",
+        "title": "Beethoven Piano Concerto 4 slow movement, bars 47-55",
+        "artists": [
+          {
+            "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+            "title": "Ludwig van Beethoven"
+          }
+        ],
+        "albumArtist": null,
+        "album": {
+          "id": "1cde940b-65df-4722-9317-aebe155931f4",
+          "title": "Beethoven - Selected Works"
+        },
+        "trackNumber": null,
+        "discNumber": null,
+        "durationMs": 32000,
+        "genres": [],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:21.957Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.008363+02"
+      },
+      {
+        "id": "d09f8c50-a970-4fcf-8236-19c12a06a980",
+        "type": "track",
+        "title": "Beethoven - String Quartet No. 6 in B flat major, Op. 18 No. 6 - I. Allegro con brio (Musopen String Quartet)",
+        "artists": [
+          {
+            "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+            "title": "Ludwig van Beethoven"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Ludwig van Beethoven"
+        },
+        "album": {
+          "id": "1cde940b-65df-4722-9317-aebe155931f4",
+          "title": "Beethoven - Selected Works"
+        },
+        "trackNumber": 4,
+        "discNumber": null,
+        "durationMs": 281000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2012,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:15.958Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.954375+02"
+      },
+      {
+        "id": "475fd30b-f537-4470-bcfc-bc83741691cd",
+        "type": "track",
+        "title": "Beethoven - String Quartet No. 6 in B flat major, Op. 18 No. 6 - II. Adagio, ma non troppo (Musopen String Quartet)",
+        "artists": [
+          {
+            "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+            "title": "Ludwig van Beethoven"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Ludwig van Beethoven"
+        },
+        "album": {
+          "id": "1cde940b-65df-4722-9317-aebe155931f4",
+          "title": "Beethoven - Selected Works"
+        },
+        "trackNumber": 5,
+        "discNumber": null,
+        "durationMs": 422000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2012,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:19.474Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.986357+02"
+      },
+      {
+        "id": "32f23596-c896-4182-ad99-2b9787c72bb0",
+        "type": "track",
+        "title": "Beethoven - String Quartet No. 6 in B flat major, Op. 18 No. 6 - III. Scherzo (Musopen String Quartet)",
+        "artists": [
+          {
+            "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+            "title": "Ludwig van Beethoven"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Ludwig van Beethoven"
+        },
+        "album": {
+          "id": "1cde940b-65df-4722-9317-aebe155931f4",
+          "title": "Beethoven - Selected Works"
+        },
+        "trackNumber": 6,
+        "discNumber": null,
+        "durationMs": 253000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2012,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:17.116Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.965551+02"
+      },
+      {
+        "id": "03c8f43b-6d0b-437a-81bf-5d34ace38a04",
+        "type": "track",
+        "title": "Beethoven - String Quartet No. 6 in B flat major, Op. 18 No. 6 - IV. La malinconia (Musopen String Quartet)",
+        "artists": [
+          {
+            "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+            "title": "Ludwig van Beethoven"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Ludwig van Beethoven"
+        },
+        "album": {
+          "id": "1cde940b-65df-4722-9317-aebe155931f4",
+          "title": "Beethoven - Selected Works"
+        },
+        "trackNumber": 7,
+        "discNumber": null,
+        "durationMs": 493000,
+        "genres": [
+          "Classical"
+        ],
+        "year": 2012,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:21.384Z"
+        },
+        "addedAt": "2026-09-12 15:03:44.002535+02"
+      },
+      {
+        "id": "0c248552-95d0-417c-8476-fc00f6bd2ff9",
+        "type": "track",
+        "title": "Beethoven - Violin Sonata No. 1 in D major, Op. 12 - I. Allegro con brio (Menuhin, Baller)",
+        "artists": [
+          {
+            "id": "cbd9b365-26d1-4665-8cb8-caebf5509b2c",
+            "title": "Ludwig van Beethoven"
+          }
+        ],
+        "albumArtist": {
+          "id": null,
+          "title": "Ludwig van Beethoven"
+        },
+        "album": {
+          "id": "1cde940b-65df-4722-9317-aebe155931f4",
+          "title": "Beethoven - Selected Works"
+        },
+        "trackNumber": 9,
+        "discNumber": null,
+        "durationMs": 331000,
+        "genres": [
+          "Classical"
+        ],
+        "year": null,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+            "variants": {
+              "thumb": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb&v=3a289fb15b4d",
+              "card": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=card&v=3a289fb15b4d",
+              "full": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=full&v=3a289fb15b4d"
+            },
+            "revision": "3a289fb15b4d",
+            "source": "album",
+            "placeholder": {
+              "blurhash": "LDDIUk?G0K%29[56Dis9AC?H}[Ef"
+            }
+          }
+        },
+        "isRadio": false,
+        "lyrics": {
+          "plain": null,
+          "synced": null,
+          "source": "lrclib",
+          "fetchedAt": "2026-09-12T13:48:20.079Z"
+        },
+        "addedAt": "2026-09-12 15:03:43.99147+02"
+      }
+    ],
+    "page": {
+      "limit": 50,
+      "offset": 0,
+      "hasMore": true
+    }
+  },
+  "baselineProblems": []
+}

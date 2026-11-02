@@ -1,0 +1,32 @@
+title: ''
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Questions about playing media and connecting clients: the web player, the iOS/tvOS and Android apps, Jellyfin-compatible and Subsonic apps, codecs, subtitles, transcoding choices. See [Connecting third-party apps](https://lumastra.org/using/third-party-players/) and [Codec & client support](https://lumastra.org/reference/codec-support/). If something that should play does **not**, file a [Playback problem issue](https://github.com/Sapd/lumastra/issues/new/choose); it asks for the incident and transcode data we need.
+
+              **House rules**, in short: keep it about media you own or are licensed to use (no references to pirated content of any kind), redact secrets and personal data before posting, and be kind. The full rules: [CODE_OF_CONDUCT.md](https://github.com/Sapd/lumastra/blob/main/.github/CODE_OF_CONDUCT.md#content-rules).
+    - type: input
+      id: version
+      attributes:
+          label: Version / image tag
+    - type: dropdown
+      id: client
+      attributes:
+          label: Client
+          multiple: true
+          options:
+              - Web player (browser)
+              - iOS / tvOS app
+              - Android / Android TV app
+              - Jellyfin-compatible client (Swiftfin, Infuse, Findroid, …)
+              - Subsonic music client
+              - Live TV
+              - Other
+    - type: textarea
+      id: question
+      attributes:
+          label: Your question
+          description: What you are trying to play or connect, what you see, and what you expected. Container/codec details help.
+      validations:
+          required: true

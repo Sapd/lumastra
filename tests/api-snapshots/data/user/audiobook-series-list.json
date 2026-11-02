@@ -1,0 +1,847 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/audiobooks/series"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "2b084279-6440-43b4-a43d-4893e1d3ce67",
+        "name": "Aesop",
+        "bookCount": 1,
+        "durationMs": 2772463,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/545088a0-b025-4089-a870-5b6658e3188a/images/poster?size=card&v=4482dec56802",
+            "variants": {
+              "thumb": "/api/v1/media/545088a0-b025-4089-a870-5b6658e3188a/images/poster?size=thumb&v=4482dec56802",
+              "card": "/api/v1/media/545088a0-b025-4089-a870-5b6658e3188a/images/poster?size=card&v=4482dec56802",
+              "full": "/api/v1/media/545088a0-b025-4089-a870-5b6658e3188a/images/poster?size=full&v=4482dec56802"
+            },
+            "revision": "4482dec56802",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "e8c17a5e-da01-4b79-8fa7-db4baf4e75dc",
+        "name": "Alexander Hamilton",
+        "bookCount": 1,
+        "durationMs": 76355046,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/f3b62653-f09a-4e98-9f3f-a06c2ebdf052/images/poster?size=card&v=d180b672cafb",
+            "variants": {
+              "thumb": "/api/v1/media/f3b62653-f09a-4e98-9f3f-a06c2ebdf052/images/poster?size=thumb&v=d180b672cafb",
+              "card": "/api/v1/media/f3b62653-f09a-4e98-9f3f-a06c2ebdf052/images/poster?size=card&v=d180b672cafb",
+              "full": "/api/v1/media/f3b62653-f09a-4e98-9f3f-a06c2ebdf052/images/poster?size=full&v=d180b672cafb"
+            },
+            "revision": "d180b672cafb",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "cc8be8cf-f0a7-4561-ad8b-9d36c15e5e17",
+        "name": "Alexandre Dumas",
+        "bookCount": 1,
+        "durationMs": 199079597,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1b56f547-2fdf-426d-9adc-2079323f84c3/images/poster?size=card&v=65112c5f1047",
+            "variants": {
+              "thumb": "/api/v1/media/1b56f547-2fdf-426d-9adc-2079323f84c3/images/poster?size=thumb&v=65112c5f1047",
+              "card": "/api/v1/media/1b56f547-2fdf-426d-9adc-2079323f84c3/images/poster?size=card&v=65112c5f1047",
+              "full": "/api/v1/media/1b56f547-2fdf-426d-9adc-2079323f84c3/images/poster?size=full&v=65112c5f1047"
+            },
+            "revision": "65112c5f1047",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "ad14cb42-bd10-4257-be92-24b62bca9122",
+        "name": "Anna Sewell",
+        "bookCount": 1,
+        "durationMs": 22514993,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/b60f8ff3-4d40-4692-bde7-46d9da39c761/images/poster?size=card&v=b8afcbd7dfa1",
+            "variants": {
+              "thumb": "/api/v1/media/b60f8ff3-4d40-4692-bde7-46d9da39c761/images/poster?size=thumb&v=b8afcbd7dfa1",
+              "card": "/api/v1/media/b60f8ff3-4d40-4692-bde7-46d9da39c761/images/poster?size=card&v=b8afcbd7dfa1",
+              "full": "/api/v1/media/b60f8ff3-4d40-4692-bde7-46d9da39c761/images/poster?size=full&v=b8afcbd7dfa1"
+            },
+            "revision": "b8afcbd7dfa1",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "a0824af4-3cbf-4a8a-a66a-60fc77214eab",
+        "name": "Arthur Conan Doyle",
+        "bookCount": 4,
+        "durationMs": 168441946,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/35be8315-cffe-4db3-83fa-fbd5a67a3e64/images/poster?size=card&v=160daa137241",
+            "variants": {
+              "thumb": "/api/v1/media/35be8315-cffe-4db3-83fa-fbd5a67a3e64/images/poster?size=thumb&v=160daa137241",
+              "card": "/api/v1/media/35be8315-cffe-4db3-83fa-fbd5a67a3e64/images/poster?size=card&v=160daa137241",
+              "full": "/api/v1/media/35be8315-cffe-4db3-83fa-fbd5a67a3e64/images/poster?size=full&v=160daa137241"
+            },
+            "revision": "160daa137241",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "473366ad-ba0b-42e7-a76a-92e2caeef830",
+        "name": "Bram Stoker",
+        "bookCount": 1,
+        "durationMs": 59480015,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/32c650a4-9d1e-4b09-b065-e07a29db7006/images/poster?size=card&v=9de190f4a48a",
+            "variants": {
+              "thumb": "/api/v1/media/32c650a4-9d1e-4b09-b065-e07a29db7006/images/poster?size=thumb&v=9de190f4a48a",
+              "card": "/api/v1/media/32c650a4-9d1e-4b09-b065-e07a29db7006/images/poster?size=card&v=9de190f4a48a",
+              "full": "/api/v1/media/32c650a4-9d1e-4b09-b065-e07a29db7006/images/poster?size=full&v=9de190f4a48a"
+            },
+            "revision": "9de190f4a48a",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "ec9824f5-ec13-4cc4-be27-a5c579a97300",
+        "name": "Charles Darwin",
+        "bookCount": 1,
+        "durationMs": 87771497,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/ae2bbbc8-281c-4637-813d-46b576663d1e/images/poster?size=card&v=729e037c0a0c",
+            "variants": {
+              "thumb": "/api/v1/media/ae2bbbc8-281c-4637-813d-46b576663d1e/images/poster?size=thumb&v=729e037c0a0c",
+              "card": "/api/v1/media/ae2bbbc8-281c-4637-813d-46b576663d1e/images/poster?size=card&v=729e037c0a0c",
+              "full": "/api/v1/media/ae2bbbc8-281c-4637-813d-46b576663d1e/images/poster?size=full&v=729e037c0a0c"
+            },
+            "revision": "729e037c0a0c",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "5b2004a5-df2c-457e-87fc-bde39421d00c",
+        "name": "Charles Dickens",
+        "bookCount": 3,
+        "durationMs": 138687043,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1b4c44ec-fdc6-48e6-b184-98541caf90cb/images/poster?size=card&v=3f2997b4587e",
+            "variants": {
+              "thumb": "/api/v1/media/1b4c44ec-fdc6-48e6-b184-98541caf90cb/images/poster?size=thumb&v=3f2997b4587e",
+              "card": "/api/v1/media/1b4c44ec-fdc6-48e6-b184-98541caf90cb/images/poster?size=card&v=3f2997b4587e",
+              "full": "/api/v1/media/1b4c44ec-fdc6-48e6-b184-98541caf90cb/images/poster?size=full&v=3f2997b4587e"
+            },
+            "revision": "3f2997b4587e",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "3ece9147-294c-408b-9730-2ccd0af595c2",
+        "name": "Charlotte Bronte",
+        "bookCount": 1,
+        "durationMs": 66995996,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/9ab87b57-99bd-4b6d-8414-a20c77bdf6d7/images/poster?size=card&v=b6901b4c1cc2",
+            "variants": {
+              "thumb": "/api/v1/media/9ab87b57-99bd-4b6d-8414-a20c77bdf6d7/images/poster?size=thumb&v=b6901b4c1cc2",
+              "card": "/api/v1/media/9ab87b57-99bd-4b6d-8414-a20c77bdf6d7/images/poster?size=card&v=b6901b4c1cc2",
+              "full": "/api/v1/media/9ab87b57-99bd-4b6d-8414-a20c77bdf6d7/images/poster?size=full&v=b6901b4c1cc2"
+            },
+            "revision": "b6901b4c1cc2",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "209974f2-7869-4757-8818-9e4061f8bba0",
+        "name": "Charlotte Brontë",
+        "bookCount": 1,
+        "durationMs": 74221318,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e971467b-360a-4a7b-8607-ef4eb8026d99/images/poster?size=card&v=c61cc7fda2a3",
+            "variants": {
+              "thumb": "/api/v1/media/e971467b-360a-4a7b-8607-ef4eb8026d99/images/poster?size=thumb&v=c61cc7fda2a3",
+              "card": "/api/v1/media/e971467b-360a-4a7b-8607-ef4eb8026d99/images/poster?size=card&v=c61cc7fda2a3",
+              "full": "/api/v1/media/e971467b-360a-4a7b-8607-ef4eb8026d99/images/poster?size=full&v=c61cc7fda2a3"
+            },
+            "revision": "c61cc7fda2a3",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "7affc207-fcfb-47e0-b731-308e4dec8ff9",
+        "name": "Daniel Defoe",
+        "bookCount": 1,
+        "durationMs": 50114940,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/14511f0f-94a6-474a-9156-e6dd9d473bbb/images/poster?size=card&v=a95eb41c5cf2",
+            "variants": {
+              "thumb": "/api/v1/media/14511f0f-94a6-474a-9156-e6dd9d473bbb/images/poster?size=thumb&v=a95eb41c5cf2",
+              "card": "/api/v1/media/14511f0f-94a6-474a-9156-e6dd9d473bbb/images/poster?size=card&v=a95eb41c5cf2",
+              "full": "/api/v1/media/14511f0f-94a6-474a-9156-e6dd9d473bbb/images/poster?size=full&v=a95eb41c5cf2"
+            },
+            "revision": "a95eb41c5cf2",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "1af87fb3-3eb2-4acf-872e-392bee9aa9da",
+        "name": "Edgar Rice Burroughs",
+        "bookCount": 1,
+        "durationMs": 25824955,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/95932471-5b6f-45df-9911-83335baf2c62/images/poster?size=card&v=cd4ab38027e4",
+            "variants": {
+              "thumb": "/api/v1/media/95932471-5b6f-45df-9911-83335baf2c62/images/poster?size=thumb&v=cd4ab38027e4",
+              "card": "/api/v1/media/95932471-5b6f-45df-9911-83335baf2c62/images/poster?size=card&v=cd4ab38027e4",
+              "full": "/api/v1/media/95932471-5b6f-45df-9911-83335baf2c62/images/poster?size=full&v=cd4ab38027e4"
+            },
+            "revision": "cd4ab38027e4",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "813aa2a5-6eb7-459d-87af-e04c6fa6fcfb",
+        "name": "Emily Bronte",
+        "bookCount": 1,
+        "durationMs": 53334900,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/b1be8fb9-91f6-4a1a-92ff-7af0080ffaa9/images/poster?size=card&v=bf97173e13a3",
+            "variants": {
+              "thumb": "/api/v1/media/b1be8fb9-91f6-4a1a-92ff-7af0080ffaa9/images/poster?size=thumb&v=bf97173e13a3",
+              "card": "/api/v1/media/b1be8fb9-91f6-4a1a-92ff-7af0080ffaa9/images/poster?size=card&v=bf97173e13a3",
+              "full": "/api/v1/media/b1be8fb9-91f6-4a1a-92ff-7af0080ffaa9/images/poster?size=full&v=bf97173e13a3"
+            },
+            "revision": "bf97173e13a3",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "0c97f07a-a4de-41b8-8874-215ef4bca48d",
+        "name": "Frances Hodgson Burnett",
+        "bookCount": 2,
+        "durationMs": 60283941,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/f1ce796d-1ae1-47e1-94f6-88afe0a12096/images/poster?size=card&v=79cff3b61f26",
+            "variants": {
+              "thumb": "/api/v1/media/f1ce796d-1ae1-47e1-94f6-88afe0a12096/images/poster?size=thumb&v=79cff3b61f26",
+              "card": "/api/v1/media/f1ce796d-1ae1-47e1-94f6-88afe0a12096/images/poster?size=card&v=79cff3b61f26",
+              "full": "/api/v1/media/f1ce796d-1ae1-47e1-94f6-88afe0a12096/images/poster?size=full&v=79cff3b61f26"
+            },
+            "revision": "79cff3b61f26",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "3a766be7-972e-47aa-909c-65a742fe68f2",
+        "name": "Franz Kafka",
+        "bookCount": 1,
+        "durationMs": 9266093,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/4d1fd6aa-bd3b-447a-a89b-31dcd620bc1e/images/poster?size=card&v=dab233de2b1d",
+            "variants": {
+              "thumb": "/api/v1/media/4d1fd6aa-bd3b-447a-a89b-31dcd620bc1e/images/poster?size=thumb&v=dab233de2b1d",
+              "card": "/api/v1/media/4d1fd6aa-bd3b-447a-a89b-31dcd620bc1e/images/poster?size=card&v=dab233de2b1d",
+              "full": "/api/v1/media/4d1fd6aa-bd3b-447a-a89b-31dcd620bc1e/images/poster?size=full&v=dab233de2b1d"
+            },
+            "revision": "dab233de2b1d",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "c10da6fa-63c8-487b-8d73-e36e5ce91125",
+        "name": "Fyodor Dostoyevsky",
+        "bookCount": 1,
+        "durationMs": 84385057,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/3b5e6f3e-e647-4621-be26-1d2e5f7065a0/images/poster?size=card&v=4068c49e47f3",
+            "variants": {
+              "thumb": "/api/v1/media/3b5e6f3e-e647-4621-be26-1d2e5f7065a0/images/poster?size=thumb&v=4068c49e47f3",
+              "card": "/api/v1/media/3b5e6f3e-e647-4621-be26-1d2e5f7065a0/images/poster?size=card&v=4068c49e47f3",
+              "full": "/api/v1/media/3b5e6f3e-e647-4621-be26-1d2e5f7065a0/images/poster?size=full&v=4068c49e47f3"
+            },
+            "revision": "4068c49e47f3",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "8a6de38c-4e5d-4e54-930b-ceff2c3a5201",
+        "name": "Geoffrey Chaucer",
+        "bookCount": 1,
+        "durationMs": 69814060,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/11ee0e5c-756c-4fa6-9c8e-b098513b7730/images/poster?size=card&v=3fb0e50500f7",
+            "variants": {
+              "thumb": "/api/v1/media/11ee0e5c-756c-4fa6-9c8e-b098513b7730/images/poster?size=thumb&v=3fb0e50500f7",
+              "card": "/api/v1/media/11ee0e5c-756c-4fa6-9c8e-b098513b7730/images/poster?size=card&v=3fb0e50500f7",
+              "full": "/api/v1/media/11ee0e5c-756c-4fa6-9c8e-b098513b7730/images/poster?size=full&v=3fb0e50500f7"
+            },
+            "revision": "3fb0e50500f7",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "ccf0e140-dc82-49e8-a253-7202cf1f3208",
+        "name": "George MacDonald",
+        "bookCount": 1,
+        "durationMs": 19921182,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/aef13eab-6d5d-485d-83a4-83176c936167/images/poster?size=card&v=55dd49f5af9f",
+            "variants": {
+              "thumb": "/api/v1/media/aef13eab-6d5d-485d-83a4-83176c936167/images/poster?size=thumb&v=55dd49f5af9f",
+              "card": "/api/v1/media/aef13eab-6d5d-485d-83a4-83176c936167/images/poster?size=card&v=55dd49f5af9f",
+              "full": "/api/v1/media/aef13eab-6d5d-485d-83a4-83176c936167/images/poster?size=full&v=55dd49f5af9f"
+            },
+            "revision": "55dd49f5af9f",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "e7213811-98fb-4ac9-b025-679c868b2c16",
+        "name": "H. G. Wells",
+        "bookCount": 5,
+        "durationMs": 108942381,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/836997b3-ea50-44b1-9258-6b85e7a213bb/images/poster?size=card&v=aec25f921c48",
+            "variants": {
+              "thumb": "/api/v1/media/836997b3-ea50-44b1-9258-6b85e7a213bb/images/poster?size=thumb&v=aec25f921c48",
+              "card": "/api/v1/media/836997b3-ea50-44b1-9258-6b85e7a213bb/images/poster?size=card&v=aec25f921c48",
+              "full": "/api/v1/media/836997b3-ea50-44b1-9258-6b85e7a213bb/images/poster?size=full&v=aec25f921c48"
+            },
+            "revision": "aec25f921c48",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "5d859013-3a0f-4474-bbda-808e6f30501d",
+        "name": "Henry David Thoreau",
+        "bookCount": 1,
+        "durationMs": 51484616,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/a27a0580-8652-4683-8a41-20af009f9557/images/poster?size=card&v=a3517abbfccc",
+            "variants": {
+              "thumb": "/api/v1/media/a27a0580-8652-4683-8a41-20af009f9557/images/poster?size=thumb&v=a3517abbfccc",
+              "card": "/api/v1/media/a27a0580-8652-4683-8a41-20af009f9557/images/poster?size=card&v=a3517abbfccc",
+              "full": "/api/v1/media/a27a0580-8652-4683-8a41-20af009f9557/images/poster?size=full&v=a3517abbfccc"
+            },
+            "revision": "a3517abbfccc",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "fbfdd67a-ed96-4bb5-8d25-97d043e2b236",
+        "name": "Herman Melville",
+        "bookCount": 1,
+        "durationMs": 88692580,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/64d19989-f9d1-45d4-b1c7-579890b583d7/images/poster?size=card&v=7ced1a7d1c84",
+            "variants": {
+              "thumb": "/api/v1/media/64d19989-f9d1-45d4-b1c7-579890b583d7/images/poster?size=thumb&v=7ced1a7d1c84",
+              "card": "/api/v1/media/64d19989-f9d1-45d4-b1c7-579890b583d7/images/poster?size=card&v=7ced1a7d1c84",
+              "full": "/api/v1/media/64d19989-f9d1-45d4-b1c7-579890b583d7/images/poster?size=full&v=7ced1a7d1c84"
+            },
+            "revision": "7ced1a7d1c84",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "47d92c35-b0a6-42db-a233-e00abe2cf214",
+        "name": "Homer",
+        "bookCount": 2,
+        "durationMs": 94817428,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/f1030d18-efb1-4431-a9a1-0fa365294377/images/poster?size=card&v=9fc32068c498",
+            "variants": {
+              "thumb": "/api/v1/media/f1030d18-efb1-4431-a9a1-0fa365294377/images/poster?size=thumb&v=9fc32068c498",
+              "card": "/api/v1/media/f1030d18-efb1-4431-a9a1-0fa365294377/images/poster?size=card&v=9fc32068c498",
+              "full": "/api/v1/media/f1030d18-efb1-4431-a9a1-0fa365294377/images/poster?size=full&v=9fc32068c498"
+            },
+            "revision": "9fc32068c498",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "fb537171-f7bb-4694-a672-48773a3cce23",
+        "name": "J. M. Barrie",
+        "bookCount": 1,
+        "durationMs": 18256398,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/5b3bc1f0-c226-43d6-b51d-b0506314d6a8/images/poster?size=card&v=cc1d45ba1b84",
+            "variants": {
+              "thumb": "/api/v1/media/5b3bc1f0-c226-43d6-b51d-b0506314d6a8/images/poster?size=thumb&v=cc1d45ba1b84",
+              "card": "/api/v1/media/5b3bc1f0-c226-43d6-b51d-b0506314d6a8/images/poster?size=card&v=cc1d45ba1b84",
+              "full": "/api/v1/media/5b3bc1f0-c226-43d6-b51d-b0506314d6a8/images/poster?size=full&v=cc1d45ba1b84"
+            },
+            "revision": "cc1d45ba1b84",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "bf9da057-c360-40fb-888c-8e34627d418a",
+        "name": "Jack London",
+        "bookCount": 1,
+        "durationMs": 12010522,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/9e25d9de-4ebe-4086-904e-0140d17cdec2/images/poster?size=card&v=50d3a879e7eb",
+            "variants": {
+              "thumb": "/api/v1/media/9e25d9de-4ebe-4086-904e-0140d17cdec2/images/poster?size=thumb&v=50d3a879e7eb",
+              "card": "/api/v1/media/9e25d9de-4ebe-4086-904e-0140d17cdec2/images/poster?size=card&v=50d3a879e7eb",
+              "full": "/api/v1/media/9e25d9de-4ebe-4086-904e-0140d17cdec2/images/poster?size=full&v=50d3a879e7eb"
+            },
+            "revision": "50d3a879e7eb",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "332f48a8-40c1-4623-9b79-2db63715be44",
+        "name": "Jacob Grimm",
+        "bookCount": 2,
+        "durationMs": 55675182,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/4acc35ec-03cd-4c2c-a1df-f55bb94a6c85/images/poster?size=card&v=6d81953294bd",
+            "variants": {
+              "thumb": "/api/v1/media/4acc35ec-03cd-4c2c-a1df-f55bb94a6c85/images/poster?size=thumb&v=6d81953294bd",
+              "card": "/api/v1/media/4acc35ec-03cd-4c2c-a1df-f55bb94a6c85/images/poster?size=card&v=6d81953294bd",
+              "full": "/api/v1/media/4acc35ec-03cd-4c2c-a1df-f55bb94a6c85/images/poster?size=full&v=6d81953294bd"
+            },
+            "revision": "6d81953294bd",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "d169eb4a-418a-4526-a5f6-b8e71de2d723",
+        "name": "Jane Austen",
+        "bookCount": 3,
+        "durationMs": 152453249,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e7908300-b883-4fc9-b64d-f144b9dd2ad1/images/poster?size=card&v=3a46ac990623",
+            "variants": {
+              "thumb": "/api/v1/media/e7908300-b883-4fc9-b64d-f144b9dd2ad1/images/poster?size=thumb&v=3a46ac990623",
+              "card": "/api/v1/media/e7908300-b883-4fc9-b64d-f144b9dd2ad1/images/poster?size=card&v=3a46ac990623",
+              "full": "/api/v1/media/e7908300-b883-4fc9-b64d-f144b9dd2ad1/images/poster?size=full&v=3a46ac990623"
+            },
+            "revision": "3a46ac990623",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "d4abb94f-65ba-465b-9577-618329d5e022",
+        "name": "Johann David Wyss",
+        "bookCount": 1,
+        "durationMs": 45943332,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/16e4ddd0-18cf-438b-af15-ad881e80d6b0/images/poster?size=card&v=96b1043dc884",
+            "variants": {
+              "thumb": "/api/v1/media/16e4ddd0-18cf-438b-af15-ad881e80d6b0/images/poster?size=thumb&v=96b1043dc884",
+              "card": "/api/v1/media/16e4ddd0-18cf-438b-af15-ad881e80d6b0/images/poster?size=card&v=96b1043dc884",
+              "full": "/api/v1/media/16e4ddd0-18cf-438b-af15-ad881e80d6b0/images/poster?size=full&v=96b1043dc884"
+            },
+            "revision": "96b1043dc884",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "418e9b35-c6c9-4885-a641-fe60f17c5d9e",
+        "name": "Jonathan Swift",
+        "bookCount": 1,
+        "durationMs": 82019033,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/bf623b0c-9937-44ff-a86a-7e13475e990c/images/poster?size=card&v=ea0b0f84a48e",
+            "variants": {
+              "thumb": "/api/v1/media/bf623b0c-9937-44ff-a86a-7e13475e990c/images/poster?size=thumb&v=ea0b0f84a48e",
+              "card": "/api/v1/media/bf623b0c-9937-44ff-a86a-7e13475e990c/images/poster?size=card&v=ea0b0f84a48e",
+              "full": "/api/v1/media/bf623b0c-9937-44ff-a86a-7e13475e990c/images/poster?size=full&v=ea0b0f84a48e"
+            },
+            "revision": "ea0b0f84a48e",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "1577b085-d8d1-49b0-aaf4-0dc50e0dd0bd",
+        "name": "Joseph Conrad",
+        "bookCount": 1,
+        "durationMs": 15014116,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e9fbdc16-0eb2-4cee-880e-9eac04f17399/images/poster?size=card&v=451bdb6c1e9b",
+            "variants": {
+              "thumb": "/api/v1/media/e9fbdc16-0eb2-4cee-880e-9eac04f17399/images/poster?size=thumb&v=451bdb6c1e9b",
+              "card": "/api/v1/media/e9fbdc16-0eb2-4cee-880e-9eac04f17399/images/poster?size=card&v=451bdb6c1e9b",
+              "full": "/api/v1/media/e9fbdc16-0eb2-4cee-880e-9eac04f17399/images/poster?size=full&v=451bdb6c1e9b"
+            },
+            "revision": "451bdb6c1e9b",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "d4b37fcf-75f5-4b46-b2ff-481ee46262af",
+        "name": "Jules Verne",
+        "bookCount": 3,
+        "durationMs": 203592277,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/23d8119d-627e-4d3a-a694-f93dd096f59b/images/poster?size=card&v=93208994f30a",
+            "variants": {
+              "thumb": "/api/v1/media/23d8119d-627e-4d3a-a694-f93dd096f59b/images/poster?size=thumb&v=93208994f30a",
+              "card": "/api/v1/media/23d8119d-627e-4d3a-a694-f93dd096f59b/images/poster?size=card&v=93208994f30a",
+              "full": "/api/v1/media/23d8119d-627e-4d3a-a694-f93dd096f59b/images/poster?size=full&v=93208994f30a"
+            },
+            "revision": "93208994f30a",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "3631babb-686c-450e-ab72-7965d77682da",
+        "name": "L. Frank Baum",
+        "bookCount": 1,
+        "durationMs": 13498487,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/a74ab608-49ef-496a-af64-2f62b1bc76dd/images/poster?size=card&v=59533012409b",
+            "variants": {
+              "thumb": "/api/v1/media/a74ab608-49ef-496a-af64-2f62b1bc76dd/images/poster?size=thumb&v=59533012409b",
+              "card": "/api/v1/media/a74ab608-49ef-496a-af64-2f62b1bc76dd/images/poster?size=card&v=59533012409b",
+              "full": "/api/v1/media/a74ab608-49ef-496a-af64-2f62b1bc76dd/images/poster?size=full&v=59533012409b"
+            },
+            "revision": "59533012409b",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "9058bda3-0e3d-4239-bf38-d25f9d3a46cb",
+        "name": "L. M. Montgomery",
+        "bookCount": 1,
+        "durationMs": 37810306,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/a684d13b-c06e-419f-b80c-baa74b12c9cc/images/poster?size=card&v=b88dfc2928df",
+            "variants": {
+              "thumb": "/api/v1/media/a684d13b-c06e-419f-b80c-baa74b12c9cc/images/poster?size=thumb&v=b88dfc2928df",
+              "card": "/api/v1/media/a684d13b-c06e-419f-b80c-baa74b12c9cc/images/poster?size=card&v=b88dfc2928df",
+              "full": "/api/v1/media/a684d13b-c06e-419f-b80c-baa74b12c9cc/images/poster?size=full&v=b88dfc2928df"
+            },
+            "revision": "b88dfc2928df",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "8dcaef80-b003-4c37-b290-47499637d2b5",
+        "name": "Leo Tolstoy",
+        "bookCount": 1,
+        "durationMs": 132561581,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/670fc3f6-c259-40c3-9d50-112d07988c10/images/poster?size=card&v=2221178c6e52",
+            "variants": {
+              "thumb": "/api/v1/media/670fc3f6-c259-40c3-9d50-112d07988c10/images/poster?size=thumb&v=2221178c6e52",
+              "card": "/api/v1/media/670fc3f6-c259-40c3-9d50-112d07988c10/images/poster?size=card&v=2221178c6e52",
+              "full": "/api/v1/media/670fc3f6-c259-40c3-9d50-112d07988c10/images/poster?size=full&v=2221178c6e52"
+            },
+            "revision": "2221178c6e52",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "c24d6131-53b7-4ebc-b84e-cfa49da66397",
+        "name": "Lewis Carroll",
+        "bookCount": 1,
+        "durationMs": 10732402,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/f3990629-18c6-498d-bb5a-b4e0bdf11c2e/images/poster?size=card&v=34d905c9caca",
+            "variants": {
+              "thumb": "/api/v1/media/f3990629-18c6-498d-bb5a-b4e0bdf11c2e/images/poster?size=thumb&v=34d905c9caca",
+              "card": "/api/v1/media/f3990629-18c6-498d-bb5a-b4e0bdf11c2e/images/poster?size=card&v=34d905c9caca",
+              "full": "/api/v1/media/f3990629-18c6-498d-bb5a-b4e0bdf11c2e/images/poster?size=full&v=34d905c9caca"
+            },
+            "revision": "34d905c9caca",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "6c9516be-ab41-4535-8745-fcf298ebf9b2",
+        "name": "Louisa May Alcott",
+        "bookCount": 1,
+        "durationMs": 68398771,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/fd0f06cf-a459-476a-bdb0-614c9ecd2f76/images/poster?size=card&v=b50fad622234",
+            "variants": {
+              "thumb": "/api/v1/media/fd0f06cf-a459-476a-bdb0-614c9ecd2f76/images/poster?size=thumb&v=b50fad622234",
+              "card": "/api/v1/media/fd0f06cf-a459-476a-bdb0-614c9ecd2f76/images/poster?size=card&v=b50fad622234",
+              "full": "/api/v1/media/fd0f06cf-a459-476a-bdb0-614c9ecd2f76/images/poster?size=full&v=b50fad622234"
+            },
+            "revision": "b50fad622234",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "7db6476c-ddca-4166-bb54-b29fefca9bab",
+        "name": "Marcus Aurelius",
+        "bookCount": 1,
+        "durationMs": 25145345,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/12099f6e-c117-47e1-9133-58e4a50fd9b8/images/poster?size=card&v=2e7ca30ebf6c",
+            "variants": {
+              "thumb": "/api/v1/media/12099f6e-c117-47e1-9133-58e4a50fd9b8/images/poster?size=thumb&v=2e7ca30ebf6c",
+              "card": "/api/v1/media/12099f6e-c117-47e1-9133-58e4a50fd9b8/images/poster?size=card&v=2e7ca30ebf6c",
+              "full": "/api/v1/media/12099f6e-c117-47e1-9133-58e4a50fd9b8/images/poster?size=full&v=2e7ca30ebf6c"
+            },
+            "revision": "2e7ca30ebf6c",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "e303fda5-a709-4d04-9a4a-bfd569a03d7a",
+        "name": "Mark Twain",
+        "bookCount": 3,
+        "durationMs": 150805547,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/f47ea20f-2f58-4fd8-8607-1338f6ec226d/images/poster?size=card&v=c2b36188066f",
+            "variants": {
+              "thumb": "/api/v1/media/f47ea20f-2f58-4fd8-8607-1338f6ec226d/images/poster?size=thumb&v=c2b36188066f",
+              "card": "/api/v1/media/f47ea20f-2f58-4fd8-8607-1338f6ec226d/images/poster?size=card&v=c2b36188066f",
+              "full": "/api/v1/media/f47ea20f-2f58-4fd8-8607-1338f6ec226d/images/poster?size=full&v=c2b36188066f"
+            },
+            "revision": "c2b36188066f",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "08d7d462-67b5-45d0-8fd5-3b3e288f18cf",
+        "name": "Mary Wollstonecraft Shelley",
+        "bookCount": 1,
+        "durationMs": 29698047,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/ed66f3ae-7315-4aa2-985c-65fc0a115c8a/images/poster?size=card&v=ef6c875c043a",
+            "variants": {
+              "thumb": "/api/v1/media/ed66f3ae-7315-4aa2-985c-65fc0a115c8a/images/poster?size=thumb&v=ef6c875c043a",
+              "card": "/api/v1/media/ed66f3ae-7315-4aa2-985c-65fc0a115c8a/images/poster?size=card&v=ef6c875c043a",
+              "full": "/api/v1/media/ed66f3ae-7315-4aa2-985c-65fc0a115c8a/images/poster?size=full&v=ef6c875c043a"
+            },
+            "revision": "ef6c875c043a",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "63eced84-0044-463f-9e16-6e104069b6e4",
+        "name": "Miguel de Cervantes Saavedra",
+        "bookCount": 1,
+        "durationMs": 76613029,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e2bf821b-38d0-449c-b003-e4e62348d6de/images/poster?size=card&v=83499c046fc9",
+            "variants": {
+              "thumb": "/api/v1/media/e2bf821b-38d0-449c-b003-e4e62348d6de/images/poster?size=thumb&v=83499c046fc9",
+              "card": "/api/v1/media/e2bf821b-38d0-449c-b003-e4e62348d6de/images/poster?size=card&v=83499c046fc9",
+              "full": "/api/v1/media/e2bf821b-38d0-449c-b003-e4e62348d6de/images/poster?size=full&v=83499c046fc9"
+            },
+            "revision": "83499c046fc9",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "1b63abb5-e758-4142-927d-d280b311aa47",
+        "name": "Nathaniel Hawthorne",
+        "bookCount": 1,
+        "durationMs": 33051653,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/c8a7fd44-0a7d-4b6e-b5bd-f978dcc8041c/images/poster?size=card&v=48c94400cb92",
+            "variants": {
+              "thumb": "/api/v1/media/c8a7fd44-0a7d-4b6e-b5bd-f978dcc8041c/images/poster?size=thumb&v=48c94400cb92",
+              "card": "/api/v1/media/c8a7fd44-0a7d-4b6e-b5bd-f978dcc8041c/images/poster?size=card&v=48c94400cb92",
+              "full": "/api/v1/media/c8a7fd44-0a7d-4b6e-b5bd-f978dcc8041c/images/poster?size=full&v=48c94400cb92"
+            },
+            "revision": "48c94400cb92",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "71edaae3-e393-45c1-ae79-8e34e39e1e4b",
+        "name": "Niccolò Machiavelli",
+        "bookCount": 1,
+        "durationMs": 21283181,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/2fe06103-5402-45d2-891a-b79a6b324ce0/images/poster?size=card&v=1c92e27aa740",
+            "variants": {
+              "thumb": "/api/v1/media/2fe06103-5402-45d2-891a-b79a6b324ce0/images/poster?size=thumb&v=1c92e27aa740",
+              "card": "/api/v1/media/2fe06103-5402-45d2-891a-b79a6b324ce0/images/poster?size=card&v=1c92e27aa740",
+              "full": "/api/v1/media/2fe06103-5402-45d2-891a-b79a6b324ce0/images/poster?size=full&v=1c92e27aa740"
+            },
+            "revision": "1c92e27aa740",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "ca47dbd8-7838-45c7-a1fd-e759d814aae6",
+        "name": "Oscar Wilde",
+        "bookCount": 2,
+        "durationMs": 50717886,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/636d1b70-cdd7-4ee6-b7d5-0e82e642ebcc/images/poster?size=card&v=a6e5d91d259f",
+            "variants": {
+              "thumb": "/api/v1/media/636d1b70-cdd7-4ee6-b7d5-0e82e642ebcc/images/poster?size=thumb&v=a6e5d91d259f",
+              "card": "/api/v1/media/636d1b70-cdd7-4ee6-b7d5-0e82e642ebcc/images/poster?size=card&v=a6e5d91d259f",
+              "full": "/api/v1/media/636d1b70-cdd7-4ee6-b7d5-0e82e642ebcc/images/poster?size=full&v=a6e5d91d259f"
+            },
+            "revision": "a6e5d91d259f",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "2a9006b6-2aed-4b9c-9ae0-437272ba8ad5",
+        "name": "Plato",
+        "bookCount": 1,
+        "durationMs": 44821734,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/6677041d-156f-4e5d-bdea-7782ca013511/images/poster?size=card&v=09a9da27324c",
+            "variants": {
+              "thumb": "/api/v1/media/6677041d-156f-4e5d-bdea-7782ca013511/images/poster?size=thumb&v=09a9da27324c",
+              "card": "/api/v1/media/6677041d-156f-4e5d-bdea-7782ca013511/images/poster?size=card&v=09a9da27324c",
+              "full": "/api/v1/media/6677041d-156f-4e5d-bdea-7782ca013511/images/poster?size=full&v=09a9da27324c"
+            },
+            "revision": "09a9da27324c",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "5a217339-d61a-4252-9592-129b2b4f7cc3",
+        "name": "Robert Louis Stevenson",
+        "bookCount": 3,
+        "durationMs": 75626260,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/23467f59-96ae-4a98-ac87-870b88963a39/images/poster?size=card&v=6bcc7788ae07",
+            "variants": {
+              "thumb": "/api/v1/media/23467f59-96ae-4a98-ac87-870b88963a39/images/poster?size=thumb&v=6bcc7788ae07",
+              "card": "/api/v1/media/23467f59-96ae-4a98-ac87-870b88963a39/images/poster?size=card&v=6bcc7788ae07",
+              "full": "/api/v1/media/23467f59-96ae-4a98-ac87-870b88963a39/images/poster?size=full&v=6bcc7788ae07"
+            },
+            "revision": "6bcc7788ae07",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "49fec82a-0889-4d53-83a7-c9fa9fe27f78",
+        "name": "Sun Tzu",
+        "bookCount": 1,
+        "durationMs": 4337264,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/6ad0c223-a10b-4f73-b5c0-638880cc5d8d/images/poster?size=card&v=9314406a1d33",
+            "variants": {
+              "thumb": "/api/v1/media/6ad0c223-a10b-4f73-b5c0-638880cc5d8d/images/poster?size=thumb&v=9314406a1d33",
+              "card": "/api/v1/media/6ad0c223-a10b-4f73-b5c0-638880cc5d8d/images/poster?size=card&v=9314406a1d33",
+              "full": "/api/v1/media/6ad0c223-a10b-4f73-b5c0-638880cc5d8d/images/poster?size=full&v=9314406a1d33"
+            },
+            "revision": "9314406a1d33",
+            "source": "self"
+          }
+        }
+      },
+      {
+        "id": "00b3d423-2dd1-48cd-9199-b5cff3277377",
+        "name": "Sunzi",
+        "bookCount": 1,
+        "durationMs": 4338049,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/2fd3db67-85da-4782-9e54-024b2322533e/images/poster?size=card&v=2b55f019b4ac",
+            "variants": {
+              "thumb": "/api/v1/media/2fd3db67-85da-4782-9e54-024b2322533e/images/poster?size=thumb&v=2b55f019b4ac",
+              "card": "/api/v1/media/2fd3db67-85da-4782-9e54-024b2322533e/images/poster?size=card&v=2b55f019b4ac",
+              "full": "/api/v1/media/2fd3db67-85da-4782-9e54-024b2322533e/images/poster?size=full&v=2b55f019b4ac"
+            },
+            "revision": "2b55f019b4ac",
+            "source": "self"
+          }
+        }
+      }
+    ],
+    "page": {
+      "limit": 60,
+      "offset": 0,
+      "hasMore": false,
+      "total": 46
+    }
+  },
+  "baselineProblems": []
+}

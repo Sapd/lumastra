@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+# Migrating an existing install: CNPG initialised with the source's locale (SHOW lc_collate /
+# lc_ctype on the old server), the tasks Valkey importing a copied RDB snapshot, and the app/worker
+# held at 0 until the database restore and the file copy are done.
+app: { origin: https://lumastra.example.com }
+secrets: { existingSecret: lumastra }
+web: { replicas: 0 }
+worker: { replicas: 0 }
+database:
+    mode: cnpg
+    cnpg:
+        initdb: { encoding: UTF8, localeCollate: en_US.utf8, localeCType: en_US.utf8 }
+        parameters: { default_text_search_config: pg_catalog.english }
+        backup:
+            enabled: true
+            configuration:
+                destinationPath: s3://backups/lumastra
+                s3Credentials:
+                    accessKeyId: { name: lumastra-backup-s3, key: ACCESS_KEY_ID }
+                    secretAccessKey: { name: lumastra-backup-s3, key: ACCESS_SECRET_KEY }
+            instanceSidecarConfiguration:
+                resources: { requests: { cpu: 10m, memory: 64Mi }, limits: { memory: 256Mi } }
+valkey:
+    tasks:
+        rdbImport: { enabled: true }

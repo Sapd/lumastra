@@ -1,0 +1,165 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+
+Optional CloudNativePG Cluster (operator must be installed). The app's role is the NON-superuser
+database owner, so the extensions the schema needs are created at bootstrap by CNPG as superuser
+(postInitApplicationSQL); the app's CREATE EXTENSION IF NOT EXISTS then no-ops, and its
+COMMENT ON EXTENSION is ownership-guarded (app images from 2026-10-01; older ones need
+transferExtensionOwnership).
+*/ -}}
+{{- if eq .Values.database.mode "cnpg" }}
+{{- $c := .Values.database.cnpg -}}
+{{- $name := include "lumastra.cnpgName" . -}}
+{{- $ann := merge (deepCopy (default dict $c.annotations)) (deepCopy (default dict .Values.persistence.dataAnnotations)) -}}
+{{- if $c.hibernate }}{{ $_ := set $ann "cnpg.io/hibernation" "on" }}{{ end -}}
+{{- $initdbKeys := list "encoding" "locale" "localeCollate" "localeCType" "localeProvider" "icuLocale" "icuRules" "builtinLocale" "dataChecksums" "walSegmentSize" -}}
+{{- range $k, $_ := (default dict $c.initdb) }}
+{{- if not (has $k $initdbKeys) }}{{ fail (printf "database.cnpg.initdb.%s is not supported (allowed: %s)" $k (join ", " $initdbKeys)) }}{{ end }}
+{{- end }}
+{{- with $c.initdb }}
+{{- if and (or .icuLocale .icuRules) (ne (toString .localeProvider) "icu") }}{{ fail "database.cnpg.initdb.icuLocale/icuRules need localeProvider: icu" }}{{ end }}
+{{- if and .builtinLocale (ne (toString .localeProvider) "builtin") }}{{ fail "database.cnpg.initdb.builtinLocale needs localeProvider: builtin" }}{{ end }}
+{{- end }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "lumastra.componentLabels" (list . "postgres") | nindent 4 }}
+  {{- with $ann }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  instances: {{ $c.instances }}
+  imageName: {{ $c.imageName }}
+  {{- if or $c.parameters $c.sharedPreloadLibraries }}
+  postgresql:
+    {{- with $c.parameters }}
+    parameters:
+      {{- range $k := keys . | sortAlpha }}
+      {{ $k }}: {{ get $c.parameters $k | toString | quote }}
+      {{- end }}
+    {{- end }}
+    {{- with $c.sharedPreloadLibraries }}
+    shared_preload_libraries:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- end }}
+  bootstrap:
+    initdb:
+      database: {{ $c.database }}
+      owner: {{ $c.owner }}
+      {{- range $k := keys (default dict $c.initdb) | sortAlpha }}
+      {{- $val := get $c.initdb $k }}
+      {{ $k }}: {{ if kindIs "string" $val }}{{ $val | quote }}{{ else }}{{ $val }}{{ end }}
+      {{- end }}
+      {{- with $c.ownerSecret }}
+      secret:
+        name: {{ . }}
+      {{- end }}
+      postInitApplicationSQL:
+        {{- range $c.extensions }}
+        - {{ printf "CREATE EXTENSION IF NOT EXISTS \"%s\" WITH SCHEMA public" (. | replace "\"" "\"\"") | quote }}
+        {{- end }}
+        {{- if and $c.extensions $c.transferExtensionOwnership }}
+        # Only for app images before 2026-10-01 (unguarded COMMENT ON EXTENSION needs ownership).
+        - {{ printf "UPDATE pg_catalog.pg_extension SET extowner = (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = '%s') WHERE extname IN (%s)" ($c.owner | replace "'" "''") (include "lumastra.sqlStringList" $c.extensions) | quote }}
+        {{- end }}
+        {{- range $c.extraPostInitApplicationSQL }}
+        - {{ . | quote }}
+        {{- end }}
+  {{- if $c.sonicReader.enabled }}
+  managed:
+    roles:
+      - name: {{ .Values.sonic.database.role }}
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        inherit: true
+        connectionLimit: 10
+        passwordSecret:
+          name: {{ required "database.cnpg.sonicReader.passwordSecret is required" $c.sonicReader.passwordSecret }}
+  {{- end }}
+  storage:
+    size: {{ $c.storage.size }}
+    {{- with $c.storage.storageClass }}
+    storageClass: {{ . }}
+    {{- end }}
+  {{- with $c.walStorage }}
+  walStorage:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $c.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if or $c.nodeSelector $c.tolerations }}
+  affinity:
+    {{- with $c.nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $c.tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- end }}
+  {{- if $c.backup.enabled }}
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: {{ default (printf "%s-backup" $name) $c.backup.objectStoreName }}
+  {{- end }}
+{{- if $c.backup.enabled }}
+{{- if not $c.backup.configuration }}
+{{- fail "database.cnpg.backup.configuration is required when backups are enabled (ObjectStore spec.configuration: destinationPath, endpointURL, s3Credentials, …)" }}
+{{- end }}
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: {{ default (printf "%s-backup" $name) $c.backup.objectStoreName }}
+  labels:
+    {{- include "lumastra.componentLabels" (list . "postgres") | nindent 4 }}
+spec:
+  {{- with $c.backup.retentionPolicy }}
+  retentionPolicy: {{ . | quote }}
+  {{- end }}
+  configuration:
+    {{- toYaml $c.backup.configuration | nindent 4 }}
+  {{- with $c.backup.instanceSidecarConfiguration }}
+  instanceSidecarConfiguration:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: {{ $name }}-daily
+  labels:
+    {{- include "lumastra.componentLabels" (list . "postgres") | nindent 4 }}
+spec:
+  schedule: {{ $c.backup.schedule | quote }}
+  {{- if $c.hibernate }}
+  # Hibernated: no instance to back up, so no failed Backup per day.
+  suspend: true
+  {{- end }}
+  backupOwnerReference: self
+  cluster:
+    name: {{ $name }}
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+{{- end }}
+{{- end }}
+
+{{- define "lumastra.sqlStringList" -}}
+{{- $out := list -}}
+{{- range . }}{{ $out = append $out (printf "'%s'" (replace "'" "''" (toString .))) }}{{ end -}}
+{{- join ", " $out -}}
+{{- end -}}

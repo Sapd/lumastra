@@ -1,0 +1,14 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/v1/users"
+    },
+    "status": 403,
+    "contentType": "application/problem+json",
+    "body": {
+        "code": "scope_required",
+        "error": "Token does not have the required scope. Required one of: users:admin",
+        "status": 403
+    },
+    "baselineProblems": []
+}

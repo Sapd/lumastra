@@ -1,0 +1,30 @@
+#EXTINF:-1 tvg-id="Nordwelle.de" tvg-name="Nordwelle FHD" tvg-logo="http://logos.example/nordwellehd.png" group-title="FreeTV / HD+",Nordwelle FHD
+http://provider.example/live/user/pass/501.ts
+#EXTINF:-1 tvg-id="KWF.de" tvg-name="KWF FHD" tvg-logo="http://logos.example/kwfhd.png" group-title="FreeTV / HD+",KWF FHD
+
+#EXTINF:-1 tvg-id="MTK.de" tvg-name="MTK FHD" tvg-logo="http://logos.example/mtkhd.png" group-title="FreeTV / HD+",MTK FHD
+http://provider.example/live/user/pass/503.ts
+#EXTINF:-1 broken line with no proper format
+http://provider.example/live/user/pass/broken.ts
+#EXTINF:-1 tvg-id="" tvg-name="" tvg-logo="" group-title="",
+http://provider.example/live/user/pass/empty-attrs.ts
+http://provider.example/live/user/pass/orphan-url.ts
+#EXTINF:-1 tvg-id="Double.de" tvg-name="Double Entry 1" tvg-logo="http://logos.example/double.png" group-title="Test",Double Entry 1
+#EXTINF:-1 tvg-id="Double.de" tvg-name="Double Entry 2" tvg-logo="http://logos.example/double.png" group-title="Test",Double Entry 2
+http://provider.example/live/user/pass/double.ts
+#EXTINF:-1 tvg-id="NoUrl.de" tvg-name="Missing URL Channel" tvg-logo="http://logos.example/nourl.png" group-title="Test",Missing URL Channel
+#EXTINF:-1 tvg-id="Valid.de" tvg-name="Valid After Gap" tvg-logo="http://logos.example/valid.png" group-title="FreeTV / HD+",Valid After Gap
+http://provider.example/live/user/pass/valid.ts
+#EXTINF:-1 tvg-name="No TVG-ID Channel" tvg-logo="http://logos.example/notvgid.png" group-title="Kids",No TVG-ID Channel
+http://provider.example/live/user/pass/notvgid.ts
+#EXTINF:-1 tvg-id="NoLogo.de" tvg-name="No Logo Channel" group-title="News",No Logo Channel
+http://provider.example/live/user/pass/nologo.ts
+#EXTINF:-1 tvg-id="NoGroup.de" tvg-name="No Group Channel" tvg-logo="http://logos.example/nogroup.png",No Group Channel
+http://provider.example/live/user/pass/nogroup.ts
+#EXT-X-SESSION-DATA:DATA-ID="com.xui.1_5_13"
+#EXTINF:-1 tvg-id="AfterTag.de" tvg-name="After Unknown Tag" tvg-logo="http://logos.example/aftertag.png" group-title="FreeTV / HD+",After Unknown Tag
+http://provider.example/live/user/pass/aftertag.ts
+#EXTINF:-1 tvg-id="Unicode.de" tvg-name="3kult HD ¹" tvg-logo="http://logos.example/3kulthd.png" group-title="FreeTV / HD+",3kult HD ¹
+http://provider.example/live/user/pass/unicode.ts
+#EXTINF:-1 tvg-id="Asterisk.de" tvg-name="Orb Cinema *" tvg-logo="http://logos.example/orbcinema.png" group-title="Orb *",Orb Cinema *
+http://provider.example/live/user/pass/asterisk.ts

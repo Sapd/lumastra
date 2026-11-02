@@ -1,0 +1,215 @@
+name: Unit tests
+
+# Two jobs, both on GitHub-hosted runners (safe for pull requests from forks):
+#   unit-tests         the unit, component, stream-proxy and plugin-SDK suites (no database).
+#   integration-tests  the integration suite against PostgreSQL 18 + pgvector and Valkey service
+#                      containers, with the pinned jellyfin-ffmpeg build, split into 4 shards.
+# End-to-end (Playwright) runs on demand: see e2e.yml.
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+# PRs: a new push supersedes the running check. main: queue, so every run finishes.
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+    unit-tests:
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        steps:
+            - name: Check out the repo
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Set up Node
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+              with:
+                  node-version: 22
+                  cache: npm
+
+            # A few transcode/trickplay tests probe the real ffmpeg/ffprobe binaries.
+            - name: Install FFmpeg
+              run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+            # --legacy-peer-deps matches the Dockerfile (see typecheck.yml).
+            - name: Install dependencies
+              run: npm ci --legacy-peer-deps
+
+            - name: Generate build artifacts the tests import
+              run: |
+                  npx svelte-kit sync
+                  npm run paraglide:compile
+                  npm run openapi:types
+
+            - name: Unit suite
+              env:
+                  NODE_OPTIONS: '--max-old-space-size=8192'
+              run: >-
+                  npx vitest run --exclude='**/*.integration.test.ts'
+                  --reporter=default --reporter=json
+                  --outputFile.json=/tmp/vitest-unit-main.json
+
+            - name: Component suite
+              run: >-
+                  npx vitest run --config vitest.config.components.ts
+                  --reporter=default --reporter=json
+                  --outputFile.json=/tmp/vitest-unit-components.json
+
+            - name: Build Rust Live TV proxy
+              run: |
+                  rustup toolchain install 1.99.1 --profile minimal
+                  cargo +1.99.1 build --locked --manifest-path native/livetv-proxy/Cargo.toml
+
+            - name: Stream-proxy suite
+              env:
+                  NATIVE_PROXY_BINARY: native/livetv-proxy/target/debug/lumastra-livetv-proxy
+              run: >-
+                  npx vitest run --config tests/native-conformance/proxy/vitest.config.ts
+                  --reporter=default --reporter=json
+                  --outputFile.json=/tmp/vitest-proxy.json
+
+            - name: Plugin SDK suite
+              run: >-
+                  npx vitest run --root packages/@sapd/lumastra-plugin-sdk
+                  --reporter=default --reporter=json
+                  --outputFile.json=/tmp/vitest-sdk.json
+
+            - name: Plugin SDK testing-harness suite
+              run: >-
+                  npx vitest run --root packages/@sapd/lumastra-plugin-sdk-testing
+                  --reporter=default --reporter=json
+                  --outputFile.json=/tmp/vitest-sdk-testing.json
+
+            # A misconfigured glob can make vitest "pass" with zero tests; fail that loudly.
+            - name: Guard against a silent zero-test result
+              run: |
+                  node scripts/check-vitest-json.mjs \
+                    /tmp/vitest-unit-main.json \
+                    /tmp/vitest-unit-components.json \
+                    /tmp/vitest-proxy.json \
+                    /tmp/vitest-sdk.json \
+                    /tmp/vitest-sdk-testing.json
+
+    integration-tests:
+        name: Integration tests (shard ${{ matrix.shard }}/4)
+        runs-on: ubuntu-latest
+        timeout-minutes: 60
+        # The suite runs its 500+ files one after another (fileParallelism: false); four shards
+        # keep each leg near 10-15 minutes. Every leg has its OWN database and Valkey service
+        # container, so legs share no state. Vitest splits by file count, so legs are uneven.
+        # fail-fast is off so a red shard does not hide the other shards' failure lists.
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2, 3, 4]
+        services:
+            # Versions match docker-compose.example.yml.
+            postgres:
+                image: pgvector/pgvector:pg18
+                env:
+                    POSTGRES_DB: lumastra_tests
+                    POSTGRES_USER: lumastra_ci
+                    POSTGRES_PASSWORD: lumastra_ci_test_password
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd="pg_isready -U lumastra_ci -d lumastra_tests"
+                    --health-interval=5s
+                    --health-timeout=5s
+                    --health-retries=10
+            valkey:
+                image: valkey/valkey:9-alpine
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd="valkey-cli ping"
+                    --health-interval=5s
+                    --health-timeout=5s
+                    --health-retries=10
+        env:
+            # vitest.integration.config.ts moves CACHE_URL onto scratch Valkey DB 15 and uses
+            # TEST_DATABASE_URL for every database access.
+            TEST_DATABASE_URL: postgres://lumastra_ci:lumastra_ci_test_password@localhost:5432/lumastra_tests
+            CACHE_URL: redis://localhost:6379
+        steps:
+            - name: Check out the repo
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Set up Node
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+              with:
+                  node-version: 22
+                  cache: npm
+
+            # --legacy-peer-deps matches the Dockerfile (see typecheck.yml).
+            - name: Install dependencies
+              run: npm ci --legacy-peer-deps
+
+            - name: Generate build artifacts the tests import
+              run: |
+                  npx svelte-kit sync
+                  npm run paraglide:compile
+                  npm run openapi:types
+                  npm run build:task-runtime
+
+            # The FFmpeg/trickplay/HLS tests need the same jellyfin-ffmpeg build the image ships,
+            # not the distro package. fetch-ffmpeg.sh downloads the pinned asset and checks its
+            # digest. It exits 0 on every failure path, so the next step verifies the result.
+            - name: Provision ffmpeg (pinned jellyfin-ffmpeg build)
+              env:
+                  FFMPEG_AUTO_DOWNLOAD: 'true'
+              run: |
+                  CACHE_DIR="${RUNNER_TOOL_CACHE:-$RUNNER_TEMP}/lumastra-ffmpeg"
+                  {
+                      echo "FFMPEG_CACHE_DIR=$CACHE_DIR"
+                      echo "FFMPEG_PATH=$CACHE_DIR/ffmpeg"
+                      echo "FFPROBE_PATH=$CACHE_DIR/ffprobe"
+                  } >> "$GITHUB_ENV"
+                  echo "$CACHE_DIR" >> "$GITHUB_PATH"
+                  # The script calls a bare `tsx`, which is not a declared dependency.
+                  SHIM_DIR="$RUNNER_TEMP/ffmpeg-tsx-shim"
+                  mkdir -p "$SHIM_DIR"
+                  printf '#!/bin/sh\nexec npx --yes tsx "$@"\n' > "$SHIM_DIR/tsx"
+                  chmod +x "$SHIM_DIR/tsx"
+                  PATH="$SHIM_DIR:$PWD/node_modules/.bin:$PATH" \
+                  FFMPEG_CACHE_DIR="$CACHE_DIR" \
+                  FFMPEG_PATH="$CACHE_DIR/ffmpeg" \
+                  FFPROBE_PATH="$CACHE_DIR/ffprobe" \
+                      sh scripts/fetch-ffmpeg.sh
+
+            - name: Verify ffmpeg is usable
+              run: |
+                  "$FFMPEG_PATH" -version | head -1
+                  "$FFPROBE_PATH" -version | head -1
+
+            # GitHub dumps the service container log after the last step; this keeps it short.
+            - name: Quieten the test Postgres log
+              run: node scripts/quiet-test-postgres.mjs
+
+            - name: Run database migrations
+              run: npm run db:test:migrate
+
+            - name: Build Rust Live TV proxy for playback fixtures
+              run: |
+                  rustup toolchain install 1.99.1 --profile minimal
+                  cargo +1.99.1 build --locked --manifest-path native/livetv-proxy/Cargo.toml
+
+            - name: Run integration suite
+              env:
+                  NODE_OPTIONS: '--max-old-space-size=8192'
+              run: >-
+                  npx vitest run --config vitest.integration.config.ts
+                  --shard=${{ matrix.shard }}/4
+                  --reporter=default --reporter=json
+                  --outputFile.json=${{ runner.temp }}/vitest-integration.json
+
+            - name: Guard against a silent zero-test result
+              if: always()
+              run: node scripts/check-vitest-json.mjs ${{ runner.temp }}/vitest-integration.json

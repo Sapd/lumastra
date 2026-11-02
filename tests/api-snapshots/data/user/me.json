@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/me"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "id": "c4a28b31-b1dd-4fef-9650-6c230e6ba1db",
+    "username": "sweepuser",
+    "isAdmin": false,
+    "isAgeRestricted": false,
+    "permissions": {
+      "canRequest": true,
+      "canReview": true,
+      "canAnnotateMedia": true,
+      "canWatchLiveTv": true,
+      "canSeeAllPlayback": false
+    },
+    "groups": [
+      "Users",
+      "livetv-testers"
+    ]
+  },
+  "baselineProblems": []
+}

@@ -1,0 +1,286 @@
+name: Docker
+
+# Builds the OPEN-CORE image from this repository's tree and publishes it to GHCR.
+#
+# Channels (ghcr.io/lumastra/lumastra, and -sonic-embedder for the ML sidecar):
+#   push to main  → :edge, :sha-<short>                       linux/amd64
+#   tag vX.Y.Z    → :X.Y.Z, :X.Y, :stable, :latest            linux/amd64 + linux/arm64
+#   tag vX.Y.Z-rc → :X.Y.Z-rc only (no :stable/:latest)       linux/amd64 + linux/arm64
+#   pull request  → build + checks only, nothing is pushed    linux/amd64
+# Provenance + SBOM attestations are attached on tag builds.
+#
+# This repository is the ONLY publisher of ghcr.io/lumastra/lumastra.
+# The images live in the `lumastra` organization rather than under the repository owner, so
+# their names stay the same if the repository moves to that organization later (image names
+# don't redirect the way repository URLs do). Pushing across owners needs a classic personal
+# access token (GHCR supports no fine-grained tokens): the GHCR_TOKEN secret, with
+# write:packages (+ delete:packages for ghcr-cleanup.yml). The commercial image
+# (open-core + the Enterprise tier) is built elsewhere and never pushed to this package —
+# see LICENSING.md §3.2. Releases are cut by pushing a `v*` tag by hand; nothing here creates
+# tags, and `git describe` derives the version the app reports.
+#
+# GitHub-hosted runners only. Never attach a self-hosted runner to a public repository.
+
+on:
+    push:
+        branches: [main]
+        tags: ['v*']
+    # Pull requests only build the image when something the image is made of changes.
+    # A source-only PR is covered by test.yml / typecheck.yml / lint.yml, and the next push to
+    # main builds the image anyway. Keep this list in step with what the Dockerfiles COPY
+    # before `COPY . ./` (dependency manifests, scripts, start scripts, the sonic-embedder).
+    pull_request:
+        paths:
+            - 'Dockerfile'
+            - '.node-min-version'
+            - '.dockerignore'
+            - 'package.json'
+            - 'package-lock.json'
+            - 'packages/**/package.json'
+            - 'deploy/docker/**'
+            - 'scripts/fetch-ffmpeg.sh'
+            - 'scripts/ffmpeg/**'
+            - 'scripts/prepare-husky.mjs'
+            - 'scripts/check-image-enterprise-free.sh'
+            - 'scripts/check-license-boundary.mjs'
+            - 'tsconfig.scripts.json'
+            - 'workers/sonic-embedder/**'
+            - '.github/workflows/docker-publish.yml'
+    workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    # A newer PR push supersedes the running check; publishing runs always finish.
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+    image:
+        runs-on: ubuntu-latest
+        timeout-minutes: 120
+        permissions:
+            contents: read
+        steps:
+            - name: Check out the repo
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  # Full history + tags for `git describe`.
+                  fetch-depth: 0
+                  persist-credentials: false
+
+            - name: Set up Node
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+              with:
+                  node-version: 22
+
+            # Open-core invariant gates (LICENSING.md §3a). Dependency-free node; they fail the
+            # run before any image exists.
+            - name: License boundary check
+              run: node scripts/check-license-boundary.mjs
+
+            - name: SPDX header check
+              run: node scripts/license-headers.mjs --check
+
+            # The hosted runner has ~14 GB free; the image build + a loaded copy for the
+            # enterprise-free check needs more. These preinstalled toolchains are unused here.
+            - name: Free disk space
+              run: |
+                  sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+                  df -h /
+
+            - name: Compute build identity and tags
+              id: meta
+              env:
+                  EVENT_NAME: ${{ github.event_name }}
+                  HEAD_REF: ${{ github.head_ref }}
+              run: |
+                  set -euo pipefail
+                  VERSION=$(git describe --tags --always --dirty --match 'v*')
+                  COMMIT=$(git rev-parse HEAD)
+                  COMMIT_SHORT=$(git rev-parse --short HEAD)
+                  BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+                  if [ "$EVENT_NAME" = "pull_request" ]; then BRANCH="$HEAD_REF"; else BRANCH="$GITHUB_REF_NAME"; fi
+
+                  IMAGE="ghcr.io/lumastra/lumastra"
+                  SIDECAR="ghcr.io/lumastra/lumastra-sonic-embedder"
+
+                  PUSH=false
+                  RELEASE=false
+                  SUFFIXES=()
+                  if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+                    PUSH=true
+                    RELEASE=true
+                    SEMVER="${GITHUB_REF_NAME#v}"
+                    if [[ "$SEMVER" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+                      SUFFIXES=("$SEMVER" "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}" stable latest)
+                    else
+                      # Pre-release / non-semver tag: publish it under its own name only.
+                      SUFFIXES=("$SEMVER")
+                    fi
+                  elif [ "$GITHUB_REF" = "refs/heads/main" ] && [ "$EVENT_NAME" != "pull_request" ]; then
+                    PUSH=true
+                    SUFFIXES=(edge "sha-${COMMIT_SHORT}")
+                  fi
+
+                  join() { local img=$1; shift; local s out=""; for s in "$@"; do out+="${out:+,}${img}:${s}"; done; echo "$out"; }
+                  {
+                    echo "version=$VERSION"
+                    echo "commit=$COMMIT"
+                    echo "commit_short=$COMMIT_SHORT"
+                    echo "build_time=$BUILD_TIME"
+                    echo "branch=$BRANCH"
+                    # ISO week: the Dockerfile's OS-upgrade layer keys on it, so the
+                    # image picks up Ubuntu security updates at least weekly.
+                    echo "os_patch_epoch=$(date -u +%G-W%V)"
+                    echo "push=$PUSH"
+                    echo "release=$RELEASE"
+                    echo "tags=$(join "$IMAGE" "${SUFFIXES[@]}")"
+                    echo "sidecar_tags=$(join "$SIDECAR" "${SUFFIXES[@]}")"
+                    if [ "$RELEASE" = true ]; then echo "platforms=linux/amd64,linux/arm64"; else echo "platforms=linux/amd64"; fi
+                  } >> "$GITHUB_OUTPUT"
+                  echo "Build identity: $VERSION ($COMMIT_SHORT) on $BRANCH @ $BUILD_TIME"
+                  echo "Push: $PUSH  Tags: $(join "$IMAGE" "${SUFFIXES[@]}")"
+
+            # arm64 is emulated, but only for the `prod-deps` + runtime stages: the Dockerfile
+            # pins the Vite `builder` stage to $BUILDPLATFORM, so the build itself runs native
+            # (an emulated Vite/esbuild build deadlocks — see the comment on that stage).
+            - name: Set up QEMU (arm64 emulation)
+              if: steps.meta.outputs.release == 'true'
+              uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+              with:
+                  platforms: arm64
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+            # Pass 1: build linux/amd64 into the local daemon so the artifact can be inspected
+            # BEFORE anything is published. Pass 2 re-exports from this cache.
+            - name: Build (amd64, local)
+              uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+              with:
+                  context: .
+                  platforms: linux/amd64
+                  load: true
+                  push: false
+                  provenance: false
+                  tags: lumastra:ci-check
+                  # Refresh floating base tags (e.g. ubuntu:24.04); Node stays digest-pinned.
+                  pull: true
+                  build-args: |
+                      OS_PATCH_EPOCH=${{ steps.meta.outputs.os_patch_epoch }}
+                      APP_VERSION=${{ steps.meta.outputs.version }}
+                      APP_COMMIT=${{ steps.meta.outputs.commit }}
+                      APP_COMMIT_SHORT=${{ steps.meta.outputs.commit_short }}
+                      APP_BUILD_TIME=${{ steps.meta.outputs.build_time }}
+                      APP_BRANCH=${{ steps.meta.outputs.branch }}
+                  cache-from: type=gha,scope=lumastra
+                  cache-to: type=gha,scope=lumastra,mode=max
+
+            # Belt-and-braces: the image is built from the filtered public tree, so it cannot
+            # carry Enterprise code — this proves it on the shipped artifact. Every platform is
+            # built from the same source tree; the amd64 listing stands for all of them.
+            - name: Assert the image is Enterprise-free
+              run: bash scripts/check-image-enterprise-free.sh lumastra:ci-check
+
+            - name: Assert the image contains third-party legal artifacts
+              run: |
+                  docker run --rm --network none --entrypoint node lumastra:ci-check --input-type=commonjs -e '
+                    const fs = require("node:fs");
+                    const notices = fs.readFileSync("/app/THIRD-PARTY-NOTICES.md", "utf8");
+                    if (!notices.trim()) throw new Error("Third-party notices are empty");
+                    const manifest = JSON.parse(fs.readFileSync("/app/third-party-npm-licenses.json", "utf8"));
+                    if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)
+                        || "__generation_failed__" in manifest || !Object.keys(manifest).length) {
+                      throw new Error("Third-party manifest is empty or generation failed");
+                    }
+                    console.log("Third-party legal artifacts OK: " + Object.keys(manifest).length + " packages");
+                  '
+
+            - name: Drop the local check image
+              run: docker image rm lumastra:ci-check
+
+            - name: Log in to GHCR
+              if: steps.meta.outputs.push == 'true'
+              uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+              with:
+                  registry: ghcr.io
+                  # A classic PAT with write:packages for the lumastra organization. Only
+                  # pushes to main and v* tags get here; fork PRs never see secrets.
+                  username: ${{ github.repository_owner }}
+                  password: ${{ secrets.GHCR_TOKEN }}
+
+            - name: Build and push
+              if: steps.meta.outputs.push == 'true'
+              uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+              with:
+                  context: .
+                  platforms: ${{ steps.meta.outputs.platforms }}
+                  push: true
+                  tags: ${{ steps.meta.outputs.tags }}
+                  # Refresh floating base tags (e.g. ubuntu:24.04); Node stays digest-pinned.
+                  pull: true
+                  build-args: |
+                      OS_PATCH_EPOCH=${{ steps.meta.outputs.os_patch_epoch }}
+                      APP_VERSION=${{ steps.meta.outputs.version }}
+                      APP_COMMIT=${{ steps.meta.outputs.commit }}
+                      APP_COMMIT_SHORT=${{ steps.meta.outputs.commit_short }}
+                      APP_BUILD_TIME=${{ steps.meta.outputs.build_time }}
+                      APP_BRANCH=${{ steps.meta.outputs.branch }}
+                  labels: |
+                      org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+                      org.opencontainers.image.revision=${{ steps.meta.outputs.commit }}
+                      org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+                  cache-from: type=gha,scope=lumastra
+                  provenance: ${{ steps.meta.outputs.release == 'true' && 'mode=max' || 'false' }}
+                  sbom: ${{ steps.meta.outputs.release == 'true' }}
+
+            # Sonic-embedder ML sidecar (optional companion, see workers/sonic-embedder). Rebuilt
+            # on every release tag. On main it is rebuilt when the published :edge was not
+            # built from the current source: every build stamps the git tree hash of
+            # workers/sonic-embedder (the whole build context) as the label
+            # org.lumastra.sonic-embedder.tree, and this step compares it. Stateless on
+            # purpose — the previous "diff this push's before..after" check never rebuilt a
+            # sidecar change whose own run was cancelled or failed, because every later push
+            # saw no change. A missing label, a missing tag or any registry error rebuilds.
+            - name: Check whether the published sonic-embedder is current
+              id: sidecar
+              if: steps.meta.outputs.push == 'true'
+              env:
+                  RELEASE: ${{ steps.meta.outputs.release }}
+              run: |
+                  set -o pipefail
+                  LABEL=org.lumastra.sonic-embedder.tree
+                  TREE=$(git rev-parse HEAD:workers/sonic-embedder)
+                  echo "tree=$TREE" >> "$GITHUB_OUTPUT"
+                  EDGE=ghcr.io/lumastra/lumastra-sonic-embedder:edge
+                  if [ "$RELEASE" = true ]; then
+                    echo "build=true" >> "$GITHUB_OUTPUT"
+                  elif ! PUBLISHED=$(docker buildx imagetools inspect "$EDGE" --format '{{json .Image}}' \
+                      | jq -r --arg k "$LABEL" '(if has("config") then . else .["linux/amd64"] end) | .config.Labels[$k] // empty'); then
+                    echo "Could not read ${EDGE}; rebuilding to be safe."
+                    echo "build=true" >> "$GITHUB_OUTPUT"
+                  elif [ "$PUBLISHED" = "$TREE" ]; then
+                    echo "${EDGE} is current (tree ${TREE:0:12}); skipping the sidecar build."
+                    echo "build=false" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "${EDGE} was built from tree '${PUBLISHED:-<no label>}', source is ${TREE:0:12}; rebuilding."
+                    echo "build=true" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Build and push sonic-embedder sidecar
+              if: steps.meta.outputs.push == 'true' && steps.sidecar.outputs.build == 'true'
+              uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+              with:
+                  context: ./workers/sonic-embedder
+                  platforms: linux/amd64
+                  push: true
+                  tags: ${{ steps.meta.outputs.sidecar_tags }}
+                  labels: |
+                      org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+                      org.opencontainers.image.revision=${{ steps.meta.outputs.commit }}
+                      org.lumastra.sonic-embedder.tree=${{ steps.sidecar.outputs.tree }}
+                  cache-from: type=gha,scope=sonic-embedder
+                  cache-to: type=gha,scope=sonic-embedder,mode=max
+                  provenance: ${{ steps.meta.outputs.release == 'true' && 'mode=max' || 'false' }}
+                  sbom: ${{ steps.meta.outputs.release == 'true' }}

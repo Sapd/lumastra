@@ -1,0 +1,79 @@
+name: Claude review
+
+# On-demand AI review of any pull request, including PRs from forks. A maintainer comments
+#   @claude review
+# (optionally followed by what to focus on) and Claude posts one review comment, updated on
+# every re-run.
+#
+# Why this shape: a fork PR's own `pull_request` workflow gets no secrets, so the review
+# runs from an `issue_comment` instead, which executes THIS file from the default branch.
+# The job never checks out or runs the contributor's code: the script fetches the diff and
+# changed files through the API as data and calls the model with no tools. See
+# .github/scripts/claude-review.mjs for the details.
+
+on:
+    issue_comment:
+        types: [created]
+    workflow_dispatch:
+        inputs:
+            pr_number:
+                description: Pull request number to review
+                required: true
+            focus:
+                description: Optional — what the review should pay particular attention to
+                required: false
+
+permissions: {}
+
+concurrency:
+    group: claude-review-${{ github.event.issue.number || inputs.pr_number }}
+    cancel-in-progress: true
+
+jobs:
+    review:
+        # Only on PRs, only when a maintainer asks, never for bots.
+        if: >-
+            github.event_name == 'workflow_dispatch' ||
+            (github.event.issue.pull_request &&
+             startsWith(github.event.comment.body, '@claude review') &&
+             contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+             github.event.comment.user.type != 'Bot')
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        permissions:
+            contents: read
+            pull-requests: read
+            issues: write
+        steps:
+            - name: Check out the default branch (trusted code only)
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Set up Node
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+              with:
+                  node-version: 22
+
+            - name: Acknowledge the request
+              if: github.event_name == 'issue_comment'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  COMMENT_ID: ${{ github.event.comment.id }}
+              run: >-
+                  gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID}/reactions"
+                  -f content=eyes --silent || true
+
+            # Untrusted values reach the script through env only, never ${{ }} in a shell line.
+            - name: Review
+              env:
+                  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+                  GH_TOKEN: ${{ github.token }}
+                  PR_NUMBER: ${{ github.event.issue.number || inputs.pr_number }}
+                  CLAUDE_REVIEW_MODEL: ${{ vars.CLAUDE_REVIEW_MODEL }}
+                  COMMENT_BODY: ${{ github.event.comment.body }}
+                  DISPATCH_FOCUS: ${{ inputs.focus }}
+              run: |
+                  REVIEW_FOCUS="${DISPATCH_FOCUS:-${COMMENT_BODY#@claude review}}"
+                  export REVIEW_FOCUS
+                  node .github/scripts/claude-review.mjs

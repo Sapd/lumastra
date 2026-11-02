@@ -1,0 +1,284 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/audiobooks/authors"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "eb0430e8-19ed-424e-99f1-3871eff52a6c",
+        "name": "Aesop",
+        "bookCount": 1
+      },
+      {
+        "id": "72157783-5b54-4ccf-a770-ac8091229d5d",
+        "name": "Alexander Hamilton",
+        "bookCount": 1
+      },
+      {
+        "id": "b1ad78b9-8610-42cd-9b08-93394f52bc0c",
+        "name": "Alexandre Dumas",
+        "bookCount": 1
+      },
+      {
+        "id": "e4f35ed5-3f14-4250-8d02-044509dba4d8",
+        "name": "Anna Sewell",
+        "bookCount": 1
+      },
+      {
+        "id": "8497dc68-8a29-457f-9472-c848419b8aca",
+        "name": "Arthur Conan Doyle",
+        "bookCount": 4
+      },
+      {
+        "id": "e6f578da-926f-45ab-9a5a-36fe5d05ddd0",
+        "name": "Bram Stoker",
+        "bookCount": 1
+      },
+      {
+        "id": "71d8fe82-0591-4bd0-8247-311cea824ade",
+        "name": "Brothers Grimm",
+        "bookCount": 1
+      },
+      {
+        "id": "a072619b-ac7c-43b1-9e69-d5565c50bd01",
+        "name": "Charles Darwin",
+        "bookCount": 1
+      },
+      {
+        "id": "aaa41ed8-1a7a-44ef-b3f0-8f11314074b9",
+        "name": "Charles Dickens",
+        "bookCount": 3
+      },
+      {
+        "id": "8c017e13-aa14-4681-aa46-03e3add688f8",
+        "name": "Charlotte Bronte",
+        "bookCount": 2
+      },
+      {
+        "id": "bca49fb0-a819-4af4-a219-393a93662748",
+        "name": "Daniel Defoe",
+        "bookCount": 1
+      },
+      {
+        "id": "368cc275-8405-4ccf-ba5c-5441688f17b4",
+        "name": "Edgar Rice Burroughs",
+        "bookCount": 1
+      },
+      {
+        "id": "b92fc814-53bb-4b31-90d9-797d3c7b337a",
+        "name": "Emily Bronte",
+        "bookCount": 1
+      },
+      {
+        "id": "d69072e2-722d-4e27-a04f-39cb0436e977",
+        "name": "Frances Burnett",
+        "bookCount": 1
+      },
+      {
+        "id": "54b6e44a-2755-44e8-8eea-d1bf252851fd",
+        "name": "Frances Hodgson Burnett",
+        "bookCount": 1
+      },
+      {
+        "id": "8b41b677-f483-4557-af66-2e1c05f1e7ec",
+        "name": "Franz Kafka",
+        "bookCount": 1
+      },
+      {
+        "id": "9b9baf97-a90c-4447-82d2-0d939db8a07d",
+        "name": "Fyodor Dostoyevsky",
+        "bookCount": 1
+      },
+      {
+        "id": "4f330f68-30e4-4448-a1c0-0416946a0741",
+        "name": "Geoffrey Chaucer",
+        "bookCount": 1
+      },
+      {
+        "id": "7aa19f5a-c4e1-4948-a126-e41c904bf227",
+        "name": "George Macdonald",
+        "bookCount": 1
+      },
+      {
+        "id": "4afaef49-9dee-4b02-b11c-41ab98e58aa5",
+        "name": "H. G. Wells",
+        "bookCount": 2
+      },
+      {
+        "id": "41c3b5b0-558d-49a1-881e-b70f44fb6a79",
+        "name": "H.G. Wells",
+        "bookCount": 2
+      },
+      {
+        "id": "1517a462-2e3d-460a-b61c-b505c51e6caa",
+        "name": "Henry David Thoreau",
+        "bookCount": 1
+      },
+      {
+        "id": "bf779588-47d2-40c8-865f-d55d6e07f892",
+        "name": "Herman Melville",
+        "bookCount": 1
+      },
+      {
+        "id": "65c4f4d6-4605-4d33-9206-f404eb70b75d",
+        "name": "J.M. Barrie",
+        "bookCount": 1
+      },
+      {
+        "id": "78fb1325-1178-4f17-80f5-5a08e501f341",
+        "name": "Jack London",
+        "bookCount": 1
+      },
+      {
+        "id": "7fcfd648-1a72-4a2e-96ac-ffd2f8b1855c",
+        "name": "Jacob",
+        "bookCount": 1
+      },
+      {
+        "id": "8b09e3f3-2fc8-42c2-aa2d-6549c8bca633",
+        "name": "James Madison",
+        "bookCount": 1
+      },
+      {
+        "id": "d192cd25-acde-41d1-9ef3-f92e2b3fbc0f",
+        "name": "Jane Austen",
+        "bookCount": 3
+      },
+      {
+        "id": "3c66607c-ccad-412b-8801-b699180c5a51",
+        "name": "Johann David Wyss",
+        "bookCount": 1
+      },
+      {
+        "id": "fe30878b-71c2-4e5d-b800-e7b4906cec3a",
+        "name": "John Jay",
+        "bookCount": 1
+      },
+      {
+        "id": "1236adce-ea93-453b-8629-5d912e057f1c",
+        "name": "Jonathan Swift",
+        "bookCount": 1
+      },
+      {
+        "id": "a6f8c8fa-0785-43c9-bdb0-0bcbd59b376e",
+        "name": "Joseph Conrad",
+        "bookCount": 1
+      },
+      {
+        "id": "6253f9df-477c-4618-a53a-820b5eee1e1e",
+        "name": "Jules Verne",
+        "bookCount": 3
+      },
+      {
+        "id": "41079f1f-e0a2-46ef-882a-30bacb7276d2",
+        "name": "L. Frank Baum",
+        "bookCount": 1
+      },
+      {
+        "id": "977d45f8-c928-4bae-92de-56c436c359e0",
+        "name": "L.M. Montgomery",
+        "bookCount": 1
+      },
+      {
+        "id": "408c2335-4c8a-4bab-9ddf-bfb730bbf806",
+        "name": "Leo Tolstoy",
+        "bookCount": 1
+      },
+      {
+        "id": "c7d6eb70-a9c4-4fc8-9b05-dfe328699733",
+        "name": "Lewis Carroll",
+        "bookCount": 1
+      },
+      {
+        "id": "2dc1a569-f6a7-4129-a22f-d6f6f1fd2074",
+        "name": "Louisa May Alcott",
+        "bookCount": 1
+      },
+      {
+        "id": "53b43d81-c38e-4f06-8d1f-461a4db9c6ec",
+        "name": "Machiavelli",
+        "bookCount": 1
+      },
+      {
+        "id": "836146b3-e69b-48ee-89c8-5d137f17a741",
+        "name": "Marcus Aurelius",
+        "bookCount": 1
+      },
+      {
+        "id": "009635c7-1f94-45c4-848d-5b9bce10af61",
+        "name": "Mark Twain",
+        "bookCount": 3
+      },
+      {
+        "id": "35ad826c-1047-4b71-825e-39166e91dc9a",
+        "name": "Mary Shelley",
+        "bookCount": 1
+      },
+      {
+        "id": "32c0d494-18d5-48cb-90bc-721f72e326f8",
+        "name": "Miguel de Cervantes Saavedra",
+        "bookCount": 1
+      },
+      {
+        "id": "c698581e-5a05-473d-bd00-353573f1f4b0",
+        "name": "Nathaniel Hawthorne",
+        "bookCount": 1
+      },
+      {
+        "id": "347ac0ce-23bc-497e-b993-d83d1f6877f9",
+        "name": "Oscar Wilde",
+        "bookCount": 2
+      },
+      {
+        "id": "2bbdea0e-c9d1-494f-9ec7-4d24e0e1331e",
+        "name": "Plato",
+        "bookCount": 1
+      },
+      {
+        "id": "b6cd7414-8ce7-40ad-924d-117cc264568a",
+        "name": "R. L. Stevenson",
+        "bookCount": 1
+      },
+      {
+        "id": "27a79f1c-63f9-42ea-84fa-99376bce6e25",
+        "name": "Robert Louis Stevenson",
+        "bookCount": 2
+      },
+      {
+        "id": "c925b7d0-77ef-4caf-a4d2-3b901b68fb1d",
+        "name": "Roy Trumbull",
+        "bookCount": 1
+      },
+      {
+        "id": "bae26a67-4b5c-4ebc-844c-693c49a3df8b",
+        "name": "Sun Tzu",
+        "bookCount": 2
+      },
+      {
+        "id": "f5a89a9a-3319-42d3-b813-7d6f40e54838",
+        "name": "trans. Butler Homer",
+        "bookCount": 1
+      },
+      {
+        "id": "dd7db0b3-e748-4453-aa3d-fb777555832d",
+        "name": "transl. Samuel Butler Homer",
+        "bookCount": 1
+      },
+      {
+        "id": "1e15012d-c8ea-44b9-bc7c-cf0582b10318",
+        "name": "Wilhelm Grimm",
+        "bookCount": 1
+      }
+    ],
+    "page": {
+      "limit": 60,
+      "offset": 0,
+      "hasMore": false,
+      "total": 53
+    }
+  },
+  "baselineProblems": []
+}

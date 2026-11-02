@@ -1,0 +1,255 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+
+App workloads: web (N replicas, WORKER_MODE=disabled) + lean worker (1, Recreate).
+The image ENTRYPOINT is tini: always `args`, never `command`.
+*/ -}}
+{{- define "lumastra.appDeployment" -}}
+{{- $ := index . 0 -}}
+{{- $comp := index . 1 -}}
+{{- $c := index . 2 -}}
+{{- $role := index . 3 -}}
+{{- $v := $.Values -}}
+{{- $gpu := include "lumastra.gpuFor" (list $ $role) -}}
+apiVersion: apps/v1
+{{- if eq $role "web" }}
+# StatefulSet, not Deployment: the router consistent-hashes over one `server` line per pod
+# (<name>-<ordinal>.<headless>), because open-source nginx round-robins the addresses of a single
+# re-resolved name instead of hashing them. Stable pod names also keep HOSTNAME (the HLS job
+# owner) across restarts.
+kind: StatefulSet
+{{- else }}
+kind: Deployment
+{{- end }}
+metadata:
+  name: {{ include "lumastra.component" (list $ $comp) }}
+  labels:
+    {{- include "lumastra.componentLabels" (list $ $comp) | nindent 4 }}
+spec:
+  {{- if eq $role "web" }}
+  replicas: {{ $c.replicas }}
+  serviceName: {{ include "lumastra.component" (list $ "web-headless") }}
+  # Parallel only affects scale up/down (rolling updates are always one pod at a time, highest
+  # ordinal first): on first install all pods wait for the database together instead of web-1
+  # waiting for web-0. No volumeClaimTemplates (web uses the shared claims), so
+  # persistentVolumeClaimRetentionPolicy does not apply.
+  podManagementPolicy: Parallel
+  # Let the router re-resolve a replaced pod (dnsValid) before the next one is taken down.
+  minReadySeconds: {{ $c.minReadySeconds }}
+  updateStrategy:
+    {{- toYaml $c.updateStrategy | nindent 4 }}
+  {{- else }}
+  # At most one (0 = stopped): see lumastra.singleReplicas.
+  replicas: {{ include "lumastra.singleReplicas" (list (printf "%s.replicas" $role) $c.replicas) }}
+  strategy:
+    type: Recreate
+  {{- end }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "lumastra.selectorLabels" (list $ $comp) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "lumastra.selectorLabels" (list $ $comp) | nindent 8 }}
+        {{- with include "lumastra.podLabels" (list $ $c) }}
+        {{- . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/env: {{ include "lumastra.envData" $ | sha256sum }}
+        {{- with include "lumastra.podAnnotations" (list $ $c) }}
+        {{- . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "lumastra.serviceAccountName" $ }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- include "lumastra.imagePullSecrets" $ | nindent 6 }}
+      securityContext:
+        {{- $psc := deepCopy $v.podSecurityContext }}
+        {{- if and $gpu (ne (toString $v.gpu.renderGroupId) "<nil>") }}
+        {{- $_ := set $psc "supplementalGroups" (append (default list $psc.supplementalGroups) (int $v.gpu.renderGroupId)) }}
+        {{- end }}
+        {{- toYaml $psc | nindent 8 }}
+      terminationGracePeriodSeconds: {{ $c.terminationGracePeriodSeconds }}
+      {{- include "lumastra.scheduling" (list $ $c) | nindent 6 }}
+      {{- with $c.runtimeClassName }}
+      runtimeClassName: {{ . }}
+      {{- end }}
+      containers:
+        - name: lumastra
+          image: {{ include "lumastra.image" (list $ $v.image) }}
+          imagePullPolicy: {{ include "lumastra.pullPolicy" (list $v.image) }}
+          args: [{{ if eq $role "worker" }}"./start-worker.sh"{{ else }}"./start.sh"{{ end }}]
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          securityContext:
+            {{- $csc := deepCopy $v.containerSecurityContext }}
+            {{- if and $gpu $v.gpu.privileged }}
+            {{- $_ := set $csc "privileged" true }}
+            {{- $_ := set $csc "allowPrivilegeEscalation" true }}
+            {{- end }}
+            {{- toYaml $csc | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "lumastra.component" (list $ "env") }}
+            {{- with $c.extraEnvFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          env:
+            {{- include "lumastra.podIdentityEnv" $ | nindent 12 }}
+            {{- if eq $role "web" }}
+            - name: WORKER_MODE
+              value: disabled
+            - name: DEDICATED_WORKER
+              value: 'false'
+            - name: SHUTDOWN_TIMEOUT
+              value: {{ int $c.drainSeconds | quote }}
+            {{- else }}
+            - name: WORKER_MODE
+              value: enabled
+            - name: DEDICATED_WORKER
+              value: 'true'
+            {{- end }}
+            {{- include "lumastra.databaseEnv" $ | nindent 12 }}
+            {{- include "lumastra.valkeyEnv" (list $ true true) | nindent 12 }}
+            {{- include "lumastra.proxySecretEnv" $ | nindent 12 }}
+            {{- include "lumastra.secretEnv" $ | nindent 12 }}
+            {{- include "lumastra.integrationSecretEnv" $ | nindent 12 }}
+            {{- include "lumastra.envMap" $c.env | nindent 12 }}
+            {{- with $c.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with $c.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $c.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $c.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if $c.preStopSleepSeconds }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "{{ $c.preStopSleepSeconds }}"]
+          {{- end }}
+          resources:
+            {{- $res := deepCopy (default dict $c.resources) }}
+            {{- if and $gpu (eq $v.gpu.mode "resource") }}
+            {{- $req := default dict $res.requests }}
+            {{- $lim := default dict $res.limits }}
+            {{- range $k, $q := $v.gpu.resources }}
+            {{- $_ := set $req $k $q }}
+            {{- $_ := set $lim $k $q }}
+            {{- end }}
+            {{- $_ := set $res "requests" $req }}
+            {{- $_ := set $res "limits" $lim }}
+            {{- end }}
+            {{- toYaml $res | nindent 12 }}
+          volumeMounts:
+            - { name: config, mountPath: /config }
+            - { name: transcode, mountPath: {{ $v.persistence.transcode.mountPath }} }
+            {{- if $v.persistence.ffmpegCache.enabled }}
+            - { name: ffmpeg-cache, mountPath: /config/bin }
+            {{- end }}
+            - { name: plugins, mountPath: /app/plugins }
+            - { name: tmp, mountPath: /tmp }
+            - { name: app-cache, mountPath: /app/.cache }
+            {{- range $v.libraries }}
+            - name: lib-{{ .name }}
+              mountPath: {{ .mountPath }}
+              readOnly: {{ include "lumastra.libraryReadOnly" (list $ . $role) }}
+            {{- end }}
+            {{- if and (ne $role "worker") $v.branding.existingConfigMap }}
+            - { name: branding, mountPath: /app/build/client/custom, readOnly: true }
+            {{- end }}
+            {{- if and $gpu (eq $v.gpu.mode "hostPath") }}
+            - { name: dri, mountPath: {{ $v.gpu.hostPath }} }
+            {{- end }}
+            {{- with $c.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          {{- if not $v.persistence.config.enabled }}
+          emptyDir: {}
+          {{- else }}
+          persistentVolumeClaim:
+            claimName: {{ default (include "lumastra.component" (list $ "config")) $v.persistence.config.existingClaim }}
+          {{- end }}
+        - name: transcode
+          {{- if eq $v.persistence.transcode.type "emptyDir" }}
+          emptyDir:
+            {{- with $v.persistence.transcode.emptyDirSizeLimit }}
+            sizeLimit: {{ . }}
+            {{- end }}
+          {{- else }}
+          persistentVolumeClaim:
+            claimName: {{ default (include "lumastra.component" (list $ "transcode")) $v.persistence.transcode.existingClaim }}
+          {{- end }}
+        {{- if $v.persistence.ffmpegCache.enabled }}
+        - name: ffmpeg-cache
+          persistentVolumeClaim:
+            claimName: {{ default (include "lumastra.component" (list $ "ffmpeg-cache")) $v.persistence.ffmpegCache.existingClaim }}
+        {{- end }}
+        - name: plugins
+          {{- if not $v.persistence.plugins.enabled }}
+          emptyDir: {}
+          {{- else }}
+          persistentVolumeClaim:
+            claimName: {{ default (include "lumastra.component" (list $ "plugins")) $v.persistence.plugins.existingClaim }}
+          {{- end }}
+        - { name: tmp, emptyDir: {} }
+        - name: app-cache
+          {{- if include "lumastra.appCacheEnabled" $ }}
+          persistentVolumeClaim:
+            claimName: {{ default (include "lumastra.component" (list $ "app-cache")) $v.persistence.appCache.existingClaim }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- range $v.libraries }}
+        - name: lib-{{ .name }}
+          {{- include "lumastra.librarySource" . | nindent 10 }}
+        {{- end }}
+        {{- if and (ne $role "worker") $v.branding.existingConfigMap }}
+        - name: branding
+          configMap:
+            name: {{ $v.branding.existingConfigMap }}
+        {{- end }}
+        {{- if and $gpu (eq $v.gpu.mode "hostPath") }}
+        - name: dri
+          hostPath:
+            path: {{ $v.gpu.hostPath }}
+            type: Directory
+        {{- end }}
+        {{- with $c.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end -}}
+
+{{- include "lumastra.validate" . }}
+{{- if not .Values.persistence.config.enabled }}
+{{- fail "persistence.config.enabled=false is unsupported: web and worker must share /config (master key, settings, artwork)" }}
+{{- end }}
+{{- if and .Values.auth.forwardAuth.enabled (not .Values.networkPolicy.enabled) (not .Values.auth.forwardAuth.allowWithoutNetworkPolicy) }}
+{{- fail "auth.forwardAuth needs networkPolicy.enabled: the app trusts identity headers from trustedProxyIps (the pod network), so without the policy any pod reaching web:3000 could claim any user. Set auth.forwardAuth.allowWithoutNetworkPolicy=true only if something else restricts that." }}
+{{- end }}
+{{- with .Values.web }}
+{{- if lt (int .drainSeconds) 1 }}
+{{- fail "web.drainSeconds must be at least 1: it is how long requests already running may finish after SIGTERM" }}
+{{- end }}
+{{- if lt (int .terminationGracePeriodSeconds) (add (int .preStopSleepSeconds) (int .drainSeconds) 30) }}
+{{- fail (printf "web.terminationGracePeriodSeconds (%d) must be at least web.preStopSleepSeconds + web.drainSeconds + 30 (%d): the app needs the last 30 s to stop transcodes and close its pools after the drain" (int .terminationGracePeriodSeconds) (add (int .preStopSleepSeconds) (int .drainSeconds) 30)) }}
+{{- end }}
+{{- end }}
+{{ include "lumastra.appDeployment" (list . "web" .Values.web "web") }}
+---
+{{ include "lumastra.appDeployment" (list . "worker" .Values.worker "worker") }}

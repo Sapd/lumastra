@@ -1,0 +1,12 @@
+{
+    "name": "lumastra-skills",
+    "description": "Agent skills for installing and running a Lumastra media server.",
+    "author": {
+        "name": "Lumastra",
+        "url": "https://lumastra.org"
+    },
+    "homepage": "https://lumastra.org",
+    "repository": "https://github.com/Sapd/lumastra",
+    "license": "AGPL-3.0-only",
+    "keywords": ["lumastra", "media-server", "self-hosted", "docker-compose"]
+}

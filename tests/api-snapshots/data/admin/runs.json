@@ -1,0 +1,1614 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/v1/runs"
+    },
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+        "items": [
+            {
+                "id": "run_01M5D3F590M1QMWCM75EW0X2VX",
+                "taskId": "pause-reconcile",
+                "label": "Pause Reconcile",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:49:14.528Z",
+                "completedAt": "2026-10-20T16:49:17.020Z",
+                "heartbeatAt": "2026-10-20T16:49:17.017Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "quietHoursActive": false,
+                        "globalPauseActive": false
+                    },
+                    "success": true,
+                    "itemsProcessed": 1
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3F58VPZS9CEB2YF0SNQBF",
+                "taskId": "problem-derive",
+                "label": "Attention Board Derivation",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:49:14.523Z",
+                "completedAt": "2026-10-20T16:49:14.613Z",
+                "heartbeatAt": "2026-10-20T16:49:14.527Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "verdict": "degraded",
+                        "resolved": 0,
+                        "upserted": 8,
+                        "unreadCount": 8,
+                        "protectedNamespaces": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 8
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3F58NQ65TD26KE309739J",
+                "taskId": "stage-sweep",
+                "label": "Stage Coverage Sweeper",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:49:14.517Z",
+                "completedAt": "2026-10-20T16:49:16.671Z",
+                "heartbeatAt": "2026-10-20T16:49:16.591Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "failed": 0,
+                        "deduped": 0,
+                        "message": "scanned 28 stage(s); found 0 candidate(s); enqueued 0; deduped 0; failed 0; self-heal seeded 0/0",
+                        "enqueued": 0,
+                        "failedCount": 0,
+                        "selfHealFound": 0,
+                        "stagesScanned": 28,
+                        "selfHealSeeded": 0,
+                        "stageHealStage": null,
+                        "candidatesFound": 0,
+                        "stageHealSeeded": 0,
+                        "hitWallclockBudget": false,
+                        "selfHealReEnrolled": 0,
+                        "hitGlobalEnqueueCap": false,
+                        "stagesSkippedBackoff": 0,
+                        "stagesSkippedReserve": 0,
+                        "stagesSkippedBackpressure": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3F58APRR0JT96XX2CSR7S",
+                "taskId": "play-session-cleanup",
+                "label": "Play Session Cleanup",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:49:14.506Z",
+                "completedAt": "2026-10-20T16:49:14.520Z",
+                "heartbeatAt": "2026-10-20T16:49:14.511Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "message": "No stale play sessions found"
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3EVGPTNNNVGF971MXTFZ1",
+                "taskId": "file-reconcile",
+                "label": "File Reconcile",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:49:04.535Z",
+                "completedAt": "2026-10-20T16:49:04.563Z",
+                "heartbeatAt": "2026-10-20T16:49:04.547Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "capped": 0,
+                        "removes": 0,
+                        "upserts": 0,
+                        "walkErrors": 0,
+                        "keptPresent": 0,
+                        "pathsChecked": 1,
+                        "excludedExtras": 0,
+                        "excludedThemes": 0,
+                        "excludedSkipped": 0,
+                        "excludedExtrasDb": 0,
+                        "excludedThemesDb": 0,
+                        "deltaRunsDispatched": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3EVGD2RF39NE98YNF0Q1H",
+                "taskId": "valkey-memory-monitor",
+                "label": "Valkey Memory Monitor",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:49:04.525Z",
+                "completedAt": "2026-10-20T16:49:04.545Z",
+                "heartbeatAt": "2026-10-20T16:49:04.532Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "cache": {
+                            "db0_keys": 340,
+                            "used_pct": 0,
+                            "max_bytes": 1073741824,
+                            "used_bytes": 2283888
+                        },
+                        "coordination": {
+                            "db0_keys": 56325,
+                            "used_pct": 0,
+                            "max_bytes": 0,
+                            "used_bytes": 31770080
+                        }
+                    },
+                    "success": true,
+                    "itemsProcessed": 2
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3EVG150XWHWYPQT2N61ZH",
+                "taskId": "watch-sync-push",
+                "label": "Watch Sync Push",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:49:04.513Z",
+                "completedAt": "2026-10-20T16:49:04.729Z",
+                "heartbeatAt": "2026-10-20T16:49:04.522Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "summary": "Push: jellyfin-watch-sync: 0/0 (unavailable), audiobookshelf-watch-sync: 0/2, mal-watch-sync: 0/0 (unavailable), trakt-watch-sync: 0/0 (unavailable)",
+                        "allErrors": [],
+                        "partialSuccess": false,
+                        "totalProcessed": 2,
+                        "totalSucceeded": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 2
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3EVFV5HCDYPB1SKVTGMFX",
+                "taskId": "watch-sync-pull",
+                "label": "Watch Sync Pull",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:49:04.507Z",
+                "completedAt": "2026-10-20T16:49:05.052Z",
+                "heartbeatAt": "2026-10-20T16:49:04.511Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "meta": {
+                            "usersSkippedNoLumastraAccount": 0
+                        },
+                        "summary": "Pull: jellyfin-watch-sync: unavailable, audiobookshelf-watch-sync: 2 resume, mal-watch-sync: unavailable, trakt-watch-sync: unavailable",
+                        "allErrors": [],
+                        "partialSuccess": false,
+                        "totalProcessed": 2
+                    },
+                    "success": true,
+                    "itemsProcessed": 2
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3DANYNNYPS2NFNH32KMV1",
+                "taskId": "pause-reconcile",
+                "label": "Pause Reconcile",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:48:14.526Z",
+                "completedAt": "2026-10-20T16:48:14.532Z",
+                "heartbeatAt": "2026-10-20T16:48:14.530Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "quietHoursActive": false,
+                        "globalPauseActive": false
+                    },
+                    "success": true,
+                    "itemsProcessed": 1
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3DANSD4YGNQMKETFCA806",
+                "taskId": "problem-derive",
+                "label": "Attention Board Derivation",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:48:14.521Z",
+                "completedAt": "2026-10-20T16:48:16.945Z",
+                "heartbeatAt": "2026-10-20T16:48:16.871Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "verdict": "degraded",
+                        "resolved": 0,
+                        "upserted": 8,
+                        "unreadCount": 8,
+                        "protectedNamespaces": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 8
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3DANM1RHTJ1VN4AQT0KKJ",
+                "taskId": "stage-sweep",
+                "label": "Stage Coverage Sweeper",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:48:14.516Z",
+                "completedAt": "2026-10-20T16:48:17.457Z",
+                "heartbeatAt": "2026-10-20T16:48:17.373Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "failed": 0,
+                        "deduped": 0,
+                        "message": "scanned 28 stage(s); found 0 candidate(s); enqueued 0; deduped 0; failed 0; self-heal seeded 0/0",
+                        "enqueued": 0,
+                        "failedCount": 0,
+                        "selfHealFound": 0,
+                        "stagesScanned": 28,
+                        "selfHealSeeded": 0,
+                        "stageHealStage": null,
+                        "candidatesFound": 0,
+                        "stageHealSeeded": 0,
+                        "hitWallclockBudget": false,
+                        "selfHealReEnrolled": 0,
+                        "hitGlobalEnqueueCap": false,
+                        "stagesSkippedBackoff": 0,
+                        "stagesSkippedReserve": 0,
+                        "stagesSkippedBackpressure": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3DANBPZFFKV76TQY9R8NP",
+                "taskId": "play-session-cleanup",
+                "label": "Play Session Cleanup",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:48:14.507Z",
+                "completedAt": "2026-10-20T16:48:14.523Z",
+                "heartbeatAt": "2026-10-20T16:48:14.512Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "message": "No stale play sessions found"
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3BG3EYTFGG19R8DT02HHZ",
+                "taskId": "pause-reconcile",
+                "label": "Pause Reconcile",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:47:14.542Z",
+                "completedAt": "2026-10-20T16:47:14.550Z",
+                "heartbeatAt": "2026-10-20T16:47:14.547Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "quietHoursActive": false,
+                        "globalPauseActive": false
+                    },
+                    "success": true,
+                    "itemsProcessed": 1
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3BG36YJCTBCRG9DXQAZSQ",
+                "taskId": "problem-derive",
+                "label": "Attention Board Derivation",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:47:14.534Z",
+                "completedAt": "2026-10-20T16:47:17.547Z",
+                "heartbeatAt": "2026-10-20T16:47:17.472Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "verdict": "degraded",
+                        "resolved": 0,
+                        "upserted": 8,
+                        "unreadCount": 8,
+                        "protectedNamespaces": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 8
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3BG2V26CHS2VQNT3C25K2",
+                "taskId": "stage-sweep",
+                "label": "Stage Coverage Sweeper",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:47:14.524Z",
+                "completedAt": "2026-10-20T16:47:17.048Z",
+                "heartbeatAt": "2026-10-20T16:47:16.929Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "failed": 0,
+                        "deduped": 0,
+                        "message": "scanned 28 stage(s); found 0 candidate(s); enqueued 0; deduped 0; failed 0; self-heal seeded 0/0",
+                        "enqueued": 0,
+                        "failedCount": 0,
+                        "selfHealFound": 0,
+                        "stagesScanned": 28,
+                        "selfHealSeeded": 0,
+                        "stageHealStage": null,
+                        "candidatesFound": 0,
+                        "stageHealSeeded": 0,
+                        "hitWallclockBudget": false,
+                        "selfHealReEnrolled": 0,
+                        "hitGlobalEnqueueCap": false,
+                        "stagesSkippedBackoff": 0,
+                        "stagesSkippedReserve": 0,
+                        "stagesSkippedBackpressure": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3BG2DA401AKSHF2YPZ06P",
+                "taskId": "play-session-cleanup",
+                "label": "Play Session Cleanup",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:47:14.509Z",
+                "completedAt": "2026-10-20T16:47:14.536Z",
+                "heartbeatAt": "2026-10-20T16:47:14.517Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "message": "No stale play sessions found"
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D39NG6XVYNAPTD4XFM35EV",
+                "taskId": "pause-reconcile",
+                "label": "Pause Reconcile",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:46:14.534Z",
+                "completedAt": "2026-10-20T16:46:14.540Z",
+                "heartbeatAt": "2026-10-20T16:46:14.537Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "quietHoursActive": false,
+                        "globalPauseActive": false
+                    },
+                    "success": true,
+                    "itemsProcessed": 1
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D39NFZYKNBGA1Z6AESN98Q",
+                "taskId": "problem-derive",
+                "label": "Attention Board Derivation",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:46:14.527Z",
+                "completedAt": "2026-10-20T16:46:15.714Z",
+                "heartbeatAt": "2026-10-20T16:46:15.635Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "verdict": "degraded",
+                        "resolved": 0,
+                        "upserted": 8,
+                        "unreadCount": 8,
+                        "protectedNamespaces": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 8
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D39NFRF3B8QBXYZXSER7QB",
+                "taskId": "stage-sweep",
+                "label": "Stage Coverage Sweeper",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:46:14.521Z",
+                "completedAt": "2026-10-20T16:46:15.933Z",
+                "heartbeatAt": "2026-10-20T16:46:15.836Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "failed": 0,
+                        "deduped": 0,
+                        "message": "scanned 28 stage(s); found 0 candidate(s); enqueued 0; deduped 0; failed 0; self-heal seeded 0/0",
+                        "enqueued": 0,
+                        "failedCount": 0,
+                        "selfHealFound": 0,
+                        "stagesScanned": 28,
+                        "selfHealSeeded": 0,
+                        "stageHealStage": null,
+                        "candidatesFound": 0,
+                        "stageHealSeeded": 0,
+                        "hitWallclockBudget": false,
+                        "selfHealReEnrolled": 0,
+                        "hitGlobalEnqueueCap": false,
+                        "stagesSkippedBackoff": 0,
+                        "stagesSkippedReserve": 0,
+                        "stagesSkippedBackpressure": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D39NFC7ZTD7K81KZP5R1SR",
+                "taskId": "play-session-cleanup",
+                "label": "Play Session Cleanup",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:46:14.508Z",
+                "completedAt": "2026-10-20T16:46:14.528Z",
+                "heartbeatAt": "2026-10-20T16:46:14.516Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "message": "No stale play sessions found"
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D37TX8MFBSFCE97JXB3BS6",
+                "taskId": "pause-reconcile",
+                "label": "Pause Reconcile",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:45:14.536Z",
+                "completedAt": "2026-10-20T16:45:14.544Z",
+                "heartbeatAt": "2026-10-20T16:45:14.540Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "quietHoursActive": false,
+                        "globalPauseActive": false
+                    },
+                    "success": true,
+                    "itemsProcessed": 1
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D37TX0FJ8SX3EG24RG53MC",
+                "taskId": "problem-derive",
+                "label": "Attention Board Derivation",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:45:14.529Z",
+                "completedAt": "2026-10-20T16:45:16.400Z",
+                "heartbeatAt": "2026-10-20T16:45:16.256Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "verdict": "degraded",
+                        "resolved": 0,
+                        "upserted": 8,
+                        "unreadCount": 8,
+                        "protectedNamespaces": 1
+                    },
+                    "success": true,
+                    "itemsProcessed": 8
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D37TWSGZJSXH835DRR103M",
+                "taskId": "stage-sweep",
+                "label": "Stage Coverage Sweeper",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:45:14.521Z",
+                "completedAt": "2026-10-20T16:45:16.807Z",
+                "heartbeatAt": "2026-10-20T16:45:16.557Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "failed": 0,
+                        "deduped": 0,
+                        "message": "scanned 28 stage(s); found 0 candidate(s); enqueued 0; deduped 0; failed 0; self-heal seeded 0/0",
+                        "enqueued": 0,
+                        "failedCount": 0,
+                        "selfHealFound": 0,
+                        "stagesScanned": 28,
+                        "selfHealSeeded": 0,
+                        "stageHealStage": null,
+                        "candidatesFound": 0,
+                        "stageHealSeeded": 0,
+                        "hitWallclockBudget": false,
+                        "selfHealReEnrolled": 0,
+                        "hitGlobalEnqueueCap": false,
+                        "stagesSkippedBackoff": 0,
+                        "stagesSkippedReserve": 0,
+                        "stagesSkippedBackpressure": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D37TWDW46JS948RB3017RN",
+                "taskId": "play-session-cleanup",
+                "label": "Play Session Cleanup",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:45:14.510Z",
+                "completedAt": "2026-10-20T16:45:14.533Z",
+                "heartbeatAt": "2026-10-20T16:45:14.516Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "message": "No stale play sessions found"
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D36MASQR7QE91PXANAFJ5Y",
+                "taskId": "file-library-scan",
+                "label": "File Library Scan",
+                "state": "completed",
+                "input": {
+                    "libraryPathId": "5812a0a4-1f95-44a8-94fe-3bd5028a8673"
+                },
+                "scope": {
+                    "libraryGroupId": "c9760e09-bf2f-453c-bdd2-6f1e63cee789"
+                },
+                "trigger": {
+                    "kind": "in-process",
+                    "sourceRoute": "file-scanner.native-watcher-reconciliation"
+                },
+                "startedAt": "2026-10-20T16:44:35.034Z",
+                "completedAt": "2026-10-20T16:44:35.162Z",
+                "heartbeatAt": "2026-10-20T16:44:35.052Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "added": 0,
+                        "message": "Scanned: 0 added, 0 updated, 84 skipped, 0 unmatched",
+                        "skipped": 84,
+                        "updated": 0,
+                        "unmatched": 0,
+                        "scanErrors": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "service",
+                    "via": "in-process"
+                }
+            },
+            {
+                "id": "run_01M5D36MAFC1KW1138SPPWHCEH",
+                "taskId": "file-library-scan",
+                "label": "File Library Scan",
+                "state": "completed",
+                "input": {
+                    "libraryPathId": "96fdc47f-381c-4223-8fcd-59c9ce769d38"
+                },
+                "scope": {
+                    "libraryGroupId": "afbf35fe-5620-426e-9045-1a35cb71767d"
+                },
+                "trigger": {
+                    "kind": "in-process",
+                    "sourceRoute": "file-scanner.native-watcher-reconciliation"
+                },
+                "startedAt": "2026-10-20T16:44:35.024Z",
+                "completedAt": "2026-10-20T16:44:35.176Z",
+                "heartbeatAt": "2026-10-20T16:44:35.035Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "added": 0,
+                        "message": "Scanned: 0 added, 0 updated, 255 skipped, 0 unmatched",
+                        "skipped": 255,
+                        "updated": 0,
+                        "unmatched": 0,
+                        "scanErrors": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "service",
+                    "via": "in-process"
+                }
+            },
+            {
+                "id": "run_01M5D36MA26M3QVM1H0RTCQKM9",
+                "taskId": "file-library-scan",
+                "label": "File Library Scan",
+                "state": "completed",
+                "input": {
+                    "libraryPathId": "51dc3e9b-e81f-4180-a67a-3fd700b47152"
+                },
+                "scope": {
+                    "libraryGroupId": "44b882b8-bb84-450c-94b5-3d42e15826ab"
+                },
+                "trigger": {
+                    "kind": "in-process",
+                    "sourceRoute": "file-scanner.native-watcher-reconciliation"
+                },
+                "startedAt": "2026-10-20T16:44:35.010Z",
+                "completedAt": "2026-10-20T16:44:35.122Z",
+                "heartbeatAt": "2026-10-20T16:44:35.024Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "added": 0,
+                        "message": "Scanned: 0 added, 0 updated, 11 skipped, 0 unmatched",
+                        "skipped": 11,
+                        "updated": 0,
+                        "unmatched": 0,
+                        "scanErrors": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "58b717201da2-ec85ca",
+                "actor": {
+                    "type": "service",
+                    "via": "in-process"
+                }
+            },
+            {
+                "id": "run_01M5D35QVCPZWJ7E8WKE7Q36YX",
+                "taskId": "pause-reconcile",
+                "label": "Pause Reconcile",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:44:05.868Z",
+                "completedAt": "2026-10-20T16:44:07.584Z",
+                "heartbeatAt": "2026-10-20T16:44:07.580Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "quietHoursActive": false,
+                        "globalPauseActive": false
+                    },
+                    "success": true,
+                    "itemsProcessed": 1
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D35QV77N4E4AVV403XXQ28",
+                "taskId": "problem-derive",
+                "label": "Attention Board Derivation",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:44:05.863Z",
+                "completedAt": "2026-10-20T16:44:05.953Z",
+                "heartbeatAt": "2026-10-20T16:44:05.867Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "verdict": "degraded",
+                        "resolved": 0,
+                        "upserted": 8,
+                        "unreadCount": 8,
+                        "protectedNamespaces": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 8
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D35QV05XNM4XYM6GHFYJYY",
+                "taskId": "stage-sweep",
+                "label": "Stage Coverage Sweeper",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:44:05.856Z",
+                "completedAt": "2026-10-20T16:44:08.098Z",
+                "heartbeatAt": "2026-10-20T16:44:08.021Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "failed": 0,
+                        "deduped": 0,
+                        "message": "scanned 28 stage(s); found 0 candidate(s); enqueued 0; deduped 0; failed 0; self-heal seeded 0/0",
+                        "enqueued": 0,
+                        "failedCount": 0,
+                        "selfHealFound": 0,
+                        "stagesScanned": 28,
+                        "selfHealSeeded": 0,
+                        "stageHealStage": null,
+                        "candidatesFound": 0,
+                        "stageHealSeeded": 0,
+                        "hitWallclockBudget": false,
+                        "selfHealReEnrolled": 0,
+                        "hitGlobalEnqueueCap": false,
+                        "stagesSkippedBackoff": 0,
+                        "stagesSkippedReserve": 0,
+                        "stagesSkippedBackpressure": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D35QTPW6J6DP4204JK44V3",
+                "taskId": "play-session-cleanup",
+                "label": "Play Session Cleanup",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:44:05.846Z",
+                "completedAt": "2026-10-20T16:44:05.861Z",
+                "heartbeatAt": "2026-10-20T16:44:05.850Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "message": "No stale play sessions found"
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D35E4RV66W0RBT6THMJ19F",
+                "taskId": "file-reconcile",
+                "label": "File Reconcile",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:43:55.928Z",
+                "completedAt": "2026-10-20T16:43:55.946Z",
+                "heartbeatAt": "2026-10-20T16:43:55.936Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "capped": 0,
+                        "removes": 0,
+                        "upserts": 0,
+                        "walkErrors": 0,
+                        "keptPresent": 0,
+                        "pathsChecked": 1,
+                        "excludedExtras": 0,
+                        "excludedThemes": 0,
+                        "excludedSkipped": 0,
+                        "excludedExtrasDb": 0,
+                        "excludedThemesDb": 0,
+                        "deltaRunsDispatched": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D35E4EE3B0DZK5GDEBQ262",
+                "taskId": "valkey-memory-monitor",
+                "label": "Valkey Memory Monitor",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:43:55.918Z",
+                "completedAt": "2026-10-20T16:43:55.933Z",
+                "heartbeatAt": "2026-10-20T16:43:55.926Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "cache": {
+                            "db0_keys": 180,
+                            "used_pct": 0,
+                            "max_bytes": 1073741824,
+                            "used_bytes": 2190328
+                        },
+                        "coordination": {
+                            "db0_keys": 56931,
+                            "used_pct": 0,
+                            "max_bytes": 0,
+                            "used_bytes": 32032552
+                        }
+                    },
+                    "success": true,
+                    "itemsProcessed": 2
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D35E2CVEGEC7BXH388CA8M",
+                "taskId": "watch-sync-push",
+                "label": "Watch Sync Push",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:43:55.853Z",
+                "completedAt": "2026-10-20T16:43:56.108Z",
+                "heartbeatAt": "2026-10-20T16:43:55.857Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "summary": "Push: jellyfin-watch-sync: 0/0 (unavailable), audiobookshelf-watch-sync: 0/0, mal-watch-sync: 0/0 (unavailable), trakt-watch-sync: 0/0 (unavailable)",
+                        "allErrors": [],
+                        "partialSuccess": false,
+                        "totalProcessed": 0,
+                        "totalSucceeded": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D35E26HPDVSPJV9GN2Z2PA",
+                "taskId": "watch-sync-pull",
+                "label": "Watch Sync Pull",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:43:55.846Z",
+                "completedAt": "2026-10-20T16:43:56.453Z",
+                "heartbeatAt": "2026-10-20T16:43:55.851Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "meta": {
+                            "usersSkippedNoLumastraAccount": 0
+                        },
+                        "summary": "Pull: jellyfin-watch-sync: unavailable, audiobookshelf-watch-sync: 2 resume, mal-watch-sync: unavailable, trakt-watch-sync: unavailable",
+                        "allErrors": [],
+                        "partialSuccess": false,
+                        "totalProcessed": 2
+                    },
+                    "success": true,
+                    "itemsProcessed": 2
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D34THC7G2HN0H8RGGEGA3V",
+                "taskId": "music-embedding-projection-backfill",
+                "label": "Music Embedding Projection Backfill",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:43:35.852Z",
+                "completedAt": "2026-10-20T16:43:35.867Z",
+                "heartbeatAt": "2026-10-20T16:43:35.860Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "projected": 0,
+                        "parseErrors": 0
+                    },
+                    "message": "No active basis — no-op",
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D34TH702KXCGC4G1VGN6F6",
+                "taskId": "sonic-embedding-backfill",
+                "label": "Sonic Embedding Backfill",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:43:35.847Z",
+                "completedAt": "2026-10-20T16:43:35.861Z",
+                "heartbeatAt": "2026-10-20T16:43:35.852Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "failed": 0,
+                        "skipped": 0,
+                        "embedded": 0
+                    },
+                    "message": "Sonic backfill: 0 embedded, 0 failed, 0 skipped",
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D33X8C2FDJ8QTWKNHGDHRS",
+                "taskId": "pause-reconcile",
+                "label": "Pause Reconcile",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:43:05.868Z",
+                "completedAt": "2026-10-20T16:43:07.911Z",
+                "heartbeatAt": "2026-10-20T16:43:07.907Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "quietHoursActive": false,
+                        "globalPauseActive": false
+                    },
+                    "success": true,
+                    "itemsProcessed": 1
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D33X87GVTRRHBDHPFAP8YH",
+                "taskId": "problem-derive",
+                "label": "Attention Board Derivation",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:43:05.863Z",
+                "completedAt": "2026-10-20T16:43:05.953Z",
+                "heartbeatAt": "2026-10-20T16:43:05.867Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "verdict": "degraded",
+                        "resolved": 0,
+                        "upserted": 8,
+                        "unreadCount": 8,
+                        "protectedNamespaces": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 8
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D33X8022HDAYKHR02T5BTP",
+                "taskId": "stage-sweep",
+                "label": "Stage Coverage Sweeper",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:43:05.856Z",
+                "completedAt": "2026-10-20T16:43:07.397Z",
+                "heartbeatAt": "2026-10-20T16:43:07.304Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "failed": 0,
+                        "deduped": 0,
+                        "message": "scanned 28 stage(s); found 0 candidate(s); enqueued 0; deduped 0; failed 0; self-heal seeded 0/0",
+                        "enqueued": 0,
+                        "failedCount": 0,
+                        "selfHealFound": 0,
+                        "stagesScanned": 28,
+                        "selfHealSeeded": 0,
+                        "stageHealStage": null,
+                        "candidatesFound": 0,
+                        "stageHealSeeded": 0,
+                        "hitWallclockBudget": false,
+                        "selfHealReEnrolled": 0,
+                        "hitGlobalEnqueueCap": false,
+                        "stagesSkippedBackoff": 0,
+                        "stagesSkippedReserve": 0,
+                        "stagesSkippedBackpressure": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D33X7QQ3W22CY2N2NE91KP",
+                "taskId": "play-session-cleanup",
+                "label": "Play Session Cleanup",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:43:05.847Z",
+                "completedAt": "2026-10-20T16:43:05.862Z",
+                "heartbeatAt": "2026-10-20T16:43:05.852Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "message": "No stale play sessions found"
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D322NCVYWDAFQ2HJK415PG",
+                "taskId": "pause-reconcile",
+                "label": "Pause Reconcile",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:42:05.868Z",
+                "completedAt": "2026-10-20T16:42:05.875Z",
+                "heartbeatAt": "2026-10-20T16:42:05.873Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "quietHoursActive": false,
+                        "globalPauseActive": false
+                    },
+                    "success": true,
+                    "itemsProcessed": 1
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D322N6WTW3V8JEVX59K9QB",
+                "taskId": "problem-derive",
+                "label": "Attention Board Derivation",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:42:05.862Z",
+                "completedAt": "2026-10-20T16:42:08.976Z",
+                "heartbeatAt": "2026-10-20T16:42:08.873Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "verdict": "degraded",
+                        "resolved": 1,
+                        "upserted": 8,
+                        "unreadCount": 8,
+                        "protectedNamespaces": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 9
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D322MZX07TXRDMXEYSEFTY",
+                "taskId": "stage-sweep",
+                "label": "Stage Coverage Sweeper",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:42:05.855Z",
+                "completedAt": "2026-10-20T16:42:08.581Z",
+                "heartbeatAt": "2026-10-20T16:42:08.475Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "failed": 0,
+                        "deduped": 0,
+                        "message": "scanned 28 stage(s); found 0 candidate(s); enqueued 0; deduped 0; failed 0; self-heal seeded 0/0",
+                        "enqueued": 0,
+                        "failedCount": 0,
+                        "selfHealFound": 0,
+                        "stagesScanned": 28,
+                        "selfHealSeeded": 0,
+                        "stageHealStage": null,
+                        "candidatesFound": 0,
+                        "stageHealSeeded": 0,
+                        "hitWallclockBudget": false,
+                        "selfHealReEnrolled": 0,
+                        "hitGlobalEnqueueCap": false,
+                        "stagesSkippedBackoff": 0,
+                        "stagesSkippedReserve": 0,
+                        "stagesSkippedBackpressure": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D322MNRRXAY942E795ZFE5",
+                "taskId": "play-session-cleanup",
+                "label": "Play Session Cleanup",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:42:05.845Z",
+                "completedAt": "2026-10-20T16:42:05.868Z",
+                "heartbeatAt": "2026-10-20T16:42:05.851Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "message": "No stale play sessions found"
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D30HTV109GM386JRXM2JM0",
+                "taskId": "health-invariants",
+                "label": "Database Health Invariants",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:41:15.867Z",
+                "completedAt": "2026-10-20T16:41:16.230Z",
+                "heartbeatAt": "2026-10-20T16:41:15.872Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "red": 0,
+                        "amber": 1,
+                        "green": 17,
+                        "errored": 0,
+                        "alertsDeleted": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 18
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D30HTBMYGA7JGZY6XCDF6K",
+                "taskId": "library-embeddings",
+                "label": "Generate Library Embeddings",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:41:15.852Z",
+                "completedAt": "2026-10-20T16:41:15.864Z",
+                "heartbeatAt": "2026-10-20T16:41:15.856Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "message": "No entries found in coverage table backlog",
+                        "generated": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3082HX362497V0TC9RYJY",
+                "taskId": "pause-reconcile",
+                "label": "Pause Reconcile",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:41:05.873Z",
+                "completedAt": "2026-10-20T16:41:07.405Z",
+                "heartbeatAt": "2026-10-20T16:41:07.401Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "quietHoursActive": false,
+                        "globalPauseActive": false
+                    },
+                    "success": true,
+                    "itemsProcessed": 1
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D3082CYNKX9C144MXDK3BT",
+                "taskId": "problem-derive",
+                "label": "Attention Board Derivation",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:41:05.868Z",
+                "completedAt": "2026-10-20T16:41:05.955Z",
+                "heartbeatAt": "2026-10-20T16:41:05.872Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "verdict": "degraded",
+                        "resolved": 0,
+                        "upserted": 9,
+                        "unreadCount": 9,
+                        "protectedNamespaces": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 9
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            },
+            {
+                "id": "run_01M5D30823NCSS679DT9F0XW17",
+                "taskId": "stage-sweep",
+                "label": "Stage Coverage Sweeper",
+                "state": "completed",
+                "input": {},
+                "trigger": {
+                    "kind": "scheduled"
+                },
+                "startedAt": "2026-10-20T16:41:05.859Z",
+                "completedAt": "2026-10-20T16:41:08.345Z",
+                "heartbeatAt": "2026-10-20T16:41:08.240Z",
+                "stages": [],
+                "result": {
+                    "result": {
+                        "failed": 0,
+                        "deduped": 0,
+                        "message": "scanned 28 stage(s); found 0 candidate(s); enqueued 0; deduped 0; failed 0; self-heal seeded 0/0",
+                        "enqueued": 0,
+                        "failedCount": 0,
+                        "selfHealFound": 0,
+                        "stagesScanned": 28,
+                        "selfHealSeeded": 0,
+                        "stageHealStage": null,
+                        "candidatesFound": 0,
+                        "stageHealSeeded": 0,
+                        "hitWallclockBudget": false,
+                        "selfHealReEnrolled": 0,
+                        "hitGlobalEnqueueCap": false,
+                        "stagesSkippedBackoff": 0,
+                        "stagesSkippedReserve": 0,
+                        "stagesSkippedBackpressure": 0
+                    },
+                    "success": true,
+                    "itemsProcessed": 0
+                },
+                "ownerInstanceId": "314ec5874142-850dae",
+                "actor": {
+                    "type": "system",
+                    "via": "cron"
+                }
+            }
+        ],
+        "page": {
+            "limit": 50,
+            "hasMore": true,
+            "cursor": "MjAyNi0xMC0yMCAxODo0MTowNS44NTkrMDI6cnVuXzAxTTVEMzA4MjNOQ1NTNjc5RFQ5RjBYVzE3"
+        }
+    },
+    "baselineProblems": []
+}

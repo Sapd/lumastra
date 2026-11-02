@@ -1,0 +1,75 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/browse/libraries"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "libraries": [
+      {
+        "images": {
+          "backdrop": {
+            "href": "/api/v1/libraries/c9760e09-bf2f-453c-bdd2-6f1e63cee789/images/backdrop?size=hd&v=2875c94a3cee998e",
+            "variants": {
+              "thumb": "/api/v1/libraries/c9760e09-bf2f-453c-bdd2-6f1e63cee789/images/backdrop?size=thumb&v=2875c94a3cee998e",
+              "card": "/api/v1/libraries/c9760e09-bf2f-453c-bdd2-6f1e63cee789/images/backdrop?size=card&v=2875c94a3cee998e",
+              "hd": "/api/v1/libraries/c9760e09-bf2f-453c-bdd2-6f1e63cee789/images/backdrop?size=hd&v=2875c94a3cee998e",
+              "full": "/api/v1/libraries/c9760e09-bf2f-453c-bdd2-6f1e63cee789/images/backdrop?size=full&v=2875c94a3cee998e"
+            },
+            "revision": "2875c94a3cee998e",
+            "source": "generated"
+          },
+          "primary": {
+            "href": "/api/v1/libraries/c9760e09-bf2f-453c-bdd2-6f1e63cee789/images/primary?size=card&v=2875c94a3cee998e",
+            "variants": {
+              "thumb": "/api/v1/libraries/c9760e09-bf2f-453c-bdd2-6f1e63cee789/images/primary?size=thumb&v=2875c94a3cee998e",
+              "card": "/api/v1/libraries/c9760e09-bf2f-453c-bdd2-6f1e63cee789/images/primary?size=card&v=2875c94a3cee998e",
+              "hd": "/api/v1/libraries/c9760e09-bf2f-453c-bdd2-6f1e63cee789/images/primary?size=hd&v=2875c94a3cee998e",
+              "full": "/api/v1/libraries/c9760e09-bf2f-453c-bdd2-6f1e63cee789/images/primary?size=full&v=2875c94a3cee998e"
+            },
+            "revision": "2875c94a3cee998e",
+            "source": "generated"
+          }
+        },
+        "id": "c9760e09-bf2f-453c-bdd2-6f1e63cee789",
+        "name": "Movies",
+        "itemCount": 73,
+        "mediaType": "movie"
+      },
+      {
+        "images": {
+          "backdrop": {
+            "href": "/api/v1/libraries/44b882b8-bb84-450c-94b5-3d42e15826ab/images/backdrop?size=hd&v=3100328f70e50412",
+            "variants": {
+              "thumb": "/api/v1/libraries/44b882b8-bb84-450c-94b5-3d42e15826ab/images/backdrop?size=thumb&v=3100328f70e50412",
+              "card": "/api/v1/libraries/44b882b8-bb84-450c-94b5-3d42e15826ab/images/backdrop?size=card&v=3100328f70e50412",
+              "hd": "/api/v1/libraries/44b882b8-bb84-450c-94b5-3d42e15826ab/images/backdrop?size=hd&v=3100328f70e50412",
+              "full": "/api/v1/libraries/44b882b8-bb84-450c-94b5-3d42e15826ab/images/backdrop?size=full&v=3100328f70e50412"
+            },
+            "revision": "3100328f70e50412",
+            "source": "generated"
+          },
+          "primary": {
+            "href": "/api/v1/libraries/44b882b8-bb84-450c-94b5-3d42e15826ab/images/primary?size=card&v=3100328f70e50412",
+            "variants": {
+              "thumb": "/api/v1/libraries/44b882b8-bb84-450c-94b5-3d42e15826ab/images/primary?size=thumb&v=3100328f70e50412",
+              "card": "/api/v1/libraries/44b882b8-bb84-450c-94b5-3d42e15826ab/images/primary?size=card&v=3100328f70e50412",
+              "hd": "/api/v1/libraries/44b882b8-bb84-450c-94b5-3d42e15826ab/images/primary?size=hd&v=3100328f70e50412",
+              "full": "/api/v1/libraries/44b882b8-bb84-450c-94b5-3d42e15826ab/images/primary?size=full&v=3100328f70e50412"
+            },
+            "revision": "3100328f70e50412",
+            "source": "generated"
+          }
+        },
+        "id": "44b882b8-bb84-450c-94b5-3d42e15826ab",
+        "name": "Series",
+        "itemCount": 1,
+        "mediaType": "series",
+        "description": "Series library"
+      }
+    ],
+    "totalLibraries": 2
+  },
+  "baselineProblems": []
+}

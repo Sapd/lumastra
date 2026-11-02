@@ -1,0 +1,92 @@
+# PostgreSQL 18 + pgvector. Run as a StatefulSet (single replica) or replace with
+# a managed Postgres and delete this file (keep DATABASE_URL pointing at it).
+#
+# pg18 quirk: mount the volume on /var/lib/postgresql (NOT the /data subdir).
+apiVersion: v1
+kind: Service
+metadata:
+    name: lumastra-postgres
+    namespace: lumastra
+spec:
+    clusterIP: None
+    selector:
+        app: lumastra-postgres
+    ports:
+        - port: 5432
+          targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: lumastra-postgres
+    namespace: lumastra
+spec:
+    serviceName: lumastra-postgres
+    replicas: 1
+    selector:
+        matchLabels:
+            app: lumastra-postgres
+    template:
+        metadata:
+            labels:
+                app: lumastra-postgres
+        spec:
+            securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                fsGroup: 1000
+                seccompProfile: { type: RuntimeDefault }
+            containers:
+                - name: postgres
+                  image: pgvector/pgvector:pg18
+                  ports:
+                      - containerPort: 5432
+                  # readOnlyRootFilesystem needs the unix-socket dir + /tmp mounted
+                  # (see volumeMounts below) — the data directory itself is already
+                  # on the separate `data` PVC.
+                  securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities: { drop: [ALL] }
+                      readOnlyRootFilesystem: true
+                  env:
+                      - name: POSTGRES_DB
+                        value: lumastra
+                      - name: POSTGRES_USER
+                        value: lumastra
+                      - name: POSTGRES_PASSWORD
+                        valueFrom:
+                            secretKeyRef:
+                                name: lumastra-secrets
+                                key: DATABASE_PASSWORD
+                  volumeMounts:
+                      - name: data
+                        mountPath: /var/lib/postgresql
+                      - name: dshm
+                        mountPath: /dev/shm
+                      - { name: run, mountPath: /var/run/postgresql }
+                      - { name: tmp, mountPath: /tmp }
+                  readinessProbe:
+                      exec:
+                          command: ['sh', '-c', 'pg_isready -U lumastra -d lumastra']
+                      initialDelaySeconds: 10
+                      periodSeconds: 10
+                  resources:
+                      requests: { cpu: '250m', memory: '512Mi' }
+                      limits: { memory: '2Gi' }
+            volumes:
+                - name: dshm
+                  emptyDir:
+                      medium: Memory
+                      sizeLimit: 1Gi
+                - { name: run, emptyDir: {} }
+                - { name: tmp, emptyDir: {} }
+    volumeClaimTemplates:
+        - metadata:
+              name: data
+          spec:
+              accessModes: ['ReadWriteOnce']
+              # Set to your cluster's block storage class.
+              storageClassName: standard
+              resources:
+                  requests:
+                      storage: 20Gi

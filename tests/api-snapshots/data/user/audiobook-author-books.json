@@ -1,0 +1,59 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/audiobooks/authors/eb0430e8-19ed-424e-99f1-3871eff52a6c/books"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "545088a0-b025-4089-a870-5b6658e3188a",
+        "catalogId": "545088a0-b025-4089-a870-5b6658e3188a",
+        "type": "audiobook",
+        "ids": {},
+        "title": "Aesop's Fables Volume 1",
+        "subtitle": "Aesop",
+        "year": 1997,
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/545088a0-b025-4089-a870-5b6658e3188a/images/poster?size=card&v=4482dec56802",
+            "variants": {
+              "thumb": "/api/v1/media/545088a0-b025-4089-a870-5b6658e3188a/images/poster?size=thumb&v=4482dec56802",
+              "card": "/api/v1/media/545088a0-b025-4089-a870-5b6658e3188a/images/poster?size=card&v=4482dec56802",
+              "full": "/api/v1/media/545088a0-b025-4089-a870-5b6658e3188a/images/poster?size=full&v=4482dec56802"
+            },
+            "revision": "4482dec56802",
+            "source": "self"
+          }
+        },
+        "audiobook": {
+          "authors": [
+            {
+              "id": "eb0430e8-19ed-424e-99f1-3871eff52a6c",
+              "name": "Aesop"
+            }
+          ],
+          "narrators": [],
+          "series": {
+            "id": "2b084279-6440-43b4-a43d-4893e1d3ce67",
+            "name": "Aesop",
+            "position": null
+          }
+        },
+        "availability": {
+          "isAvailable": true,
+          "hasFile": true,
+          "canRequest": false
+        }
+      }
+    ],
+    "page": {
+      "limit": 60,
+      "offset": 0,
+      "hasMore": false,
+      "total": 1
+    }
+  },
+  "baselineProblems": []
+}

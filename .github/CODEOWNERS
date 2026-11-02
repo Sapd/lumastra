@@ -1,0 +1,8 @@
+# Review ownership for the whole tree. Licensing-relevant files are the ones to be strictest on.
+*                       @Sapd
+/LICENSE                @Sapd
+/LICENSING.md           @Sapd
+/LICENSES/              @Sapd
+/.github/CLA.md                 @Sapd
+/scripts/license-*.mjs  @Sapd
+/scripts/check-license-boundary.mjs @Sapd

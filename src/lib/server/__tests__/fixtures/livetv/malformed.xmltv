@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<tv generator-info-name="MalformedTestProvider">
+	<channel id="Good.de">
+		<display-name>Good Channel</display-name>
+		<icon src="http://logos.example/good.png" />
+	</channel>
+	<channel id="NoDisplayName.de">
+	</channel>
+	<channel id="Unknown.de">
+		<display-name>Channel With No Programmes</display-name>
+	</channel>
+	<programme start="20260309060000 +0100" stop="20260309070000 +0100" channel="Good.de" >
+		<title>Valid Programme</title>
+		<desc>This programme is perfectly valid and should be parsed.</desc>
+	</programme>
+	<programme start="20260309070000 +0100" stop="20260309080000 +0100" channel="Good.de" >
+		<desc>This programme has no title element at all.</desc>
+	</programme>
+	<programme start="20260309080000 +0100" stop="20260309090000 +0100" channel="Good.de" >
+		<title></title>
+		<desc>This programme has an empty title.</desc>
+	</programme>
+	<programme stop="20260309100000 +0100" channel="Good.de" >
+		<title>Missing Start Time</title>
+		<desc>This programme is missing the start attribute.</desc>
+	</programme>
+	<programme start="20260309100000 +0100" channel="Good.de" >
+		<title>Missing Stop Time</title>
+		<desc>This programme is missing the stop attribute.</desc>
+	</programme>
+	<programme start="20260309110000 +0100" stop="20260309120000 +0100" >
+		<title>Missing Channel</title>
+		<desc>This programme is missing the channel attribute.</desc>
+	</programme>
+	<programme start="invalid_time" stop="20260309130000 +0100" channel="Good.de" >
+		<title>Invalid Start Time</title>
+		<desc>The start time is not a valid XMLTV time format.</desc>
+	</programme>
+	<programme start="20260309140000 +0100" stop="20260309130000 +0100" channel="Good.de" >
+		<title>Inverted Times</title>
+		<desc>Start time is after stop time — timezone error in provider data.</desc>
+	</programme>
+	<programme start="20260309150000 +0100" stop="20260309150000 +0100" channel="Good.de" >
+		<title>Zero Duration</title>
+		<desc>Start and stop times are identical.</desc>
+	</programme>
+	<programme start="20260309160000 +0100" stop="20260309170000 +0100" channel="NonExistent.de" >
+		<title>Unknown Channel Reference</title>
+		<desc>References a channel not in the channel list.</desc>
+	</programme>
+	<programme start="20260309170000 +0100" stop="20260309180000 +0100" channel="Good.de" >
+		<title>Empty Description</title>
+		<desc></desc>
+	</programme>
+	<programme start="20260309180000 +0100" stop="20260309190000 +0100" channel="Good.de" >
+		<title>No Description At All</title>
+	</programme>
+	<programme start="20260309190000 +0100" stop="20260309200000 +0100" channel="Good.de" >
+		<title>Another Valid Programme</title>
+		<desc>Second valid programme to verify partial success.</desc>
+	</programme>
+	<!-- Unclosed programme tag — tests regex parser graceful handling -->
+	<programme start="20260309200000 +0100" stop="20260309210000 +0100" channel="Good.de" >
+		<title>Unclosed Tag Programme</title>
+		<desc>This programme's closing tag is missing.</desc>
+</tv>

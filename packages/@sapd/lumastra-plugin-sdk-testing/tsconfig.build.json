@@ -1,0 +1,21 @@
+{
+    // Publish build. Separate from tsconfig.json because that one is the
+    // editor/typecheck config and inherits `allowImportingTsExtensions` from the
+    // repo root, which TypeScript refuses to combine with emit. Tests are
+    // excluded so `dist/` carries only the published surface.
+    //
+    // `incremental: false` is load-bearing: the build script deletes `dist/` but
+    // a leftover .tsbuildinfo would convince tsc everything is up to date, so it
+    // would exit 0 having emitted nothing and publish an empty package.
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": false,
+        "incremental": false,
+        "allowImportingTsExtensions": false,
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true
+    },
+    "include": ["src/**/*.ts"],
+    "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/__tests__/**"]
+}

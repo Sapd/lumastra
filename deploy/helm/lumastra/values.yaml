@@ -1,0 +1,776 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Lumastra Helm chart (beta). Every secret is a reference to a Secret you create; the chart
+# never generates or inlines one (output is deterministic, so GitOps tools can render it offline).
+
+# Only split is supported: web StatefulSet (N replicas) + one lean task worker (Recreate).
+mode: split
+
+global:
+    # Overrides the registry of EVERY image below (e.g. a pull-through mirror).
+    imageRegistry: ''
+    imagePullSecrets: []
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    podAnnotations: {}
+    podLabels: {}
+
+# The app image (web, worker, and — unless overridden — the stream proxy).
+# `digest` (sha256:…) wins over `tag`. Pin a digest (or a release tag) in production: with the
+# moving `stable` tag a `helm upgrade` renders the same pod spec, so nothing rolls.
+# pullPolicy '' = Always for a moving tag (stable/latest/main) without a digest, else IfNotPresent.
+image:
+    registry: ghcr.io
+    repository: lumastra/lumastra
+    tag: stable
+    digest: ''
+    pullPolicy: ''
+
+serviceAccount:
+    create: true
+    name: ''
+    annotations: {}
+    automountServiceAccountToken: false
+
+podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile: { type: RuntimeDefault }
+
+containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities: { drop: [ALL] }
+
+# ── App configuration (rendered into the <release>-env ConfigMap) ─────────────────────────────
+app:
+    # Public origin, e.g. https://lumastra.example.com. Strongly recommended: Secure cookies and
+    # CSRF origin checks use it. Must match the hostname clients use.
+    origin: ''
+    # Alternative to `origin` behind a TLS-terminating proxy (adapter-node PROTOCOL_HEADER).
+    protocolHeader: ''
+    timezone: UTC
+    logLevel: info
+    # adapter-node request body cap; must be >= MAX_IMAGE_UPLOAD_MB (artwork uploads) and >= 3M
+    # (client diagnostics bundles). Keep router.clientMaxBodySize in step.
+    bodySizeLimit: 50M
+    lowRamMode: false
+    # central | alongside | alongside-prefer. alongside* writes artwork/lyrics/trickplay NEXT TO
+    # the media, so libraries are mounted read-write on web and worker (see `libraries`).
+    metadataStorageLocation: central
+    # PUBLIC_* links shown in the UI, e.g. PUBLIC_WIKIURL: https://wiki.example.com
+    publicUrls: {}
+    # Any other non-secret env (KEY: value). Wins over everything structured above.
+    env: {}
+
+# Auth values left at null / '' are NOT rendered (native login is the one exception, below): the
+# app's own default applies, and a value saved in the Admin UI (/config/settings.json, e.g. a
+# migrated install) stays in effect. Set one only to pin it — a rendered env value wins over the
+# Admin UI and locks that setting there. App defaults are listed per key; see the README
+# (Authentication).
+auth:
+    native:
+        # AUTH_NATIVE_LOGIN_ENABLED (app default false). null = rendered `true` only when neither
+        # forward-auth nor OIDC is enabled — the app refuses to start without a sign-in method, and
+        # the compose quick start sets true for the same reason. With forward-auth/OIDC it is not
+        # rendered, so a value saved in the Admin UI / settings.json applies. false without
+        # forward-auth or OIDC fails to render (see auth.oidc.configuredInAdminUi).
+        enabled: null
+    # Forward-auth (an identity proxy injects user/group headers). `enabled` renders
+    # FORWARD_AUTH_ENABLED=true; without it the app ignores those headers from every peer. The app
+    # trusts them ONLY from `trustedProxyIps`. With the router enabled that is the router pods' CIDR — in
+    # practice your whole pod network, so EVERY pod that can reach web:3000 could claim any user.
+    # networkPolicy.enabled is therefore required (web then accepts only the router and
+    # networkPolicy.metricsFrom — treat those peers as trusted too). Turn on router.forwardAuth
+    # as well, or nothing authenticates the request.
+    forwardAuth:
+        enabled: false
+        # Only if something else (a service mesh, a CNI policy) already restricts who can reach
+        # web:3000: render forward-auth without the chart's NetworkPolicies.
+        allowWithoutNetworkPolicy: false
+        userHeader: X-Forwarded-User
+        groupHeader: X-Forwarded-Groups
+        nameHeader: ''
+        trustedProxyIps: ''
+        # FORWARD_AUTH_GROUPS_ALWAYS_SENT. App default false.
+        groupsAlwaysSent: null
+    oidc:
+        enabled: false
+        issuer: ''
+        clientId: ''
+        # The client secret goes in secrets.env (AUTH_OIDC_CLIENT_SECRET).
+        scopes: ''
+        groupsClaim: ''
+        providerName: ''
+        redirectUri: ''
+        # true = OIDC is configured only in the Admin UI (/config/settings.json, e.g. a migrated
+        # install). The chart cannot see that file, so it otherwise refuses to render
+        # auth.native.enabled: false without OIDC or forward-auth in these values (the app would
+        # refuse to start without a sign-in method).
+        configuredInAdminUi: false
+    # ADMIN_GROUPS (comma-separated). App default: admin.
+    adminGroups: ''
+    watchPermissionGroups: ''
+    # FEATURE_DEVICE_AUTH (Apple/third-party apps, /api/v1 tokens). App default true.
+    deviceAuth: null
+    # FEATURE_USER_PATS (users mint personal access tokens). App default false.
+    userPats: null
+
+# Secret env for web/worker. Each entry is ENV_NAME: <key in existingSecret>, or
+# ENV_NAME: {secret: <name>, key: <key>, optional: true|false}. Entries whose secret is empty
+# are not rendered. Examples: JWT_SECRET, LICENSE_KEY, LUMASTRA_METRICS_BEARER_TOKEN,
+# PUSH_RELAY_TOKEN, AUTH_OIDC_CLIENT_SECRET, TMDB_API_KEY, OPENAI_API_KEY, SEERRAPIKEY, …
+secrets:
+    existingSecret: ''
+    env:
+        # 64 hex chars (openssl rand -hex 32). Encrypts stored secrets — BACK IT UP. Required with
+        # more than one pod (otherwise each pod could generate its own /config/master.key race).
+        LUMASTRA_MASTER_KEY: LUMASTRA_MASTER_KEY
+
+# FEATURE_* flags, e.g. FEATURE_LIVETV: true
+features: {}
+
+# External services. `url` is what the app's server calls (an in-cluster Service URL is fine);
+# `publicUrl` is what browsers and apps are sent to (links, players) and must be reachable by
+# users. Keep them separate whenever the service is reached differently from inside the cluster.
+# `apiKey` comes from a Secret: {secret: <name, default secrets.existingSecret>, key: <key>}.
+# Empty values are not rendered. A non-empty env value wins over the Admin UI
+# (/config/settings.json), but a value only saved in settings.json stays active — see the README
+# ("Configuration precedence").
+integrations:
+    audiobookshelf: # AUDIOURL / PUBLIC_AUDIOBOOKURL / AUDIOAPIKEY
+        url: ''
+        publicUrl: ''
+        apiKey: { secret: '', key: '' }
+    kavita: # KAVITAURL / PUBLIC_KAVITAURL / KAVITAAPIKEY
+        url: ''
+        publicUrl: ''
+        apiKey: { secret: '', key: '' }
+    jellyfin: # JELLYFINURL / PUBLIC_JELLYFINURL / JELLYFINAPIKEY
+        url: ''
+        publicUrl: ''
+        apiKey: { secret: '', key: '' }
+    seerr: # SEERRURL / PUBLIC_REQUESTURL / SEERRAPIKEY
+        url: ''
+        publicUrl: ''
+        apiKey: { secret: '', key: '' }
+    sonarr: # SONARRURL / SONARRAPIKEY
+        url: ''
+        apiKey: { secret: '', key: '' }
+    radarr: # RADARRURL / RADARRAPIKEY
+        url: ''
+        apiKey: { secret: '', key: '' }
+# Concurrency / pool knobs, e.g. LUMASTRA_CONCURRENCY_CPU: 4, LUMASTRA_DB_POOL_TASK_MAX: 20
+concurrency: {}
+
+ffmpeg:
+    # Download jellyfin-ffmpeg at boot into /config/bin (lock-protected, shared). false = bring
+    # your own binaries and set FFMPEG_PATH/FFPROBE_PATH in app.env.
+    autoDownload: true
+
+gpu:
+    # none | resource (device plugin, e.g. gpu.intel.com/i915) | hostPath (/dev/dri; needs
+    # `privileged: true` on most runtimes)
+    mode: none
+    # GPU_ACCELERATION: none | qsv | vaapi | nvenc | amf
+    acceleration: none
+    resources: {}
+    hostPath: /dev/dri
+    privileged: false
+    # GID of the host's `render` group → supplementalGroups of GPU pods.
+    renderGroupId: null
+    # QSV_DEVICE, VAAPI_DEVICE, NVENC_*, TRICKPLAY_HWACCEL, TRICKPLAY_HWACCEL_DEVICE, …
+    env: {}
+    # Which components get the GPU: web, worker, proxy
+    components: [web, worker]
+
+# ── Workloads ──────────────────────────────────────────────────────────────────────────────────
+# Web pods run as a StatefulSet (<release>-web-0…N): the router needs one stable DNS name per pod
+# to consistent-hash (see router). Updates replace one pod at a time (no surge: capacity N-1 while
+# a pod restarts). A pod that never becomes Ready STALLS the rollout — and a rollback — until you
+# `kubectl delete pod <release>-web-N` (Argo CD shows Progressing, not Degraded). An HPA must keep
+# maxReplicas <= router.webSlots: pods beyond the router's slots get no traffic.
+web:
+    # 0 = stopped (maintenance, data moves); the router then answers 502.
+    replicas: 2
+    # rollingUpdate.maxUnavailable is deliberately not used: its feature gate is not reliably on
+    # across Kubernetes versions, and serial updates keep the HLS handover window to one pod.
+    updateStrategy:
+        type: RollingUpdate
+    minReadySeconds: 10
+    # The limit covers the pod's FFmpeg children: ~1 GiB per concurrent CPU (libx264) transcode,
+    # far less with a GPU. 4Gi suits GPU transcoding; without a GPU plan 1.5 GiB + 1 GiB per
+    # transcode and cap LUMASTRA_MAX_CONCURRENT_TRANSCODES (per pod) in `concurrency` — README
+    # "Sizing", ci/cpu-only-values.yaml.
+    resources:
+        requests: { cpu: 250m, memory: 768Mi }
+        limits: { memory: 4Gi }
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    # Pod runtimeClassName, e.g. nvidia on clusters whose NVIDIA runtime is not the node default.
+    # '' = not rendered (the cluster default runtime).
+    runtimeClassName: ''
+    priorityClassName: ''
+    podAnnotations: {}
+    podLabels: {}
+    env: {}
+    extraEnv: []
+    extraEnvFrom: []
+    extraVolumes: []
+    extraVolumeMounts: []
+    # Runs before SIGTERM and keeps the pod serving while the router/endpoints drop it.
+    # Keep it >= router.dnsValid + your DNS TTL.
+    preStopSleepSeconds: 15
+    # After SIGTERM the app answers new requests with 503 + Retry-After, lets in-flight ones run
+    # this long (adapter-node SHUTDOWN_TIMEOUT; long downloads and event streams are cut after
+    # it), then stops its services and closes its pools. The chart refuses a
+    # terminationGracePeriodSeconds below preStopSleepSeconds + drainSeconds + 30.
+    drainSeconds: 30
+    terminationGracePeriodSeconds: 90
+    # First boot runs migrations (+ ffmpeg download, asset copy): be generous.
+    startupProbe:
+        httpGet: { path: /api/health, port: http }
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 90
+    readinessProbe:
+        httpGet: { path: /api/health/ready, port: http }
+        periodSeconds: 15
+        timeoutSeconds: 8
+        failureThreshold: 3
+    livenessProbe:
+        httpGet: { path: /api/health, port: http }
+        periodSeconds: 30
+        timeoutSeconds: 5
+        failureThreshold: 3
+    pdb:
+        enabled: true
+        minAvailable: 1
+
+# At most ONE worker (strategy Recreate: the old pod is gone before the new one starts).
+worker:
+    # 1, or 0 to stop it (maintenance, data moves: a worker started against an empty database
+    # migrates it before a restore lands). Anything else fails to render.
+    replicas: 1
+    resources:
+        requests: { cpu: 500m, memory: 1Gi }
+        limits: { memory: 6Gi }
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    # Pod runtimeClassName, e.g. nvidia on clusters whose NVIDIA runtime is not the node default.
+    # '' = not rendered (the cluster default runtime).
+    runtimeClassName: ''
+    priorityClassName: ''
+    podAnnotations: {}
+    podLabels: {}
+    env: {}
+    extraEnv: []
+    extraEnvFrom: []
+    extraVolumes: []
+    extraVolumeMounts: []
+    terminationGracePeriodSeconds: 120
+    startupProbe:
+        httpGet: { path: /api/health, port: http }
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 90
+    # The worker has no Service, so readiness routes nothing. It reports state: not ready while
+    # another worker holds the singleton lease, during a prepared upgrade, when PostgreSQL or the
+    # task Valkey is unreachable, or when the library watcher has failed. The body lists the
+    # reasons. Liveness also fails when the scheduler or consumer loops make no progress for
+    # TASK_RUNTIME_LIVENESS_STALL_SECONDS (default 600).
+    readinessProbe:
+        httpGet: { path: /api/health/ready, port: http }
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+    livenessProbe:
+        httpGet: { path: /api/health, port: http }
+        periodSeconds: 30
+        timeoutSeconds: 5
+        failureThreshold: 3
+
+# ── Affinity router (nginx) in front of the web pods ───────────────────────────────────────────
+# Pins every HLS session to one web pod: key = the playback grant, else PlaySessionId (preview-* ids
+# excluded), else client IP; consistent hash over one upstream line per web pod
+# (<release>-web-<n>.<release>-web-headless, re-resolved every `dnsValid`; only Ready pods have a
+# DNS record). Needed whenever web.replicas > 1; also hosts the optional forward-auth gate.
+router:
+    enabled: true
+    replicas: 2
+    image:
+        registry: docker.io
+        repository: nginxinc/nginx-unprivileged
+        tag: 1.29-alpine
+        digest: ''
+        pullPolicy: IfNotPresent
+    # DNS server for re-resolving the web pods (k8s/k3s CoreDNS Service). Empty =
+    # kube-dns.kube-system.svc.<clusterDomain>. A name is resolved once at nginx start; an IP
+    # (e.g. 10.43.0.10) also works.
+    resolver: ''
+    dnsValid: 5s
+    # Upstream lines = web.replicas (one per pod). webSlots > web.replicas adds lines for pods
+    # that do not exist yet, so an HPA can scale up to webSlots without a router change — but
+    # every router pod then logs "could not be resolved" for each empty slot every dnsValid.
+    # Leave it 0 unless you autoscale; a helm/Argo change of web.replicas re-renders the router.
+    webSlots: 0
+    clusterDomain: cluster.local
+    clientMaxBodySize: 50m
+    proxyTimeoutSeconds: 3600
+    # Real client IP when another proxy (ingress/gateway) sits in front: trust X-Forwarded-For
+    # from these peers. The IP fallback of the routing key and the app's client IP use it.
+    realIp:
+        fromCIDRs: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]
+        header: X-Forwarded-For
+        recursive: true
+    accessLog: true
+    forwardAuth:
+        enabled: false
+        # auth_request target, full URL, e.g.
+        # https://auth.example.com/outpost.goauthentik.io/auth/nginx
+        url: ''
+        # Host header sent to the auth endpoint. '' = the endpoint's own host (from `url`); the
+        # app's host always goes in X-Forwarded-Host / X-Original-URL, which Authentik uses to pick
+        # the application. Use $host only for an endpoint that routes by the APP's host (an outpost
+        # reached directly, e.g. http://ak-outpost:9000) — behind a proxy that routes by Host, $host
+        # would send the request back to Lumastra.
+        hostHeader: ''
+        # Verify the TLS certificate of https auth/outpost endpoints (the auth decision must not be
+        # spoofable). caFile is the CA bundle inside the router image.
+        sslVerify: true
+        caFile: /etc/ssl/certs/ca-certificates.crt
+        # Redirect for unauthenticated browsers (nginx variables allowed), e.g.
+        # /outpost.goauthentik.io/start?rd=$lumastra_proto://$http_host$request_uri
+        signinUrl: ''
+        # Relay Set-Cookie from the auth endpoint (Authentik session cookie).
+        relayCookies: true
+        # Headers copied from the auth response onto the upstream request.
+        responseHeaders: []
+        # Client-supplied headers blanked on EVERY request (the app's user/group/name headers are
+        # always added). List your IdP's identity headers, e.g. X-authentik-username.
+        stripRequestHeaders: []
+        # Paths the app authenticates itself (Jellyfin-compat, Subsonic, OAuth/device flow,
+        # signed plugin webhooks, health checks, and /metrics with its own token).
+        bypassPaths: [/j/, /subsonic/, /oauth/, /api/plugin-webhooks/, /api/health, /metrics]
+        # /api/v1/: try forward-auth, on 401 pass through WITHOUT identity (PAT/device tokens).
+        # An auth-endpoint 3xx/404/5xx/timeout counts as 401 (passthrough paths: to the app
+        # without identity; `/`: sign-in fallback). Router access log `aus=` = its real status.
+        apiV1Passthrough: true
+        # /oauth/links/ (MAL account-linking callback): same try-then-pass-through, so it gets the
+        # signed-in user even though /oauth/ (device flow) bypasses the IdP. Without it, linking
+        # fails for forward-auth users. Wins over a /oauth/ bypass (longer prefix).
+        oauthLinksPassthrough: true
+        # More prefixes with the same try-then-pass-through behaviour, e.g. /api/playback/ for
+        # cookieless players fetching grant-carrying HLS URLs (AirPlay/Chromecast/external players).
+        extraPassthroughPaths: []
+        # Proxy a path to the IdP (Authentik: /outpost.goauthentik.io → its origin).
+        outpost:
+            enabled: false
+            path: /outpost.goauthentik.io
+            origin: ''
+            # Host header for the outpost requests; same rules as hostHeader above ('' = the
+            # origin's own host, the app's host in X-Forwarded-Host / X-Original-URL).
+            hostHeader: ''
+    # Raw nginx snippets (advanced): http-level and inside the main server block.
+    extraHttpConfig: ''
+    extraServerConfig: ''
+    resources:
+        requests: { cpu: 50m, memory: 64Mi }
+        limits: { memory: 256Mi }
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    podAnnotations: {}
+    podLabels: {}
+    # On shutdown nginx stops accepting and lets in-flight requests finish (graceful quit) for up
+    # to this long; long-lived SSE/HLS connections still open then are cut.
+    terminationGracePeriodSeconds: 60
+    pdb:
+        enabled: true
+        minAvailable: 1
+
+# ── Live TV stream proxy (optional; also set features.FEATURE_LIVETV: true) ────────────────────
+proxy:
+    enabled: false
+    # 1, or 0 to stop it (drops every live channel).
+    replicas: 1
+    # Defaults to the app image; give it its own tag/digest so app releases don't restart it
+    # (a restart drops every live channel).
+    image:
+        registry: ''
+        repository: ''
+        tag: ''
+        digest: ''
+        pullPolicy: ''
+    # Shared secret between app and proxy (the proxy refuses to start without it).
+    secret:
+        name: '' # defaults to secrets.existingSecret
+        key: STREAM_PROXY_SECRET
+    # Give the proxy CACHE_URL (failure reporting). It always gets TASK_CACHE_URL: its heartbeat in
+    # the admin cluster view is written to the tasks Valkey.
+    useCache: true
+    # Mount the shared ffmpeg cache read-only (needs persistence.ffmpegCache). The proxy re-checks
+    # for the binary every 5 s, so it picks it up once a web/worker pod has filled the cache.
+    ffmpegCacheReadOnly: true
+    # Images built before 2026-10-01 check only at boot: set e.g. 600 to make an init container
+    # wait that long for the cache (0 = no init container).
+    waitForFfmpegSeconds: 0
+    # preStop waits until /status reports activeChannels == 0, at most this long.
+    drainSeconds: 240
+    resources:
+        requests: { cpu: 250m, memory: 256Mi }
+        limits: { memory: 2Gi }
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    # Pod runtimeClassName, e.g. nvidia on clusters whose NVIDIA runtime is not the node default.
+    # '' = not rendered (the cluster default runtime).
+    runtimeClassName: ''
+    podAnnotations: {}
+    podLabels: {}
+    env: {}
+    extraEnv: []
+    extraEnvFrom: []
+    extraVolumes: []
+    extraVolumeMounts: []
+
+# ── Sonic embedder sidecar (optional; amd64 only; set FEATURE_MUSIC_SONIC etc. in features) ────
+sonic:
+    enabled: false
+    # 1, or 0 to stop it (music similarity/text search then degrade gracefully).
+    replicas: 1
+    image:
+        registry: ghcr.io
+        repository: lumastra/lumastra-sonic-embedder
+        tag: stable
+        digest: ''
+        pullPolicy: ''
+    modelId: msclap-2023
+    # PyTorch threads; keep <= the CPU limit and raise memory with it.
+    threads: 2
+    database:
+        # DATABASE_URL for the read-only role. external mode: a Secret key holding the full URL.
+        existingSecret: ''
+        urlKey: SONIC_DATABASE_URL
+        role: sonic_reader
+        # cnpg mode: the role's password Secret (basic-auth, key `password`); the URL is built from
+        # it, so the password must be URL-safe (hex).
+        # Run the GRANTs from an init container as the app role once media_audio_embeddings exists.
+        grant:
+            enabled: true
+            timeoutSeconds: 900
+            image:
+                registry: docker.io
+                repository: library/postgres
+                tag: 18-alpine
+                digest: ''
+                pullPolicy: IfNotPresent
+    persistence:
+        enabled: true
+        existingClaim: ''
+        storageClassName: ''
+        accessModes: [ReadWriteOnce]
+        size: 5Gi
+    tmpSizeLimit: 2Gi
+    # The sidecar plans its jobs inside limits.memory (memory gate; it reads the cgroup
+    # limit): 3Gi runs everything but /analyze of tracks over ~7 min, 6Gi up to ~16-18
+    # min, 10Gi up to 30. workers/sonic-embedder/README.md "Memory controls" lists the
+    # env knobs (sonic.env), e.g. SONIC_TEXT_ENCODER.
+    resources:
+        requests: { cpu: '1', memory: 2Gi }
+        limits: { memory: 6Gi }
+    nodeSelector:
+        kubernetes.io/arch: amd64
+    tolerations: []
+    affinity: {}
+    podAnnotations: {}
+    podLabels: {}
+    env: {}
+    extraEnv: []
+    startupProbe:
+        httpGet: { path: /health, port: http }
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 36
+    readinessProbe:
+        httpGet: { path: /health, port: http }
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+    livenessProbe:
+        httpGet: { path: /health, port: http }
+        periodSeconds: 30
+        timeoutSeconds: 5
+        failureThreshold: 5
+
+# ── Storage ────────────────────────────────────────────────────────────────────────────────────
+persistence:
+    # Added to every PVC and the CNPG Cluster (e.g. argocd.argoproj.io/sync-options).
+    dataAnnotations: {}
+    # helm.sh/resource-policy: keep on chart-created PVCs.
+    keepOnUninstall: true
+    # accessModes: [] = ReadWriteMany, shared by web + worker.
+    # ReadWriteOnce also works when every pod runs on one node.
+    # /config: settings.json, master.key (unless LUMASTRA_MASTER_KEY), artwork, trickplay, caches.
+    config:
+        enabled: true
+        existingClaim: ''
+        storageClassName: ''
+        accessModes: []
+        size: 20Gi
+    # HLS transcode output (FFMPEG_TRANSCODE_DIR). One SHARED volume for all web pods + worker:
+    # a pod taking over a session serves segments already written. type: pvc | emptyDir
+    transcode:
+        type: pvc
+        mountPath: /transcode
+        existingClaim: ''
+        storageClassName: ''
+        accessModes: []
+        size: 50Gi
+        emptyDirSizeLimit: ''
+    # Separate ffmpeg cache volume mounted at /config/bin (required when the proxy is enabled
+    # with ffmpeg.autoDownload; otherwise the cache simply lives inside /config).
+    ffmpegCache:
+        enabled: false
+        existingClaim: ''
+        storageClassName: ''
+        accessModes: []
+        size: 2Gi
+    # Installed external plugins (/app/plugins).
+    plugins:
+        enabled: true
+        existingClaim: ''
+        storageClassName: ''
+        accessModes: []
+        size: 1Gi
+    # Rebuildable app caches (/app/.cache): artwork, extracted subtitles, library backdrops.
+    # Turn it on whenever you can: without it each pod gets an emptyDir that is emptied on every
+    # restart and not shared between replicas, so after each deploy artwork is fetched again and
+    # the first viewer of a title waits for its subtitles to be extracted again.
+    # auto = off. Set true
+    # when you have a ReadWriteMany storage class, or when every web and worker pod runs on one
+    # node (then accessModes: [ReadWriteOnce]).
+    appCache:
+        enabled: auto
+        existingClaim: ''
+        storageClassName: ''
+        accessModes: []
+        size: 20Gi
+
+# Media libraries, mounted at the same path on every component that gets them. Add the paths in
+# Admin → Library afterwards. Exactly one source per entry:
+#   - name: movies
+#     mountPath: /data/movies
+#     hostPath: /mnt/media/movies          # or existingClaim: media-movies
+#                                          # or nfs: {server: 10.0.0.1, path: /export/movies}
+#     readOnly: {web: true, worker: true}  # default: read-only unless metadataStorageLocation is alongside*
+#     music: false                         # true = also mounted read-only on the sonic sidecar
+libraries: []
+
+# Custom branding files mounted at /app/build/client/custom (reference them as /custom/<file>
+# in APP_LOGO_* etc. via app.env).
+branding:
+    existingConfigMap: ''
+
+# ── Postgres (17+ with pgvector, pg_trgm, pgcrypto, unaccent) ─────────────────────────────────
+database:
+    # external = bring your own; cnpg = render a CloudNativePG Cluster (operator required)
+    mode: external
+    external:
+        existingSecret: '' # defaults to secrets.existingSecret
+        urlKey: DATABASE_URL
+    cnpg:
+        name: '' # default <release>-postgres
+        instances: 1
+        imageName: ghcr.io/cloudnative-pg/postgresql:18-standard-trixie
+        database: lumastra
+        owner: lumastra
+        # Optional basic-auth Secret for the owner (else CNPG generates <name>-app).
+        ownerSecret: ''
+        # The app reads DATABASE_URL from this Secret/key (CNPG's generated app Secret).
+        appSecret: '' # default <name>-app
+        appSecretUriKey: uri
+        extensions: [vector, pg_trgm, pgcrypto, unaccent]
+        # Hand the extensions to the owner after creating them (pg_extension.extowner). Only needed
+        # for app images built before 2026-10-01, whose base schema ran an unguarded COMMENT ON
+        # EXTENSION; it edits the catalog directly (pg_shdepend is not updated), so leave it off.
+        transferExtensionOwnership: false
+        extraPostInitApplicationSQL: []
+        # Hibernate the Cluster (cnpg.io/hibernation: on): stops the instance pods, keeps the PVCs.
+        hibernate: false
+        # initdb options (first bootstrap only; changing them later has no effect). CNPG's default
+        # locale is C, which changes ORDER BY on text and default_text_search_config compared with
+        # an existing en_US.UTF-8 install. Match the source when migrating (README: Database):
+        #   {localeCollate: en_US.utf8, localeCType: en_US.utf8}
+        #   or ICU: {localeProvider: icu, icuLocale: en-US, locale: en_US.utf8}
+        # Keys: encoding, locale, localeCollate, localeCType, localeProvider (libc|icu|builtin),
+        # icuLocale, icuRules, builtinLocale, dataChecksums, walSegmentSize.
+        initdb: {}
+        # Postgres settings for the CNPG Cluster. These defaults match docker-compose.example.yml:
+        # shared_buffers above Postgres' 128MB default (raise it, e.g. 2-3GB, on a big node and set
+        # the pod's memory to match), and JIT thresholds raised because JIT compilation made the
+        # library-browse queries 4-19x slower on a production install. Keys you set are merged
+        # into these; set a key to override it.
+        parameters:
+            shared_buffers: 512MB
+            jit_above_cost: '10000000'
+            jit_optimize_above_cost: '50000000'
+            jit_inline_above_cost: '50000000'
+        sharedPreloadLibraries: []
+        storage:
+            size: 20Gi
+            storageClass: ''
+        walStorage: {}
+        resources: {}
+        nodeSelector: {}
+        tolerations: []
+        annotations: {}
+        sonicReader:
+            enabled: false
+            # basic-auth Secret (username: sonic_reader, password: <hex>)
+            passwordSecret: ''
+        backup:
+            enabled: false
+            objectStoreName: '' # default <name>-backup
+            # barmancloud.cnpg.io/v1 ObjectStore spec.configuration (destinationPath,
+            # endpointURL, s3Credentials {accessKeyId/secretAccessKey: {name,key}}, wal, data)
+            configuration: {}
+            retentionPolicy: 30d
+            schedule: '0 0 3 * * *'
+            # ObjectStore spec.instanceSidecarConfiguration (e.g. {resources: {…}}) for the Barman
+            # sidecar in each instance pod.
+            instanceSidecarConfiguration: {}
+
+# ── Valkey ─────────────────────────────────────────────────────────────────────────────────────
+valkey:
+    # bundled = two chart-managed instances (task store + cache); external = both URLs from a Secret
+    mode: bundled
+    image:
+        registry: docker.io
+        repository: valkey/valkey
+        tag: 9-alpine
+        digest: ''
+        pullPolicy: IfNotPresent
+    auth:
+        existingSecret: '' # defaults to secrets.existingSecret
+        # Secret key with the requirepass of the cache instance (and of the tasks instance unless
+        # taskPasswordKey is set). Must be URL-safe (hex, or letters, digits and -._~): the chart
+        # embeds it into redis:// URLs at pod start and cannot percent-encode a Secret value.
+        passwordKey: CACHE_PASSWORD
+        # Separate Secret key for the tasks instance (for example TASK_CACHE_PASSWORD). Empty =
+        # the tasks instance uses passwordKey. Add the key to the Secret BEFORE setting this.
+        taskPasswordKey: ''
+    # App cache: evicts (allkeys-lru) under its memory cap, no persistence.
+    cache:
+        # 1, or 0 to stop it.
+        replicas: 1
+        maxmemory: 768mb
+        resources:
+            requests: { cpu: 50m, memory: 256Mi }
+            limits: { memory: 1Gi }
+    # Tasks/BullMQ/coordination: noeviction, NO memory cap, AOF on a PVC.
+    tasks:
+        # 1, or 0 to stop it.
+        replicas: 1
+        # Migrating from an RDB-only Valkey/Redis: AOF ignores dump.rdb and the first shutdown
+        # overwrites it with an empty snapshot. With this on, an init container loads
+        # /data/dump.rdb with AOF off, rewrites it to AOF (appendonlydir) and renames the dump to
+        # dump.rdb.imported-<time> — only when dump.rdb exists and appendonlydir holds no complete
+        # AOF (manifest), so it is a no-op otherwise; a failed import cleans up and retries.
+        # Procedure: README (Valkey → Importing an RDB snapshot).
+        rdbImport:
+            enabled: false
+            timeoutSeconds: 600
+        resources:
+            requests: { cpu: 50m, memory: 256Mi }
+            limits: { memory: 2Gi }
+        persistence:
+            # false = emptyDir (AOF lost on restart; not recommended for the task keyspace)
+            enabled: true
+            existingClaim: ''
+            storageClassName: ''
+            accessModes: [ReadWriteOnce]
+            size: 5Gi
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    podAnnotations: {}
+    external:
+        existingSecret: ''
+        cacheUrlKey: CACHE_URL
+        # Required separate task-store URL (noeviction, persistent).
+        taskCacheUrlKey: TASK_CACHE_URL
+
+# ── Exposure ───────────────────────────────────────────────────────────────────────────────────
+# The entry Service <release>-lumastra (port 80) fronts the router, or the web pods when the
+# router is off. Point your HTTPRoute/Ingress at it.
+service:
+    type: ClusterIP
+    port: 80
+    annotations: {}
+
+httpRoute:
+    enabled: false
+    annotations: {}
+    parentRefs: []
+    hostnames: []
+    # Optional Gateway API timeouts block (request/backendRequest), if your gateway supports it.
+    timeouts: {}
+
+ingress:
+    enabled: false
+    className: ''
+    # For className nginx (ingress-nginx): add proxy-body-size (from app.bodySizeLimit's router
+    # counterpart), proxy-buffering off and 3600 s read/send timeouts unless set in annotations.
+    nginxDefaults: true
+    annotations: {}
+    hosts: []
+    #  - host: lumastra.example.com
+    tls: []
+
+networkPolicy:
+    # Disabled for compatibility with ingress controllers whose namespace/pod labels vary.
+    # This default provides NO chart-enforced pod isolation: other pods can reach web:3000
+    # and bundled Valkey:6379 directly, bypassing the router's header sanitization.
+    # Enable with ingressFrom matching your actual controller; see README "Network isolation".
+    enabled: false
+    # Internal policies, on by default even with enabled=false: the worker accepts only
+    # metricsFrom (kubelet probes are not subject to NetworkPolicy on common CNIs), and both bundled
+    # Valkeys, the proxy and sonic accept only the app pods. They use only this chart's own pod
+    # labels, so they work with any ingress controller. Set false only if your CNI blocks kubelet
+    # probes or something outside this release must reach the task Valkey.
+    internal: true
+    # Peers allowed to reach the entry point (router, or web when the router is off), e.g. your
+    # gateway: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: traefik}},
+    #            podSelector: {matchLabels: {app.kubernetes.io/name: traefik}}}]
+    # Empty keeps the entry port open to ALL sources even when enabled (no `from` is emitted).
+    ingressFrom: []
+    # Peers allowed to scrape /metrics on web/worker. NetworkPolicy cannot filter paths: they reach
+    # all of port 3000, so with forward-auth they are as trusted as the router.
+    # Required with serviceMonitor.enabled when internal=true. For Prometheus in monitoring:
+    # [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: monitoring}},
+    #   podSelector: {matchLabels: {app.kubernetes.io/name: prometheus}}}]
+    metricsFrom: []
+
+serviceMonitor:
+    enabled: false
+    interval: 30s
+    labels: {}
+    # Secret holding LUMASTRA_METRICS_BEARER_TOKEN.
+    bearerTokenSecret: { name: '', key: '' }
+
+# Optional alerts for the dedicated task worker (needs prometheus-operator CRDs).
+metrics:
+    prometheusRule:
+        enabled: false
+        # Extra labels, e.g. the release label your Prometheus selects rules by.
+        labels: {}

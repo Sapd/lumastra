@@ -1,0 +1,209 @@
+{
+    "APP_NAME": "Lumastra",
+    "APP_DESCRIPTION": "Lumastra",
+    "APP_LOGO_SMALL": "/branding/lumastra-icon.svg",
+    "APP_LOGO_FULL": "/branding/lumastra-logo-horizontal-ondark.svg",
+    "APP_LOGO_PLAY": "/branding/lumastra-icon.svg",
+    "JELLYFINURL": "https://jellyfin.example.com",
+    "JELLYFINAPIKEY": "your-jellyfin-api-key-here",
+    "AUDIOURL": "https://audiobookshelf.example.com",
+    "AUDIOAPIKEY": "your-audiobookshelf-jwt-token-here",
+    "KAVITAURL": "https://kavita.example.com",
+    "KAVITAAPIKEY": "your-kavita-api-key-here",
+    "SONARRURL": "https://sonarr.example.com",
+    "SONARRAPIKEY": "your-sonarr-api-key-here",
+    "RADARRURL": "https://radarr.example.com",
+    "RADARRAPIKEY": "your-radarr-api-key-here",
+    "SEERRURL": "https://seerr.example.com",
+    "SEERRAPIKEY": "your-seerr-api-key-here",
+    "FEATURE_REQUEST_MODAL": true,
+    "FEATURE_MEDIA_HOVER_POPUP_TRAILERS": true,
+    "FEATURE_MEDIA_HOVER_VIDEO_PREVIEW": true,
+    "FEATURE_MEDIA_HOVER_VIDEO_PREVIEW_LIVETV": true,
+    "PREVIEW_MAX_LIVETV_PER_SERVER": 1,
+    "FFMPEG_PATH": "/usr/bin/ffmpeg",
+    "FEATURE_USER_PATS": true,
+    "CHATBOT_NAME": "Lumastra AI",
+    "CHATBOT_PERSONA": "You are Lumastra AI, a helpful media assistant for the Lumastra media server. You help users discover movies and TV shows based on their preferences and viewing history.",
+    "CHATBOT_AVATAR": "/branding/lumastra-icon.svg",
+    "HOMEPAGE_WIDGET_ORDER": [
+        "watch-parties",
+        "streaming-sessions",
+        "for-you",
+        "activity-feed",
+        "trending",
+        "holiday-recommendations",
+        "ai-recommendations",
+        "watchlist",
+        "upcoming-episodes",
+        "calendar"
+    ],
+    "HOMEPAGE_WIDGET_VISIBILITY": {},
+    "TRENDING_DROPDOWN_GROUPS": {
+        "groups": [
+            {
+                "id": "streaming",
+                "label": "Streaming",
+                "listIds": [
+                    "netflix-movies",
+                    "netflix-shows",
+                    "disney-movies",
+                    "disney-shows",
+                    "amazon-prime-movies",
+                    "amazon-prime-shows",
+                    "hbo-shows",
+                    "apple-tv-movies",
+                    "apple-tv-all"
+                ]
+            },
+            {
+                "id": "trending",
+                "label": "Trending",
+                "listIds": ["trending-movies", "trending-shows", "popular-movies", "popular-shows"]
+            },
+            {
+                "id": "curated",
+                "label": "Curated",
+                "listIds": ["certified-fresh", "box-office"]
+            },
+            {
+                "id": "anime",
+                "label": "Anime",
+                "listIds": ["latest-anime", "latest-anime-movies"]
+            }
+        ],
+        "hiddenLists": []
+    },
+    "TRENDING_LIST_NAMES": {},
+    "WATCH_PERMISSION_GROUPS": ["viewers"],
+    "ADMIN_GROUPS": ["admins"],
+    "LIVETV_GROUPS": ["livetv"],
+    "DEFAULT_USER": "admin",
+    "FORCE_LOCALE": "en",
+    "NAVIGATION_AVAILABLE_GROUPS": [],
+    "SIDEBAR_LINKS": [
+        {
+            "label": "Home",
+            "url": "/",
+            "icon": "/icons/home.svg",
+            "outline": true,
+            "external": false
+        },
+        {
+            "label": "Browse",
+            "url": "/browse",
+            "icon": "/icons/browse.svg",
+            "outline": true,
+            "external": false
+        },
+        {
+            "label": "Playlists",
+            "url": "/playlists",
+            "icon": "queue-list",
+            "external": false
+        },
+        {
+            "label": "Stream",
+            "url": "https://jellyfin.example.com",
+            "icon": "/icons/movies.svg",
+            "outline": true
+        },
+        {
+            "label": "Requests",
+            "url": "https://requests.example.com",
+            "icon": "/icons/requests.svg",
+            "outline": true
+        },
+        {
+            "label": "Audiobooks",
+            "url": "https://audiobooks.example.com",
+            "icon": "/icons/audiobooks.svg",
+            "outline": true
+        },
+        {
+            "label": "Books",
+            "url": "https://books.example.com",
+            "icon": "/icons/books.svg",
+            "outline": true
+        },
+        {
+            "label": "Sonarr",
+            "url": "https://sonarr.example.com",
+            "icon": "/icons/sonarr.svg",
+            "section": "arr"
+        },
+        {
+            "label": "Radarr",
+            "url": "https://radarr.example.com",
+            "icon": "/icons/radarr.svg",
+            "section": "arr"
+        },
+        {
+            "label": "Prowlarr",
+            "url": "https://prowlarr.example.com",
+            "icon": "/icons/prowlarr.svg",
+            "section": "arr"
+        },
+        {
+            "label": "Tautulli",
+            "url": "https://tautulli.example.com",
+            "icon": "/icons/tautulli.svg"
+        },
+        {
+            "label": "Grafana",
+            "url": "https://grafana.example.com",
+            "icon": "/icons/grafana.svg"
+        },
+        {
+            "label": "Wiki",
+            "url": "https://wiki.example.com",
+            "icon": "/providers/wikijs-butterfly.svg"
+        },
+        {
+            "label": "Admin",
+            "url": "/admin",
+            "icon": "cog-6-tooth",
+            "external": false,
+            "groups": ["__ADMIN__"]
+        }
+    ],
+    "SIDEBAR_SECTIONS": [
+        {
+            "id": "arr",
+            "label": "Arr Suite",
+            "icon": "arrow-down-tray",
+            "collapsed": true
+        }
+    ],
+    "FOOTER_LINKS": [
+        {
+            "id": "request",
+            "label": "Request",
+            "url": "/request",
+            "icon": "film",
+            "variant": "ghost-secondary",
+            "external": true
+        },
+        {
+            "id": "chat",
+            "label": "Chat",
+            "url": "/chat",
+            "icon": "sparkles",
+            "variant": "ghost-primary",
+            "external": false
+        },
+        {
+            "id": "quickconnect",
+            "label": "Quick Connect",
+            "icon": "command-line",
+            "variant": "ghost-secondary"
+        }
+    ],
+    "USER_MENU_LINKS": [
+        {
+            "label": "Avatar",
+            "url": "https://jellyfin.example.com/web/#!/myprofile.html",
+            "icon": "user-circle"
+        }
+    ]
+}

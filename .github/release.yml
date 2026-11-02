@@ -1,0 +1,26 @@
+# Categories for GitHub's auto-generated release notes, by label. Hand-written highlights
+# go above these in each release.
+changelog:
+    exclude:
+        labels:
+            - synced
+            - status:blocked
+        authors:
+            - dependabot
+    categories:
+        - title: New features
+          labels:
+              - type:feature
+        - title: Bug fixes
+          labels:
+              - type:bug
+        - title: Documentation
+          labels:
+              - type:docs
+              - area:docs
+        - title: Translations
+          labels:
+              - area:i18n
+        - title: Other changes
+          labels:
+              - '*'

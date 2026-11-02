@@ -1,0 +1,41 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "id": "fb4e2182-5024-407f-91a3-66c54f0e4b42",
+    "images": {
+      "poster": {
+        "href": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/poster?size=card&v=08a89b7dca4b",
+        "variants": {
+          "thumb": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/poster?size=thumb&v=08a89b7dca4b",
+          "card": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/poster?size=card&v=08a89b7dca4b",
+          "full": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/poster?size=full&v=08a89b7dca4b"
+        },
+        "revision": "08a89b7dca4b",
+        "source": "self",
+        "placeholder": {
+          "blurhash": "LRNI+hD,.6t3_K-mV_xG_M%1Ncbb"
+        }
+      },
+      "backdrop": {
+        "href": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/backdrop?size=hd&v=1478dfd3c33d",
+        "variants": {
+          "card": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/backdrop?size=card&v=1478dfd3c33d",
+          "hd": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/backdrop?size=hd&v=1478dfd3c33d",
+          "wide": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/backdrop?size=wide&v=1478dfd3c33d",
+          "full": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/backdrop?size=full&v=1478dfd3c33d"
+        },
+        "revision": "1478dfd3c33d",
+        "source": "self",
+        "placeholder": {
+          "blurhash": "LG9tJv%MRjIU~qxuj[Rj_3t7t7WB"
+        }
+      }
+    }
+  },
+  "baselineProblems": []
+}

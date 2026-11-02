@@ -1,0 +1,30 @@
+#EXTM3U
+#EXT-X-SESSION-DATA:DATA-ID="com.xui.1_5_13"
+#EXTINF:-1 tvg-id="Nordwelle.de" tvg-name="Nordwelle FHD" tvg-logo="http://logos.example/nordwellehd.png" group-title="FreeTV / HD+",Nordwelle FHD
+http://provider.example/live/user/pass/501.ts
+#EXTINF:-1 tvg-id="Nordwelle.de" tvg-name="Nordwelle HD" tvg-logo="http://logos.example/nordwellehd.png" group-title="FreeTV / HD+",Nordwelle HD
+http://provider.example/live/user/pass/30452.ts
+#EXTINF:-1 tvg-id="KWF.de" tvg-name="KWF FHD" tvg-logo="http://logos.example/kwfhd.png" group-title="FreeTV / HD+",KWF FHD
+http://provider.example/live/user/pass/502.ts
+#EXTINF:-1 tvg-id="MTK.de" tvg-name="MTK FHD" tvg-logo="http://logos.example/mtkhd.png" group-title="FreeTV / HD+",MTK FHD
+http://provider.example/live/user/pass/503.ts
+#EXTINF:-1 tvg-id="OrbSportTopliga1.de" tvg-name="Orb Sport BL 1 FHD" tvg-logo="http://logos.example/orbsportbl1hd.png" group-title="Orb Topliga",Orb Sport BL 1 FHD
+http://provider.example/live/user/pass/600.ts
+#EXTINF:-1 tvg-id="ZAVO1.de" tvg-name="ZAVO 1 FHD" tvg-logo="http://logos.example/zavo1hd.png" group-title="ZAVO Event",ZAVO 1 FHD
+http://provider.example/live/user/pass/700.ts
+#EXTINF:-1 tvg-id="Pinotopia.de" tvg-name="Pinotopia FHD" tvg-logo="http://logos.example/pinotopiahd.png" group-title="Kids",Pinotopia FHD
+http://provider.example/live/user/pass/800.ts
+#EXTINF:-1 tvg-id="Pinotopia.de" tvg-name="Pinotopia HD *" tvg-logo="http://logos.example/pinotopiahd.png" group-title="Kids *",Pinotopia HD *
+http://provider.example/live/user/pass/30800.ts
+#EXTINF:-1 tvg-id="3kult.de" tvg-name="3kult HD ¹" tvg-logo="http://logos.example/3kulthd.png" group-title="FreeTV / HD+",3kult HD ¹
+http://provider.example/live/user/pass/512.ts
+#EXTINF:-1 tvg-id="3kult.de" tvg-name="3kult HD ²" tvg-logo="http://logos.example/3kulthd.png" group-title="FreeTV / HD+",3kult HD ²
+http://provider.example/live/user/pass/30419.ts
+#EXTINF:-1 tvg-id="OrbCinemaAction.de" tvg-name="Orb Cinema Action FHD" tvg-logo="http://logos.example/orbcinemaactionhd.png" group-title="Orb Cinema",Orb Cinema Action FHD
+http://provider.example/live/user/pass/900.ts
+#EXTINF:-1 tvg-id="TukanPrime1.de" tvg-name="Tukan Prime 1" tvg-logo="http://logos.example/tukanprime.png" group-title="Tukan Prime",Tukan Prime 1
+http://provider.example/live/user/pass/1000.ts
+#EXTINF:-1 tvg-id="HLV 1.ch" tvg-name="HLV 1 HD *" tvg-logo="http://logos.example/hlv1hd.png" group-title="AT / CH *",HLV 1 HD *
+http://provider.example/live/user/pass/771.ts
+#EXTINF:-1 tvg-id="VELO.us" tvg-name="VELO FHD" tvg-logo="http://logos.example/velohd.png" group-title="USA Sport",VELO FHD
+http://provider.example/live/user/pass/1100.ts

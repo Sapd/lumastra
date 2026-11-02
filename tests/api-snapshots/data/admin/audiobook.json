@@ -1,0 +1,214 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/media/545088a0-b025-4089-a870-5b6658e3188a"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "libraryNames": [
+      "Audiobooks"
+    ],
+    "id": "545088a0-b025-4089-a870-5b6658e3188a",
+    "ids": {},
+    "title": "Aesop's Fables Volume 1",
+    "year": 1997,
+    "overview": "www.librivox.org",
+    "images": {
+      "primary": {
+        "href": "/api/v1/media/545088a0-b025-4089-a870-5b6658e3188a/images/poster?size=card&v=4482dec56802",
+        "variants": {
+          "thumb": "/api/v1/media/545088a0-b025-4089-a870-5b6658e3188a/images/poster?size=thumb&v=4482dec56802",
+          "card": "/api/v1/media/545088a0-b025-4089-a870-5b6658e3188a/images/poster?size=card&v=4482dec56802",
+          "full": "/api/v1/media/545088a0-b025-4089-a870-5b6658e3188a/images/poster?size=full&v=4482dec56802"
+        },
+        "revision": "4482dec56802",
+        "source": "self"
+      }
+    },
+    "durationMs": 2772463,
+    "type": "audiobook",
+    "isAvailable": true,
+    "canRequest": false,
+    "authors": [
+      {
+        "id": "eb0430e8-19ed-424e-99f1-3871eff52a6c",
+        "name": "Aesop"
+      }
+    ],
+    "narrators": [],
+    "series": {
+      "id": "2b084279-6440-43b4-a43d-4893e1d3ce67",
+      "name": "Aesop",
+      "position": null
+    },
+    "chapters": [
+      {
+        "index": 0,
+        "name": "Introduction by GK Chesterton",
+        "startMs": 0,
+        "endMs": 668781
+      },
+      {
+        "index": 1,
+        "name": "The Fox and The Grapes",
+        "startMs": 668781,
+        "endMs": 715407
+      },
+      {
+        "index": 2,
+        "name": "The Goose That Laid The Golden Eggs",
+        "startMs": 715407,
+        "endMs": 782373
+      },
+      {
+        "index": 3,
+        "name": "The Cat and the Mice",
+        "startMs": 782373,
+        "endMs": 883798
+      },
+      {
+        "index": 4,
+        "name": "The Mischievous Dog",
+        "startMs": 883798,
+        "endMs": 966089
+      },
+      {
+        "index": 5,
+        "name": "The Charcoal-Burner and The Fuller",
+        "startMs": 966089,
+        "endMs": 1033892
+      },
+      {
+        "index": 6,
+        "name": "The Mice in Council",
+        "startMs": 1033892,
+        "endMs": 1123985
+      },
+      {
+        "index": 7,
+        "name": "The Bat And The Weasels",
+        "startMs": 1123985,
+        "endMs": 1220348
+      },
+      {
+        "index": 8,
+        "name": "The Dog and The Sow",
+        "startMs": 1220348,
+        "endMs": 1265209
+      },
+      {
+        "index": 9,
+        "name": "The Fox And The Crow",
+        "startMs": 1265209,
+        "endMs": 1361432
+      },
+      {
+        "index": 10,
+        "name": "The Horse and the Groom",
+        "startMs": 1361432,
+        "endMs": 1427331
+      },
+      {
+        "index": 11,
+        "name": "The Wolf and the Lamb",
+        "startMs": 1427331,
+        "endMs": 1527037
+      },
+      {
+        "index": 12,
+        "name": "The Peacock And The Crane",
+        "startMs": 1527037,
+        "endMs": 1585598
+      },
+      {
+        "index": 13,
+        "name": "The Cat And The Birds",
+        "startMs": 1585598,
+        "endMs": 1641976
+      },
+      {
+        "index": 14,
+        "name": "The Spendthrift and the Swallow",
+        "startMs": 1641976,
+        "endMs": 1715676
+      },
+      {
+        "index": 15,
+        "name": "The Old Woman and the Doctor",
+        "startMs": 1715676,
+        "endMs": 1845661
+      },
+      {
+        "index": 16,
+        "name": "The Moon and her Mother",
+        "startMs": 1845661,
+        "endMs": 1894980
+      },
+      {
+        "index": 17,
+        "name": "Mercury and the Woodman",
+        "startMs": 1894980,
+        "endMs": 2050090
+      },
+      {
+        "index": 18,
+        "name": "The Ass, The Fox, and The Lion",
+        "startMs": 2050090,
+        "endMs": 2162196
+      },
+      {
+        "index": 19,
+        "name": "The Lion And The Mouse",
+        "startMs": 2162196,
+        "endMs": 2269611
+      },
+      {
+        "index": 20,
+        "name": "The Crow And The Pitcher",
+        "startMs": 2269611,
+        "endMs": 2354596
+      },
+      {
+        "index": 21,
+        "name": "The Boys and The Frogs",
+        "startMs": 2354596,
+        "endMs": 2424721
+      },
+      {
+        "index": 22,
+        "name": "The North Wind and The Sun",
+        "startMs": 2424721,
+        "endMs": 2506733
+      },
+      {
+        "index": 23,
+        "name": "The Mistress and Her Servants",
+        "startMs": 2506733,
+        "endMs": 2573142
+      },
+      {
+        "index": 24,
+        "name": "The Goods and The Ills",
+        "startMs": 2573142,
+        "endMs": 2676193
+      },
+      {
+        "index": 25,
+        "name": "The Hares and The Frogs",
+        "startMs": 2676193,
+        "endMs": 2772463
+      }
+    ],
+    "progress": {
+      "positionMs": null,
+      "durationMs": null,
+      "fraction": null,
+      "finished": false,
+      "updatedAt": null
+    },
+    "abridged": false,
+    "catalogId": "545088a0-b025-4089-a870-5b6658e3188a"
+  },
+  "baselineProblems": []
+}

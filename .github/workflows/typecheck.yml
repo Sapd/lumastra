@@ -1,0 +1,49 @@
+name: Typecheck (tsgo)
+
+# Zero type errors, enforced with tsgo (TypeScript 7, Go-native), plus two cheap guards that
+# have each caught a production-only failure before: the plugin-isolation worker bundle's
+# prod-import guard and the custom ESLint rules' own test suites.
+#
+# ESLint and the Svelte component type check run in lint.yml.
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+# PRs: a new push supersedes the running check. main: queue, so every run finishes.
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+    typecheck:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out the repo
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Set up Node
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+              with:
+                  node-version: 22
+                  cache: npm
+
+            # --legacy-peer-deps matches the Dockerfile: typescript ~6 vs @sveltejs/kit's
+            # peerOptional typescript ^5 → plain `npm ci` ERESOLVEs.
+            - name: Install dependencies
+              run: npm ci --legacy-peer-deps
+
+            # Runs `svelte-kit sync` + paraglide compile + OpenAPI types first (the script does).
+            - name: Typecheck (tsgo)
+              run: npm run typecheck
+
+            - name: Sandbox bundle prod-import guard
+              run: npm run build:sandbox
+
+            - name: Custom ESLint rule self-tests
+              run: npm run lint:callback-safety

@@ -1,0 +1,42 @@
+name: Released notice
+
+# When a release is published, every issue and pull request labelled `synced` (merged,
+# waiting for a release) gets a comment naming the release, the label `status:released`
+# instead of `synced`, and is closed if it is still open. Only labels, comments and the
+# open/closed state are changed; no code is checked out.
+
+on:
+    release:
+        types: [published]
+
+permissions: {}
+
+jobs:
+    notify:
+        # Pre-releases reach only installs that run one; announce stable releases only.
+        if: ${{ !github.event.release.prerelease }}
+        runs-on: ubuntu-latest
+        permissions:
+            issues: write
+            pull-requests: write
+        steps:
+            - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+              with:
+                  script: |
+                      const { owner, repo } = context.repo;
+                      const release = context.payload.release;
+                      const items = await github.paginate(github.rest.issues.listForRepo, {
+                          owner, repo, state: 'all', labels: 'synced', per_page: 100,
+                      });
+                      for (const item of items) {
+                          const params = { owner, repo, issue_number: item.number };
+                          await github.rest.issues.createComment({
+                              ...params,
+                              body: `Included in [${release.tag_name}](${release.html_url}).`,
+                          });
+                          await github.rest.issues.removeLabel({ ...params, name: 'synced' }).catch(() => {});
+                          await github.rest.issues.addLabels({ ...params, labels: ['status:released'] });
+                          if (item.state === 'open' && !item.pull_request) {
+                              await github.rest.issues.update({ ...params, state: 'closed', state_reason: 'completed' });
+                          }
+                      }

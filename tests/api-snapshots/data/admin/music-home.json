@@ -1,0 +1,327 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/music"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "sections": [
+      {
+        "id": "music-recently-added",
+        "type": "carousel",
+        "title": "Recently Added",
+        "items": [
+          {
+            "itemKey": "new:e736a07a-15c7-481c-afb2-bba15a733e12",
+            "id": "e736a07a-15c7-481c-afb2-bba15a733e12",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Goldberg Variations BWV 988 - Grossman,Blanchet1720,Lehman1,Prince",
+            "subtitle": "Johann Sebastian Bach · 2013",
+            "image": "/api/v1/media/e736a07a-15c7-481c-afb2-bba15a733e12/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "7143ff5c-2823-4009-a0f8-b829790bc699"
+            }
+          },
+          {
+            "itemKey": "new:ca7853a1-bcf9-4ee1-9e47-3004740b34f2",
+            "id": "ca7853a1-bcf9-4ee1-9e47-3004740b34f2",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Early Dixieland",
+            "subtitle": "Various Artists · 2002",
+            "image": "/api/v1/media/ca7853a1-bcf9-4ee1-9e47-3004740b34f2/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "c9115bc8-b2fc-4fb9-b6f9-b3dac6e0a891"
+            }
+          },
+          {
+            "itemKey": "new:be5a4c85-03dc-468e-a625-e896dc0cf1b6",
+            "id": "be5a4c85-03dc-468e-a625-e896dc0cf1b6",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Blues Collection",
+            "subtitle": "Various Artists",
+            "image": "/api/v1/media/be5a4c85-03dc-468e-a625-e896dc0cf1b6/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "c9115bc8-b2fc-4fb9-b6f9-b3dac6e0a891"
+            }
+          },
+          {
+            "itemKey": "new:5f422637-fc6a-4511-bba7-1894618d4a43",
+            "id": "5f422637-fc6a-4511-bba7-1894618d4a43",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Tango Collection",
+            "subtitle": "Various Artists",
+            "image": "/api/v1/media/5f422637-fc6a-4511-bba7-1894618d4a43/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "c9115bc8-b2fc-4fb9-b6f9-b3dac6e0a891"
+            }
+          },
+          {
+            "itemKey": "new:38ea39a6-d13b-4dac-aa87-32f199eaea50",
+            "id": "38ea39a6-d13b-4dac-aa87-32f199eaea50",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Choral Works",
+            "subtitle": "Various Artists",
+            "image": "/api/v1/media/38ea39a6-d13b-4dac-aa87-32f199eaea50/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "c9115bc8-b2fc-4fb9-b6f9-b3dac6e0a891"
+            }
+          },
+          {
+            "itemKey": "new:3d6266a3-4a8a-443b-bb74-40b00aaa6d3c",
+            "id": "3d6266a3-4a8a-443b-bb74-40b00aaa6d3c",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Courtly Dances",
+            "subtitle": "Scott Joplin · 1994",
+            "image": "/api/v1/media/3d6266a3-4a8a-443b-bb74-40b00aaa6d3c/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "a2972116-da3c-4c7d-b104-eec4f79c3030"
+            }
+          },
+          {
+            "itemKey": "new:d104f2b3-16a5-4960-98c8-2081a16ccbde",
+            "id": "d104f2b3-16a5-4960-98c8-2081a16ccbde",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Joplin - Ragtime",
+            "subtitle": "Scott Joplin",
+            "image": "/api/v1/media/d104f2b3-16a5-4960-98c8-2081a16ccbde/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "a2972116-da3c-4c7d-b104-eec4f79c3030"
+            }
+          },
+          {
+            "itemKey": "new:1cde940b-65df-4722-9317-aebe155931f4",
+            "id": "1cde940b-65df-4722-9317-aebe155931f4",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Beethoven - Selected Works",
+            "subtitle": "Ludwig van Beethoven · 2012",
+            "image": "/api/v1/media/1cde940b-65df-4722-9317-aebe155931f4/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "cbd9b365-26d1-4665-8cb8-caebf5509b2c"
+            }
+          },
+          {
+            "itemKey": "new:f768398c-416c-4b01-af10-64613589bf60",
+            "id": "f768398c-416c-4b01-af10-64613589bf60",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Satie - Selected Works",
+            "subtitle": "Erik Satie",
+            "image": "/api/v1/media/f768398c-416c-4b01-af10-64613589bf60/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "12650c09-d4bd-4d93-8ee5-c7393ec5a34a"
+            }
+          },
+          {
+            "itemKey": "new:4bd09b9b-064d-414b-a21c-3860e14d6fa6",
+            "id": "4bd09b9b-064d-414b-a21c-3860e14d6fa6",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Sousa - Marches",
+            "subtitle": "John Philip Sousa · 1997",
+            "image": "/api/v1/media/4bd09b9b-064d-414b-a21c-3860e14d6fa6/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "351a27b3-4351-4432-b7fc-cb2b132a28f2"
+            }
+          },
+          {
+            "itemKey": "new:2c4e26a0-2600-4277-8efe-d02eb67730a0",
+            "id": "2c4e26a0-2600-4277-8efe-d02eb67730a0",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Debussy - Selected Works",
+            "subtitle": "Claude Debussy",
+            "image": "/api/v1/media/2c4e26a0-2600-4277-8efe-d02eb67730a0/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "a19cc070-64cc-4632-b020-c3ea69c6cdbc"
+            }
+          },
+          {
+            "itemKey": "new:436d417d-3b3a-4839-a91f-45a48962218d",
+            "id": "436d417d-3b3a-4839-a91f-45a48962218d",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Mozart - Selected Works",
+            "subtitle": "Wolfgang Amadeus Mozart",
+            "image": "/api/v1/media/436d417d-3b3a-4839-a91f-45a48962218d/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "63cec61b-788e-49cb-b12c-dde76b8849d6"
+            }
+          },
+          {
+            "itemKey": "new:08918869-c90d-41f6-8103-d9c7b8798bae",
+            "id": "08918869-c90d-41f6-8103-d9c7b8798bae",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Schubert - Selected Works",
+            "subtitle": "Franz Schubert",
+            "image": "/api/v1/media/08918869-c90d-41f6-8103-d9c7b8798bae/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "d86929f5-6d36-4e05-9a5c-7f991d1840e9"
+            }
+          },
+          {
+            "itemKey": "new:71a6db32-2332-4dc9-a4a7-3f8172d1d593",
+            "id": "71a6db32-2332-4dc9-a4a7-3f8172d1d593",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "World & Medieval",
+            "subtitle": "Kevin MacLeod · 2018",
+            "image": "/api/v1/media/71a6db32-2332-4dc9-a4a7-3f8172d1d593/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "cce23344-1c18-4d99-81cd-1c872b3486b4"
+            }
+          },
+          {
+            "itemKey": "new:a9daa756-58d2-4bf5-8bdd-b0c48da11407",
+            "id": "a9daa756-58d2-4bf5-8bdd-b0c48da11407",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Waltzes",
+            "subtitle": "Kevin MacLeod · 2021",
+            "image": "/api/v1/media/a9daa756-58d2-4bf5-8bdd-b0c48da11407/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "cce23344-1c18-4d99-81cd-1c872b3486b4"
+            }
+          },
+          {
+            "itemKey": "new:97780b1b-cf7d-4cbc-a2f2-33d246f366b7",
+            "id": "97780b1b-cf7d-4cbc-a2f2-33d246f366b7",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Stings & Shorts",
+            "subtitle": "Kevin MacLeod · 2016",
+            "image": "/api/v1/media/97780b1b-cf7d-4cbc-a2f2-33d246f366b7/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "cce23344-1c18-4d99-81cd-1c872b3486b4"
+            }
+          },
+          {
+            "itemKey": "new:cf464117-c28c-4d84-8d7c-b6f19fa2b166",
+            "id": "cf464117-c28c-4d84-8d7c-b6f19fa2b166",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Ragtime & Novelty",
+            "subtitle": "Kevin MacLeod · 2022",
+            "image": "/api/v1/media/cf464117-c28c-4d84-8d7c-b6f19fa2b166/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "cce23344-1c18-4d99-81cd-1c872b3486b4"
+            }
+          },
+          {
+            "itemKey": "new:4818cc70-81c1-4021-9e5c-47ed5352504f",
+            "id": "4818cc70-81c1-4021-9e5c-47ed5352504f",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Light Classical",
+            "subtitle": "Kevin MacLeod",
+            "image": "/api/v1/media/4818cc70-81c1-4021-9e5c-47ed5352504f/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "cce23344-1c18-4d99-81cd-1c872b3486b4"
+            }
+          },
+          {
+            "itemKey": "new:dd556fa4-908d-4883-9db2-87f9cb4340f8",
+            "id": "dd556fa4-908d-4883-9db2-87f9cb4340f8",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Latin Grooves",
+            "subtitle": "Kevin MacLeod · 2019",
+            "image": "/api/v1/media/dd556fa4-908d-4883-9db2-87f9cb4340f8/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "cce23344-1c18-4d99-81cd-1c872b3486b4"
+            }
+          },
+          {
+            "itemKey": "new:766b0570-87ad-4532-a2b1-4da8bbc800f0",
+            "id": "766b0570-87ad-4532-a2b1-4da8bbc800f0",
+            "externalIds": {},
+            "mediaType": "album",
+            "title": "Jazz Club",
+            "subtitle": "Kevin MacLeod · 2023",
+            "image": "/api/v1/media/766b0570-87ad-4532-a2b1-4da8bbc800f0/images/poster?size=thumb",
+            "aspectRatio": "square",
+            "isAvailable": true,
+            "canRequest": false,
+            "clickData": {
+              "artistId": "cce23344-1c18-4d99-81cd-1c872b3486b4"
+            }
+          }
+        ],
+        "meta": {
+          "icon": "sparkles",
+          "iconColor": "text-purple-400",
+          "accentColor": "purple",
+          "showMoreButton": false,
+          "hoverPopupEnabled": false
+        }
+      }
+    ]
+  },
+  "baselineProblems": []
+}

@@ -1,0 +1,20 @@
+blank_issues_enabled: false
+contact_links:
+    - name: 📚 Documentation (install, configure, operate)
+      url: https://lumastra.org
+      about: Installation, configuration, deployment, players and clients are documented on the website. Please check there first.
+    - name: 📝 Problem in the lumastra.org docs
+      url: https://github.com/Sapd/lumastra-docs/issues/new/choose
+      about: The website docs live in Sapd/lumastra-docs. Report wrong or missing docs there, or send a pull request.
+    - name: 💡 Feature request
+      url: https://github.com/Sapd/lumastra/discussions/categories/features
+      about: Feature requests are NOT accepted as issues. Propose them in the Features discussions; a maintainer opens the tracking issue once an idea is accepted.
+    - name: 🙋 Question / help
+      url: https://github.com/Sapd/lumastra/discussions/categories/q-a
+      about: Setup, configuration, and "how do I" questions belong in Q&A.
+    - name: 🔒 Security vulnerability
+      url: https://github.com/Sapd/lumastra/security/advisories/new
+      about: Report privately via a GitHub security advisory. Do NOT open a public issue.
+    - name: 💼 Commercial / Enterprise license
+      url: mailto:git@sapd.eu
+      about: Commercial licensing and the Enterprise tier are handled by email.

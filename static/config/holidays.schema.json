@@ -1,0 +1,316 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Holiday Plugin Configuration",
+    "description": "Configuration for the holiday recommendations plugin. Supports TMDB, MDBList playlists, and custom content sources.",
+    "type": "object",
+    "properties": {
+        "settings": {
+            "type": "object",
+            "description": "Global plugin settings",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable/disable the entire holiday plugin",
+                    "default": true
+                },
+                "defaultLimit": {
+                    "type": "integer",
+                    "description": "Default number of recommendations to return",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100
+                },
+                "enableAiPersonalization": {
+                    "type": "boolean",
+                    "description": "Enable AI-powered personalization (requires AI system)",
+                    "default": true
+                },
+                "cacheTtlMinutes": {
+                    "type": "integer",
+                    "description": "Cache TTL for recommendations in minutes",
+                    "default": 30,
+                    "minimum": 1
+                },
+                "jellyfinCacheTtlHours": {
+                    "type": "integer",
+                    "description": "Cache TTL for Jellyfin content maps in hours",
+                    "default": 6,
+                    "minimum": 1
+                }
+            }
+        },
+        "holidays": {
+            "type": "array",
+            "description": "Array of holiday configurations",
+            "items": {
+                "$ref": "#/definitions/Holiday"
+            }
+        }
+    },
+    "definitions": {
+        "Holiday": {
+            "type": "object",
+            "required": [
+                "id",
+                "name",
+                "startMonth",
+                "startDay",
+                "endMonth",
+                "endDay",
+                "sources",
+                "backgroundColor",
+                "textColor"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Unique identifier for the holiday",
+                    "examples": ["christmas", "halloween", "valentines"]
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Display name (English)"
+                },
+                "nameDE": {
+                    "type": "string",
+                    "description": "Display name (German)"
+                },
+                "emoji": {
+                    "type": "string",
+                    "description": "Emoji displayed in the banner",
+                    "examples": ["🎄", "🎃", "❤️"]
+                },
+                "startMonth": {
+                    "type": "integer",
+                    "description": "Start month (1-12)",
+                    "minimum": 1,
+                    "maximum": 12
+                },
+                "startDay": {
+                    "type": "integer",
+                    "description": "Start day (1-31)",
+                    "minimum": 1,
+                    "maximum": 31
+                },
+                "endMonth": {
+                    "type": "integer",
+                    "description": "End month (1-12)",
+                    "minimum": 1,
+                    "maximum": 12
+                },
+                "endDay": {
+                    "type": "integer",
+                    "description": "End day (1-31)",
+                    "minimum": 1,
+                    "maximum": 31
+                },
+                "sources": {
+                    "type": "array",
+                    "description": "Content sources for this holiday",
+                    "items": {
+                        "oneOf": [
+                            { "$ref": "#/definitions/TmdbSource" },
+                            { "$ref": "#/definitions/MdblistSource" },
+                            { "$ref": "#/definitions/CustomSource" }
+                        ]
+                    }
+                },
+                "backgroundColor": {
+                    "type": "string",
+                    "description": "Background color (CSS color value)",
+                    "examples": ["#165B33", "#FF6B35"]
+                },
+                "textColor": {
+                    "type": "string",
+                    "description": "Text color (CSS color value)",
+                    "examples": ["#FFFFFF", "#000000"]
+                },
+                "backgroundImage": {
+                    "type": "string",
+                    "description": "Optional background image path"
+                },
+                "preHoliday": {
+                    "$ref": "#/definitions/PreHoliday"
+                },
+                "validation": {
+                    "$ref": "#/definitions/Validation"
+                },
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Whether this holiday is enabled",
+                    "default": true
+                },
+                "priority": {
+                    "type": "integer",
+                    "description": "Priority when multiple holidays overlap (higher = takes precedence)",
+                    "default": 0
+                }
+            }
+        },
+        "TmdbSource": {
+            "type": "object",
+            "description": "TMDB-based content source",
+            "required": ["type"],
+            "properties": {
+                "type": {
+                    "const": "tmdb"
+                },
+                "keywordIds": {
+                    "type": "array",
+                    "description": "TMDB keyword IDs for discovery (most accurate)",
+                    "items": { "type": "integer" }
+                },
+                "keywords": {
+                    "type": "array",
+                    "description": "Text keywords for fallback search",
+                    "items": { "type": "string" }
+                },
+                "collectionIds": {
+                    "type": "array",
+                    "description": "TMDB collection IDs",
+                    "items": { "type": "integer" }
+                },
+                "genreIds": {
+                    "type": "array",
+                    "description": "TMDB genre IDs to filter by",
+                    "items": { "type": "integer" }
+                },
+                "featuredMovieIds": {
+                    "type": "array",
+                    "description": "Specific movie TMDB IDs to always include",
+                    "items": { "type": "integer" }
+                },
+                "featuredTvIds": {
+                    "type": "array",
+                    "description": "Specific TV show TMDB IDs to always include",
+                    "items": { "type": "integer" }
+                },
+                "includeNewReleases": {
+                    "type": "boolean",
+                    "description": "Include new releases from current/last year",
+                    "default": false
+                },
+                "minVoteCount": {
+                    "type": "integer",
+                    "description": "Minimum vote count for results",
+                    "default": 50
+                },
+                "minVoteAverage": {
+                    "type": "number",
+                    "description": "Minimum vote average for results",
+                    "default": 5.5
+                }
+            }
+        },
+        "MdblistSource": {
+            "type": "object",
+            "description": "MDBList playlist-based content source",
+            "required": ["type", "listPath"],
+            "properties": {
+                "type": {
+                    "const": "mdblist"
+                },
+                "listPath": {
+                    "type": "string",
+                    "description": "MDBList playlist path (e.g., 'username/list-name')",
+                    "examples": ["linaspurinis/christmas-movies", "user/best-horror-2024"]
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum items to fetch from the list",
+                    "default": 50
+                },
+                "boostFactor": {
+                    "type": "number",
+                    "description": "Boost factor for items from this list (1.0 = normal)",
+                    "default": 1.0
+                }
+            }
+        },
+        "CustomSource": {
+            "type": "object",
+            "description": "Custom content source with explicit TMDB IDs",
+            "required": ["type"],
+            "properties": {
+                "type": {
+                    "const": "custom"
+                },
+                "movieIds": {
+                    "type": "array",
+                    "description": "List of specific TMDB movie IDs",
+                    "items": { "type": "integer" }
+                },
+                "tvIds": {
+                    "type": "array",
+                    "description": "List of specific TMDB TV show IDs",
+                    "items": { "type": "integer" }
+                },
+                "boostFactor": {
+                    "type": "number",
+                    "description": "Boost factor for these items (1.0 = normal)",
+                    "default": 5.0
+                }
+            }
+        },
+        "PreHoliday": {
+            "type": "object",
+            "description": "Pre-holiday variant configuration (e.g., Advent for Christmas)",
+            "required": ["name", "startMonth", "startDay", "endMonth", "endDay"],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Display name (English)"
+                },
+                "nameDE": {
+                    "type": "string",
+                    "description": "Display name (German)"
+                },
+                "emoji": {
+                    "type": "string",
+                    "description": "Emoji for this variant"
+                },
+                "startMonth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                },
+                "startDay": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 31
+                },
+                "endMonth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                },
+                "endDay": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 31
+                }
+            }
+        },
+        "Validation": {
+            "type": "object",
+            "description": "Validation rules to filter false positives",
+            "properties": {
+                "requiredTerms": {
+                    "type": "array",
+                    "description": "Content must contain at least one of these terms",
+                    "items": { "type": "string" }
+                },
+                "excludeTerms": {
+                    "type": "array",
+                    "description": "Exclude content containing any of these terms",
+                    "items": { "type": "string" }
+                },
+                "skipForFeatured": {
+                    "type": "boolean",
+                    "description": "Skip validation for featured/custom content",
+                    "default": true
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,654 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "libraryNames": [
+      "Movies"
+    ],
+    "id": "fb4e2182-5024-407f-91a3-66c54f0e4b42",
+    "ids": {
+      "tmdb": "49270"
+    },
+    "title": "A Corner in Wheat",
+    "year": 1909,
+    "overview": "On a whim, a greedy tycoon decides to corner the world market in wheat. This doubles the price of bread, forcing grain producers into charity lines and others further into poverty. The film contrasts the differences between the lives of those who work to grow the wheat and the life of the man who dabbles in its sale for profit.",
+    "images": {
+      "poster": {
+        "href": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/poster?size=card&v=08a89b7dca4b",
+        "variants": {
+          "thumb": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/poster?size=thumb&v=08a89b7dca4b",
+          "card": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/poster?size=card&v=08a89b7dca4b",
+          "full": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/poster?size=full&v=08a89b7dca4b"
+        },
+        "revision": "08a89b7dca4b",
+        "source": "self",
+        "placeholder": {
+          "blurhash": "LRNI+hD,.6t3_K-mV_xG_M%1Ncbb"
+        }
+      },
+      "backdrop": {
+        "href": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/backdrop?size=hd&v=1478dfd3c33d",
+        "variants": {
+          "card": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/backdrop?size=card&v=1478dfd3c33d",
+          "hd": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/backdrop?size=hd&v=1478dfd3c33d",
+          "wide": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/backdrop?size=wide&v=1478dfd3c33d",
+          "full": "/api/v1/media/fb4e2182-5024-407f-91a3-66c54f0e4b42/images/backdrop?size=full&v=1478dfd3c33d"
+        },
+        "revision": "1478dfd3c33d",
+        "source": "self",
+        "placeholder": {
+          "blurhash": "LG9tJv%MRjIU~qxuj[Rj_3t7t7WB"
+        }
+      }
+    },
+    "durationMs": 682917,
+    "credits": {
+      "cast": [
+        {
+          "person": {
+            "id": "tmdb:1062048",
+            "name": "Frank Powell",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A1062048/images/profile?size=w185&v=63dcea8f8a93",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A1062048/images/profile?size=w45&v=63dcea8f8a93",
+                  "card": "/api/v1/people/tmdb%3A1062048/images/profile?size=w185&v=63dcea8f8a93",
+                  "full": "/api/v1/people/tmdb%3A1062048/images/profile?size=original&v=63dcea8f8a93"
+                },
+                "revision": "63dcea8f8a93",
+                "source": "self"
+              }
+            }
+          },
+          "character": "The Wheat King",
+          "order": 0
+        },
+        {
+          "person": {
+            "id": "tmdb:1016129",
+            "name": "Grace Henderson",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A1016129/images/profile?size=w185&v=065199ef7df0",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A1016129/images/profile?size=w45&v=065199ef7df0",
+                  "card": "/api/v1/people/tmdb%3A1016129/images/profile?size=w185&v=065199ef7df0",
+                  "full": "/api/v1/people/tmdb%3A1016129/images/profile?size=original&v=065199ef7df0"
+                },
+                "revision": "065199ef7df0",
+                "source": "self"
+              }
+            }
+          },
+          "character": "The Wheat King's Wife",
+          "order": 1
+        },
+        {
+          "person": {
+            "id": "tmdb:296085",
+            "name": "James Kirkwood",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A296085/images/profile?size=w185&v=ac6e46c243a3",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A296085/images/profile?size=w45&v=ac6e46c243a3",
+                  "card": "/api/v1/people/tmdb%3A296085/images/profile?size=w185&v=ac6e46c243a3",
+                  "full": "/api/v1/people/tmdb%3A296085/images/profile?size=original&v=ac6e46c243a3"
+                },
+                "revision": "ac6e46c243a3",
+                "source": "self"
+              }
+            }
+          },
+          "character": "Farmer",
+          "order": 2
+        },
+        {
+          "person": {
+            "id": "tmdb:1086711",
+            "name": "Linda Arvidson",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A1086711/images/profile?size=w185&v=b2e2e941f221",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A1086711/images/profile?size=w45&v=b2e2e941f221",
+                  "card": "/api/v1/people/tmdb%3A1086711/images/profile?size=w185&v=b2e2e941f221",
+                  "full": "/api/v1/people/tmdb%3A1086711/images/profile?size=original&v=b2e2e941f221"
+                },
+                "revision": "b2e2e941f221",
+                "source": "self"
+              }
+            }
+          },
+          "character": "Farmer's Wife",
+          "order": 3
+        },
+        {
+          "person": {
+            "id": "tmdb:1119396",
+            "name": "W. Chrystie Miller",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A1119396/images/profile?size=w185&v=8d65feae412d",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A1119396/images/profile?size=w45&v=8d65feae412d",
+                  "card": "/api/v1/people/tmdb%3A1119396/images/profile?size=w185&v=8d65feae412d",
+                  "full": "/api/v1/people/tmdb%3A1119396/images/profile?size=original&v=8d65feae412d"
+                },
+                "revision": "8d65feae412d",
+                "source": "self"
+              }
+            }
+          },
+          "character": "Farmer's Father",
+          "order": 4
+        },
+        {
+          "person": {
+            "id": "tmdb:1119397",
+            "name": "Gladys Egan",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A1119397/images/profile?size=w185&v=791ffdbe60a1",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A1119397/images/profile?size=w45&v=791ffdbe60a1",
+                  "card": "/api/v1/people/tmdb%3A1119397/images/profile?size=w185&v=791ffdbe60a1",
+                  "full": "/api/v1/people/tmdb%3A1119397/images/profile?size=original&v=791ffdbe60a1"
+                },
+                "revision": "791ffdbe60a1",
+                "source": "self"
+              }
+            }
+          },
+          "character": "Farmer's Little Daughter",
+          "order": 5
+        },
+        {
+          "person": {
+            "id": "tmdb:8830",
+            "name": "Henry B. Walthall",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A8830/images/profile?size=w185&v=d6015178fbde",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A8830/images/profile?size=w45&v=d6015178fbde",
+                  "card": "/api/v1/people/tmdb%3A8830/images/profile?size=w185&v=d6015178fbde",
+                  "full": "/api/v1/people/tmdb%3A8830/images/profile?size=original&v=d6015178fbde"
+                },
+                "revision": "d6015178fbde",
+                "source": "self"
+              }
+            }
+          },
+          "character": "Wheat King's Assistant",
+          "order": 6
+        },
+        {
+          "person": {
+            "id": "tmdb:145109",
+            "name": "Kate Bruce",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A145109/images/profile?size=w185&v=81c2234a48ee",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A145109/images/profile?size=w45&v=81c2234a48ee",
+                  "card": "/api/v1/people/tmdb%3A145109/images/profile?size=w185&v=81c2234a48ee",
+                  "full": "/api/v1/people/tmdb%3A145109/images/profile?size=original&v=81c2234a48ee"
+                },
+                "revision": "81c2234a48ee",
+                "source": "self"
+              }
+            }
+          },
+          "character": "",
+          "order": 7
+        },
+        {
+          "person": {
+            "id": "tmdb:1171452",
+            "name": "William J. Butler",
+            "images": {}
+          },
+          "character": "",
+          "order": 8
+        },
+        {
+          "person": {
+            "id": "tmdb:1268419",
+            "name": "Charles Craig",
+            "images": {}
+          },
+          "character": "",
+          "order": 9
+        },
+        {
+          "person": {
+            "id": "tmdb:1174160",
+            "name": "Frank Evans",
+            "images": {}
+          },
+          "character": "",
+          "order": 10
+        },
+        {
+          "person": {
+            "id": "tmdb:1127924",
+            "name": "Edith Haldeman",
+            "images": {}
+          },
+          "character": "",
+          "order": 11
+        },
+        {
+          "person": {
+            "id": "tmdb:29950",
+            "name": "Robert Harron",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A29950/images/profile?size=w185&v=0c1573d12b6c",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A29950/images/profile?size=w45&v=0c1573d12b6c",
+                  "card": "/api/v1/people/tmdb%3A29950/images/profile?size=w185&v=0c1573d12b6c",
+                  "full": "/api/v1/people/tmdb%3A29950/images/profile?size=original&v=0c1573d12b6c"
+                },
+                "revision": "0c1573d12b6c",
+                "source": "self"
+              }
+            }
+          },
+          "character": "",
+          "order": 12
+        },
+        {
+          "person": {
+            "id": "tmdb:1268226",
+            "name": "Ruth Hart",
+            "images": {}
+          },
+          "character": "",
+          "order": 13
+        },
+        {
+          "person": {
+            "id": "tmdb:86400",
+            "name": "Arthur V. Johnson",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A86400/images/profile?size=w185&v=f8898653534d",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A86400/images/profile?size=w45&v=f8898653534d",
+                  "card": "/api/v1/people/tmdb%3A86400/images/profile?size=w185&v=f8898653534d",
+                  "full": "/api/v1/people/tmdb%3A86400/images/profile?size=original&v=f8898653534d"
+                },
+                "revision": "f8898653534d",
+                "source": "self"
+              }
+            }
+          },
+          "character": "",
+          "order": 14
+        },
+        {
+          "person": {
+            "id": "tmdb:89517",
+            "name": "Henry Lehrman",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A89517/images/profile?size=w185&v=d2250ddad26e",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A89517/images/profile?size=w45&v=d2250ddad26e",
+                  "card": "/api/v1/people/tmdb%3A89517/images/profile?size=w185&v=d2250ddad26e",
+                  "full": "/api/v1/people/tmdb%3A89517/images/profile?size=original&v=d2250ddad26e"
+                },
+                "revision": "d2250ddad26e",
+                "source": "self"
+              }
+            }
+          },
+          "character": "",
+          "order": 15
+        },
+        {
+          "person": {
+            "id": "tmdb:148786",
+            "name": "Jeanie Macpherson",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A148786/images/profile?size=w185&v=89f1280a1605",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A148786/images/profile?size=w45&v=89f1280a1605",
+                  "card": "/api/v1/people/tmdb%3A148786/images/profile?size=w185&v=89f1280a1605",
+                  "full": "/api/v1/people/tmdb%3A148786/images/profile?size=original&v=89f1280a1605"
+                },
+                "revision": "89f1280a1605",
+                "source": "self"
+              }
+            }
+          },
+          "character": "",
+          "order": 16
+        },
+        {
+          "person": {
+            "id": "tmdb:89107",
+            "name": "Owen Moore",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A89107/images/profile?size=w185&v=2f8b27a43436",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A89107/images/profile?size=w45&v=2f8b27a43436",
+                  "card": "/api/v1/people/tmdb%3A89107/images/profile?size=w185&v=2f8b27a43436",
+                  "full": "/api/v1/people/tmdb%3A89107/images/profile?size=original&v=2f8b27a43436"
+                },
+                "revision": "2f8b27a43436",
+                "source": "self"
+              }
+            }
+          },
+          "character": "",
+          "order": 17
+        },
+        {
+          "person": {
+            "id": "tmdb:89521",
+            "name": "George Nichols",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A89521/images/profile?size=w185&v=127160670e9a",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A89521/images/profile?size=w45&v=127160670e9a",
+                  "card": "/api/v1/people/tmdb%3A89521/images/profile?size=w185&v=127160670e9a",
+                  "full": "/api/v1/people/tmdb%3A89521/images/profile?size=original&v=127160670e9a"
+                },
+                "revision": "127160670e9a",
+                "source": "self"
+              }
+            }
+          },
+          "character": "",
+          "order": 18
+        },
+        {
+          "person": {
+            "id": "tmdb:1149675",
+            "name": "Anthony O'Sullivan",
+            "images": {}
+          },
+          "character": "",
+          "order": 19
+        },
+        {
+          "person": {
+            "id": "tmdb:928233",
+            "name": "Billy Quirk",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A928233/images/profile?size=w185&v=568dd5a4c47f",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A928233/images/profile?size=w45&v=568dd5a4c47f",
+                  "card": "/api/v1/people/tmdb%3A928233/images/profile?size=w185&v=568dd5a4c47f",
+                  "full": "/api/v1/people/tmdb%3A928233/images/profile?size=original&v=568dd5a4c47f"
+                },
+                "revision": "568dd5a4c47f",
+                "source": "self"
+              }
+            }
+          },
+          "character": "",
+          "order": 20
+        },
+        {
+          "person": {
+            "id": "tmdb:1189625",
+            "name": "Gertrude Robinson",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A1189625/images/profile?size=w185&v=97f566ad6632",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A1189625/images/profile?size=w45&v=97f566ad6632",
+                  "card": "/api/v1/people/tmdb%3A1189625/images/profile?size=w185&v=97f566ad6632",
+                  "full": "/api/v1/people/tmdb%3A1189625/images/profile?size=original&v=97f566ad6632"
+                },
+                "revision": "97f566ad6632",
+                "source": "self"
+              }
+            }
+          },
+          "character": "",
+          "order": 21
+        },
+        {
+          "person": {
+            "id": "tmdb:89518",
+            "name": "Mack Sennett",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A89518/images/profile?size=w185&v=61aa3c5acc04",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A89518/images/profile?size=w45&v=61aa3c5acc04",
+                  "card": "/api/v1/people/tmdb%3A89518/images/profile?size=w185&v=61aa3c5acc04",
+                  "full": "/api/v1/people/tmdb%3A89518/images/profile?size=original&v=61aa3c5acc04"
+                },
+                "revision": "61aa3c5acc04",
+                "source": "self"
+              }
+            }
+          },
+          "character": "",
+          "order": 22
+        },
+        {
+          "person": {
+            "id": "tmdb:100045",
+            "name": "Blanche Sweet",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A100045/images/profile?size=w185&v=365e11d94d1d",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A100045/images/profile?size=w45&v=365e11d94d1d",
+                  "card": "/api/v1/people/tmdb%3A100045/images/profile?size=w185&v=365e11d94d1d",
+                  "full": "/api/v1/people/tmdb%3A100045/images/profile?size=original&v=365e11d94d1d"
+                },
+                "revision": "365e11d94d1d",
+                "source": "self"
+              }
+            }
+          },
+          "character": "",
+          "order": 23
+        },
+        {
+          "person": {
+            "id": "tmdb:1129188",
+            "name": "Dorothy West",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A1129188/images/profile?size=w185&v=ab58acfe5026",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A1129188/images/profile?size=w45&v=ab58acfe5026",
+                  "card": "/api/v1/people/tmdb%3A1129188/images/profile?size=w185&v=ab58acfe5026",
+                  "full": "/api/v1/people/tmdb%3A1129188/images/profile?size=original&v=ab58acfe5026"
+                },
+                "revision": "ab58acfe5026",
+                "source": "self"
+              }
+            }
+          },
+          "character": "",
+          "order": 24
+        }
+      ],
+      "crew": [
+        {
+          "person": {
+            "id": "tmdb:100036",
+            "name": "D.W. Griffith",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A100036/images/profile?size=w185&v=267d6065a5b5",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A100036/images/profile?size=w45&v=267d6065a5b5",
+                  "card": "/api/v1/people/tmdb%3A100036/images/profile?size=w185&v=267d6065a5b5",
+                  "full": "/api/v1/people/tmdb%3A100036/images/profile?size=original&v=267d6065a5b5"
+                },
+                "revision": "267d6065a5b5",
+                "source": "self"
+              }
+            }
+          },
+          "job": "Director",
+          "department": "Directing"
+        },
+        {
+          "person": {
+            "id": "tmdb:8819",
+            "name": "Billy Bitzer",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A8819/images/profile?size=w185&v=85eacda7c47c",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A8819/images/profile?size=w45&v=85eacda7c47c",
+                  "card": "/api/v1/people/tmdb%3A8819/images/profile?size=w185&v=85eacda7c47c",
+                  "full": "/api/v1/people/tmdb%3A8819/images/profile?size=original&v=85eacda7c47c"
+                },
+                "revision": "85eacda7c47c",
+                "source": "self"
+              }
+            }
+          },
+          "job": "Director of Photography",
+          "department": "Camera"
+        },
+        {
+          "person": {
+            "id": "tmdb:100036",
+            "name": "D.W. Griffith",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A100036/images/profile?size=w185&v=267d6065a5b5",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A100036/images/profile?size=w45&v=267d6065a5b5",
+                  "card": "/api/v1/people/tmdb%3A100036/images/profile?size=w185&v=267d6065a5b5",
+                  "full": "/api/v1/people/tmdb%3A100036/images/profile?size=original&v=267d6065a5b5"
+                },
+                "revision": "267d6065a5b5",
+                "source": "self"
+              }
+            }
+          },
+          "job": "Producer",
+          "department": "Production"
+        },
+        {
+          "person": {
+            "id": "tmdb:8821",
+            "name": "James Smith",
+            "images": {}
+          },
+          "job": "Editor",
+          "department": "Editing"
+        },
+        {
+          "person": {
+            "id": "tmdb:35503",
+            "name": "Frank Norris",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A35503/images/profile?size=w185&v=72138472ee61",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A35503/images/profile?size=w45&v=72138472ee61",
+                  "card": "/api/v1/people/tmdb%3A35503/images/profile?size=w185&v=72138472ee61",
+                  "full": "/api/v1/people/tmdb%3A35503/images/profile?size=original&v=72138472ee61"
+                },
+                "revision": "72138472ee61",
+                "source": "self"
+              }
+            }
+          },
+          "job": "Novel",
+          "department": "Writing"
+        },
+        {
+          "person": {
+            "id": "tmdb:100036",
+            "name": "D.W. Griffith",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A100036/images/profile?size=w185&v=267d6065a5b5",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A100036/images/profile?size=w45&v=267d6065a5b5",
+                  "card": "/api/v1/people/tmdb%3A100036/images/profile?size=w185&v=267d6065a5b5",
+                  "full": "/api/v1/people/tmdb%3A100036/images/profile?size=original&v=267d6065a5b5"
+                },
+                "revision": "267d6065a5b5",
+                "source": "self"
+              }
+            }
+          },
+          "job": "Writer",
+          "department": "Writing"
+        },
+        {
+          "person": {
+            "id": "tmdb:8814",
+            "name": "Frank E. Woods",
+            "images": {
+              "primary": {
+                "href": "/api/v1/people/tmdb%3A8814/images/profile?size=w185&v=6fd6f15db2c6",
+                "variants": {
+                  "thumb": "/api/v1/people/tmdb%3A8814/images/profile?size=w45&v=6fd6f15db2c6",
+                  "card": "/api/v1/people/tmdb%3A8814/images/profile?size=w185&v=6fd6f15db2c6",
+                  "full": "/api/v1/people/tmdb%3A8814/images/profile?size=original&v=6fd6f15db2c6"
+                },
+                "revision": "6fd6f15db2c6",
+                "source": "self"
+              }
+            }
+          },
+          "job": "Writer",
+          "department": "Writing"
+        }
+      ]
+    },
+    "type": "movie",
+    "isAvailable": true,
+    "canRequest": false,
+    "details": {
+      "genres": [
+        "Drama"
+      ],
+      "keywords": [
+        "silent film",
+        "short film"
+      ],
+      "rating": 6.162,
+      "ratingSource": "tmdb",
+      "ratings": {
+        "tmdb": 6.162
+      },
+      "popularity": 0.7786,
+      "voteCount": 114,
+      "audioLanguages": [],
+      "subtitleLanguages": [],
+      "quality": {
+        "resolution": "480p",
+        "is4k": false,
+        "videoRange": "SDR"
+      }
+    },
+    "catalogId": "fb4e2182-5024-407f-91a3-66c54f0e4b42",
+    "progress": {
+      "positionMs": null,
+      "durationMs": 682917,
+      "fraction": null,
+      "finished": false,
+      "updatedAt": null
+    }
+  },
+  "baselineProblems": []
+}

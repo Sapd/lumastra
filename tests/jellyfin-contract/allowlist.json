@@ -1,0 +1,8 @@
+[
+    {
+        "schema": "MediaSourceInfo",
+        "property": "TranscodingSubProtocol",
+        "clientNames": ["Streamyfin"],
+        "reason": "Deliberately absent for Streamyfin direct play (PlaybackInfo/+server.ts, isStreamyfin branch); Streamyfin is a TS client that treats it as optional."
+    }
+]

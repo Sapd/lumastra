@@ -1,0 +1,203 @@
+<!doctype html>
+<!--
+  SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+  SPDX-License-Identifier: AGPL-3.0-only
+
+  Boundary harness page. Driven by run.mjs; not meant to be opened by hand.
+
+  The decks are two <audio> elements through MediaElementSource → GainNode →
+  merge, exactly like the Web Audio backend's A/B decks. The scheduler driving
+  them is the SHIPPED GaplessAdvanceScheduler (bundled into scheduler.js), so
+  what is measured here is the code that runs in the player, not a model of it.
+-->
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Gapless boundary harness</title>
+    </head>
+    <body>
+        <button id="go">start</button>
+        <pre id="out"></pre>
+        <script type="module">
+            import { GaplessAdvanceScheduler } from './scheduler.js';
+
+            /**
+             * Recording tap.
+             *
+             * A ScriptProcessorNode rather than an AudioWorklet: deprecated, but
+             * it needs no separate module file and no cross-origin isolation,
+             * and the measurement is of the DECKS, not of the tap. It must be
+             * connected onward to the destination or nothing pulls it.
+             */
+            function makeRecorder(ctx) {
+                const node = ctx.createScriptProcessor(4096, 2, 1);
+                const chunks = [];
+                node.onaudioprocess = (event) => {
+                    chunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+                };
+                return {
+                    node,
+                    take() {
+                        const total = chunks.reduce((n, c) => n + c.length, 0);
+                        const out = new Float32Array(total);
+                        let at = 0;
+                        for (const c of chunks) {
+                            out.set(c, at);
+                            at += c.length;
+                        }
+                        chunks.length = 0;
+                        return out;
+                    },
+                };
+            }
+
+            function makeDeck(ctx, sink) {
+                const el = new Audio();
+                el.crossOrigin = 'anonymous';
+                el.preload = 'auto';
+                const source = ctx.createMediaElementSource(el);
+                const gain = ctx.createGain();
+                gain.gain.value = 0;
+                source.connect(gain).connect(sink);
+                return { el, gain };
+            }
+
+            const untilEvent = (el, name, timeoutMs = 15000) =>
+                new Promise((resolve, reject) => {
+                    const timer = setTimeout(
+                        () => reject(new Error(`timeout waiting for ${name}`)),
+                        timeoutMs,
+                    );
+                    el.addEventListener(
+                        name,
+                        () => {
+                            clearTimeout(timer);
+                            resolve();
+                        },
+                        { once: true },
+                    );
+                });
+
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+            /**
+             * Run one strategy and return the recorded PCM.
+             *
+             * The context is rebuilt per run: a MediaElementSource can only be
+             * created once per element, and reusing a context across strategies
+             * would let one run's scheduled gain ramps land inside the next.
+             */
+            async function runStrategy(strategy, urlA, urlB, options) {
+                const ctx = new AudioContext();
+                await ctx.resume();
+
+                const recorder = makeRecorder(ctx);
+                const mix = ctx.createGain();
+                mix.gain.value = 1;
+                mix.connect(recorder.node);
+                // Silent sink: headless has no output device, but the graph is
+                // only pulled if something downstream is connected.
+                const mute = ctx.createGain();
+                mute.gain.value = 0;
+                recorder.node.connect(mute).connect(ctx.destination);
+
+                const a = makeDeck(ctx, mix);
+                const b = makeDeck(ctx, mix);
+
+                a.el.src = urlA;
+                b.el.src = urlB;
+                await Promise.all([
+                    untilEvent(a.el, 'loadedmetadata'),
+                    untilEvent(b.el, 'loadedmetadata'),
+                ]);
+
+                a.gain.gain.value = 1;
+                await a.el.play();
+
+                let committed = false;
+                if (strategy.kind === 'predictive') {
+                    const scheduler = new GaplessAdvanceScheduler();
+                    const started = scheduler.start(
+                        {
+                            getOutgoingTimeMs: () => a.el.currentTime * 1000,
+                            getOutgoingDurationMs: () =>
+                                Number.isFinite(a.el.duration) ? a.el.duration * 1000 : 0,
+                            getPlaybackRate: () => a.el.playbackRate,
+                            prepareIncoming: async () => {
+                                b.el.currentTime = 0;
+                                b.gain.gain.value = 0;
+                            },
+                            playIncomingSilent: async () => {
+                                try {
+                                    await b.el.play();
+                                    return true;
+                                } catch {
+                                    return false;
+                                }
+                            },
+                            commitSwap: (delaySec) => {
+                                const at = ctx.currentTime + delaySec;
+                                a.gain.gain.setValueAtTime(0, at);
+                                b.gain.gain.setValueAtTime(1, at);
+                            },
+                            abortSwap: () => {
+                                a.gain.gain.cancelScheduledValues(ctx.currentTime);
+                                b.gain.gain.cancelScheduledValues(ctx.currentTime);
+                                a.gain.gain.value = 1;
+                                b.gain.gain.value = 0;
+                                b.el.pause();
+                            },
+                        },
+                        {
+                            leadMs: strategy.leadMs,
+                            // Small so the prepare happens inside the fixture's
+                            // short runtime; the real default is 8 s.
+                            prewarmMs: Math.max(strategy.leadMs, 800),
+                            onCommitted: () => {
+                                committed = true;
+                            },
+                            onCancelled: () => {
+                                committed = false;
+                            },
+                        },
+                    );
+                    if (!started) throw new Error('scheduler refused to start');
+                } else {
+                    // Controls: cold start on `ended`, with the forced defect.
+                    a.el.addEventListener(
+                        'ended',
+                        () => {
+                            void (async () => {
+                                if (strategy.gapMs > 0) await sleep(strategy.gapMs);
+                                b.el.currentTime = strategy.clipMs / 1000;
+                                a.gain.gain.value = 0;
+                                b.gain.gain.value = 1;
+                                await b.el.play().catch(() => {});
+                                committed = true;
+                            })();
+                        },
+                        { once: true },
+                    );
+                }
+
+                await sleep(options.runMs);
+
+                a.el.pause();
+                b.el.pause();
+                const samples = recorder.take();
+                await ctx.close();
+                return {
+                    samples: Array.from(samples),
+                    sampleRate: ctx.sampleRate,
+                    committed,
+                    durationA: a.el.duration,
+                };
+            }
+
+            window.__runStrategy = runStrategy;
+            document.getElementById('go').addEventListener('click', () => {
+                window.__gesture = true;
+            });
+        </script>
+    </body>
+</html>

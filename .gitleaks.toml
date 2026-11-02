@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# gitleaks configuration: the default rules, plus an allowlist for test fixtures and a few
+# known non-secrets. Reviewed 2026-10-13 against a full-tree scan: every match below is a
+# test key pair marked test-only, a JWT test string, a placeholder, a setting name or a
+# documentation string. Keep the value list narrow; never allowlist a whole source file.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test fixtures and reviewed non-secrets"
+paths = [
+    '''\.test\.(ts|js)$''',
+    '''(^|/)__tests__/''',
+    '''(^|/)tests/''',
+]
+regexes = [
+    # e2e workflow: a fixed, publicly known test master key (hex counting pattern)
+    '''^(00112233445566778899aabbccddeeff)+(00112233445566778899aabbccdd)?$''',
+    # sub-secret label passed to deriveSubSecret (a context string, not a secret)
+    '''^lumastra-jwt-secret-v1$''',
+    # setting name and the character set used to generate codes
+    '''^ENABLE_HDR10_PRESERVATION$''',
+    '''^abcdefghjkmnpqrstuvwxyz23456789$''',
+    # comment text
+    '''^Jellyfin/Subsonic$''',
+    # PEM header mentioned in a setting description and in a format check (no key material);
+    # in the message JSON files the closing quote is escaped (en) or typographic (de)
+    '''^-----BEGIN PRIVATE KEY-----(\\?["']|“)''',
+]

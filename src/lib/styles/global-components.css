@@ -1,0 +1,1402 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+/**
+ * Global Component Styles for Lumastra
+ * Shared CSS classes used across multiple components
+ */
+
+/* ========================================
+   LINE CLAMP UTILITIES
+   ======================================== */
+
+.line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ========================================
+   GLOSSY BUTTON EFFECT
+   ======================================== */
+
+.glossy-btn {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+}
+
+.glossy-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.6s ease;
+}
+
+.glossy-btn:hover::before {
+    left: 100%;
+}
+
+.glossy-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.glossy-btn:active {
+    transform: translateY(0);
+}
+
+/* ========================================
+   SMOOTH SCROLLBAR
+   ======================================== */
+
+.smooth-scroll {
+    scrollbar-width: auto; /* Make scrollbar visible when scrollable */
+    scrollbar-color: rgba(251, 191, 36, 0.8) rgba(0, 0, 0, 0.4); /* Orange/warning color */
+    overflow-x: auto; /* Show scrollbar only when content overflows */
+    -webkit-overflow-scrolling: touch;
+    cursor: grab;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.smooth-scroll:active {
+    cursor: grabbing;
+}
+
+.smooth-scroll::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+    -webkit-appearance: none;
+    display: block !important;
+}
+
+.smooth-scroll::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    display: block !important;
+}
+
+.smooth-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(251, 191, 36, 0.8); /* Orange/warning color */
+    border-radius: 4px;
+    display: block !important;
+    min-width: 40px;
+    border: 2px solid rgba(0, 0, 0, 0.4); /* Makes it more visible */
+}
+
+.smooth-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(251, 191, 36, 1);
+    border-color: rgba(0, 0, 0, 0.5);
+}
+
+.smooth-scroll::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* ========================================
+   HOLIDAY THEMED SCROLLBAR
+   ======================================== */
+
+.holiday-scroll {
+    scrollbar-width: auto; /* Make scrollbar visible when scrollable */
+    scrollbar-color: rgba(251, 191, 36, 0.9) rgba(0, 0, 0, 0.4);
+    overflow-x: auto; /* Show scrollbar only when content overflows */
+}
+
+.holiday-scroll::-webkit-scrollbar {
+    height: 14px;
+    -webkit-appearance: none;
+    display: block !important;
+}
+
+.holiday-scroll::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    display: block !important;
+}
+
+.holiday-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.9), rgba(239, 68, 68, 0.9));
+    border-radius: 4px;
+    display: block !important;
+    min-width: 40px;
+    border: 2px solid rgba(0, 0, 0, 0.4); /* Makes it more visible */
+}
+
+.holiday-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(90deg, rgba(251, 191, 36, 1), rgba(239, 68, 68, 1));
+    border-color: rgba(0, 0, 0, 0.5);
+}
+
+.holiday-scroll::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* ========================================
+   CYAN THEMED SCROLLBAR (Explore/Genre)
+   ======================================== */
+
+.cyan-scroll {
+    scrollbar-width: auto; /* Make scrollbar visible when scrollable */
+    scrollbar-color: rgba(6, 182, 212, 0.8) rgba(0, 0, 0, 0.4); /* Cyan-500 */
+    overflow-x: auto; /* Show scrollbar only when content overflows */
+}
+
+.cyan-scroll::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+    -webkit-appearance: none;
+    display: block !important;
+}
+
+.cyan-scroll::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    display: block !important;
+}
+
+.cyan-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(6, 182, 212, 0.8); /* Cyan-500 */
+    border-radius: 4px;
+    display: block !important;
+    min-width: 40px;
+    border: 2px solid rgba(0, 0, 0, 0.4);
+}
+
+.cyan-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(6, 182, 212, 1);
+    border-color: rgba(0, 0, 0, 0.5);
+}
+
+.cyan-scroll::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* ========================================
+   FADE IN ANIMATION
+   ======================================== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* ========================================
+   SHIMMER LOADING EFFECT
+   ======================================== */
+
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.shimmer {
+    animation: shimmer 2s infinite linear;
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.05) 0%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.05) 100%
+    );
+    background-size: 1000px 100%;
+}
+
+/* ========================================
+   TYPOGRAPHY UTILITIES
+   ======================================== */
+
+.text-hint {
+    @apply text-xs text-gray-400;
+}
+
+.text-caption {
+    @apply text-xs text-gray-500;
+}
+
+.text-muted {
+    @apply text-sm text-gray-400;
+}
+
+.text-subtitle {
+    @apply text-sm text-gray-300;
+}
+
+.text-label {
+    @apply text-xs text-gray-400 uppercase tracking-wide;
+}
+
+/* ========================================
+   CARD UTILITIES
+   ======================================== */
+
+.card-base {
+    @apply bg-gray-800 rounded-lg p-4;
+}
+
+.card-bordered {
+    @apply bg-gray-800 rounded-lg p-4 border border-gray-700;
+}
+
+.card-gradient {
+    @apply bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-5 border border-gray-700;
+}
+
+.card-gradient-lg {
+    @apply bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700;
+}
+
+.card-glass {
+    @apply bg-gray-800/50 rounded-lg p-4 border border-gray-700;
+}
+
+.bg-subtle {
+    @apply bg-gray-700/50 rounded;
+}
+
+/* ========================================
+   LAYOUT UTILITIES
+   ======================================== */
+
+.center {
+    @apply flex items-center justify-center;
+}
+
+.center-col {
+    @apply flex flex-col items-center justify-center;
+}
+
+.between {
+    @apply flex items-center justify-between;
+}
+
+/* ========================================
+   LOADING UTILITIES
+   ======================================== */
+
+.loading-container {
+    @apply flex flex-col items-center justify-center p-8;
+}
+
+.loading-spinner {
+    @apply inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin;
+}
+
+.loading-spinner-sm {
+    @apply w-3 h-3;
+}
+
+.loading-spinner-lg {
+    @apply w-6 h-6 border-[3px];
+}
+
+.loading-spinner-primary {
+    @apply border-primary-500/30 border-t-primary-500;
+}
+
+/* ========================================
+   COLORED SECTION CARDS
+   ======================================== */
+
+.section-info {
+    @apply bg-cyan-900/20 border border-cyan-700/50 rounded-lg p-4;
+}
+
+.section-warning {
+    @apply bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4;
+}
+
+.section-success {
+    @apply bg-green-900/20 border border-green-700/50 rounded-lg p-4;
+}
+
+.section-error {
+    @apply bg-red-900/20 border border-red-700/50 rounded-lg p-4;
+}
+
+.section-purple {
+    @apply bg-purple-900/20 border border-purple-700/50 rounded-lg p-4;
+}
+
+.section-blue {
+    @apply bg-blue-900/20 border border-blue-700/50 rounded-lg p-4;
+}
+
+.section-orange {
+    @apply bg-orange-900/20 border border-orange-700/50 rounded-lg p-4;
+}
+
+/* ========================================
+   MODAL/OVERLAY UTILITIES
+   ======================================== */
+
+.modal-overlay {
+    @apply fixed inset-0 flex items-center justify-center;
+}
+
+.modal-overlay-50 {
+    @apply bg-black/50;
+}
+
+.modal-overlay-60 {
+    @apply bg-black/60;
+}
+
+.modal-overlay-70 {
+    @apply bg-black/70;
+}
+
+.modal-overlay-blur {
+    @apply bg-black/60 backdrop-blur-sm;
+}
+
+.modal-container {
+    @apply bg-surface-800 rounded-lg shadow-xl max-w-md w-full mx-4;
+}
+
+.modal-container-lg {
+    @apply bg-surface-800 rounded-lg shadow-xl max-w-2xl w-full mx-4;
+}
+
+/* Drawer/Slide-over utilities */
+.drawer-overlay {
+    @apply fixed inset-0 bg-black/50;
+}
+
+.drawer-panel {
+    @apply fixed right-0 top-0 bottom-0 bg-surface-900 shadow-xl flex flex-col;
+}
+
+.drawer-header {
+    @apply flex items-center justify-between p-4 border-b border-surface-700;
+}
+
+/* ========================================
+   RESPONSIVE GRID UTILITIES
+   ======================================== */
+
+.grid-responsive-2 {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+}
+
+.grid-responsive-3 {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+}
+
+.grid-responsive-4 {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4;
+}
+
+.grid-responsive-5 {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4;
+}
+
+/* ========================================
+   ICON BUTTON UTILITIES
+   ======================================== */
+
+.icon-btn {
+    @apply p-1 hover:bg-gray-700 rounded-full transition-colors;
+}
+
+.icon-btn-lg {
+    @apply p-2 hover:bg-gray-700 rounded-lg transition-colors;
+}
+
+.close-btn {
+    @apply p-2 hover:bg-surface-700 rounded-lg transition-colors text-gray-400 hover:text-white;
+}
+
+/* ========================================
+   BADGE/PILL UTILITIES
+   ======================================== */
+
+/* Base badge styles */
+.badge-pill {
+    @apply px-2 py-1 text-xs font-medium rounded-full;
+}
+
+.badge-status {
+    @apply px-2 py-1 text-xs font-medium rounded;
+}
+
+/* Solid pill badges */
+.badge-pill-green {
+    @apply bg-green-600 text-white;
+}
+
+.badge-pill-red {
+    @apply bg-red-600 text-white;
+}
+
+.badge-pill-blue {
+    @apply bg-blue-600 text-white;
+}
+
+.badge-pill-orange {
+    @apply bg-orange-600 text-white;
+}
+
+.badge-pill-amber {
+    @apply bg-amber-600 text-white;
+}
+
+.badge-pill-cyan {
+    @apply bg-cyan-600 text-white;
+}
+
+.badge-pill-purple {
+    @apply bg-purple-600 text-white;
+}
+
+.badge-pill-yellow {
+    @apply bg-yellow-600 text-white;
+}
+
+.badge-pill-gray {
+    @apply bg-gray-600 text-white;
+}
+
+/* Soft/transparent pill badges */
+.badge-soft-green {
+    @apply px-2 py-0.5 text-xs bg-green-900/50 border border-green-600 text-green-300 rounded-full;
+}
+
+/* Accent-token soft badge — follows the active theme (was hardcoded blue,
+   which read navy under non-indigo themes). Name kept for call-site compat. */
+.badge-soft-blue {
+    @apply px-2 py-0.5 text-xs bg-primary-900/50 border border-primary-600 text-primary-300 rounded-full;
+}
+
+.badge-soft-red {
+    @apply px-2 py-0.5 text-xs bg-red-900/50 border border-red-600 text-red-300 rounded-full;
+}
+
+.badge-soft-orange {
+    @apply px-2 py-0.5 text-xs bg-orange-900/50 border border-orange-600 text-orange-300 rounded-full;
+}
+
+.badge-soft-purple {
+    @apply px-2 py-0.5 text-xs bg-purple-900/50 border border-purple-600 text-purple-300 rounded-full;
+}
+
+.badge-soft-yellow {
+    @apply px-2 py-0.5 text-xs bg-yellow-900/50 border border-yellow-600 text-yellow-300 rounded-full;
+}
+
+.badge-soft-cyan {
+    @apply px-2 py-0.5 text-xs bg-cyan-900/50 border border-cyan-600 text-cyan-300 rounded-full;
+}
+
+/* ========================================
+   FLEXBOX COMPOSITES
+   ======================================== */
+
+.flex-center-gap-1 {
+    @apply flex items-center gap-1;
+}
+.flex-center-gap-2 {
+    @apply flex items-center gap-2;
+}
+.flex-center-gap-3 {
+    @apply flex items-center gap-3;
+}
+.flex-center-gap-4 {
+    @apply flex items-center gap-4;
+}
+.inline-flex-center {
+    @apply inline-flex items-center;
+}
+.inline-flex-gap-1 {
+    @apply inline-flex items-center gap-1;
+}
+.inline-flex-gap-2 {
+    @apply inline-flex items-center gap-2;
+}
+
+/* ========================================
+   BORDER COMPOSITES
+   ======================================== */
+
+.border-divider {
+    @apply border border-surface-700;
+}
+.border-divider-subtle {
+    @apply border border-surface-600;
+}
+.border-top {
+    @apply border-t border-surface-700;
+}
+.border-bottom {
+    @apply border-b border-surface-700;
+}
+
+/* ========================================
+   TEXT COLOR SHORTCUTS
+   ======================================== */
+
+.text-secondary {
+    @apply text-surface-400;
+}
+.text-tertiary {
+    @apply text-surface-500;
+}
+.text-interactive {
+    @apply text-surface-300 hover:text-white transition-colors;
+}
+
+/* ========================================
+   GLASS EFFECTS
+   ======================================== */
+
+.glass {
+    @apply bg-surface-800/50 backdrop-blur-sm;
+}
+.glass-dark {
+    @apply bg-gray-800/50 backdrop-blur;
+}
+
+/* ========================================
+   BUTTON GROUP UTILITIES
+   ======================================== */
+
+.btn-dropdown {
+    @apply flex items-center gap-2 px-3 py-1.5 bg-surface-700 border border-surface-600 rounded text-sm hover:bg-surface-600 transition-colors;
+}
+
+.btn-group-first {
+    @apply rounded-l-lg rounded-r-none border-r-0;
+}
+.btn-group-middle {
+    @apply rounded-none border-r-0;
+}
+.btn-group-last {
+    @apply rounded-r-lg rounded-l-none;
+}
+
+/* ========================================
+   COMPONENT PATTERNS
+   ======================================== */
+
+.list-header {
+    @apply flex items-center justify-between p-4 border-b border-surface-700;
+}
+.list-row {
+    @apply flex items-center gap-3 px-4 py-3 hover:bg-surface-700/50 transition-colors;
+}
+.stat-card-header {
+    @apply flex items-center gap-3 mb-3;
+}
+.stat-card-icon {
+    @apply p-2 rounded-lg;
+}
+
+/* ========================================
+   LOADING SPINNER COLOR VARIANTS
+   ======================================== */
+
+.loading-spinner-white {
+    @apply border-white/30 border-t-white;
+}
+.loading-spinner-error {
+    @apply border-error-500/30 border-t-error-500;
+}
+
+/* ========================================
+   LINE CLAMP EXTENSIONS
+   ======================================== */
+
+.line-clamp-5 {
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-6 {
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    line-clamp: 6;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ========================================
+   PORTAL-RENDERED COMPONENT STYLES
+   ========================================
+   These rules used to live in <svelte:head><style> blocks inside
+   MediaHoverCard.svelte and Tooltip.svelte. Svelte injects one copy of a
+   <svelte:head> stylesheet into the document <head> per component
+   instance, which on a media-heavy page (hundreds of cards / tooltips)
+   meant ~10 KB × N copies of identical CSS in the head — millions of
+   bytes of duplicate styles in CSSOM. Centralizing them here means the
+   browser parses one rule list, not one per card. */
+
+/* MediaHoverCard portal popup */
+.media-hover-portal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    /* Pinned below the modal layer (z-index 1000) so a stale popup can never
+       paint above an open modal — see Z.MEDIA_HOVER_PREVIEW. */
+    z-index: 990; /* Z.MEDIA_HOVER_PREVIEW */
+    pointer-events: none;
+}
+
+/* Over-modal sibling of .media-hover-portal for the music artist/album hover
+   card (MusicEntityHoverCard). Its triggers — the lifted mini-player, the
+   album/artist modal tracklists, the fullscreen player — sit at or above the
+   modal, so this container must too. A fixed, z-indexed container is its own
+   stacking context: a card set to 1051 inside the 990 preview portal above is
+   still capped below the modal, so it needs a container pinned above 1000.
+   This z-index is the baseline; the coordinator raises it inline to track the
+   modal stack (setOverlayZIndex) so the card also clears stacked modals. */
+.media-hover-portal-over-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    z-index: 1051; /* Z.MUSIC_OVER_MODAL_POPUP — baseline; raised inline for stacked modals */
+    pointer-events: none;
+}
+
+.media-hover-popup {
+    position: fixed;
+    z-index: 990; /* Z.MEDIA_HOVER_PREVIEW */
+    pointer-events: none; /* Don't block page interactions by default */
+    width: 320px;
+    animation: media-hover-fade-in 0.2s ease-out;
+}
+
+/* Re-enable pointer events for the actual content */
+.media-hover-popup .popup-content {
+    pointer-events: auto;
+}
+
+.popup-content {
+    background: rgb(30, 30, 35);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.popup-backdrop {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: linear-gradient(135deg, rgb(40, 40, 50) 0%, rgb(25, 25, 35) 100%);
+    overflow: hidden;
+    cursor: pointer;
+}
+
+/* Ensure the preview video doesn't eat the cursor in Safari */
+.popup-backdrop video {
+    pointer-events: none;
+    cursor: pointer;
+}
+
+.backdrop-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* YouTube trailer container - zoomed in 2x to crop the YouTube player chrome
+   (title bar / watermark / controls) out of view. This zoom is ONLY correct
+   for the embedded YouTube iframe — the local MediaPreviewPlayer has no chrome
+   to hide and must NOT be scaled (see .popup-preview-container below). */
+.popup-video-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200%;
+    height: 200%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    cursor: pointer;
+}
+
+/* Local video-preview container — fills the 16:9 backdrop area 1:1. Unlike the
+   YouTube container it is NOT zoomed: MediaPreviewPlayer's <video>/backdrop are
+   already object-cover, so a 2x scale would crop and magnify the frame (the
+   "preview suddenly zooms in" bug). */
+.popup-preview-container {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    cursor: pointer;
+}
+
+/* Make ALL children pass through pointer events */
+.popup-video-container,
+.popup-video-container *,
+.popup-preview-container,
+.popup-preview-container * {
+    pointer-events: none !important;
+    cursor: pointer;
+}
+
+.backdrop-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        transparent 40%,
+        rgba(30, 30, 35, 0.8) 80%,
+        rgb(30, 30, 35) 100%
+    );
+    cursor: pointer;
+    z-index: 5;
+}
+
+.ratings-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+}
+
+.rating-item {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.rating-icon {
+    font-size: 11px;
+    line-height: 1;
+}
+
+/* Progressive disclosure watch state badge */
+.watch-state-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.watch-state-badge.watched {
+    background: rgba(34, 197, 94, 0.85);
+}
+
+.watch-state-badge.watchlist {
+    background: rgba(59, 130, 246, 0.85);
+}
+
+.watch-state-badge.progressive-disclosure {
+    animation: watch-state-fade-in 0.3s ease-out;
+}
+
+/* Pending state: rendered upfront so we can promote it to
+   .progressive-disclosure via class swap at the 1000ms tick instead of
+   re-rendering the entire popup (which would restart inline video). */
+.watch-state-badge.progressive-pending {
+    display: none;
+}
+
+@keyframes watch-state-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.popup-info {
+    padding: 12px 16px 16px;
+}
+
+.popup-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    margin: 0 0 4px 0;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.popup-meta {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 8px 0;
+}
+
+.popup-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.popup-progress .progress-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.popup-progress .progress-fill {
+    height: 100%;
+    background: rgb(59, 130, 246);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    min-width: 32px;
+    text-align: right;
+}
+
+.popup-watched {
+    font-size: 12px;
+    color: rgb(34, 197, 94);
+    margin-bottom: 8px;
+}
+
+.popup-reason {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 8px 0;
+    font-style: italic;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.popup-genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.genre-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.popup-overview {
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 12px 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.popup-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.action-btn.primary {
+    background: rgb(59, 130, 246);
+    color: white;
+    flex: 1;
+}
+
+.action-btn.primary:hover {
+    background: rgb(37, 99, 235);
+}
+
+.action-btn.secondary {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    flex: 1;
+}
+
+.action-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.action-btn.ghost {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 8px;
+}
+
+.action-btn.ghost:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* Secondary button tooltips */
+.action-btn.has-tooltip {
+    position: relative;
+}
+
+.action-btn.has-tooltip .tooltip-text {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 10;
+}
+
+.action-btn.has-tooltip:hover .tooltip-text,
+.action-btn.has-tooltip:focus .tooltip-text {
+    opacity: 1;
+}
+
+/* Small arrow below tooltip */
+.action-btn.has-tooltip .tooltip-text::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+.action-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* Focus styles for accessibility */
+.action-btn:focus {
+    outline: 2px solid rgb(59, 130, 246);
+    outline-offset: 2px;
+}
+
+@keyframes media-hover-fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Prevent popup from showing on mobile */
+@media (pointer: coarse) {
+    .media-hover-popup {
+        display: none !important;
+    }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .media-hover-popup,
+    .watch-state-badge.progressive-disclosure,
+    .action-btn,
+    .mute-btn {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    /* Still allow opacity changes for functional feedback */
+    .action-btn,
+    .mute-btn {
+        transition:
+            opacity 0.1s ease,
+            background-color 0.1s ease !important;
+    }
+}
+
+/* Tooltip portal */
+.tooltip-portal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    /* Must sit above high-stacking overlays like the watch page
+       (.watch-page is position:fixed; z-index:9000) — otherwise body-portal
+       tooltips render *behind* the player UI and are invisible. */
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.tooltip-fixed {
+    position: fixed;
+    z-index: 10000;
+    pointer-events: none;
+    animation: tooltip-fixed-fade-in 0.15s ease-out;
+}
+
+.tooltip-content {
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: white;
+    background: rgb(55, 55, 55);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Sentence-length tooltip bodies (Tooltip's `wrap` prop) — without this the
+   nowrap default renders a paragraph as one viewport-wide strip. */
+.tooltip-content.tooltip-content-wrap {
+    white-space: normal;
+    max-width: 22rem;
+    line-height: 1.45;
+}
+
+@keyframes tooltip-fixed-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Plugin UI kit (`lum-*`)
+ *
+ * A deliberately small set of classes third-party widgets can use so their UI
+ * reads as part of the app instead of as a different application embedded in
+ * it. Not a component library — just the handful of primitives every widget
+ * ends up hand-rolling (the shoutbox plugin is ~860 lines largely because it
+ * styles all of this itself).
+ *
+ * SCOPED UNDER `.plugin-widget` on purpose. It costs nothing on pages with no
+ * plugins, and a plugin cannot use these classes to restyle host chrome.
+ *
+ * Built from the tokens in plugin-theme-tokens.ts, and versioned with them:
+ * treat the class list as APPEND-ONLY, since a removal breaks installed
+ * plugins that have already shipped.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.plugin-widget {
+    font-family: var(--lum-font-body);
+    color: var(--text);
+}
+
+.plugin-widget .lum-card {
+    background: var(--color-surface-900);
+    border: 1px solid var(--color-surface-700);
+    border-radius: var(--lum-radius-card);
+    padding: 1rem;
+}
+
+.plugin-widget .lum-title {
+    font-family: var(--lum-font-heading);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 0.5rem;
+}
+
+.plugin-widget .lum-muted {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.plugin-widget .lum-divider {
+    height: 1px;
+    background: var(--color-surface-700);
+    border: 0;
+    margin: 0.75rem 0;
+}
+
+.plugin-widget .lum-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: var(--lum-radius-control);
+    border: 1px solid var(--color-surface-600);
+    background: var(--color-surface-800);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.plugin-widget .lum-btn:hover:not(:disabled) {
+    background: var(--color-surface-700);
+    color: var(--text-hover);
+}
+
+.plugin-widget .lum-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* Keyboard focus must stay visible — plugin authors reliably forget this, and
+ * a widget that traps sighted-mouse users only is an accessibility regression
+ * in OUR page, not theirs. */
+.plugin-widget .lum-btn:focus-visible,
+.plugin-widget .lum-input:focus-visible,
+.plugin-widget .lum-select:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+}
+
+.plugin-widget .lum-btn-primary {
+    background: var(--color-primary-600);
+    border-color: var(--color-primary-500);
+    color: #fff;
+}
+
+.plugin-widget .lum-btn-primary:hover:not(:disabled) {
+    background: var(--color-primary-500);
+    color: #fff;
+}
+
+.plugin-widget .lum-btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--text-muted);
+}
+
+.plugin-widget .lum-btn-ghost:hover:not(:disabled) {
+    background: var(--color-surface-800);
+    color: var(--text);
+}
+
+.plugin-widget .lum-input,
+.plugin-widget .lum-select {
+    width: 100%;
+    padding: 0.45rem 0.65rem;
+    border-radius: var(--lum-radius-control);
+    border: 1px solid var(--color-surface-600);
+    background: var(--color-surface-950);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.875rem;
+}
+
+.plugin-widget .lum-input::placeholder {
+    color: var(--text-muted);
+}
+
+.plugin-widget .lum-badge {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background: var(--color-surface-700);
+    color: var(--text);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.plugin-widget .lum-badge-success {
+    background: var(--color-success-500);
+    color: #06210f;
+}
+
+.plugin-widget .lum-badge-warning {
+    background: var(--color-warning-500);
+    color: #2a1c00;
+}
+
+.plugin-widget .lum-badge-error {
+    background: var(--color-error-500);
+    color: #2b0808;
+}
+
+.plugin-widget .lum-empty {
+    padding: 1.25rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.plugin-widget .lum-skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--color-surface-800) 25%,
+        var(--color-surface-700) 37%,
+        var(--color-surface-800) 63%
+    );
+    background-size: 400% 100%;
+    border-radius: var(--lum-radius-control);
+    animation: lum-shimmer 1.4s ease infinite;
+}
+
+@keyframes lum-shimmer {
+    0% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0 50%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .plugin-widget .lum-skeleton {
+        animation: none;
+    }
+    .plugin-widget .lum-btn {
+        transition: none;
+    }
+}
+
+/* Hover preview metadata and body-level hints for clipped popup actions. */
+.popup-episode {
+    margin: 0 0 6px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+    overflow-wrap: anywhere;
+}
+
+.media-hover-popup .tooltip-text {
+    display: none;
+}
+
+.popup-action-tooltip {
+    position: fixed;
+    z-index: 1100;
+    max-width: min(260px, calc(100vw - 16px));
+    padding: 6px 9px;
+    border-radius: 6px;
+    background: rgb(15, 15, 18);
+    color: white;
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    pointer-events: auto;
+}
+
+.popup-dismiss {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px;
+    text-align: left;
+    justify-content: flex-start;
+    color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.popup-dismiss:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+}
+
+.popup-dismiss span {
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+.popup-dismiss .action-icon {
+    flex-shrink: 0;
+}

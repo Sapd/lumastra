@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+# Sonic sidecar with an external database (read-only role URL in a Secret).
+app: { origin: https://lumastra.example.com }
+secrets: { existingSecret: lumastra }
+features: { FEATURE_MUSIC_SONIC: true }
+sonic:
+    enabled: true
+    threads: 4
+    database: { existingSecret: lumastra-sonic, urlKey: url }
+libraries:
+    - { name: music, mountPath: /data/music, hostPath: /srv/music, music: true }

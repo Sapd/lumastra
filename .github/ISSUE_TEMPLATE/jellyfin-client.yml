@@ -1,0 +1,55 @@
+name: 📺 Jellyfin app (/j) problem
+description: A Jellyfin app (Android TV, Findroid, Swiftfin, Streamyfin, Infuse, …) misbehaves against Lumastra — playback never starts, crashes, missing data.
+labels: ['type:bug', 'area:compat-j', 'status:needs-triage']
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Admins: open the diagnostic under **Admin → Users → Client diagnostics** and use **Report on GitHub** — it fills this form and gives you a redacted report file to attach.
+    - type: checkboxes
+      id: prereqs
+      attributes:
+          label: Before you file
+          options:
+              - label: I searched existing issues and discussions and this isn't a duplicate.
+                required: true
+              - label: I saw this happen myself on a real instance (not an AI-generated or hypothetical report).
+                required: true
+              - label: I removed secrets and personal data from logs and screenshots, and I have read the content rules in CODE_OF_CONDUCT.md.
+                required: true
+    - type: input
+      id: version
+      attributes:
+          label: Lumastra version / image tag
+          description: Shown in the About dialog and on Admin → System.
+      validations:
+          required: true
+    - type: input
+      id: client
+      attributes:
+          label: App and version
+          placeholder: 'Jellyfin Android TV 0.19.10 on Fire TV'
+      validations:
+          required: true
+    - type: textarea
+      id: what
+      attributes:
+          label: What happens?
+          description: 'What you did, what you saw, what you expected.'
+      validations:
+          required: true
+    - type: textarea
+      id: violations
+      attributes:
+          label: Spec violations (from the report)
+          render: text
+    - type: textarea
+      id: report
+      attributes:
+          label: Report file
+          description: Drag the downloaded lumastra-jellyfin-report-*.json here.
+    - type: textarea
+      id: logs
+      attributes:
+          label: Client log excerpt
+          render: text

@@ -1,0 +1,284 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/server"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "id": "0b560f81-be7e-48f7-a5f8-4ef07e040a6d",
+    "name": "Lumastra",
+    "release": "0.1.0",
+    "apiVersions": [
+      "v1"
+    ],
+    "branding": {
+      "appName": "Lumastra",
+      "appDescription": "Media Dashboard"
+    },
+    "auth": {
+      "deviceFlow": {
+        "enabled": true,
+        "deviceAuthorizationHref": "/oauth/device",
+        "tokenHref": "[credential]"
+      },
+      "passwordLogin": {
+        "enabled": false
+      }
+    },
+    "links": {
+      "self": "/api/v1/server",
+      "me": "/api/v1/me",
+      "events": "/api/v1/events",
+      "notice": "/api/v1/server/notice"
+    },
+    "caller": {
+      "id": "c4a28b31-b1dd-4fef-9650-6c230e6ba1db",
+      "isAdmin": false,
+      "permissions": {
+        "canRequest": true,
+        "canReview": true,
+        "canAnnotateMedia": true,
+        "canWatchLiveTv": true,
+        "canSeeAllPlayback": false
+      }
+    },
+    "build": "v0.1.0-6932-gb377528478",
+    "capabilities": {
+      "playback": {
+        "direct": true,
+        "remux": true,
+        "transcode": true,
+        "transcoder": {
+          "engine": "ffmpeg",
+          "videoCodecs": [
+            "h264",
+            "hevc",
+            "av1"
+          ],
+          "audioCodecs": [
+            "aac",
+            "ac3",
+            "eac3",
+            "mp3",
+            "flac",
+            "opus"
+          ],
+          "containers": [
+            "mp4",
+            "mkv",
+            "ts"
+          ],
+          "maxResolution": "4K",
+          "hdrPassthrough": true,
+          "dolbyVisionPassthrough": false
+        },
+        "hlsVariants": [
+          "360p",
+          "480p",
+          "720p",
+          "1080p",
+          "4K"
+        ],
+        "maxBitrateKbps": null
+      },
+      "liveTv": {
+        "available": true,
+        "adaptiveLadder": {
+          "enabled": true,
+          "defaultQuality": "adaptive",
+          "includeOriginalExperimental": false,
+          "rungs": [
+            {
+              "id": "1080p8m",
+              "height": 1080,
+              "maxBitrateBps": 8000000,
+              "codec": "h264"
+            },
+            {
+              "id": "720p4m",
+              "height": 720,
+              "maxBitrateBps": 4000000,
+              "codec": "h264"
+            },
+            {
+              "id": "540p2m",
+              "height": 540,
+              "maxBitrateBps": 2000000,
+              "codec": "h264"
+            },
+            {
+              "id": "360p1m",
+              "height": 360,
+              "maxBitrateBps": 1000000,
+              "codec": "h264"
+            }
+          ]
+        }
+      },
+      "music": {
+        "available": true,
+        "clustering": true,
+        "sonicSimilarity": true,
+        "sonicMixes": true
+      },
+      "audiobooks": {
+        "available": true
+      },
+      "features": {
+        "aiRecommendations": true,
+        "aiAssistant": false,
+        "kavita": false,
+        "calendar": false,
+        "sessions": true,
+        "internalPlayer": true,
+        "watchTogether": true,
+        "sidebar": true,
+        "social": true,
+        "socialReviews": false,
+        "comments": false,
+        "personalStats": true,
+        "avatarUpload": true,
+        "gravatar": false,
+        "autoLyrics": true,
+        "clientDiagnostics": true,
+        "clientLogBundles": true,
+        "clientDiagnosticsLogTail": true,
+        "saveLyricsToDisk": true,
+        "musicLyricsFetch": true,
+        "sessionsPublic": true,
+        "showUnairedEpisodes": true,
+        "showMissingEpisodes": true,
+        "sessionsDeviceInfoPublic": false,
+        "youtubeModals": true,
+        "youtubeHero": true,
+        "userNotificationWebhooks": false,
+        "quickConnect": false,
+        "playerAutoQuality": false,
+        "dockToggle": true,
+        "requests": false,
+        "requestsConfigured": false,
+        "playlists": true,
+        "mediaHoverPopup": true,
+        "mediaHoverPopupTrailers": true,
+        "mediaHoverVideoPreview": true,
+        "videoPreviewSessionEnabled": true,
+        "mediaHoverLiveTvPreview": false,
+        "featuredPickVideo": true,
+        "playlistChat": true,
+        "mediaAnnotations": false,
+        "mediaChat": false,
+        "starsBackground": true,
+        "trending": false,
+        "holidays": false,
+        "userPats": true,
+        "jellyfin": false,
+        "jellyfinSync": false,
+        "jellyfinCompat": true,
+        "subsonicCompat": true,
+        "unratedContentVisible": false,
+        "musicTranscode": true,
+        "forYouAbandonmentDemote": false,
+        "forYouSectionRanker": false,
+        "musicAlchemy": true,
+        "musicFirst": false,
+        "sonicEmbeddings": true,
+        "musicMap": true,
+        "lyricsSearch": true,
+        "musicClusters": true,
+        "textToSound": true,
+        "sonicTaste": true,
+        "sonicQueue": true,
+        "trainingAssignments": true,
+        "assessment": true,
+        "musicRadio": false,
+        "videoPreviews": true,
+        "topShelfPreviews": false,
+        "topShelfOverlay": false,
+        "mediaDownload": true,
+        "downloadRenditions": true,
+        "seriesSmartDownloads": true
+      },
+      "integrations": {
+        "requests": {
+          "available": false
+        }
+      },
+      "push": {
+        "available": true
+      },
+      "events": {
+        "href": "/api/v1/events",
+        "reconnectMaxMs": 30000,
+        "kinds": [
+          {
+            "name": "device.command",
+            "class": "signal",
+            "durable": false,
+            "available": true
+          },
+          {
+            "name": "device.command_cancelled",
+            "class": "signal",
+            "durable": false,
+            "available": true
+          },
+          {
+            "name": "device.command_status",
+            "class": "signal",
+            "durable": false,
+            "available": true
+          },
+          {
+            "name": "device.state",
+            "class": "signal",
+            "durable": false,
+            "available": true
+          },
+          {
+            "name": "session_changed",
+            "class": "signal",
+            "durable": false,
+            "available": true
+          },
+          {
+            "name": "watch_state_set_changed",
+            "class": "signal",
+            "durable": false,
+            "available": true
+          },
+          {
+            "name": "admin",
+            "class": "signal",
+            "durable": false,
+            "available": true
+          },
+          {
+            "name": "library.new_episode",
+            "class": "notification",
+            "durable": true,
+            "available": true
+          },
+          {
+            "name": "request.available",
+            "class": "notification",
+            "durable": true,
+            "available": false,
+            "unavailableReason": "requests_not_configured"
+          },
+          {
+            "name": "admin.broadcast",
+            "class": "notification",
+            "durable": true,
+            "available": true
+          }
+        ]
+      },
+      "metadata": {
+        "primary": "en",
+        "additional": []
+      }
+    }
+  },
+  "baselineProblems": []
+}

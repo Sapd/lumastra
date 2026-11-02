@@ -1,0 +1,24 @@
+# Shared /config volume (BASE_PATH) — the worker writes artwork + trickplay tiles
+# that the web pods serve, plus the ffmpeg binary cache and (if you don't set
+# LUMASTRA_MASTER_KEY) the generated master key. It MUST be ReadWriteMany so web
+# and worker pods on different nodes can read+write it simultaneously.
+#
+# RWX requires an RWX-capable storage class: NFS, CephFS, Azure Files,
+# Longhorn (RWX), etc. — block storage (EBS/GCE PD/Azure Disk) is RWO only.
+#
+# No RWX available? Two options:
+#   1. Co-locate web+worker on one node (podAffinity) and use an RWO PVC, OR
+#   2. Run web+worker as two containers in ONE Pod sharing an emptyDir — see the
+#      "single-pod" note in README.md. (This is the topology validated on
+#      a managed cluster that only offers RWO block storage.)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: lumastra-config
+    namespace: lumastra
+spec:
+    accessModes: ['ReadWriteMany']
+    storageClassName: your-rwx-storageclass
+    resources:
+        requests:
+            storage: 20Gi

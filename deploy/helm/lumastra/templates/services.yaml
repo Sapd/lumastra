@@ -1,0 +1,62 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+
+Entry Service (<fullname>): the router, or the HTTP pods when the router is off. Point routes here.
+Headless Service: the HTTP pods' Ready endpoints, re-resolved by the router.
+*/ -}}
+{{- $http := include "lumastra.httpComponent" . -}}
+{{- $useRouter := .Values.router.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "lumastra.fullname" . }}
+  labels:
+    {{- include "lumastra.componentLabels" (list . "entry") | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "lumastra.selectorLabels" (list . (ternary "router" $http $useRouter)) | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "lumastra.component" (list . "web-headless") }}
+  labels:
+    {{- include "lumastra.componentLabels" (list . $http) | nindent 4 }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: false
+  selector:
+    {{- include "lumastra.selectorLabels" (list . $http) | nindent 4 }}
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+      protocol: TCP
+---
+# Headless Service for scraping the worker's /metrics (task system); it serves no traffic.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "lumastra.component" (list . "worker-metrics") }}
+  labels:
+    {{- include "lumastra.componentLabels" (list . "worker") | nindent 4 }}
+spec:
+  clusterIP: None
+  selector:
+    {{- include "lumastra.selectorLabels" (list . "worker") | nindent 4 }}
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+      protocol: TCP

@@ -1,0 +1,736 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/livetv/stations"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "04e36f73-2c77-496a-a2a1-4ca41d9a23d9",
+        "name": "Meridian News",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/04e36f73-2c77-496a-a2a1-4ca41d9a23d9/images/poster?size=card&v=b37d8f7d61b8",
+            "variants": {
+              "thumb": "/api/v1/media/04e36f73-2c77-496a-a2a1-4ca41d9a23d9/images/poster?size=thumb&v=b37d8f7d61b8",
+              "card": "/api/v1/media/04e36f73-2c77-496a-a2a1-4ca41d9a23d9/images/poster?size=card&v=b37d8f7d61b8",
+              "full": "/api/v1/media/04e36f73-2c77-496a-a2a1-4ca41d9a23d9/images/poster?size=full&v=b37d8f7d61b8"
+            },
+            "revision": "b37d8f7d61b8",
+            "source": "self"
+          }
+        },
+        "category": "News",
+        "categoryId": "b3080357-7ccf-4769-b05d-b19fd714af36",
+        "sortOrder": 0,
+        "channelNumber": 16,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "04e36f73-2c77-496a-a2a1-4ca41d9a23d9",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "16895523-64cc-477f-83bd-8d0405dbee54",
+        "name": "Northwind 24",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/16895523-64cc-477f-83bd-8d0405dbee54/images/poster?size=card&v=467a9afad8a0",
+            "variants": {
+              "thumb": "/api/v1/media/16895523-64cc-477f-83bd-8d0405dbee54/images/poster?size=thumb&v=467a9afad8a0",
+              "card": "/api/v1/media/16895523-64cc-477f-83bd-8d0405dbee54/images/poster?size=card&v=467a9afad8a0",
+              "full": "/api/v1/media/16895523-64cc-477f-83bd-8d0405dbee54/images/poster?size=full&v=467a9afad8a0"
+            },
+            "revision": "467a9afad8a0",
+            "source": "self"
+          }
+        },
+        "category": "News",
+        "categoryId": "b3080357-7ccf-4769-b05d-b19fd714af36",
+        "sortOrder": 1,
+        "channelNumber": 17,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "16895523-64cc-477f-83bd-8d0405dbee54",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "e42f837e-cce6-4192-be09-6b135ac0e65e",
+        "name": "Apex Sports",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/e42f837e-cce6-4192-be09-6b135ac0e65e/images/poster?size=card&v=48af920558cd",
+            "variants": {
+              "thumb": "/api/v1/media/e42f837e-cce6-4192-be09-6b135ac0e65e/images/poster?size=thumb&v=48af920558cd",
+              "card": "/api/v1/media/e42f837e-cce6-4192-be09-6b135ac0e65e/images/poster?size=card&v=48af920558cd",
+              "full": "/api/v1/media/e42f837e-cce6-4192-be09-6b135ac0e65e/images/poster?size=full&v=48af920558cd"
+            },
+            "revision": "48af920558cd",
+            "source": "self"
+          }
+        },
+        "category": "Sports",
+        "categoryId": "d3bb198c-cffe-4232-a590-1c3f203f0139",
+        "sortOrder": 2,
+        "channelNumber": 19,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "e42f837e-cce6-4192-be09-6b135ac0e65e",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "53268f1e-3b14-4355-a3fb-9f732f53538c",
+        "name": "Velocity TV",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/53268f1e-3b14-4355-a3fb-9f732f53538c/images/poster?size=card&v=3dd08f43c6ac",
+            "variants": {
+              "thumb": "/api/v1/media/53268f1e-3b14-4355-a3fb-9f732f53538c/images/poster?size=thumb&v=3dd08f43c6ac",
+              "card": "/api/v1/media/53268f1e-3b14-4355-a3fb-9f732f53538c/images/poster?size=card&v=3dd08f43c6ac",
+              "full": "/api/v1/media/53268f1e-3b14-4355-a3fb-9f732f53538c/images/poster?size=full&v=3dd08f43c6ac"
+            },
+            "revision": "3dd08f43c6ac",
+            "source": "self"
+          }
+        },
+        "category": "Sports",
+        "categoryId": "d3bb198c-cffe-4232-a590-1c3f203f0139",
+        "sortOrder": 3,
+        "channelNumber": 20,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "53268f1e-3b14-4355-a3fb-9f732f53538c",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "8dd523dd-c43a-44fa-a2cb-2ce8d7a14b2c",
+        "name": "Cinegrove",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/8dd523dd-c43a-44fa-a2cb-2ce8d7a14b2c/images/poster?size=card&v=c8251a667784",
+            "variants": {
+              "thumb": "/api/v1/media/8dd523dd-c43a-44fa-a2cb-2ce8d7a14b2c/images/poster?size=thumb&v=c8251a667784",
+              "card": "/api/v1/media/8dd523dd-c43a-44fa-a2cb-2ce8d7a14b2c/images/poster?size=card&v=c8251a667784",
+              "full": "/api/v1/media/8dd523dd-c43a-44fa-a2cb-2ce8d7a14b2c/images/poster?size=full&v=c8251a667784"
+            },
+            "revision": "c8251a667784",
+            "source": "self"
+          }
+        },
+        "category": "Movies",
+        "categoryId": "0fc3f545-98f7-451e-a483-84c5d43a091a",
+        "sortOrder": 4,
+        "channelNumber": 10,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "8dd523dd-c43a-44fa-a2cb-2ce8d7a14b2c",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "c862f755-1234-40a6-b251-8411568201f7",
+        "name": "Reel One",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/c862f755-1234-40a6-b251-8411568201f7/images/poster?size=card&v=db63fe6b9d4f",
+            "variants": {
+              "thumb": "/api/v1/media/c862f755-1234-40a6-b251-8411568201f7/images/poster?size=thumb&v=db63fe6b9d4f",
+              "card": "/api/v1/media/c862f755-1234-40a6-b251-8411568201f7/images/poster?size=card&v=db63fe6b9d4f",
+              "full": "/api/v1/media/c862f755-1234-40a6-b251-8411568201f7/images/poster?size=full&v=db63fe6b9d4f"
+            },
+            "revision": "db63fe6b9d4f",
+            "source": "self"
+          }
+        },
+        "category": "Movies",
+        "categoryId": "0fc3f545-98f7-451e-a483-84c5d43a091a",
+        "sortOrder": 5,
+        "channelNumber": 11,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "c862f755-1234-40a6-b251-8411568201f7",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "b9794bac-9dd0-4890-8a8c-88b873f32ded",
+        "name": "Vault Classics",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/b9794bac-9dd0-4890-8a8c-88b873f32ded/images/poster?size=card&v=0008a310dbd6",
+            "variants": {
+              "thumb": "/api/v1/media/b9794bac-9dd0-4890-8a8c-88b873f32ded/images/poster?size=thumb&v=0008a310dbd6",
+              "card": "/api/v1/media/b9794bac-9dd0-4890-8a8c-88b873f32ded/images/poster?size=card&v=0008a310dbd6",
+              "full": "/api/v1/media/b9794bac-9dd0-4890-8a8c-88b873f32ded/images/poster?size=full&v=0008a310dbd6"
+            },
+            "revision": "0008a310dbd6",
+            "source": "self"
+          }
+        },
+        "category": "Movies",
+        "categoryId": "0fc3f545-98f7-451e-a483-84c5d43a091a",
+        "sortOrder": 6,
+        "channelNumber": 12,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "b9794bac-9dd0-4890-8a8c-88b873f32ded",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "fc5485cc-30eb-493c-8946-1ae0c03da805",
+        "name": "Nebula Seven",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/fc5485cc-30eb-493c-8946-1ae0c03da805/images/poster?size=card&v=da79cfe5ed36",
+            "variants": {
+              "thumb": "/api/v1/media/fc5485cc-30eb-493c-8946-1ae0c03da805/images/poster?size=thumb&v=da79cfe5ed36",
+              "card": "/api/v1/media/fc5485cc-30eb-493c-8946-1ae0c03da805/images/poster?size=card&v=da79cfe5ed36",
+              "full": "/api/v1/media/fc5485cc-30eb-493c-8946-1ae0c03da805/images/poster?size=full&v=da79cfe5ed36"
+            },
+            "revision": "da79cfe5ed36",
+            "source": "self"
+          }
+        },
+        "category": "Sci-Fi",
+        "categoryId": "d9761d0a-06a3-4841-a431-8b7eaf6cd263",
+        "sortOrder": 7,
+        "channelNumber": 18,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "fc5485cc-30eb-493c-8946-1ae0c03da805",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "9a0ca962-f0a8-4378-93f8-f90ae169f624",
+        "name": "Terra Nine",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/9a0ca962-f0a8-4378-93f8-f90ae169f624/images/poster?size=card&v=c2b5ac6a9b20",
+            "variants": {
+              "thumb": "/api/v1/media/9a0ca962-f0a8-4378-93f8-f90ae169f624/images/poster?size=thumb&v=c2b5ac6a9b20",
+              "card": "/api/v1/media/9a0ca962-f0a8-4378-93f8-f90ae169f624/images/poster?size=card&v=c2b5ac6a9b20",
+              "full": "/api/v1/media/9a0ca962-f0a8-4378-93f8-f90ae169f624/images/poster?size=full&v=c2b5ac6a9b20"
+            },
+            "revision": "c2b5ac6a9b20",
+            "source": "self"
+          }
+        },
+        "category": "Documentary",
+        "categoryId": "aa977d87-3510-4370-87d5-ba0d810ad5c2",
+        "sortOrder": 8,
+        "channelNumber": 3,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "9a0ca962-f0a8-4378-93f8-f90ae169f624",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "1beb9deb-2d6c-413e-b322-27b7726f3048",
+        "name": "Deep Field",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/1beb9deb-2d6c-413e-b322-27b7726f3048/images/poster?size=card&v=50e11329018a",
+            "variants": {
+              "thumb": "/api/v1/media/1beb9deb-2d6c-413e-b322-27b7726f3048/images/poster?size=thumb&v=50e11329018a",
+              "card": "/api/v1/media/1beb9deb-2d6c-413e-b322-27b7726f3048/images/poster?size=card&v=50e11329018a",
+              "full": "/api/v1/media/1beb9deb-2d6c-413e-b322-27b7726f3048/images/poster?size=full&v=50e11329018a"
+            },
+            "revision": "50e11329018a",
+            "source": "self"
+          }
+        },
+        "category": "Documentary",
+        "categoryId": "aa977d87-3510-4370-87d5-ba0d810ad5c2",
+        "sortOrder": 9,
+        "channelNumber": 4,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "1beb9deb-2d6c-413e-b322-27b7726f3048",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "96cd98e1-12e8-465c-a1a2-ca0d510b2e59",
+        "name": "Wildscape",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/96cd98e1-12e8-465c-a1a2-ca0d510b2e59/images/poster?size=card&v=6089109fb4d6",
+            "variants": {
+              "thumb": "/api/v1/media/96cd98e1-12e8-465c-a1a2-ca0d510b2e59/images/poster?size=thumb&v=6089109fb4d6",
+              "card": "/api/v1/media/96cd98e1-12e8-465c-a1a2-ca0d510b2e59/images/poster?size=card&v=6089109fb4d6",
+              "full": "/api/v1/media/96cd98e1-12e8-465c-a1a2-ca0d510b2e59/images/poster?size=full&v=6089109fb4d6"
+            },
+            "revision": "6089109fb4d6",
+            "source": "self"
+          }
+        },
+        "category": "Nature",
+        "categoryId": "c40e7b16-259f-4a0f-b86a-ef6755ac1642",
+        "sortOrder": 10,
+        "channelNumber": 15,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "96cd98e1-12e8-465c-a1a2-ca0d510b2e59",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "8f796344-75fa-4caa-9143-0b4d9ca52495",
+        "name": "Chronicle",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/8f796344-75fa-4caa-9143-0b4d9ca52495/images/poster?size=card&v=db4b1a0dbf57",
+            "variants": {
+              "thumb": "/api/v1/media/8f796344-75fa-4caa-9143-0b4d9ca52495/images/poster?size=thumb&v=db4b1a0dbf57",
+              "card": "/api/v1/media/8f796344-75fa-4caa-9143-0b4d9ca52495/images/poster?size=card&v=db4b1a0dbf57",
+              "full": "/api/v1/media/8f796344-75fa-4caa-9143-0b4d9ca52495/images/poster?size=full&v=db4b1a0dbf57"
+            },
+            "revision": "db4b1a0dbf57",
+            "source": "self"
+          }
+        },
+        "category": "History",
+        "categoryId": "b329dd06-f37a-4beb-a6cb-a388b1a2ee25",
+        "sortOrder": 11,
+        "channelNumber": 5,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "8f796344-75fa-4caa-9143-0b4d9ca52495",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "0ba7df8c-ccd7-44ab-837a-0e85f60f477f",
+        "name": "Circuit",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/0ba7df8c-ccd7-44ab-837a-0e85f60f477f/images/poster?size=card&v=a6c19dc0261d",
+            "variants": {
+              "thumb": "/api/v1/media/0ba7df8c-ccd7-44ab-837a-0e85f60f477f/images/poster?size=thumb&v=a6c19dc0261d",
+              "card": "/api/v1/media/0ba7df8c-ccd7-44ab-837a-0e85f60f477f/images/poster?size=card&v=a6c19dc0261d",
+              "full": "/api/v1/media/0ba7df8c-ccd7-44ab-837a-0e85f60f477f/images/poster?size=full&v=a6c19dc0261d"
+            },
+            "revision": "a6c19dc0261d",
+            "source": "self"
+          }
+        },
+        "category": "Technology",
+        "categoryId": "fbf2e427-8462-46b2-91ee-9218c48bb7b9",
+        "sortOrder": 12,
+        "channelNumber": 21,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "0ba7df8c-ccd7-44ab-837a-0e85f60f477f",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "242e32ce-ddea-4c54-9a19-bbd9508b38cf",
+        "name": "Wavelength",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/242e32ce-ddea-4c54-9a19-bbd9508b38cf/images/poster?size=card&v=f3dc3ec3beb4",
+            "variants": {
+              "thumb": "/api/v1/media/242e32ce-ddea-4c54-9a19-bbd9508b38cf/images/poster?size=thumb&v=f3dc3ec3beb4",
+              "card": "/api/v1/media/242e32ce-ddea-4c54-9a19-bbd9508b38cf/images/poster?size=card&v=f3dc3ec3beb4",
+              "full": "/api/v1/media/242e32ce-ddea-4c54-9a19-bbd9508b38cf/images/poster?size=full&v=f3dc3ec3beb4"
+            },
+            "revision": "f3dc3ec3beb4",
+            "source": "self"
+          }
+        },
+        "category": "Music",
+        "categoryId": "e6be272f-e602-4133-92b0-d5a21ae515ba",
+        "sortOrder": 13,
+        "channelNumber": 13,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "242e32ce-ddea-4c54-9a19-bbd9508b38cf",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "48601f6c-253f-4947-b7f0-48619349243e",
+        "name": "Static Channel",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/48601f6c-253f-4947-b7f0-48619349243e/images/poster?size=card&v=aea1d52bf9a5",
+            "variants": {
+              "thumb": "/api/v1/media/48601f6c-253f-4947-b7f0-48619349243e/images/poster?size=thumb&v=aea1d52bf9a5",
+              "card": "/api/v1/media/48601f6c-253f-4947-b7f0-48619349243e/images/poster?size=card&v=aea1d52bf9a5",
+              "full": "/api/v1/media/48601f6c-253f-4947-b7f0-48619349243e/images/poster?size=full&v=aea1d52bf9a5"
+            },
+            "revision": "aea1d52bf9a5",
+            "source": "self"
+          }
+        },
+        "category": "Music",
+        "categoryId": "e6be272f-e602-4133-92b0-d5a21ae515ba",
+        "sortOrder": 14,
+        "channelNumber": 14,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "48601f6c-253f-4947-b7f0-48619349243e",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "c7eac59c-1838-4e4c-979e-e322890c9d89",
+        "name": "Copper Pan",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/c7eac59c-1838-4e4c-979e-e322890c9d89/images/poster?size=card&v=dd4eb92f5945",
+            "variants": {
+              "thumb": "/api/v1/media/c7eac59c-1838-4e4c-979e-e322890c9d89/images/poster?size=thumb&v=dd4eb92f5945",
+              "card": "/api/v1/media/c7eac59c-1838-4e4c-979e-e322890c9d89/images/poster?size=card&v=dd4eb92f5945",
+              "full": "/api/v1/media/c7eac59c-1838-4e4c-979e-e322890c9d89/images/poster?size=full&v=dd4eb92f5945"
+            },
+            "revision": "dd4eb92f5945",
+            "source": "self"
+          }
+        },
+        "category": "Cooking",
+        "categoryId": "63263a16-a983-42f1-9733-6d33301400b4",
+        "sortOrder": 15,
+        "channelNumber": 2,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "c7eac59c-1838-4e4c-979e-e322890c9d89",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "ecaf8e0a-e22b-4519-a6e6-36f104d17ad8",
+        "name": "Longitude",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/ecaf8e0a-e22b-4519-a6e6-36f104d17ad8/images/poster?size=card&v=445b8e10ddfb",
+            "variants": {
+              "thumb": "/api/v1/media/ecaf8e0a-e22b-4519-a6e6-36f104d17ad8/images/poster?size=thumb&v=445b8e10ddfb",
+              "card": "/api/v1/media/ecaf8e0a-e22b-4519-a6e6-36f104d17ad8/images/poster?size=card&v=445b8e10ddfb",
+              "full": "/api/v1/media/ecaf8e0a-e22b-4519-a6e6-36f104d17ad8/images/poster?size=full&v=445b8e10ddfb"
+            },
+            "revision": "445b8e10ddfb",
+            "source": "self"
+          }
+        },
+        "category": "Travel",
+        "categoryId": "d6d2f748-060a-4e83-8ccd-7b85e2bc1381",
+        "sortOrder": 16,
+        "channelNumber": 22,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "ecaf8e0a-e22b-4519-a6e6-36f104d17ad8",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "23b5c672-2a93-4e2c-8019-da4291caeedc",
+        "name": "Pip and Pals",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/23b5c672-2a93-4e2c-8019-da4291caeedc/images/poster?size=card&v=dd51aae775c6",
+            "variants": {
+              "thumb": "/api/v1/media/23b5c672-2a93-4e2c-8019-da4291caeedc/images/poster?size=thumb&v=dd51aae775c6",
+              "card": "/api/v1/media/23b5c672-2a93-4e2c-8019-da4291caeedc/images/poster?size=card&v=dd51aae775c6",
+              "full": "/api/v1/media/23b5c672-2a93-4e2c-8019-da4291caeedc/images/poster?size=full&v=dd51aae775c6"
+            },
+            "revision": "dd51aae775c6",
+            "source": "self"
+          }
+        },
+        "category": "Kids",
+        "categoryId": "132e26ab-8b24-4691-a089-f0960bf1cf81",
+        "sortOrder": 17,
+        "channelNumber": 6,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "23b5c672-2a93-4e2c-8019-da4291caeedc",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "d7e7c06f-0034-4571-8dca-e66821dbb691",
+        "name": "Little Lantern",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/d7e7c06f-0034-4571-8dca-e66821dbb691/images/poster?size=card&v=b028d91ed7da",
+            "variants": {
+              "thumb": "/api/v1/media/d7e7c06f-0034-4571-8dca-e66821dbb691/images/poster?size=thumb&v=b028d91ed7da",
+              "card": "/api/v1/media/d7e7c06f-0034-4571-8dca-e66821dbb691/images/poster?size=card&v=b028d91ed7da",
+              "full": "/api/v1/media/d7e7c06f-0034-4571-8dca-e66821dbb691/images/poster?size=full&v=b028d91ed7da"
+            },
+            "revision": "b028d91ed7da",
+            "source": "self"
+          }
+        },
+        "category": "Kids",
+        "categoryId": "132e26ab-8b24-4691-a089-f0960bf1cf81",
+        "sortOrder": 18,
+        "channelNumber": 7,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "d7e7c06f-0034-4571-8dca-e66821dbb691",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "ee338e86-837a-4a58-94fb-970e261e50dc",
+        "name": "Chuckwagon TV",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/ee338e86-837a-4a58-94fb-970e261e50dc/images/poster?size=card&v=1363427d318c",
+            "variants": {
+              "thumb": "/api/v1/media/ee338e86-837a-4a58-94fb-970e261e50dc/images/poster?size=thumb&v=1363427d318c",
+              "card": "/api/v1/media/ee338e86-837a-4a58-94fb-970e261e50dc/images/poster?size=card&v=1363427d318c",
+              "full": "/api/v1/media/ee338e86-837a-4a58-94fb-970e261e50dc/images/poster?size=full&v=1363427d318c"
+            },
+            "revision": "1363427d318c",
+            "source": "self"
+          }
+        },
+        "category": "Comedy",
+        "categoryId": "5ee02096-0c6d-419f-88d9-1eb91fc52c3d",
+        "sortOrder": 19,
+        "channelNumber": 1,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "ee338e86-837a-4a58-94fb-970e261e50dc",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "b4320c0a-5cff-41db-983d-d6f3c26b0b1f",
+        "name": "Skywatch",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/b4320c0a-5cff-41db-983d-d6f3c26b0b1f/images/poster?size=card&v=7eee53cbaa7a",
+            "variants": {
+              "thumb": "/api/v1/media/b4320c0a-5cff-41db-983d-d6f3c26b0b1f/images/poster?size=thumb&v=7eee53cbaa7a",
+              "card": "/api/v1/media/b4320c0a-5cff-41db-983d-d6f3c26b0b1f/images/poster?size=card&v=7eee53cbaa7a",
+              "full": "/api/v1/media/b4320c0a-5cff-41db-983d-d6f3c26b0b1f/images/poster?size=full&v=7eee53cbaa7a"
+            },
+            "revision": "7eee53cbaa7a",
+            "source": "self"
+          }
+        },
+        "category": "Weather",
+        "categoryId": "bb589445-ff42-47a9-90b5-92032a0138b6",
+        "sortOrder": 20,
+        "channelNumber": 24,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "b4320c0a-5cff-41db-983d-d6f3c26b0b1f",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "b216c6e2-9a67-4569-a9da-9c8e8a860d0e",
+        "name": "City Twelve",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/b216c6e2-9a67-4569-a9da-9c8e8a860d0e/images/poster?size=card&v=d926695bf9d8",
+            "variants": {
+              "thumb": "/api/v1/media/b216c6e2-9a67-4569-a9da-9c8e8a860d0e/images/poster?size=thumb&v=d926695bf9d8",
+              "card": "/api/v1/media/b216c6e2-9a67-4569-a9da-9c8e8a860d0e/images/poster?size=card&v=d926695bf9d8",
+              "full": "/api/v1/media/b216c6e2-9a67-4569-a9da-9c8e8a860d0e/images/poster?size=full&v=d926695bf9d8"
+            },
+            "revision": "d926695bf9d8",
+            "source": "self"
+          }
+        },
+        "category": "Local",
+        "categoryId": "d79efe30-07ae-4601-8315-21058db7fa59",
+        "sortOrder": 21,
+        "channelNumber": 9,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "b216c6e2-9a67-4569-a9da-9c8e8a860d0e",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "43ef8b83-fd3d-44c3-88bf-2af046cb1288",
+        "name": "Studio Loop",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/43ef8b83-fd3d-44c3-88bf-2af046cb1288/images/poster?size=card&v=ab1a7c1fa369",
+            "variants": {
+              "thumb": "/api/v1/media/43ef8b83-fd3d-44c3-88bf-2af046cb1288/images/poster?size=thumb&v=ab1a7c1fa369",
+              "card": "/api/v1/media/43ef8b83-fd3d-44c3-88bf-2af046cb1288/images/poster?size=card&v=ab1a7c1fa369",
+              "full": "/api/v1/media/43ef8b83-fd3d-44c3-88bf-2af046cb1288/images/poster?size=full&v=ab1a7c1fa369"
+            },
+            "revision": "ab1a7c1fa369",
+            "source": "self"
+          }
+        },
+        "category": "Lifestyle",
+        "categoryId": "48354664-4d82-4a1c-9cc5-f35ed46d7988",
+        "sortOrder": 22,
+        "channelNumber": 8,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "43ef8b83-fd3d-44c3-88bf-2af046cb1288",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      },
+      {
+        "id": "2356cf2e-a097-4ed7-af26-4b0aff11ac5e",
+        "name": "Open Road",
+        "images": {
+          "primary": {
+            "href": "/api/v1/media/2356cf2e-a097-4ed7-af26-4b0aff11ac5e/images/poster?size=card&v=db67541c661c",
+            "variants": {
+              "thumb": "/api/v1/media/2356cf2e-a097-4ed7-af26-4b0aff11ac5e/images/poster?size=thumb&v=db67541c661c",
+              "card": "/api/v1/media/2356cf2e-a097-4ed7-af26-4b0aff11ac5e/images/poster?size=card&v=db67541c661c",
+              "full": "/api/v1/media/2356cf2e-a097-4ed7-af26-4b0aff11ac5e/images/poster?size=full&v=db67541c661c"
+            },
+            "revision": "db67541c661c",
+            "source": "self"
+          }
+        },
+        "category": "Travel",
+        "categoryId": "d6d2f748-060a-4e83-8ccd-7b85e2bc1381",
+        "sortOrder": 23,
+        "channelNumber": 23,
+        "categorySortOrder": 0,
+        "isVisible": true,
+        "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+        "feedId": "2356cf2e-a097-4ed7-af26-4b0aff11ac5e",
+        "nowNext": {
+          "current": null,
+          "next": null
+        }
+      }
+    ],
+    "availability": {
+      "observedAt": "2026-10-21T01:16:46.847Z",
+      "evidenceUnavailable": false,
+      "sources": [
+        {
+          "sourceId": "ddc16e17-130a-4e57-9c90-c054c6ed85a8",
+          "channelFeed": {
+            "state": "healthy",
+            "observedAt": "2026-10-20T22:10:49.374Z"
+          },
+          "guideFeed": {
+            "state": "healthy",
+            "observedAt": "2026-10-20T22:10:49.486Z"
+          },
+          "playback": "unknown",
+          "failedChannelIds": []
+        }
+      ],
+      "channels": {
+        "04e36f73-2c77-496a-a2a1-4ca41d9a23d9": "unknown",
+        "16895523-64cc-477f-83bd-8d0405dbee54": "unknown",
+        "e42f837e-cce6-4192-be09-6b135ac0e65e": "unknown",
+        "53268f1e-3b14-4355-a3fb-9f732f53538c": "unknown",
+        "8dd523dd-c43a-44fa-a2cb-2ce8d7a14b2c": "unknown",
+        "c862f755-1234-40a6-b251-8411568201f7": "unknown",
+        "b9794bac-9dd0-4890-8a8c-88b873f32ded": "unknown",
+        "fc5485cc-30eb-493c-8946-1ae0c03da805": "unknown",
+        "9a0ca962-f0a8-4378-93f8-f90ae169f624": "unknown",
+        "1beb9deb-2d6c-413e-b322-27b7726f3048": "unknown",
+        "96cd98e1-12e8-465c-a1a2-ca0d510b2e59": "unknown",
+        "8f796344-75fa-4caa-9143-0b4d9ca52495": "unknown",
+        "0ba7df8c-ccd7-44ab-837a-0e85f60f477f": "unknown",
+        "242e32ce-ddea-4c54-9a19-bbd9508b38cf": "unknown",
+        "48601f6c-253f-4947-b7f0-48619349243e": "unknown",
+        "c7eac59c-1838-4e4c-979e-e322890c9d89": "unknown",
+        "ecaf8e0a-e22b-4519-a6e6-36f104d17ad8": "unknown",
+        "23b5c672-2a93-4e2c-8019-da4291caeedc": "unknown",
+        "d7e7c06f-0034-4571-8dca-e66821dbb691": "unknown",
+        "ee338e86-837a-4a58-94fb-970e261e50dc": "unknown",
+        "b4320c0a-5cff-41db-983d-d6f3c26b0b1f": "unknown",
+        "b216c6e2-9a67-4569-a9da-9c8e8a860d0e": "unknown",
+        "43ef8b83-fd3d-44c3-88bf-2af046cb1288": "unknown",
+        "2356cf2e-a097-4ed7-af26-4b0aff11ac5e": "unknown"
+      },
+      "suppressedChannelIds": []
+    },
+    "page": {
+      "limit": 24,
+      "offset": 0,
+      "hasMore": false
+    }
+  },
+  "baselineProblems": []
+}

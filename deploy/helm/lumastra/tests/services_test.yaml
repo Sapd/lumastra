@@ -1,0 +1,130 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+suite: services, PVCs, routes
+set:
+    secrets.existingSecret: lumastra
+tests:
+    - it: entry Service fronts the router; headless Service lists only Ready web pods
+      template: templates/services.yaml
+      asserts:
+          - equal: { path: 'spec.selector["app.kubernetes.io/component"]', value: router }
+            documentIndex: 0
+          - equal: { path: spec.clusterIP, value: None }
+            documentIndex: 1
+          - equal: { path: spec.publishNotReadyAddresses, value: false }
+            documentIndex: 1
+          - equal: { path: 'spec.selector["app.kubernetes.io/component"]', value: web }
+            documentIndex: 1
+    - it: entry Service fronts the HTTP pods when the router is off
+      template: templates/services.yaml
+      set: { router.enabled: false }
+      documentIndex: 0
+      asserts:
+          - equal: { path: 'spec.selector["app.kubernetes.io/component"]', value: web }
+    - it: PVCs carry dataAnnotations + keep, honour class/size, skip existingClaim
+      template: templates/pvc.yaml
+      set:
+          persistence.dataAnnotations:
+              { argocd.argoproj.io/sync-options: 'Prune=false,Delete=false' }
+          persistence.config.storageClassName: media-state
+          persistence.config.accessModes: [ReadWriteOnce]
+          persistence.plugins.existingClaim: my-plugins
+      asserts:
+          - hasDocuments: { count: 2 }
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-config }
+            documentIndex: 0
+          - equal: { path: spec.storageClassName, value: media-state }
+            documentIndex: 0
+          - equal: { path: spec.accessModes, value: [ReadWriteOnce] }
+            documentIndex: 0
+          - equal:
+                {
+                    path: 'metadata.annotations["argocd.argoproj.io/sync-options"]',
+                    value: 'Prune=false,Delete=false',
+                }
+          - equal: { path: 'metadata.annotations["helm.sh/resource-policy"]', value: keep }
+    - it: persistence.appCache creates a PVC and mounts it instead of the per-pod emptyDir
+      template: templates/pvc.yaml
+      set:
+          persistence.appCache.enabled: true
+          persistence.appCache.storageClassName: media-cache
+      asserts:
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-app-cache }
+            documentIndex: 3
+          - equal: { path: spec.storageClassName, value: media-cache }
+            documentIndex: 3
+          - equal: { path: spec.resources.requests.storage, value: 20Gi }
+            documentIndex: 3
+    - it: appCache on → web mounts the app-cache PVC; off → emptyDir
+      template: templates/app.yaml
+      documentIndex: 0
+      set:
+          persistence.appCache.enabled: true
+      asserts:
+          - contains:
+                path: spec.template.spec.volumes
+                content:
+                    {
+                        name: app-cache,
+                        persistentVolumeClaim: { claimName: RELEASE-NAME-lumastra-app-cache },
+                    }
+    - it: appCache auto (default) in mode split keeps the emptyDir
+      template: templates/app.yaml
+      documentIndex: 0
+      asserts:
+          - contains:
+                path: spec.template.spec.volumes
+                content: { name: app-cache, emptyDir: {} }
+    - it: appCache false keeps the emptyDir
+      template: templates/app.yaml
+      documentIndex: 0
+      set: { persistence.appCache.enabled: false }
+      asserts:
+          - contains:
+                path: spec.template.spec.volumes
+                content: { name: app-cache, emptyDir: {} }
+    - it: explicit shared appCache uses an RWX claim
+      template: templates/pvc.yaml
+      documentIndex: 3
+      set: { persistence.appCache.enabled: true }
+      asserts:
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-app-cache }
+          - equal: { path: spec.accessModes, value: [ReadWriteMany] }
+    - it: appCache rejects a value other than true, false or auto
+      template: templates/pvc.yaml
+      set: { persistence.appCache.enabled: 'yes' }
+      asserts:
+          - failedTemplate:
+                { errorMessage: 'persistence.appCache.enabled must be true, false or auto' }
+    - it: proxy with auto-downloaded ffmpeg needs the shared ffmpeg cache
+      template: templates/pvc.yaml
+      set: { proxy.enabled: true }
+      asserts:
+          - failedTemplate:
+                errorPattern: 'needs persistence.ffmpegCache.enabled'
+    - it: HTTPRoute points at the entry Service with the given parentRefs
+      template: templates/httproute.yaml
+      set:
+          httpRoute.enabled: true
+          httpRoute.parentRefs: [{ name: gw, namespace: traefik }]
+          httpRoute.hostnames: [lumastra.example.com]
+      asserts:
+          - equal: { path: 'spec.parentRefs[0].name', value: gw }
+          - equal: { path: 'spec.rules[0].backendRefs[0].name', value: RELEASE-NAME-lumastra }
+          - equal: { path: 'spec.rules[0].backendRefs[0].port', value: 80 }
+    - it: web PDB only when there is more than one web pod
+      template: templates/pdb.yaml
+      set: { web.replicas: 1, router.enabled: false }
+      asserts:
+          - hasDocuments: { count: 0 }
+    - it: shared volumes default to RWX
+      template: templates/pvc.yaml
+      asserts:
+          - equal: { path: spec.accessModes, value: [ReadWriteMany] }
+            documentIndex: 0
+    - it: shared volumes allow explicit ReadWriteOnce for colocated pods
+      template: templates/pvc.yaml
+      set: { persistence.config.accessModes: [ReadWriteOnce] }
+      asserts:
+          - equal: { path: spec.accessModes, value: [ReadWriteOnce] }
+            documentIndex: 0

@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+# Maintenance / data move: every workload at 0 (PVCs, Services and the CNPG Cluster stay), the
+# database hibernated. Restore the replicas (or drop this overlay) to bring it back.
+app: { origin: https://lumastra.example.com }
+secrets: { existingSecret: lumastra }
+web: { replicas: 0 }
+worker: { replicas: 0 }
+router: { replicas: 0 }
+proxy: { enabled: true, replicas: 0 }
+sonic: { enabled: true, replicas: 0 }
+persistence:
+    ffmpegCache: { enabled: true }
+valkey:
+    cache: { replicas: 0 }
+    tasks: { replicas: 0 }
+database:
+    mode: cnpg
+    cnpg:
+        hibernate: true
+        sonicReader: { enabled: true, passwordSecret: lumastra-sonic-reader }

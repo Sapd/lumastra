@@ -1,0 +1,157 @@
+# Docker Compose for Lumastra — LOCAL DEVELOPMENT stack (PostgreSQL + Valkey for `npm run dev`).
+# Operators: copy docker-compose.example.yml to docker-compose.yml instead (see README).
+# Provides PostgreSQL with pgvector for AI recommendations and Valkey for caching
+#
+# CUSTOM BRANDING EXAMPLE:
+# ------------------------
+# To use custom branding, add the dashboard service with volume mounts:
+#
+#   dashboard:
+#     image: lumastra:latest
+#     volumes:
+#       # Mount custom branding folder (static files are in build/client/)
+#       - ./my-branding:/app/build/client/custom:ro
+#       # Or override specific files directly
+#       - ./my-branding/favicon.png:/app/build/client/favicon.png:ro
+#       - ./my-branding/icon-192.png:/app/build/client/icon-192.png:ro
+#       - ./my-branding/icon-512.png:/app/build/client/icon-512.png:ro
+#     environment:
+#       APP_NAME: "My Dashboard"
+#       APP_LOGO_SMALL: /custom/my-logo-small.png
+#       APP_LOGO_FULL: /custom/my-logo-full.png
+#       APP_LOGO_PLAY: /custom/my-play-icon.png
+#       APP_BACKGROUND_IMAGE: /custom/my-background.webp
+#
+# MULTI-AUDIO HLS (tvOS native audio switching):
+# ----------------------------------------------
+# FFmpeg HLS transcoding is enabled automatically when FFMPEG_PATH is set.
+# jellyfin-ffmpeg is fetched automatically at first boot (cached to /config/bin via
+# FFMPEG_CACHE_DIR) — mount a volume on /config to persist it.
+# Optional: Use tmpfs for better transcode performance:
+#
+#   dashboard:
+#     tmpfs:
+#       - /tmp/lumastra-transcode:size=2G,mode=1777
+
+services:
+    # PostgreSQL with pgvector for embeddings and AI features
+    # NOTE: pg18+ requires mounting /var/lib/postgresql (not /data subdirectory)
+    postgres:
+        image: pgvector/pgvector:pg18
+        container_name: lumastra-postgres
+        # Docker's default /dev/shm is 64MB. Postgres parallel-query workers
+        # (which kick in on large libraries — e.g. the intro-analyzer scanning
+        # tens of thousands of stage rows) allocate shared-memory segments there
+        # and fail with `could not resize shared memory segment ... No space
+        # left on device` when it fills. Give it real headroom.
+        shm_size: 1gb
+        # -c overrides beat postgresql.conf defaults without needing a mounted
+        # config file:
+        #  - shared_buffers: Postgres ships with a 128MB default meant for
+        #    tiny/shared hosting, not a dedicated container. 512MB is a safe
+        #    floor for the library-browsing query patterns this app runs
+        #    constantly; raise POSTGRES_SHARED_BUFFERS (e.g. to 2-3GB) if the
+        #    host has RAM to spare — see the sizing guide linked from
+        #    lumastra.org/guides/performance-tuning.
+        #  - jit_*_cost: library-browse queries build a multi-branch OR filter
+        #    (movie/episode vs season vs series, narrowed by parentId) that
+        #    Postgres's planner can't fully prove dead ahead of time even when
+        #    the caller already restricts to one media type elsewhere in the
+        #    same query. The inflated cost estimate crosses Postgres's default
+        #    JIT thresholds (100k/500k/500k) and JIT COMPILATION ends up
+        #    costing more than the query itself — measured 4-19x overhead on
+        #    a production install. Raising the thresholds well above what
+        #    these OLTP-shaped queries cost avoids that without disabling JIT
+        #    for genuinely large analytics queries that benefit from it.
+        command: >
+            postgres
+            -c shared_buffers=${POSTGRES_SHARED_BUFFERS:-512MB}
+            -c jit_above_cost=10000000
+            -c jit_optimize_above_cost=50000000
+            -c jit_inline_above_cost=50000000
+        logging:
+            driver: json-file
+            options:
+                max-size: '10m'
+                max-file: '5'
+                compress: 'true'
+        environment:
+            POSTGRES_DB: ${POSTGRES_DB:-lumastra}
+            POSTGRES_USER: ${POSTGRES_USER:-lumastra}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+        volumes:
+            - postgres_data:/var/lib/postgresql
+        ports:
+            - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    'pg_isready -U ${POSTGRES_USER:-lumastra} -d ${POSTGRES_DB:-lumastra}',
+                ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+        networks:
+            - lumastra-network
+        restart: unless-stopped
+
+    # Persistent task/coordination store, preserving the existing development volume.
+    valkey:
+        image: valkey/valkey:9-alpine
+        container_name: lumastra-valkey
+        logging:
+            driver: json-file
+            options:
+                max-size: '5m'
+                max-file: '3'
+                compress: 'true'
+        environment:
+            - VALKEY_PASSWORD=${CACHE_PASSWORD:?CACHE_PASSWORD is required}
+        ports:
+            - '127.0.0.1:${VALKEY_PORT:-6379}:6379'
+        volumes:
+            - valkey_data:/data
+        networks:
+            - lumastra-network
+        restart: unless-stopped
+        command: valkey-server --requirepass ${CACHE_PASSWORD} --maxmemory-policy noeviction --appendonly yes --appendfsync everysec
+        healthcheck:
+            test: ['CMD', 'valkey-cli', '--no-auth-warning', '-a', '${CACHE_PASSWORD}', 'ping']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+
+    valkey-cache:
+        image: valkey/valkey:9-alpine
+        environment:
+            - VALKEY_PASSWORD=${CACHE_PASSWORD:?CACHE_PASSWORD is required}
+        ports:
+            - '127.0.0.1:${CACHE_VALKEY_PORT:-6380}:6379'
+        networks:
+            - lumastra-network
+        restart: unless-stopped
+        command: valkey-server --requirepass ${CACHE_PASSWORD} --maxmemory ${CACHE_VALKEY_MAXMEMORY:-768mb} --maxmemory-policy allkeys-lru --save "" --appendonly no
+        healthcheck:
+            test: ['CMD', 'valkey-cli', '--no-auth-warning', '-a', '${CACHE_PASSWORD}', 'ping']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+
+# No `name:` on the volumes or network below — deliberately (same reasoning as
+# docker-compose.example.yml). A fixed name is GLOBAL to the Docker host: two
+# checkouts of this repo running `npm run dev` at once (e.g. a second worktree)
+# would otherwise attach to the SAME Postgres/Valkey volumes instead of getting
+# their own, which can corrupt a shared data directory. Compose prefixes names
+# with the project name (the folder name, or COMPOSE_PROJECT_NAME) automatically
+# when `name:` is omitted, so run each checkout from its own folder (or set a
+# distinct COMPOSE_PROJECT_NAME) to get isolated volumes.
+volumes:
+    postgres_data:
+        driver: local
+    valkey_data:
+        driver: local
+
+networks:
+    lumastra-network:
+        driver: bridge

@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="%lang%" class="dark" data-theme="%theme%">
+    <head>
+        <meta charset="utf-8" />
+        <!-- Powered by Lumastra - https://github.com/Sapd/lumastra -->
+        <meta name="generator" content="Lumastra - https://github.com/Sapd/lumastra" />
+        <link rel="icon" href="%sveltekit.assets%/favicon.png" />
+        <link
+            rel="icon"
+            type="image/svg+xml"
+            href="%sveltekit.assets%/branding/lumastra-icon.svg" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <meta name="theme-color" content="%app.themeColor%" />
+        <meta name="color-scheme" content="dark" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Lumastra" />
+        <!-- crossorigin=use-credentials so the manifest fetch carries the session
+             cookie behind forward-auth; without it Chromium fetches credential-less,
+             gets redirected to the login page, and the PWA install prompt falls back
+             to a scraped favicon instead of the real icons. -->
+        <link
+            rel="manifest"
+            href="%sveltekit.assets%/manifest.json"
+            crossorigin="use-credentials" />
+        <link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
+
+        <!-- Critical resource preloads for performance. Kept in lockstep with the
+             brandable navbar logos below (same %app.*% placeholders) so the
+             preloaded asset is the one actually rendered — no wasted fetch. -->
+        <link rel="preload" href="%app.logoFull%" as="image" />
+        <link rel="preload" href="%app.logoSmall%" as="image" />
+
+        <!-- Inter @font-face lives in app.css so Vite content-hashes the woff2
+             into _app/immutable/ (immutable 1-year cache). font-display: swap. -->
+
+        <!-- PWA: Service worker registration is handled by pwa.ts -->
+
+        <!-- Auth check - must run before app initialization -->
+        <script src="%sveltekit.assets%/auth-check.js"></script>
+
+        <!-- No static page-title element here on purpose. A literal one placed
+             before the SvelteKit head placeholder renders ahead of the page's
+             own server-rendered title, so the document ships two of them and the
+             browser shows the static one until hydration. The tab title is owned
+             entirely by Svelte: a branding-aware default in the root
+             +layout.svelte, overridden per page. (Do not write the head
+             placeholder token in this comment — a first-match string replace
+             would inject the head here instead of below.) -->
+        <!-- Theme tokens: server injects a <style id="theme-tokens"> here with the
+             generated [data-theme='<id>'] custom-property overrides (see
+             hooks.server.ts / $lib/server/theme). Empty for the default 'warp'
+             theme — app.css :root already is warp. -->
+        %theme.tokens% %sveltekit.head%
+        <style>
+            /* Hide header on iframe pages */
+            .hide-main-header .navbar {
+                display: none !important;
+            }
+
+            /* The admin shell has its own header bar (brand, search, bells, account,
+               and a link back to the app). The global logo bar above it only cost
+               ~80px of height and, being position:fixed on desktop, covered the
+               page as it scrolled. */
+            .admin-shell .navbar {
+                display: none !important;
+            }
+
+            /* Sign-in and first-run setup show their own brand above the card; the
+               global logo bar on top of it put the name on screen twice. */
+            body:has(.setup-shell) .navbar,
+            body:has(.auth-stage) .navbar {
+                display: none !important;
+            }
+
+            /* Dynamic Header States */
+            .navbar {
+                transition: all 0.3s ease;
+                background: rgb(var(--color-surface-950-rgb) / 0); /* Fully transparent initially */
+                backdrop-filter: blur(0px);
+                border-bottom: 1px solid rgba(255, 255, 255, 0);
+                display: flex;
+                align-items: center;
+                padding: 8px 16px;
+            }
+
+            .navbar-header {
+                display: flex;
+                align-items: center;
+            }
+
+            .navbar.scrolled {
+                background: rgb(
+                    var(--color-surface-950-rgb) / 0.4
+                ); /* More transparent when scrolled */
+                backdrop-filter: blur(12px);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            }
+
+            /* Lumastra Header Splash Animation */
+            .lumastra-splash-header {
+                width: auto;
+                max-width: 320px; /* Larger when not scrolled */
+                transition: all 0.3s ease;
+            }
+
+            .navbar.scrolled .lumastra-splash-header {
+                max-width: 200px; /* Smaller when scrolled */
+            }
+
+            .stage-header {
+                position: relative;
+                width: 260px; /* Larger initially */
+                height: 60px; /* Taller initially */
+                transition: all 0.3s ease;
+                --button-size-header: 48px;
+                --travel-header: 180px;
+                --fly-duration-header: 1.25s;
+                --fade-delay-header: 1.05s;
+                --fade-duration-header: 0.55s;
+                --pause-duration: 8s; /* Long pause between animations */
+            }
+
+            .navbar.scrolled .stage-header {
+                width: 160px; /* Smaller when scrolled */
+                height: 40px;
+                --button-size-header: 32px;
+                --travel-header: 100px;
+            }
+
+            .fly-header {
+                position: absolute;
+                top: 50%;
+                left: 0;
+                width: var(--button-size-header);
+                height: var(--button-size-header);
+                object-fit: contain;
+                transform: translate(0, -50%);
+                z-index: 2;
+                opacity: 0;
+                animation: moveRightHeaderOnce var(--fly-duration-header)
+                    cubic-bezier(0.2, 0.7, 0.2, 1) 1;
+                animation-delay: 3s;
+                animation-fill-mode: both;
+            }
+
+            .full-header {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                opacity: 0;
+                visibility: hidden;
+                position: relative;
+                z-index: 1;
+                animation: showHeaderLogo 1.2s ease-out 1;
+                animation-delay: calc(3s + var(--fly-duration-header) - 0.2s);
+                animation-fill-mode: forwards;
+            }
+
+            @keyframes moveRightHeaderOnce {
+                0% {
+                    transform: translate(0, -50%) scale(1);
+                    opacity: 0;
+                    filter: blur(0);
+                }
+                1% {
+                    transform: translate(0, -50%) scale(1);
+                    opacity: 1;
+                    filter: blur(0);
+                }
+                70% {
+                    transform: translate(var(--travel-header), -50%) scale(1.05);
+                    opacity: 1;
+                    filter: blur(0.2px);
+                }
+                100% {
+                    transform: translate(calc(var(--travel-header) - 20px), -50%) scale(1);
+                    opacity: 0;
+                    filter: blur(0);
+                }
+            }
+
+            @keyframes showHeaderLogo {
+                0% {
+                    visibility: hidden;
+                    opacity: 0;
+                }
+                1% {
+                    visibility: visible;
+                    opacity: 0;
+                }
+                100% {
+                    visibility: visible;
+                    opacity: 1;
+                }
+            }
+
+            /* Logo link styles */
+            .navbar-logo {
+                display: block;
+                text-decoration: none;
+                transition:
+                    transform 0.2s ease,
+                    opacity 0.2s ease;
+            }
+
+            .navbar-logo:hover {
+                transform: scale(1.02);
+                opacity: 0.9;
+            }
+
+            .navbar-logo:active {
+                transform: scale(0.98);
+            }
+
+            /* Responsive adjustments for header */
+            @media (max-width: 767px) {
+                .lumastra-splash-header {
+                    max-width: 220px;
+                }
+
+                .navbar.scrolled .lumastra-splash-header {
+                    max-width: 160px;
+                }
+
+                .stage-header {
+                    width: 180px;
+                    height: 44px;
+                    --button-size-header: 36px;
+                    --travel-header: 120px;
+                }
+
+                .navbar.scrolled .stage-header {
+                    width: 130px;
+                    height: 34px;
+                    --button-size-header: 26px;
+                    --travel-header: 80px;
+                }
+            }
+
+            /* PWA standalone safe area support - push navbar below iOS status bar */
+            @media (display-mode: standalone) {
+                .navbar {
+                    padding-top: calc(8px + env(safe-area-inset-top, 0px));
+                }
+            }
+        </style>
+    </head>
+    <!-- Preload a route's data on hover for every real <a href> SvelteKit link, so
+         cross-route navigation feels instant. Media cards open modals (not route
+         links) so they don't trigger this; the sidebar uses button+goto and drives
+         preloadData() manually (see Sidebar.svelte). -->
+    <body data-sveltekit-preload-data="hover">
+        <header class="navbar" id="main-navbar">
+            <div class="navbar-header">
+                <a href="/" class="navbar-logo">
+                    <div class="logo lumastra-splash-header">
+                        <div class="stage-header">
+                            <!-- Logos are brandable: %app.*% placeholders are
+                                 replaced server-side (hooks.server.ts) with the
+                                 operator's APP_LOGO_* config, falling back to the
+                                 bundled Lumastra assets when unset. -->
+                            <img class="fly-header" src="%app.logoSmall%" alt="%app.name% Button" />
+                            <img
+                                class="full-header"
+                                src="%app.logoFull%"
+                                alt="%app.name% Full Logo" />
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </header>
+        <div style="display: contents" class="h-full overflow-hidden">%sveltekit.body%</div>
+
+        <script>
+            // Detect base path from current URL or manifest/sw location
+            // This supports subfolder deployments
+            (function () {
+                // Try to detect base path from a known SvelteKit path pattern
+                // The _app/immutable path is always relative to base
+                var scripts = document.querySelectorAll('script[src*="/_app/"]');
+                var basePath = '';
+                if (scripts.length > 0) {
+                    var src = scripts[0].getAttribute('src');
+                    var appIndex = src.indexOf('/_app/');
+                    if (appIndex > 0) {
+                        basePath = src.substring(0, appIndex);
+                    }
+                }
+                // Store base path globally for other scripts
+                window.__LUMASTRA_BASE__ = basePath;
+
+                // Update navbar logo href and add scroll-to-top behavior
+                var navbarLogo = document.querySelector('.navbar-logo');
+                if (navbarLogo) {
+                    navbarLogo.href = basePath || '/';
+
+                    // On home page, scroll to top instead of navigating
+                    navbarLogo.addEventListener('click', function (e) {
+                        var basePath = window.__LUMASTRA_BASE__ || '';
+                        var pathname = window.location.pathname;
+                        var relativePath =
+                            basePath && pathname.startsWith(basePath)
+                                ? pathname.slice(basePath.length)
+                                : pathname;
+
+                        // If on home page, scroll to top
+                        if (relativePath === '/' || relativePath === '') {
+                            e.preventDefault();
+                            var scrollContainer = document.querySelector('.main-content');
+                            if (scrollContainer) {
+                                scrollContainer.scrollTo({
+                                    top: 0,
+                                    behavior: 'smooth',
+                                });
+                            } else {
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }
+                        }
+                    });
+                }
+            })();
+
+            // Hide main header on iframe pages - but wait for navigation to complete
+            function checkHeaderVisibility() {
+                var basePath = window.__LUMASTRA_BASE__ || '';
+                var pathname = window.location.pathname;
+                // Strip base path for comparison
+                var relativePath =
+                    basePath && pathname.startsWith(basePath)
+                        ? pathname.slice(basePath.length)
+                        : pathname;
+
+                if (relativePath.startsWith('/app/')) {
+                    document.body.classList.add('hide-main-header');
+                } else {
+                    document.body.classList.remove('hide-main-header');
+                }
+                // Set here (not only from the admin layout) so a hard load of an
+                // /admin URL never flashes the global bar before hydration.
+                if (relativePath === '/admin' || relativePath.startsWith('/admin/')) {
+                    document.body.classList.add('admin-shell');
+                } else {
+                    document.body.classList.remove('admin-shell');
+                }
+            }
+
+            // Initial check
+            checkHeaderVisibility();
+
+            // Check on browser back/forward navigation
+            window.addEventListener('popstate', checkHeaderVisibility);
+
+            // Check on SvelteKit client-side navigation
+            window.addEventListener('sveltekit-navigate', checkHeaderVisibility);
+
+            // Scroll-based header animation — desktop only. Mobile navbar is
+            // position:static and scrolls off with content, so the .scrolled
+            // fade/shrink class would never be visible.
+            const desktopMQ = window.matchMedia('(min-width: 1024px)');
+            let scrollHeaderInitialized = false;
+
+            function initScrollHeader() {
+                if (scrollHeaderInitialized) return;
+                const navbar = document.getElementById('main-navbar');
+                if (!navbar) return;
+                scrollHeaderInitialized = true;
+
+                let ticking = false;
+
+                function updateHeaderOnScroll(event) {
+                    const windowScroll =
+                        window.pageYOffset ||
+                        document.documentElement.scrollTop ||
+                        document.body.scrollTop;
+                    const eventScroll = event && event.target ? event.target.scrollTop : 0;
+                    const scrollTop = Math.max(windowScroll, eventScroll);
+                    const threshold = 50;
+
+                    if (scrollTop > threshold) {
+                        navbar.classList.add('scrolled');
+                    } else {
+                        navbar.classList.remove('scrolled');
+                    }
+
+                    ticking = false;
+                }
+
+                function requestHeaderUpdate(event) {
+                    if (!ticking) {
+                        requestAnimationFrame(() => updateHeaderOnScroll(event));
+                        ticking = true;
+                    }
+                }
+
+                // Listen for scroll events on multiple containers
+                window.addEventListener('scroll', requestHeaderUpdate, {
+                    passive: true,
+                });
+                document.addEventListener('scroll', requestHeaderUpdate, {
+                    passive: true,
+                });
+
+                // Also listen to body and main containers
+                setTimeout(() => {
+                    const body = document.body;
+                    const main = document.querySelector('main');
+                    const appShell = document.querySelector('.app-shell');
+
+                    if (body)
+                        body.addEventListener('scroll', requestHeaderUpdate, {
+                            passive: true,
+                        });
+                    if (main)
+                        main.addEventListener('scroll', requestHeaderUpdate, {
+                            passive: true,
+                        });
+                    if (appShell)
+                        appShell.addEventListener('scroll', requestHeaderUpdate, { passive: true });
+                }, 100);
+
+                // Initial check
+                updateHeaderOnScroll();
+            }
+
+            function maybeInitScrollHeader() {
+                if (desktopMQ.matches) initScrollHeader();
+            }
+
+            // Initialize when DOM is loaded (desktop only)
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', maybeInitScrollHeader);
+            } else {
+                maybeInitScrollHeader();
+            }
+
+            // Activate lazily if the user crosses the breakpoint (iPad rotate).
+            // We don't tear down once initialized — listeners are passive and
+            // harmless on mobile once the navbar is static.
+            desktopMQ.addEventListener('change', maybeInitScrollHeader);
+        </script>
+    </body>
+</html>

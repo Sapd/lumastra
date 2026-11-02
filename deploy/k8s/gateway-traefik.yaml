@@ -1,0 +1,142 @@
+# Ingress — OPTION 2: Gateway API with Traefik + cert-manager (Let's Encrypt).
+# Apply EITHER this OR ingress-nginx.yaml. Validated on a managed Kubernetes cluster.
+#
+# ── Prereqs + version pins that WILL bite you ────────────────────────────────
+#  1. Gateway API CRDs MUST match your Traefik version. Traefik 3.7 expects
+#     Gateway API v1.5.x — its TLSRoute/BackendTLSPolicy informers request `v1`,
+#     which only exists from v1.5.0. With older CRDs the informers never sync and
+#     Traefik silently ignores every Gateway (stuck "Waiting for controller"):
+#        kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/experimental-install.yaml
+#  2. Install Traefik with the Gateway provider on:
+#        helm install traefik traefik/traefik -n traefik --create-namespace --skip-crds \
+#          --set providers.kubernetesGateway.enabled=true \
+#          --set providers.kubernetesGateway.experimentalChannel=true
+#  3. cert-manager Gateway API support is NOT a feature gate (since v1.15). Enable
+#     the Helm value and restart it AFTER the CRDs exist:
+#        helm install cert-manager jetstack/cert-manager -n cert-manager --create-namespace \
+#          --set crds.enabled=true --set config.enableGatewayAPI=true
+#  4. Listener ports below (8000/8443) are Traefik's INTERNAL entrypoints
+#     (web/websecure); the LoadBalancer still exposes 80/443 externally.
+#  5. Point DNS for your host at the Traefik LoadBalancer's external IP.
+#  6. STICKY SESSIONS (required for the multi-replica web tier): annotate the
+#     lumastra-web Service (see web.yaml) with
+#     traefik.ingress.kubernetes.io/service.sticky.cookie: "true" — the Gateway
+#     provider reads load-balancer stickiness from the backend Service. Without it
+#     Traefik round-robins across web pods and breaks mid-stream HLS playback.
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+    name: traefik
+spec:
+    controllerName: traefik.io/gateway-controller
+---
+# The Traefik Helm chart (with gateway.enabled=false) does NOT grant the gateway
+# provider permission to write *.status — without this the GatewayClass/Gateway
+# stay "Waiting for controller". Bind it to the Traefik ServiceAccount.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+    name: traefik-gateway-status
+rules:
+    - apiGroups: ['gateway.networking.k8s.io']
+      resources:
+          [gatewayclasses, gateways, httproutes, referencegrants, tcproutes, tlsroutes, grpcroutes]
+      verbs: ['get', 'list', 'watch']
+    - apiGroups: ['gateway.networking.k8s.io']
+      resources:
+          [
+              gatewayclasses/status,
+              gateways/status,
+              httproutes/status,
+              tcproutes/status,
+              tlsroutes/status,
+              grpcroutes/status,
+          ]
+      verbs: ['update', 'patch']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+    name: traefik-gateway-status
+roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: traefik-gateway-status
+subjects:
+    - kind: ServiceAccount
+      name: traefik # adjust if your Traefik release uses a different SA
+      namespace: traefik
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+    name: letsencrypt
+spec:
+    acme:
+        server: https://acme-v02.api.letsencrypt.org/directory
+        email: admin@example.com
+        privateKeySecretRef:
+            name: letsencrypt-account-key
+        solvers:
+            - http01:
+                  gatewayHTTPRoute:
+                      parentRefs:
+                          - name: lumastra-gateway
+                            namespace: lumastra
+                            kind: Gateway
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+    name: lumastra-gateway
+    namespace: lumastra
+spec:
+    gatewayClassName: traefik
+    listeners:
+        - name: http
+          protocol: HTTP
+          port: 8000
+          hostname: lumastra.example.com
+          allowedRoutes: { namespaces: { from: Same } }
+        - name: https
+          protocol: HTTPS
+          port: 8443
+          hostname: lumastra.example.com
+          tls:
+              mode: Terminate
+              certificateRefs:
+                  - name: lumastra-tls
+          allowedRoutes: { namespaces: { from: Same } }
+---
+# cert-manager fills this Secret via the HTTP-01 solver on the http listener.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+    name: lumastra-tls
+    namespace: lumastra
+spec:
+    secretName: lumastra-tls
+    dnsNames: [lumastra.example.com]
+    issuerRef:
+        name: letsencrypt
+        kind: ClusterIssuer
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+    name: lumastra
+    namespace: lumastra
+spec:
+    parentRefs:
+        - name: lumastra-gateway
+          sectionName: https
+        - name: lumastra-gateway
+          sectionName: http
+    hostnames: [lumastra.example.com]
+    rules:
+        - matches:
+              - path: { type: PathPrefix, value: / }
+          backendRefs:
+              - name: lumastra-web
+                port: 80

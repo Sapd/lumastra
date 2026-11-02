@@ -1,0 +1,12 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/v1/server/notice"
+    },
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+        "notice": null
+    },
+    "baselineProblems": []
+}

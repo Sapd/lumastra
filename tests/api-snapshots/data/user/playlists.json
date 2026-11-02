@@ -1,0 +1,50 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/v1/playlists"
+    },
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+        "items": [
+            {
+                "id": 255,
+                "owner": {
+                    "userId": "c4a28b31-b1dd-4fef-9650-6c230e6ba1db",
+                    "displayName": null,
+                    "images": {
+                        "primary": {
+                            "href": "/api/v1/users/c4a28b31-b1dd-4fef-9650-6c230e6ba1db/images/avatar?size=card&v=0&fallback=initials",
+                            "variants": {
+                                "thumb": "/api/v1/users/c4a28b31-b1dd-4fef-9650-6c230e6ba1db/images/avatar?size=thumb&v=0&fallback=initials",
+                                "card": "/api/v1/users/c4a28b31-b1dd-4fef-9650-6c230e6ba1db/images/avatar?size=card&v=0&fallback=initials",
+                                "full": "/api/v1/users/c4a28b31-b1dd-4fef-9650-6c230e6ba1db/images/avatar?size=full&v=0&fallback=initials"
+                            },
+                            "revision": "0",
+                            "source": "generated"
+                        }
+                    }
+                },
+                "revision": 0,
+                "name": "Watchlist",
+                "description": null,
+                "visibility": "private",
+                "playlistType": "watchlist",
+                "images": {},
+                "createdAt": "2026-09-25T14:41:38.218Z",
+                "updatedAt": "2026-09-25T14:41:38.218Z",
+                "role": "owner",
+                "itemCount": 0,
+                "memberCount": 0,
+                "coverItems": [],
+                "isSystem": true
+            }
+        ],
+        "page": {
+            "limit": 50,
+            "offset": 0,
+            "hasMore": false
+        }
+    },
+    "baselineProblems": []
+}

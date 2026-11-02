@@ -1,0 +1,18 @@
+{
+    "version": 1,
+    "commandId": "00000000-0000-4000-8000-000000000001",
+    "correlationId": "00000000-0000-4000-8000-000000000002",
+    "authority": {
+        "partition": "maintenance",
+        "generation": "9007199254740993",
+        "ownerId": "00000000-0000-4000-8000-000000000003"
+    },
+    "catalogRevision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "operation": "submit",
+    "payload": {
+        "taskId": "cache-cleanup",
+        "input": {
+            "title": "日本語"
+        }
+    }
+}

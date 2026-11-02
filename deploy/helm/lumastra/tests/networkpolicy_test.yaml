@@ -1,0 +1,140 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+# The NetworkPolicies are the trust boundary for forward-auth (identity headers are trusted from
+# the whole pod network), so their peers are pinned here, not just their schema.
+suite: network policies
+templates: [templates/networkpolicy.yaml]
+set:
+    secrets.existingSecret: lumastra
+    networkPolicy.enabled: true
+    networkPolicy.ingressFrom:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: traefik } }
+tests:
+    - it: router accepts only networkPolicy.ingressFrom on 8080
+      documentIndex: 0
+      asserts:
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-router }
+          - equal: { path: 'spec.ingress[0].ports', value: [{ port: 8080, protocol: TCP }] }
+          - equal:
+                {
+                    path: 'spec.ingress[0].from',
+                    value:
+                        [
+                            {
+                                namespaceSelector:
+                                    { matchLabels: { kubernetes.io/metadata.name: traefik } },
+                            },
+                        ],
+                }
+    - it: web accepts port 3000 only from the router pods (never an open rule)
+      documentIndex: 1
+      asserts:
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-web }
+          - lengthEqual: { path: spec.ingress, count: 1 }
+          - equal:
+                path: 'spec.ingress[0].from'
+                value:
+                    - podSelector:
+                          matchLabels:
+                              app.kubernetes.io/name: lumastra
+                              app.kubernetes.io/instance: RELEASE-NAME
+                              app.kubernetes.io/component: router
+    - it: without the router web takes networkPolicy.ingressFrom instead
+      set: { router.enabled: false }
+      documentIndex: 0
+      asserts:
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-web }
+          - equal:
+                {
+                    path: 'spec.ingress[0].from',
+                    value:
+                        [
+                            {
+                                namespaceSelector:
+                                    { matchLabels: { kubernetes.io/metadata.name: traefik } },
+                            },
+                        ],
+                }
+    - it: metrics peers get their own rule on 3000
+      set: { networkPolicy.metricsFrom: [{ podSelector: { matchLabels: { app: vmagent } } }] }
+      documentIndex: 1
+      asserts:
+          - lengthEqual: { path: spec.ingress, count: 2 }
+          - equal:
+                {
+                    path: 'spec.ingress[1].from',
+                    value: [{ podSelector: { matchLabels: { app: vmagent } } }],
+                }
+    - it: both Valkeys accept only the app pods (and the proxy when enabled)
+      set: { proxy.enabled: true, proxy.ffmpegCacheReadOnly: false }
+      asserts:
+          - equal: { path: 'spec.ingress[0].ports', value: [{ port: 6379, protocol: TCP }] }
+            documentIndex: 3
+          - lengthEqual: { path: 'spec.ingress[0].from', count: 3 }
+            documentIndex: 3
+          - equal:
+                {
+                    path: 'spec.ingress[0].from[2].podSelector.matchLabels["app.kubernetes.io/component"]',
+                    value: proxy,
+                }
+            documentIndex: 3
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-valkey-tasks }
+            documentIndex: 4
+    - it: proxy and sonic accept only web and worker
+      set: { proxy.enabled: true, proxy.ffmpegCacheReadOnly: false, sonic.enabled: true }
+      asserts:
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-proxy }
+            documentIndex: 5
+          - equal:
+                {
+                    path: 'spec.ingress[0].from[0].podSelector.matchLabels["app.kubernetes.io/component"]',
+                    value: web,
+                }
+            documentIndex: 5
+          - equal:
+                {
+                    path: 'spec.ingress[0].from[1].podSelector.matchLabels["app.kubernetes.io/component"]',
+                    value: worker,
+                }
+            documentIndex: 5
+          - equal: { path: 'spec.ingress[0].ports', value: [{ port: 8000, protocol: TCP }] }
+            documentIndex: 6
+    - it: by default (enabled=false) only the internal policies render, worker first
+      set: { networkPolicy.enabled: false, networkPolicy.ingressFrom: [] }
+      asserts:
+          - hasDocuments: { count: 3 }
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-worker }
+            documentIndex: 0
+          - equal: { path: spec.ingress, value: [] }
+            documentIndex: 0
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-valkey-cache }
+            documentIndex: 1
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-valkey-tasks }
+            documentIndex: 2
+          - equal: { path: 'spec.ingress[0].ports', value: [{ port: 6379, protocol: TCP }] }
+            documentIndex: 2
+          - lengthEqual: { path: 'spec.ingress[0].from', count: 2 }
+            documentIndex: 2
+    - it: internal=false with enabled=false renders nothing
+      set:
+          {
+              networkPolicy.enabled: false,
+              networkPolicy.internal: false,
+              networkPolicy.ingressFrom: [],
+          }
+      asserts:
+          - hasDocuments: { count: 0 }
+    - it: enabled=true keeps the internal policies even with internal=false
+      set: { networkPolicy.internal: false }
+      asserts:
+          - equal: { path: metadata.name, value: RELEASE-NAME-lumastra-worker }
+            documentIndex: 2
+    - it: a ServiceMonitor without metricsFrom fails instead of silently losing worker metrics
+      set:
+          {
+              networkPolicy.enabled: false,
+              networkPolicy.ingressFrom: [],
+              serviceMonitor.enabled: true,
+          }
+      asserts:
+          - failedTemplate: { errorPattern: 'networkPolicy.internal denies all ingress' }

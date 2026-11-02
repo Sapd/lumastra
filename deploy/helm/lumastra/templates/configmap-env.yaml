@@ -1,0 +1,14 @@
+{{- /*
+SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+SPDX-License-Identifier: AGPL-3.0-only
+
+Non-secret env for web/worker (see _env.tpl).
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "lumastra.component" (list . "env") }}
+  labels:
+    {{- include "lumastra.labels" . | nindent 4 }}
+data:
+  {{- include "lumastra.envData" . | nindent 2 }}

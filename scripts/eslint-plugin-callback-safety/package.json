@@ -1,0 +1,20 @@
+{
+    "name": "eslint-plugin-callback-safety",
+    "version": "1.0.0",
+    "description": "ESLint plugin to detect callback type mismatches in Svelte components",
+    "type": "commonjs",
+    "main": "index.js",
+    "scripts": {
+        "test": "node tests/run-tests.js"
+    },
+    "keywords": [
+        "eslint",
+        "eslintplugin",
+        "svelte",
+        "typescript",
+        "callback",
+        "type-safety"
+    ],
+    "author": "",
+    "license": "MIT"
+}

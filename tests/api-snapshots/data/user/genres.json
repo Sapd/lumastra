@@ -1,0 +1,86 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/v1/browse/genres"
+    },
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+        "genres": [
+            {
+                "name": "Drama",
+                "count": 32
+            },
+            {
+                "name": "Fantasy",
+                "count": 19
+            },
+            {
+                "name": "Comedy",
+                "count": 17
+            },
+            {
+                "name": "Animation",
+                "count": 15
+            },
+            {
+                "name": "Horror",
+                "count": 12
+            },
+            {
+                "name": "Romance",
+                "count": 12
+            },
+            {
+                "name": "History",
+                "count": 7
+            },
+            {
+                "name": "Adventure",
+                "count": 6
+            },
+            {
+                "name": "Science Fiction",
+                "count": 6
+            },
+            {
+                "name": "Action",
+                "count": 5
+            },
+            {
+                "name": "War",
+                "count": 5
+            },
+            {
+                "name": "Crime",
+                "count": 4
+            },
+            {
+                "name": "Documentary",
+                "count": 3
+            },
+            {
+                "name": "Mystery",
+                "count": 3
+            },
+            {
+                "name": "Thriller",
+                "count": 3
+            },
+            {
+                "name": "Western",
+                "count": 3
+            },
+            {
+                "name": "Music",
+                "count": 2
+            },
+            {
+                "name": "Family",
+                "count": 1
+            }
+        ],
+        "mediaType": "all"
+    },
+    "baselineProblems": []
+}

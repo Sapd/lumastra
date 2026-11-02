@@ -1,0 +1,98 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/music/genres"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "genres": [
+      {
+        "genre": "Classical",
+        "trackCount": 119,
+        "albumCount": 8
+      },
+      {
+        "genre": "Soundtrack",
+        "trackCount": 18,
+        "albumCount": 2
+      },
+      {
+        "genre": "Ragtime",
+        "trackCount": 11,
+        "albumCount": 2
+      },
+      {
+        "genre": "Holiday",
+        "trackCount": 9,
+        "albumCount": 1
+      },
+      {
+        "genre": "Jazz",
+        "trackCount": 9,
+        "albumCount": 1
+      },
+      {
+        "genre": "Latin",
+        "trackCount": 9,
+        "albumCount": 1
+      },
+      {
+        "genre": "World",
+        "trackCount": 9,
+        "albumCount": 1
+      },
+      {
+        "genre": "Electronic",
+        "trackCount": 9,
+        "albumCount": 1
+      },
+      {
+        "genre": "Funk",
+        "trackCount": 9,
+        "albumCount": 1
+      },
+      {
+        "genre": "Stings",
+        "trackCount": 9,
+        "albumCount": 1
+      },
+      {
+        "genre": "Swing",
+        "trackCount": 9,
+        "albumCount": 1
+      },
+      {
+        "genre": "Waltz",
+        "trackCount": 9,
+        "albumCount": 1
+      },
+      {
+        "genre": "Americana",
+        "trackCount": 9,
+        "albumCount": 1
+      },
+      {
+        "genre": "March",
+        "trackCount": 7,
+        "albumCount": 1
+      },
+      {
+        "genre": "Dixieland",
+        "trackCount": 3,
+        "albumCount": 1
+      },
+      {
+        "genre": "Choral",
+        "trackCount": 2,
+        "albumCount": 1
+      },
+      {
+        "genre": "Unbekanntes Genre",
+        "trackCount": 1,
+        "albumCount": 1
+      }
+    ]
+  },
+  "baselineProblems": []
+}

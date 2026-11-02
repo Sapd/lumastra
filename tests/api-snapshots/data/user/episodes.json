@@ -1,0 +1,766 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/series/c4f76543-32a4-4e0c-9f30-ac985340836a/episodes"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [
+      {
+        "id": "90be567f-33c9-43fb-ac3f-e6bd8f842cf2",
+        "catalogId": "90be567f-33c9-43fb-ac3f-e6bd8f842cf2",
+        "type": "episode",
+        "ids": {
+          "tmdb": "7453702"
+        },
+        "title": "The Severed Head",
+        "overview": "Philippe Guerande (Edouard Mathé), a reporter working for \"Le Mondial\", and his friend Oscar Mazamette (Marcel Levesque), investigate the muder of Inspector Dural, decapitated by the sinister gang known as the \"Vampires\". The leader of the gang, the \"Great Vampire\" (Jean Aymé), is unmasked but manages to escape.",
+        "images": {
+          "poster": {
+            "href": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+            "variants": {
+              "thumb": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=thumb&v=7154aac0e68b",
+              "card": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+              "full": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=full&v=7154aac0e68b"
+            },
+            "revision": "7154aac0e68b",
+            "source": "season",
+            "placeholder": {
+              "blurhash": "L4CEtQ,?}X^PsWIp-U-UyW%1xtI;"
+            }
+          },
+          "backdrop": {
+            "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+            "variants": {
+              "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+              "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+              "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+              "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+            },
+            "revision": "d0093e27bc20",
+            "source": "series",
+            "placeholder": {
+              "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+            }
+          },
+          "thumb": {
+            "href": "/api/v1/media/90be567f-33c9-43fb-ac3f-e6bd8f842cf2/images/thumb?size=card&v=fb12d41e0360",
+            "variants": {
+              "thumb": "/api/v1/media/90be567f-33c9-43fb-ac3f-e6bd8f842cf2/images/thumb?size=thumb&v=fb12d41e0360",
+              "card": "/api/v1/media/90be567f-33c9-43fb-ac3f-e6bd8f842cf2/images/thumb?size=card&v=fb12d41e0360",
+              "full": "/api/v1/media/90be567f-33c9-43fb-ac3f-e6bd8f842cf2/images/thumb?size=full&v=fb12d41e0360"
+            },
+            "revision": "fb12d41e0360",
+            "source": "self"
+          }
+        },
+        "progress": {
+          "positionMs": 0,
+          "durationMs": 1863797,
+          "fraction": 0,
+          "finished": false,
+          "updatedAt": "2026-10-20T19:03:28.298Z"
+        },
+        "availability": {
+          "isAvailable": true,
+          "hasFile": true,
+          "canRequest": false
+        },
+        "context": {
+          "series": {
+            "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "title": "The Vampires"
+          },
+          "seasonId": "4b373339-66ff-4fee-a061-cb220c3054fb",
+          "seasonNumber": 1,
+          "episodeNumber": 1,
+          "nextId": "c0427de9-f6ef-45e8-b572-cd8ca3c019cc",
+          "airDate": "1915-11-13T00:00:00.000Z"
+        },
+        "durationMs": 1863797
+      },
+      {
+        "id": "c0427de9-f6ef-45e8-b572-cd8ca3c019cc",
+        "catalogId": "c0427de9-f6ef-45e8-b572-cd8ca3c019cc",
+        "type": "episode",
+        "ids": {
+          "tmdb": "7453705"
+        },
+        "title": "The Ring That Kills",
+        "overview": "Dancer Marfa Koutiloff (Stacia Napierkowska) tells Guerande she will reveal the secrets of the Vampires, but the Great Vampire kills her with a poisoned ring.",
+        "images": {
+          "poster": {
+            "href": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+            "variants": {
+              "thumb": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=thumb&v=7154aac0e68b",
+              "card": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+              "full": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=full&v=7154aac0e68b"
+            },
+            "revision": "7154aac0e68b",
+            "source": "season",
+            "placeholder": {
+              "blurhash": "L4CEtQ,?}X^PsWIp-U-UyW%1xtI;"
+            }
+          },
+          "backdrop": {
+            "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+            "variants": {
+              "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+              "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+              "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+              "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+            },
+            "revision": "d0093e27bc20",
+            "source": "series",
+            "placeholder": {
+              "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+            }
+          },
+          "thumb": {
+            "href": "/api/v1/media/c0427de9-f6ef-45e8-b572-cd8ca3c019cc/images/thumb?size=card&v=fa894bb492ea",
+            "variants": {
+              "thumb": "/api/v1/media/c0427de9-f6ef-45e8-b572-cd8ca3c019cc/images/thumb?size=thumb&v=fa894bb492ea",
+              "card": "/api/v1/media/c0427de9-f6ef-45e8-b572-cd8ca3c019cc/images/thumb?size=card&v=fa894bb492ea",
+              "full": "/api/v1/media/c0427de9-f6ef-45e8-b572-cd8ca3c019cc/images/thumb?size=full&v=fa894bb492ea"
+            },
+            "revision": "fa894bb492ea",
+            "source": "self"
+          }
+        },
+        "progress": {
+          "positionMs": 0,
+          "durationMs": 793427,
+          "fraction": 0,
+          "finished": false,
+          "updatedAt": null
+        },
+        "availability": {
+          "isAvailable": true,
+          "hasFile": true,
+          "canRequest": false
+        },
+        "context": {
+          "series": {
+            "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "title": "The Vampires"
+          },
+          "seasonId": "4b373339-66ff-4fee-a061-cb220c3054fb",
+          "seasonNumber": 1,
+          "episodeNumber": 2,
+          "previousId": "90be567f-33c9-43fb-ac3f-e6bd8f842cf2",
+          "nextId": "e67f888b-3669-49f4-b80a-afca3c2605e2",
+          "airDate": "1915-11-13T00:00:00.000Z"
+        },
+        "durationMs": 793427
+      },
+      {
+        "id": "e67f888b-3669-49f4-b80a-afca3c2605e2",
+        "catalogId": "e67f888b-3669-49f4-b80a-afca3c2605e2",
+        "type": "episode",
+        "ids": {
+          "tmdb": "7453708"
+        },
+        "title": "The Red Codebook",
+        "overview": "Guerande meets cabaret singer Irma Vep (Musidora); he also attempts to decypher a mysterious notebook he stole from the Vampires.",
+        "images": {
+          "poster": {
+            "href": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+            "variants": {
+              "thumb": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=thumb&v=7154aac0e68b",
+              "card": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+              "full": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=full&v=7154aac0e68b"
+            },
+            "revision": "7154aac0e68b",
+            "source": "season",
+            "placeholder": {
+              "blurhash": "L4CEtQ,?}X^PsWIp-U-UyW%1xtI;"
+            }
+          },
+          "backdrop": {
+            "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+            "variants": {
+              "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+              "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+              "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+              "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+            },
+            "revision": "d0093e27bc20",
+            "source": "series",
+            "placeholder": {
+              "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+            }
+          },
+          "thumb": {
+            "href": "/api/v1/media/e67f888b-3669-49f4-b80a-afca3c2605e2/images/thumb?size=card&v=577c846127f8",
+            "variants": {
+              "thumb": "/api/v1/media/e67f888b-3669-49f4-b80a-afca3c2605e2/images/thumb?size=thumb&v=577c846127f8",
+              "card": "/api/v1/media/e67f888b-3669-49f4-b80a-afca3c2605e2/images/thumb?size=card&v=577c846127f8",
+              "full": "/api/v1/media/e67f888b-3669-49f4-b80a-afca3c2605e2/images/thumb?size=full&v=577c846127f8"
+            },
+            "revision": "577c846127f8",
+            "source": "self"
+          }
+        },
+        "progress": {
+          "positionMs": 0,
+          "durationMs": 2351385,
+          "fraction": 0,
+          "finished": false,
+          "updatedAt": null
+        },
+        "availability": {
+          "isAvailable": true,
+          "hasFile": true,
+          "canRequest": false
+        },
+        "context": {
+          "series": {
+            "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "title": "The Vampires"
+          },
+          "seasonId": "4b373339-66ff-4fee-a061-cb220c3054fb",
+          "seasonNumber": 1,
+          "episodeNumber": 3,
+          "previousId": "c0427de9-f6ef-45e8-b572-cd8ca3c019cc",
+          "nextId": "246d8c24-6569-4bad-9c25-023abb087c78",
+          "airDate": "1915-12-04T00:00:00.000Z"
+        },
+        "durationMs": 2351385
+      },
+      {
+        "id": "246d8c24-6569-4bad-9c25-023abb087c78",
+        "catalogId": "246d8c24-6569-4bad-9c25-023abb087c78",
+        "type": "episode",
+        "ids": {
+          "tmdb": "7453709"
+        },
+        "title": "The Spectre",
+        "overview": "The Vampires fight another criminal, Moreno (Fernand Herrman), who tries to steal their loot, but Guerande engineers Moreno's arrest.",
+        "images": {
+          "poster": {
+            "href": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+            "variants": {
+              "thumb": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=thumb&v=7154aac0e68b",
+              "card": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+              "full": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=full&v=7154aac0e68b"
+            },
+            "revision": "7154aac0e68b",
+            "source": "season",
+            "placeholder": {
+              "blurhash": "L4CEtQ,?}X^PsWIp-U-UyW%1xtI;"
+            }
+          },
+          "backdrop": {
+            "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+            "variants": {
+              "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+              "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+              "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+              "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+            },
+            "revision": "d0093e27bc20",
+            "source": "series",
+            "placeholder": {
+              "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+            }
+          },
+          "thumb": {
+            "href": "/api/v1/media/246d8c24-6569-4bad-9c25-023abb087c78/images/thumb?size=card&v=4de17d010079",
+            "variants": {
+              "thumb": "/api/v1/media/246d8c24-6569-4bad-9c25-023abb087c78/images/thumb?size=thumb&v=4de17d010079",
+              "card": "/api/v1/media/246d8c24-6569-4bad-9c25-023abb087c78/images/thumb?size=card&v=4de17d010079",
+              "full": "/api/v1/media/246d8c24-6569-4bad-9c25-023abb087c78/images/thumb?size=full&v=4de17d010079"
+            },
+            "revision": "4de17d010079",
+            "source": "self"
+          }
+        },
+        "progress": {
+          "positionMs": 0,
+          "durationMs": 1797998,
+          "fraction": 0,
+          "finished": false,
+          "updatedAt": null
+        },
+        "availability": {
+          "isAvailable": true,
+          "hasFile": true,
+          "canRequest": false
+        },
+        "context": {
+          "series": {
+            "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "title": "The Vampires"
+          },
+          "seasonId": "4b373339-66ff-4fee-a061-cb220c3054fb",
+          "seasonNumber": 1,
+          "episodeNumber": 4,
+          "previousId": "e67f888b-3669-49f4-b80a-afca3c2605e2",
+          "nextId": "9f2d7412-2144-48de-bc94-b92e64d565ae",
+          "airDate": "1916-01-07T00:00:00.000Z"
+        },
+        "durationMs": 1797998
+      },
+      {
+        "id": "9f2d7412-2144-48de-bc94-b92e64d565ae",
+        "catalogId": "9f2d7412-2144-48de-bc94-b92e64d565ae",
+        "type": "episode",
+        "ids": {
+          "tmdb": "7453710"
+        },
+        "title": "Dead Man's Escape",
+        "overview": "Moreno fakes death and escapes from jail. Guerande is taken prisoner by the Vampires but escapes as well. The Great Vampire organizes a deadly ball to steal his guest's valuables, but is outwitted by Moreno.",
+        "images": {
+          "poster": {
+            "href": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+            "variants": {
+              "thumb": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=thumb&v=7154aac0e68b",
+              "card": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+              "full": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=full&v=7154aac0e68b"
+            },
+            "revision": "7154aac0e68b",
+            "source": "season",
+            "placeholder": {
+              "blurhash": "L4CEtQ,?}X^PsWIp-U-UyW%1xtI;"
+            }
+          },
+          "backdrop": {
+            "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+            "variants": {
+              "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+              "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+              "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+              "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+            },
+            "revision": "d0093e27bc20",
+            "source": "series",
+            "placeholder": {
+              "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+            }
+          },
+          "thumb": {
+            "href": "/api/v1/media/9f2d7412-2144-48de-bc94-b92e64d565ae/images/thumb?size=card&v=c154c5a7d792",
+            "variants": {
+              "thumb": "/api/v1/media/9f2d7412-2144-48de-bc94-b92e64d565ae/images/thumb?size=thumb&v=c154c5a7d792",
+              "card": "/api/v1/media/9f2d7412-2144-48de-bc94-b92e64d565ae/images/thumb?size=card&v=c154c5a7d792",
+              "full": "/api/v1/media/9f2d7412-2144-48de-bc94-b92e64d565ae/images/thumb?size=full&v=c154c5a7d792"
+            },
+            "revision": "c154c5a7d792",
+            "source": "self"
+          }
+        },
+        "progress": {
+          "positionMs": 0,
+          "durationMs": 2128662,
+          "fraction": 0,
+          "finished": false,
+          "updatedAt": null
+        },
+        "availability": {
+          "isAvailable": true,
+          "hasFile": true,
+          "canRequest": false
+        },
+        "context": {
+          "series": {
+            "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "title": "The Vampires"
+          },
+          "seasonId": "4b373339-66ff-4fee-a061-cb220c3054fb",
+          "seasonNumber": 1,
+          "episodeNumber": 5,
+          "previousId": "246d8c24-6569-4bad-9c25-023abb087c78",
+          "nextId": "065106e2-7877-479e-a6b1-b13165405249",
+          "airDate": "1916-01-28T00:00:00.000Z"
+        },
+        "durationMs": 2128662
+      },
+      {
+        "id": "065106e2-7877-479e-a6b1-b13165405249",
+        "catalogId": "065106e2-7877-479e-a6b1-b13165405249",
+        "type": "episode",
+        "ids": {
+          "tmdb": "7453711"
+        },
+        "title": "Hypnotic Eyes",
+        "overview": "The Vampires are after a treasure in the Forest of Fontainebleau. Moreno hypnotizes Irma Vep into killing the Great Vampire. Then Moreno takes over the gang.",
+        "images": {
+          "poster": {
+            "href": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+            "variants": {
+              "thumb": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=thumb&v=7154aac0e68b",
+              "card": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+              "full": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=full&v=7154aac0e68b"
+            },
+            "revision": "7154aac0e68b",
+            "source": "season",
+            "placeholder": {
+              "blurhash": "L4CEtQ,?}X^PsWIp-U-UyW%1xtI;"
+            }
+          },
+          "backdrop": {
+            "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+            "variants": {
+              "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+              "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+              "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+              "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+            },
+            "revision": "d0093e27bc20",
+            "source": "series",
+            "placeholder": {
+              "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+            }
+          },
+          "thumb": {
+            "href": "/api/v1/media/065106e2-7877-479e-a6b1-b13165405249/images/thumb?size=card&v=61baa1f22114",
+            "variants": {
+              "thumb": "/api/v1/media/065106e2-7877-479e-a6b1-b13165405249/images/thumb?size=thumb&v=61baa1f22114",
+              "card": "/api/v1/media/065106e2-7877-479e-a6b1-b13165405249/images/thumb?size=card&v=61baa1f22114",
+              "full": "/api/v1/media/065106e2-7877-479e-a6b1-b13165405249/images/thumb?size=full&v=61baa1f22114"
+            },
+            "revision": "61baa1f22114",
+            "source": "self"
+          }
+        },
+        "progress": {
+          "positionMs": 0,
+          "durationMs": 3213247,
+          "fraction": 0,
+          "finished": false,
+          "updatedAt": null
+        },
+        "availability": {
+          "isAvailable": true,
+          "hasFile": true,
+          "canRequest": false
+        },
+        "context": {
+          "series": {
+            "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "title": "The Vampires"
+          },
+          "seasonId": "4b373339-66ff-4fee-a061-cb220c3054fb",
+          "seasonNumber": 1,
+          "episodeNumber": 6,
+          "previousId": "9f2d7412-2144-48de-bc94-b92e64d565ae",
+          "nextId": "ee5cfe4e-a297-4df8-b698-97c64ec55a22",
+          "airDate": "1916-03-24T00:00:00.000Z"
+        },
+        "durationMs": 3213247
+      },
+      {
+        "id": "ee5cfe4e-a297-4df8-b698-97c64ec55a22",
+        "catalogId": "ee5cfe4e-a297-4df8-b698-97c64ec55a22",
+        "type": "episode",
+        "ids": {
+          "tmdb": "7453712"
+        },
+        "title": "Satanas",
+        "overview": "The heretofore unknown Lord of the Vampires, Satanas (Louis Leubas), reveals his existence. He kills Moreno by bombarding the restaurant where he was eating. He then tries to steal the fortune of millionnaire Geo Baldwin (Emile Keppens) but is thwarted by Guerande and Mazamette.",
+        "images": {
+          "poster": {
+            "href": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+            "variants": {
+              "thumb": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=thumb&v=7154aac0e68b",
+              "card": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+              "full": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=full&v=7154aac0e68b"
+            },
+            "revision": "7154aac0e68b",
+            "source": "season",
+            "placeholder": {
+              "blurhash": "L4CEtQ,?}X^PsWIp-U-UyW%1xtI;"
+            }
+          },
+          "backdrop": {
+            "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+            "variants": {
+              "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+              "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+              "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+              "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+            },
+            "revision": "d0093e27bc20",
+            "source": "series",
+            "placeholder": {
+              "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+            }
+          },
+          "thumb": {
+            "href": "/api/v1/media/ee5cfe4e-a297-4df8-b698-97c64ec55a22/images/thumb?size=card&v=09d79b27d23a",
+            "variants": {
+              "thumb": "/api/v1/media/ee5cfe4e-a297-4df8-b698-97c64ec55a22/images/thumb?size=thumb&v=09d79b27d23a",
+              "card": "/api/v1/media/ee5cfe4e-a297-4df8-b698-97c64ec55a22/images/thumb?size=card&v=09d79b27d23a",
+              "full": "/api/v1/media/ee5cfe4e-a297-4df8-b698-97c64ec55a22/images/thumb?size=full&v=09d79b27d23a"
+            },
+            "revision": "09d79b27d23a",
+            "source": "self"
+          }
+        },
+        "progress": {
+          "positionMs": 0,
+          "durationMs": 2525904,
+          "fraction": 0,
+          "finished": false,
+          "updatedAt": null
+        },
+        "availability": {
+          "isAvailable": true,
+          "hasFile": true,
+          "canRequest": false
+        },
+        "context": {
+          "series": {
+            "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "title": "The Vampires"
+          },
+          "seasonId": "4b373339-66ff-4fee-a061-cb220c3054fb",
+          "seasonNumber": 1,
+          "episodeNumber": 7,
+          "previousId": "065106e2-7877-479e-a6b1-b13165405249",
+          "nextId": "9cc16757-f713-469e-80b4-eeb680354ae2",
+          "airDate": "1916-04-15T00:00:00.000Z"
+        },
+        "durationMs": 2525904
+      },
+      {
+        "id": "9cc16757-f713-469e-80b4-eeb680354ae2",
+        "catalogId": "9cc16757-f713-469e-80b4-eeb680354ae2",
+        "type": "episode",
+        "ids": {
+          "tmdb": "7453713"
+        },
+        "title": "The Thunder Master",
+        "overview": "Irma Vep is captured by the Police but Satanas arranges her escape; however he, too, is caught. He kills himself in his jail cell.",
+        "images": {
+          "poster": {
+            "href": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+            "variants": {
+              "thumb": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=thumb&v=7154aac0e68b",
+              "card": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+              "full": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=full&v=7154aac0e68b"
+            },
+            "revision": "7154aac0e68b",
+            "source": "season",
+            "placeholder": {
+              "blurhash": "L4CEtQ,?}X^PsWIp-U-UyW%1xtI;"
+            }
+          },
+          "backdrop": {
+            "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+            "variants": {
+              "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+              "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+              "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+              "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+            },
+            "revision": "d0093e27bc20",
+            "source": "series",
+            "placeholder": {
+              "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+            }
+          },
+          "thumb": {
+            "href": "/api/v1/media/9cc16757-f713-469e-80b4-eeb680354ae2/images/thumb?size=card&v=2c10ad8fa706",
+            "variants": {
+              "thumb": "/api/v1/media/9cc16757-f713-469e-80b4-eeb680354ae2/images/thumb?size=thumb&v=2c10ad8fa706",
+              "card": "/api/v1/media/9cc16757-f713-469e-80b4-eeb680354ae2/images/thumb?size=card&v=2c10ad8fa706",
+              "full": "/api/v1/media/9cc16757-f713-469e-80b4-eeb680354ae2/images/thumb?size=full&v=2c10ad8fa706"
+            },
+            "revision": "2c10ad8fa706",
+            "source": "self"
+          }
+        },
+        "progress": {
+          "positionMs": 0,
+          "durationMs": 2989022,
+          "fraction": 0,
+          "finished": false,
+          "updatedAt": null
+        },
+        "availability": {
+          "isAvailable": true,
+          "hasFile": true,
+          "canRequest": false
+        },
+        "context": {
+          "series": {
+            "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "title": "The Vampires"
+          },
+          "seasonId": "4b373339-66ff-4fee-a061-cb220c3054fb",
+          "seasonNumber": 1,
+          "episodeNumber": 8,
+          "previousId": "ee5cfe4e-a297-4df8-b698-97c64ec55a22",
+          "nextId": "cd9694f4-386f-49f7-8f6a-90cd8e1bb3ff",
+          "airDate": "1916-05-12T00:00:00.000Z"
+        },
+        "durationMs": 2989022
+      },
+      {
+        "id": "cd9694f4-386f-49f7-8f6a-90cd8e1bb3ff",
+        "catalogId": "cd9694f4-386f-49f7-8f6a-90cd8e1bb3ff",
+        "type": "episode",
+        "ids": {
+          "tmdb": "7453714"
+        },
+        "title": "The Poisoner",
+        "overview": "Enter the new Lord of the Vampires: Venenos (Frederik Moriss). He tries to poison Guerande but his plot fails.",
+        "images": {
+          "poster": {
+            "href": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+            "variants": {
+              "thumb": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=thumb&v=7154aac0e68b",
+              "card": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+              "full": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=full&v=7154aac0e68b"
+            },
+            "revision": "7154aac0e68b",
+            "source": "season",
+            "placeholder": {
+              "blurhash": "L4CEtQ,?}X^PsWIp-U-UyW%1xtI;"
+            }
+          },
+          "backdrop": {
+            "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+            "variants": {
+              "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+              "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+              "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+              "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+            },
+            "revision": "d0093e27bc20",
+            "source": "series",
+            "placeholder": {
+              "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+            }
+          },
+          "thumb": {
+            "href": "/api/v1/media/cd9694f4-386f-49f7-8f6a-90cd8e1bb3ff/images/thumb?size=card&v=e9ef3ccce91a",
+            "variants": {
+              "thumb": "/api/v1/media/cd9694f4-386f-49f7-8f6a-90cd8e1bb3ff/images/thumb?size=thumb&v=e9ef3ccce91a",
+              "card": "/api/v1/media/cd9694f4-386f-49f7-8f6a-90cd8e1bb3ff/images/thumb?size=card&v=e9ef3ccce91a",
+              "full": "/api/v1/media/cd9694f4-386f-49f7-8f6a-90cd8e1bb3ff/images/thumb?size=full&v=e9ef3ccce91a"
+            },
+            "revision": "e9ef3ccce91a",
+            "source": "self"
+          }
+        },
+        "progress": {
+          "positionMs": 0,
+          "durationMs": 2899933,
+          "fraction": 0,
+          "finished": false,
+          "updatedAt": null
+        },
+        "availability": {
+          "isAvailable": true,
+          "hasFile": true,
+          "canRequest": false
+        },
+        "context": {
+          "series": {
+            "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "title": "The Vampires"
+          },
+          "seasonId": "4b373339-66ff-4fee-a061-cb220c3054fb",
+          "seasonNumber": 1,
+          "episodeNumber": 9,
+          "previousId": "9cc16757-f713-469e-80b4-eeb680354ae2",
+          "nextId": "c6b3cc4e-49ad-4952-ac70-aa71c969ff68",
+          "airDate": "1916-06-02T00:00:00.000Z"
+        },
+        "durationMs": 2899933
+      },
+      {
+        "id": "c6b3cc4e-49ad-4952-ac70-aa71c969ff68",
+        "catalogId": "c6b3cc4e-49ad-4952-ac70-aa71c969ff68",
+        "type": "episode",
+        "ids": {
+          "tmdb": "7453715"
+        },
+        "title": "The Terrible Wedding",
+        "overview": "Guerande finally marries his girl-friend (Louise Lagrange). The Vampires plot against the couple, but are thwarted by Mazamette. The gang is killed or captured.",
+        "images": {
+          "poster": {
+            "href": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+            "variants": {
+              "thumb": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=thumb&v=7154aac0e68b",
+              "card": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=card&v=7154aac0e68b",
+              "full": "/api/v1/media/4b373339-66ff-4fee-a061-cb220c3054fb/images/poster?size=full&v=7154aac0e68b"
+            },
+            "revision": "7154aac0e68b",
+            "source": "season",
+            "placeholder": {
+              "blurhash": "L4CEtQ,?}X^PsWIp-U-UyW%1xtI;"
+            }
+          },
+          "backdrop": {
+            "href": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+            "variants": {
+              "card": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=card&v=d0093e27bc20",
+              "hd": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=hd&v=d0093e27bc20",
+              "wide": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=wide&v=d0093e27bc20",
+              "full": "/api/v1/media/c4f76543-32a4-4e0c-9f30-ac985340836a/images/backdrop?size=full&v=d0093e27bc20"
+            },
+            "revision": "d0093e27bc20",
+            "source": "series",
+            "placeholder": {
+              "blurhash": "LDCsmq~q?bt700IUj[WBofIUIBxu"
+            }
+          },
+          "thumb": {
+            "href": "/api/v1/media/c6b3cc4e-49ad-4952-ac70-aa71c969ff68/images/thumb?size=card&v=b8e520852c75",
+            "variants": {
+              "thumb": "/api/v1/media/c6b3cc4e-49ad-4952-ac70-aa71c969ff68/images/thumb?size=thumb&v=b8e520852c75",
+              "card": "/api/v1/media/c6b3cc4e-49ad-4952-ac70-aa71c969ff68/images/thumb?size=card&v=b8e520852c75",
+              "full": "/api/v1/media/c6b3cc4e-49ad-4952-ac70-aa71c969ff68/images/thumb?size=full&v=b8e520852c75"
+            },
+            "revision": "b8e520852c75",
+            "source": "self"
+          }
+        },
+        "progress": {
+          "positionMs": 0,
+          "durationMs": 3453987,
+          "fraction": 0,
+          "finished": false,
+          "updatedAt": null
+        },
+        "availability": {
+          "isAvailable": true,
+          "hasFile": true,
+          "canRequest": false
+        },
+        "context": {
+          "series": {
+            "id": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "catalogId": "c4f76543-32a4-4e0c-9f30-ac985340836a",
+            "title": "The Vampires"
+          },
+          "seasonId": "4b373339-66ff-4fee-a061-cb220c3054fb",
+          "seasonNumber": 1,
+          "episodeNumber": 10,
+          "previousId": "cd9694f4-386f-49f7-8f6a-90cd8e1bb3ff",
+          "airDate": "1916-06-30T00:00:00.000Z"
+        },
+        "durationMs": 3453987
+      }
+    ],
+    "page": {
+      "limit": 50,
+      "offset": 0,
+      "hasMore": false
+    }
+  },
+  "baselineProblems": []
+}

@@ -1,0 +1,58 @@
+{
+  "init": {
+    "type": "init",
+    "version": 2,
+    "paths": ["/media/tv", "/media/music"],
+    "networkPaths": ["/media/music"],
+    "networkReconcileSecs": 900,
+    "policy": {
+      "mediaExtensions": [".mkv", ".mp4", ".avi", ".m4v", ".mov", ".wmv", ".ts", ".m2ts", ".webm", ".ogv", ".flv", ".3gp", ".mpg", ".mpeg"],
+      "audioExtensions": [".flac", ".mp3", ".m4a", ".opus", ".ogg", ".wav", ".wma", ".aac", ".alac"],
+      "lyricsExtensions": [".lrc", ".txt"],
+      "prunedDirectoryNames": ["extras", "samples", "bonus", "bonus disc", "video_ts", "bdmv", "featurettes", "behind the scenes", "deleted scenes", "interviews", "scenes", "shorts", "trailers", "@eadir", ".appledouble", ".trashes", ".@__thumb", "@recycle", "$recycle.bin", "#recycle", ".thumbnails", ".trickplay", ".subtitle-cache", ".actors", ".snapshot", ".snapshots", ".zfs", ".wd_tv", ".grab", ".spotlight-v100", ".fseventsd", ".temporaryitems", ".recycle", ".deletedbytmm", "#snapshot"],
+      "prunedDirectoryPrefixes": [".trash-", "@"],
+      "prunedDirectorySuffixes": [".trickplay"],
+      "ignoredFilePrefixes": ["._"],
+      "sampleWord": "sample",
+      "ignoreFiles": {
+        "patternFile": ".lumastraignore",
+        "markerFile": ".ignore",
+        "maxBytes": 65536,
+        "maxPatternLength": 512,
+        "maxPatternsPerFile": 1000,
+        "maxAccumulatedPatterns": 5000
+      },
+      "containmentRoots": ["/media/tv", "/media/music", "/config/.metadata"],
+      "sensitivePrefixes": ["/proc", "/sys", "/dev", "/etc", "/root", "/run/secrets", "/var/run/secrets", "/config", "/app"]
+    },
+    "stabilityMs": 500,
+    "pollMs": 100,
+    "aliveMs": 10000
+  },
+  "ready": { "type": "ready", "version": 2 },
+  "event": { "type": "event", "event": "unlink", "path": "/media/tv/example.mkv" },
+  "status": {
+    "type": "status",
+    "coverage": "partial",
+    "watchedDirs": 412,
+    "failedDirs": 1,
+    "failedSample": ["/media/tv/Locked"],
+    "watchLimit": false,
+    "unwatchedDirs": 0,
+    "stalledProbes": false,
+    "stalledRoots": ["/media/music"],
+    "nonUtf8Skipped": 2,
+    "refusedSymlinks": 1,
+    "networkRoots": ["/media/music"]
+  },
+  "alive": { "type": "alive", "seq": 7 },
+  "error": { "type": "error", "message": "temporary filesystem observation failure", "fatal": false },
+  "errorWithCode": {
+    "type": "error",
+    "message": "raise fs.inotify.max_user_watches; 8192/9000 dirs watched",
+    "fatal": false,
+    "code": "watch_limit"
+  },
+  "rescan": { "type": "rescan", "reason": "watcher output queue overflow; events were dropped" },
+  "close": { "type": "close" }
+}

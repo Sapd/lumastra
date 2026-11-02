@@ -1,0 +1,19 @@
+{
+    "success": true,
+    "message": null,
+    "messages": null,
+    "data": {
+        "title": "Rock That Harbor",
+        "artist": "Amberz",
+        "remix": "Kris McVale Remix",
+        "link": "/releases/rock-that-harbor-6298",
+        "liveBroadcast": {
+            "onAir": true,
+            "playlistText": "Live on Air",
+            "image": "<img src=\"/content/cache/userattribute/447416/f0f/8766bb50e85070c3/unnamed-3-1_c_0.jpg\" alt=\"DJ Keeper\" width=\"100\" height=\"100\" />",
+            "profileLink": "/user/beschreibung?user=448326",
+            "nickName": "DJ Keeper",
+            "showName": "Uplifting Dancefloor"
+        }
+    }
+}

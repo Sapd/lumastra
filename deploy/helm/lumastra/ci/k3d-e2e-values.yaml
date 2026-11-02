@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+# Throwaway k3d end-to-end install (single node, local-path RWO volumes): CNPG with a
+# non-superuser owner, bundled Valkey x2, 2 web + worker + 2 routers, Live TV proxy.
+# The image is the current main build imported into k3d.
+image:
+    { registry: docker.io, repository: lumastra/lumastra-e2e, tag: e2e, pullPolicy: IfNotPresent }
+app: { origin: 'http://localhost:18080', logLevel: info }
+secrets:
+    existingSecret: lumastra
+    env:
+        LUMASTRA_MASTER_KEY: LUMASTRA_MASTER_KEY
+features: { FEATURE_LIVETV: true }
+web:
+    replicas: 2
+    resources: { requests: { cpu: 250m, memory: 512Mi }, limits: { memory: 3Gi } }
+worker:
+    resources: { requests: { cpu: 250m, memory: 512Mi }, limits: { memory: 4Gi } }
+router: { replicas: 2, realIp: { fromCIDRs: [10.42.0.0/16] } }
+proxy:
+    enabled: true
+    drainSeconds: 30
+persistence:
+    config: { accessModes: [ReadWriteOnce], size: 5Gi }
+    transcode: { accessModes: [ReadWriteOnce], size: 5Gi }
+    ffmpegCache: { enabled: true, accessModes: [ReadWriteOnce], size: 2Gi }
+    plugins: { accessModes: [ReadWriteOnce], size: 1Gi }
+libraries:
+    - { name: movies, mountPath: /data/movies, hostPath: /media/movies }
+database:
+    mode: cnpg
+    cnpg:
+        instances: 1
+        storage: { size: 5Gi }
+valkey:
+    tasks: { persistence: { size: 1Gi } }

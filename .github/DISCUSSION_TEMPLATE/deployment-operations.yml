@@ -1,0 +1,38 @@
+title: ''
+body:
+    - type: markdown
+      attributes:
+          value: |
+              For running Lumastra well once it is up: Kubernetes, reverse proxies and SSO, hardware transcoding, object storage, scaling and zero-downtime updates. New to self-hosting and stuck on the first install? **Install help** is the friendlier place. Read [Deployment](https://lumastra.org/guides/deployment/) and [Known limitations](https://lumastra.org/reference/known-limitations/) first; they answer the most common ones. If the documented steps produce an error, that is a bug: file an [issue](https://github.com/Sapd/lumastra/issues/new/choose) with the diagnostics export.
+
+              **House rules**, in short: keep it about media you own or are licensed to use (no references to pirated content of any kind), redact secrets and personal data before posting, and be kind. The full rules: [CODE_OF_CONDUCT.md](https://github.com/Sapd/lumastra/blob/main/.github/CODE_OF_CONDUCT.md#content-rules).
+    - type: input
+      id: version
+      attributes:
+          label: Version / image tag
+      validations:
+          required: true
+    - type: dropdown
+      id: deploy
+      attributes:
+          label: Deployment
+          options:
+              - Docker Compose
+              - Kubernetes
+              - Podman / other container runtime
+              - Bare Node.js
+              - Other
+      validations:
+          required: true
+    - type: input
+      id: platform
+      attributes:
+          label: Host platform
+          placeholder: e.g. Ubuntu 24.04 on x86-64, Raspberry Pi 5 (arm64), Synology DSM, Unraid
+    - type: textarea
+      id: question
+      attributes:
+          label: What are you trying to set up, and where are you stuck?
+          description: Include the relevant part of your compose file or manifests (redact secrets) and any error output.
+      validations:
+          required: true

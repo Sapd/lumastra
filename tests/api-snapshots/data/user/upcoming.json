@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/upcoming"
+  },
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "items": [],
+    "page": {
+      "limit": 10,
+      "offset": 0,
+      "truncated": false
+    }
+  },
+  "baselineProblems": []
+}

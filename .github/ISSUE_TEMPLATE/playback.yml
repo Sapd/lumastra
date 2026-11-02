@@ -1,0 +1,83 @@
+name: 🎬 Playback / streaming problem
+description: Video, music or audiobook won't play, stalls, has wrong audio or subtitles, or transcoding fails.
+labels: ['type:bug', 'area:player', 'status:needs-triage']
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Playback problems are rarely reproducible from a description alone. Lumastra records what happened on the server side. The three exports below are what let us see it. Please include all that apply.
+    - type: checkboxes
+      id: prereqs
+      attributes:
+          label: Before you file
+          options:
+              - label: I searched existing issues and discussions and this isn't a duplicate.
+                required: true
+              - label: I saw this happen myself on a real instance (not an AI-generated or hypothetical report).
+                required: true
+              - label: I removed secrets and personal data from logs and screenshots, and I have read the content rules in CODE_OF_CONDUCT.md.
+                required: true
+    - type: input
+      id: version
+      attributes:
+          label: Version / image tag
+          description: Shown in the About dialog and on Admin → System.
+      validations:
+          required: true
+    - type: dropdown
+      id: client
+      attributes:
+          label: Where does it fail?
+          multiple: true
+          options:
+              - Web player (browser — say which below)
+              - Lumastra iPhone / iPad app
+              - Lumastra Apple TV app
+              - Jellyfin-compatible client (Streamyfin, Swiftfin, Infuse, Findroid, …)
+              - Subsonic music client (Symfonium, play:Sub, DSub, …)
+              - Live TV
+              - Audiobooks
+              - Offline downloads
+      validations:
+          required: true
+    - type: input
+      id: media
+      attributes:
+          label: What were you playing?
+          description: Container and codecs help a lot (e.g. `MKV, HEVC 10-bit, TrueHD 7.1, PGS subtitles`). No need for the title.
+    - type: textarea
+      id: what
+      attributes:
+          label: What happens?
+          description: Where in playback (start, seek, track change, after N minutes), what you see or hear, and what you expected.
+      validations:
+          required: true
+    - type: textarea
+      id: incidents
+      attributes:
+          label: Playback incidents
+          description: |
+              **Admin → Users → Playback incidents** lists the errors, reconnects and terminal failures your clients reported. Open the incident for this session, click **Copy for GitHub**, and paste (with nothing open it copies the visible list instead). The copy is redacted: user, device and media names are left out, so say which client it was if several show up.
+          render: text
+    - type: textarea
+      id: transcode
+      attributes:
+          label: Transcode failures
+          description: |
+              If the server tried to transcode: **Admin → System → Transcode failures**. Expand the incident, open one of its sessions, click **Copy for GitHub**, and paste. That includes the category, encoder, occurrence counts and the redacted FFmpeg command, stderr and source probe. With nothing expanded it copies the visible list instead.
+          render: text
+    - type: textarea
+      id: diagnostics
+      attributes:
+          label: Diagnostics export
+          description: |
+              **Admin → System → Diagnostics → Export Diagnostics → Copy for GitHub**, then paste. Covers version, platform, hardware-acceleration setup and feature flags. Skim it for anything you consider sensitive before pasting.
+          render: markdown
+      validations:
+          required: true
+    - type: textarea
+      id: logs
+      attributes:
+          label: Server logs around the failure
+          description: '`docker compose logs --tail=300 lumastra` (and the worker / stream-proxy container if involved). Redact anything sensitive.'
+          render: shell

@@ -1,0 +1,51 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Direct dependencies for the sonic-embedder sidecar. Source of requirements.txt
+# — see that file's header for the exact regeneration command and why
+# torch/torchaudio are constrained but NOT written into the output.
+#
+# Regenerate ON THE TARGET INTERPRETER AND PLATFORM — CPython 3.10,
+# linux/x86_64 — NOT on the developer's Mac and NOT on whatever Python is
+# handy. The base image (pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime) is
+# Python 3.10.14; resolving on 3.11+ picks releases that declare
+# `Requires-Python >= 3.11`, and the resulting `==` pins then make `docker
+# build` fail with "Could not find a version that satisfies ...". That is
+# exactly how scipy/scikit-learn/networkx/websockets were mis-pinned on
+# 2026-09-14 (fixed 2026-09-15); see requirements.txt's header.
+#
+#   printf 'torch==2.3.1\ntorchaudio==2.3.1\n' > constraints.txt
+#   podman run --rm --platform linux/amd64 -v "$PWD:/work" python:3.10-slim \
+#     bash -c 'pip install -qU pip &&
+#              pip install --dry-run --ignore-installed --report /work/report.json \
+#                -r /work/requirements.in -c /work/constraints.txt'
+#
+# `--report` gives the resolved name==version set without downloading full
+# wheels (pip fetches metadata only). Then drop torch, torchaudio, triton,
+# every nvidia-*-cu12 entry, AND networkx from that set and attach hashes
+# from PyPI's JSON API — see requirements.txt's header for why those are
+# excluded (networkx: any 3.4.x reintroduces a SyntaxError-on-import against
+# the base image's stale `nx-loopback` entry-point record — this is NOT
+# optional, don't re-add it just because pip resolves it fine) and why
+# `pip-compile --generate-hashes` is not used here.
+msclap==1.3.4
+# embed.py's default (SONIC_MODEL_FP unset) path calls hf_hub_download()
+# directly (P1, 2026-09-16) to pin CLAP_weights_2023.pth's revision and
+# verify its digest before CLAP() ever loads it. Previously huggingface-hub
+# was only a TRANSITIVE dependency (via msclap's own tokenizers/transformers
+# deps — see requirements.txt's "# via" comment) — pinning it direct means a
+# future regen that changes msclap's/transformers' own deps can't silently
+# drop it and break the sidecar at boot. >= the version already resolved
+# (0.36.2 in requirements.txt) so hf_hub_download's keyword signature
+# (repo_id, filename, revision) is guaranteed present.
+huggingface-hub>=0.20.0
+# analyze_chunked.py mirrors librosa 0.10.2 and pyloudnorm 0.2.0 internals (both pinned
+# in requirements.txt); run analyze_golden_test.py on real tracks before bumping either.
+librosa>=0.10.0
+soundfile>=0.12.0
+pyloudnorm>=0.1.1
+umap-learn>=0.5.6
+psycopg2-binary>=2.9.0
+scikit-learn>=1.4.0
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0

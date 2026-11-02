@@ -1,0 +1,108 @@
+# First DB-backed public workflow; not a required check (path-filtered).
+name: Jellyfin client contract
+# Runs ONLY when /j-shaping code changes, or by hand. Real handlers + PG/Valkey ->
+# contract validator, then the outputs are decoded with jellyfin-sdk-kotlin
+# 1.6.3 / 1.7.1 / 1.8.12 / 1.9.2.
+on:
+    workflow_dispatch:
+    pull_request:
+        paths:
+            - 'src/routes/(proprietary)/j/**'
+            - 'src/lib/server/proprietary/jellyfin-compat/**'
+            - 'src/lib/server/utils/external-subtitle-index.ts'
+            - 'src/lib/server/utils/media-stream-mapper.ts'
+            - 'src/lib/server/database/queries/media-streams.queries.ts'
+            - 'src/lib/server/database/queries/external-subtitles.queries.ts'
+            - 'tests/jellyfin-contract/**'
+            - 'src/lib/server/compat/jellyfin-response-observer.ts'
+            - 'vitest.jellyfin-contract.config.ts'
+            - '.github/workflows/jellyfin-contract.yml'
+permissions:
+    contents: read
+concurrency:
+    group: jellyfin-contract-${{ github.ref }}
+    cancel-in-progress: true
+jobs:
+    contract:
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        services:
+            postgres:
+                image: pgvector/pgvector:pg18
+                env:
+                    POSTGRES_DB: lumastra_tests
+                    POSTGRES_USER: lumastra_ci
+                    POSTGRES_PASSWORD: lumastra_ci_test_password
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd="pg_isready -U lumastra_ci -d lumastra_tests"
+                    --health-interval=5s
+                    --health-timeout=5s
+                    --health-retries=10
+            valkey:
+                image: valkey/valkey:9-alpine
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd="valkey-cli ping"
+                    --health-interval=5s
+                    --health-timeout=5s
+                    --health-retries=10
+        steps:
+            - name: Check out the repo
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Set up Node
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+              with:
+                  node-version: 22
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci --legacy-peer-deps
+
+            - name: Generate required build artifacts
+              run: |
+                  npx svelte-kit sync
+                  npm run paraglide:compile
+                  npm run openapi:types
+
+            - name: Compute service URLs
+              run: |
+                  echo "TEST_DATABASE_URL=postgres://lumastra_ci:lumastra_ci_test_password@localhost:5432/lumastra_tests" >> "$GITHUB_ENV"
+                  echo "CACHE_URL=redis://localhost:6379" >> "$GITHUB_ENV"
+
+            - name: Install FFmpeg
+              run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+            - name: Run database migrations
+              run: npm run db:test:migrate
+
+            - name: Contract suite
+              env:
+                  NODE_OPTIONS: '--max-old-space-size=8192'
+              run: npm run test:jellyfin-contract
+
+            - name: Set up Java
+              uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+              with:
+                  distribution: temurin
+                  java-version: '21'
+
+            - name: Set up Gradle
+              uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+              with:
+                  gradle-version: '9.1.0'
+                  cache-read-only: false
+
+            - name: Decode with jellyfin-sdk-kotlin
+              working-directory: tests/jellyfin-contract/kotlin
+              env:
+                  GRADLE_USER_HOME: ${{ runner.temp }}/gradle-home
+              run: |
+                  for v in 1.6.3 1.7.1 1.8.12 1.9.2; do
+                    echo "::group::SDK $v"
+                    gradle --no-daemon run --args="../out" -PsdkVersion=$v
+                    echo "::endgroup::"
+                  done

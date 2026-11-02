@@ -1,0 +1,3882 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/v1/tasks"
+    },
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+        "items": [
+            {
+                "id": "cache-cleanup",
+                "name": "Clean Recommendation Cache",
+                "version": "2.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "cache": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "maintenance",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T20:22:29.836Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T20:22:29.188Z",
+                "lastDurationMs": 646,
+                "effectiveEvery": "24h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "oauth-cleanup",
+                "name": "Remove Expired Logins",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "1h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "maintenance",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T21:48:51.648Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:48:51.609Z",
+                "lastDurationMs": 37,
+                "effectiveEvery": "1h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "task-history-retention",
+                "name": "Archive Old Task History",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "maintenance",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T07:41:07.582Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:41:07.403Z",
+                "lastDurationMs": 175,
+                "effectiveEvery": "24h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "episode-thumbnail-backfill",
+                "name": "Create Missing Episode Thumbnails",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "cpu",
+                "schedule": {
+                    "every": "1h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true,
+                    "ffmpeg": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "28m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "35m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T22:00:51.624Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T23:00:51.609Z",
+                "lastDurationMs": 12,
+                "effectiveEvery": "1h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "episode-thumbnail-generate",
+                "name": "Generate Thumbnails from Video",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "cpu",
+                "schedule": {
+                    "every": "1h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true,
+                    "cache": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "28m"
+                },
+                "purpose": "repair",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T21:57:01.624Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:57:01.609Z",
+                "lastDurationMs": 13,
+                "effectiveEvery": "1h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "discovery-embeddings",
+                "name": "Build Discovery Recommendations (AI)",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "discovery",
+                "schedule": {
+                    "every": "6h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true,
+                    "cache": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "70m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T19:52:20.867Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T01:52:20.856Z",
+                "lastDurationMs": 8,
+                "effectiveEvery": "6h",
+                "coveredStageIds": ["discovery-embeddings"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "library-embeddings",
+                "name": "Build Library Recommendations (AI)",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "embedding",
+                "schedule": {
+                    "every": "15m",
+                    "runOnStartup": false,
+                    "envOverride": "LIBRARY_EMBEDDINGS_HOURS"
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true,
+                    "cache": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "70m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T22:02:41.678Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:17:41.609Z",
+                "lastDurationMs": 10,
+                "effectiveEvery": "15m",
+                "coveredStageIds": ["library-embeddings"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "mdblist-sync",
+                "name": "Fetch MDBList Ratings",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "12h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "70m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T13:11:28.780Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T01:11:28.768Z",
+                "lastDurationMs": 8,
+                "effectiveEvery": "12h",
+                "coveredStageIds": ["mdblist-sync"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "tmdb-metadata-sync",
+                "name": "Import Trending & Popular from TMDB",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "confirmBeforeRun": true,
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "70m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T07:44:47.420Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:44:47.407Z",
+                "lastDurationMs": 9,
+                "effectiveEvery": "24h",
+                "coveredStageIds": ["tmdb-metadata-sync"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "metadata-sync",
+                "name": "Fill Missing Metadata",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false,
+                    "envOverride": "SYNC_METADATA_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "4h",
+                    "soft": "235m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "confirmBeforeRun": true,
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "5h"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T07:41:07.642Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:41:07.403Z",
+                "lastDurationMs": 228,
+                "effectiveEvery": "24h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "metadata-update",
+                "name": "Refresh Existing Metadata",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-15T08:26:26.450Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": 27,
+                "coveredStageIds": ["metadata-update"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "metadata-cast-backfill",
+                "name": "Add Missing Cast Details",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "28m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "35m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T08:46:12.191Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T08:46:12.116Z",
+                "lastDurationMs": 70,
+                "effectiveEvery": "24h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "metadata-aggregation-backfill",
+                "name": "Rebuild Metadata Summaries",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "2h",
+                    "soft": "110m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "2h"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "metadata-translations-sync",
+                "name": "Fetch Metadata Translations",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "120m",
+                    "soft": "115m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-15T08:26:26.560Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": 9,
+                "coveredStageIds": ["metadata-translations-sync"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "metadata-translations-seed",
+                "name": "Queue Translation Refresh",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "24h"
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "15m",
+                    "soft": "14m"
+                },
+                "purpose": "library",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "20m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T00:06:17.382Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T00:06:17.372Z",
+                "lastDurationMs": 7,
+                "effectiveEvery": "24h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "music-embedding-generation",
+                "name": "Build Music Recommendations (AI)",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "embedding",
+                "schedule": {
+                    "every": "6h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "70m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T19:52:20.880Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T01:52:20.856Z",
+                "lastDurationMs": 14,
+                "effectiveEvery": "6h",
+                "coveredStageIds": ["music-embedding-generation"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "acoustid-fingerprint",
+                "name": "Identify Music by Fingerprint (AcoustID)",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "cpu",
+                "schedule": {
+                    "every": "6h",
+                    "runOnStartup": false,
+                    "envOverride": "SYNC_ACOUSTID_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsFullRun": true,
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "70m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T18:03:22.590Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T00:03:22.518Z",
+                "lastDurationMs": 67,
+                "effectiveEvery": "6h",
+                "coveredStageIds": ["acoustid-fingerprint"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "embedding-reset",
+                "name": "Reset AI Recommendation Data",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "capabilities": {
+                    "database": true,
+                    "cache": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "45m",
+                    "soft": "44m"
+                },
+                "purpose": "repair",
+                "visibility": "user",
+                "confirmBeforeRun": true,
+                "supportsPerItemRetry": false,
+                "destructive": true,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "50m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "series-sync",
+                "name": "Refresh Series Metadata",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "10m",
+                    "soft": "9m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "confirmBeforeRun": true,
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "coveredStageIds": ["series-sync"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "chapter-sync",
+                "name": "Fetch Chapter Markers",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true,
+                    "ffmpeg": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 2
+                },
+                "timeout": {
+                    "hard": "10m",
+                    "soft": "9m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-15T08:26:26.622Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": 46,
+                "coveredStageIds": ["chapter-sync"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "image-sync",
+                "name": "Match Local Artwork",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true,
+                    "ffmpeg": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 2
+                },
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "28m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-15T08:26:26.628Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-09-29T20:47:57.372Z",
+                "lastDurationMs": 12,
+                "coveredStageIds": ["image-sync"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "trickplay-generation",
+                "name": "Generate Trickplay Images",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "cpu",
+                "capabilities": {
+                    "database": true,
+                    "ffmpeg": true,
+                    "cache": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 4
+                },
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-15T08:28:22.927Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": 7666,
+                "coveredStageIds": ["trickplay-generation"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "auto-identify-personal-media",
+                "name": "Identify Personal Media",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "28m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "40m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T07:41:10.846Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:41:07.403Z",
+                "lastDurationMs": 3422,
+                "effectiveEvery": "24h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "bulk-media-sync",
+                "name": "Refresh Selected Metadata",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "6h",
+                    "soft": "5h"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "library-folder-detach",
+                "name": "Detach Deleted Library Folder",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "6h",
+                    "soft": "5h"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "import-m3u",
+                "name": "Import Channels (M3U)",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "10m",
+                    "soft": "9m"
+                },
+                "purpose": "livetv",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "import-epg",
+                "name": "Import TV Guide",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "20m",
+                    "soft": "19m"
+                },
+                "purpose": "livetv",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "refresh-m3u",
+                "name": "Refresh Channels (M3U)",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "10m",
+                    "soft": "9m"
+                },
+                "purpose": "livetv",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T21:47:31.758Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": 146,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "refresh-epg",
+                "name": "Refresh TV Guide",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "20m",
+                    "soft": "19m"
+                },
+                "purpose": "livetv",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T21:47:31.865Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": 246,
+                "itemsPerHour": 2049,
+                "lastFailedError": null
+            },
+            {
+                "id": "play-session-cleanup",
+                "name": "Close Stale Playback Sessions",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "1m",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "timeout": {
+                    "hard": "30s",
+                    "soft": "25s"
+                },
+                "purpose": "maintenance",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T22:02:41.685Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:03:41.609Z",
+                "lastDurationMs": 12,
+                "effectiveEvery": "1m",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "database-cleanup",
+                "name": "Clean Up Database",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "45m",
+                    "soft": "44m"
+                },
+                "purpose": "maintenance",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "55m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T13:27:41.839Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T13:27:40.437Z",
+                "lastDurationMs": 1398,
+                "effectiveEvery": "24h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "unavailable-media-retention",
+                "name": "Remove Long-Unavailable Media",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "15m",
+                    "soft": "12m"
+                },
+                "purpose": "maintenance",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "20m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T00:00:47.394Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T00:00:47.372Z",
+                "lastDurationMs": 14,
+                "effectiveEvery": "24h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "watch-sync-pull",
+                "name": "Import Watch State",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "5m",
+                    "runOnStartup": false,
+                    "envOverride": "SYNC_WATCH_PULL_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "timeout": {
+                    "hard": "2h",
+                    "soft": "115m"
+                },
+                "purpose": "watch-sync",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "130m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T22:01:12.140Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:06:11.609Z",
+                "lastDurationMs": 525,
+                "effectiveEvery": "5m",
+                "itemsPerHour": 14,
+                "lastFailedError": null
+            },
+            {
+                "id": "watch-sync-push",
+                "name": "Export Watch State",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "5m",
+                    "runOnStartup": false,
+                    "envOverride": "SYNC_WATCH_PUSH_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "timeout": {
+                    "hard": "5m",
+                    "soft": "290s"
+                },
+                "purpose": "watch-sync",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "6m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T22:01:11.829Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:06:11.609Z",
+                "lastDurationMs": 208,
+                "effectiveEvery": "5m",
+                "itemsPerHour": 2,
+                "lastFailedError": null
+            },
+            {
+                "id": "watch-sync-manual",
+                "name": "Import or Export Watch State Manually",
+                "description": "Runs a one-off Import or Export against a watch-sync provider for one user.",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "user",
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "25m"
+                },
+                "purpose": "watch-sync",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "user",
+                    "ttl": "30m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "telemetry-cleanup",
+                "name": "Remove Old Playback Telemetry",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "maintenance",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T07:41:13.136Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:41:07.403Z",
+                "lastDurationMs": 5703,
+                "effectiveEvery": "24h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "plugin-update-check",
+                "name": "Check for Plugin Updates",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "12h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "15m",
+                    "soft": "13m"
+                },
+                "purpose": "maintenance",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T12:32:54.272Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T00:32:54.259Z",
+                "lastDurationMs": 10,
+                "effectiveEvery": "12h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "lumastra-update-check",
+                "name": "Check for Lumastra Updates",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "1h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "10m",
+                    "soft": "8m"
+                },
+                "purpose": "maintenance",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T21:05:11.767Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:05:09.190Z",
+                "lastDurationMs": 2567,
+                "effectiveEvery": "1h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "music-transcode-cache-reaper",
+                "name": "Trim Music Transcode Cache",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "30m",
+                    "runOnStartup": false
+                },
+                "capabilities": {},
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "timeout": {
+                    "hard": "5m",
+                    "soft": "4m"
+                },
+                "purpose": "maintenance",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T22:01:11.682Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:31:11.609Z",
+                "lastDurationMs": 53,
+                "effectiveEvery": "30m",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "valkey-memory-monitor",
+                "name": "Monitor Valkey Memory",
+                "version": "1.1.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "5m",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "cache": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "1m",
+                    "soft": "30s"
+                },
+                "purpose": "maintenance",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T22:01:14.248Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:06:11.609Z",
+                "lastDurationMs": 2612,
+                "effectiveEvery": "5m",
+                "itemsPerHour": 12,
+                "lastFailedError": null
+            },
+            {
+                "id": "file-library-scan",
+                "name": "Scan Media Library",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "1h",
+                    "runOnStartup": true,
+                    "envOverride": "SYNC_FILE_LIBRARY_SCAN_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "quotas": {
+                    "maxConcurrent": 5
+                },
+                "timeout": {
+                    "hard": "120m",
+                    "soft": "110m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "confirmBeforeRun": true,
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "130m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T21:29:17.949Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:29:17.661Z",
+                "lastDurationMs": 259,
+                "effectiveEvery": "1h",
+                "itemsPerHour": 3,
+                "lastFailedError": null
+            },
+            {
+                "id": "file-delta-ingest",
+                "name": "Add or Remove Specific Files",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 4
+                },
+                "timeout": {
+                    "hard": "25m",
+                    "soft": "20m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "30m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "file-reconcile",
+                "name": "Quick Check for File Changes",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "5m",
+                    "runOnStartup": true,
+                    "envOverride": "SYNC_FILE_RECONCILE_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true,
+                    "cache": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "20m",
+                    "soft": "15m"
+                },
+                "purpose": "library",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "30m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T22:01:11.675Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:06:11.609Z",
+                "lastDurationMs": 26,
+                "effectiveEvery": "5m",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "media-probe",
+                "name": "Read Media File Details",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "1h",
+                    "runOnStartup": false,
+                    "envOverride": "SYNC_MEDIA_PROBE_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "backlog": {
+                    "unitLabel": "files"
+                },
+                "quotas": {
+                    "maxConcurrent": 2
+                },
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": true,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T21:48:51.667Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:48:51.609Z",
+                "lastDurationMs": 22,
+                "effectiveEvery": "1h",
+                "coveredStageIds": ["media-probe-a", "media-probe-b"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "trickplay-params-sync",
+                "name": "Prepare Trickplay Seek Data",
+                "version": "2.0.0",
+                "processingVersion": 3,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "6h",
+                    "runOnStartup": false,
+                    "envOverride": "SYNC_TRICKPLAY_PARAMS_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "backlog": {
+                    "unitLabel": "items"
+                },
+                "quotas": {
+                    "maxConcurrent": 2
+                },
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "25m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsFullRun": true,
+                "supportsForceRun": true,
+                "supportsPerItemRetry": true,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "40m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T19:52:20.891Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T01:52:20.856Z",
+                "lastDurationMs": 13,
+                "effectiveEvery": "6h",
+                "coveredStageIds": ["trickplay-params-sync"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "music-analysis",
+                "name": "Analyze Music Audio",
+                "version": "1.0.0",
+                "processingVersion": 7,
+                "resourceClass": "cpu",
+                "schedule": {
+                    "every": "6h",
+                    "runOnStartup": false,
+                    "envOverride": "SYNC_MUSIC_ANALYSIS_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "backlog": {
+                    "unitLabel": "tracks"
+                },
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "120m",
+                    "soft": "110m"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "confirmBeforeRun": true,
+                "supportsFullRun": true,
+                "supportsForceRun": true,
+                "supportsPerItemRetry": true,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "130m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T20:59:40.496Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T02:59:39.188Z",
+                "lastDurationMs": 1294,
+                "effectiveEvery": "6h",
+                "coveredStageIds": ["music-analysis"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "integrity-scanner",
+                "name": "Check Library Integrity",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "6h",
+                    "runOnStartup": false,
+                    "envOverride": "SYNC_INTEGRITY_SCANNER_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "quotas": {
+                    "maxConcurrent": 2
+                },
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "25m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "confirmBeforeRun": true,
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T19:52:20.922Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T01:52:20.856Z",
+                "lastDurationMs": 38,
+                "effectiveEvery": "6h",
+                "coveredStageIds": ["integrity-file-present"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "album-enrichment",
+                "name": "Fetch Album Artwork & Details",
+                "version": "1.0.0",
+                "processingVersion": 2,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false,
+                    "envOverride": "SYNC_ALBUM_ENRICHMENT_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "backlog": {
+                    "unitLabel": "albums"
+                },
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "28m"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsFullRun": true,
+                "supportsForceRun": true,
+                "supportsPerItemRetry": true,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "40m"
+                },
+                "settings": {
+                    "canToggle": false,
+                    "fields": [
+                        {
+                            "key": "primary_source",
+                            "label": "Primary Source",
+                            "type": "select",
+                            "description": "First enrichment source to try",
+                            "default": "theaudiodb",
+                            "options": [
+                                {
+                                    "value": "theaudiodb",
+                                    "label": "TheAudioDB (free, no key)"
+                                },
+                                {
+                                    "value": "discogs",
+                                    "label": "Discogs (requires token)"
+                                }
+                            ]
+                        },
+                        {
+                            "key": "fallback_source",
+                            "label": "Fallback Source",
+                            "type": "select",
+                            "description": "Second source if primary misses fields. Set to None to disable. Discogs needs a token — add it under Settings → Plugins → Discogs.",
+                            "default": "discogs",
+                            "options": [
+                                {
+                                    "value": "theaudiodb",
+                                    "label": "TheAudioDB (free, no key)"
+                                },
+                                {
+                                    "value": "discogs",
+                                    "label": "Discogs (requires token)"
+                                },
+                                {
+                                    "value": "none",
+                                    "label": "None (disable fallback)"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T07:41:07.459Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:41:07.403Z",
+                "lastDurationMs": 22,
+                "effectiveEvery": "24h",
+                "coveredStageIds": ["album-enrichment"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "artist-enrichment",
+                "name": "Fetch Artist Images & Bios",
+                "version": "3.0.0",
+                "processingVersion": 5,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false,
+                    "envOverride": "SYNC_ARTIST_ENRICHMENT_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "backlog": {
+                    "unitLabel": "artists"
+                },
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "28m"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsFullRun": true,
+                "supportsForceRun": true,
+                "supportsPerItemRetry": true,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "40m"
+                },
+                "settings": {
+                    "canToggle": false,
+                    "fields": [
+                        {
+                            "key": "primary_source",
+                            "label": "Primary Source",
+                            "type": "select",
+                            "description": "First enrichment source to try",
+                            "default": "theaudiodb",
+                            "options": [
+                                {
+                                    "value": "theaudiodb",
+                                    "label": "TheAudioDB (free, no key)"
+                                },
+                                {
+                                    "value": "discogs",
+                                    "label": "Discogs (requires token)"
+                                },
+                                {
+                                    "value": "deezer",
+                                    "label": "Deezer (free, no key)"
+                                }
+                            ]
+                        },
+                        {
+                            "key": "fallback_source",
+                            "label": "Fallback Source",
+                            "type": "select",
+                            "description": "Second source if primary misses fields. Set to None to disable. Discogs needs a token — add it under Settings → Plugins → Discogs.",
+                            "default": "discogs",
+                            "options": [
+                                {
+                                    "value": "theaudiodb",
+                                    "label": "TheAudioDB (free, no key)"
+                                },
+                                {
+                                    "value": "discogs",
+                                    "label": "Discogs (requires token)"
+                                },
+                                {
+                                    "value": "deezer",
+                                    "label": "Deezer (free, no key)"
+                                },
+                                {
+                                    "value": "none",
+                                    "label": "None (disable fallback)"
+                                }
+                            ]
+                        },
+                        {
+                            "key": "tertiary_source",
+                            "label": "Third Source",
+                            "type": "select",
+                            "description": "Third source if the first two miss. Set to None to disable. Deezer is keyless and has by far the best coverage of obscure artists, so it is the default here.",
+                            "default": "deezer",
+                            "options": [
+                                {
+                                    "value": "theaudiodb",
+                                    "label": "TheAudioDB (free, no key)"
+                                },
+                                {
+                                    "value": "discogs",
+                                    "label": "Discogs (requires token)"
+                                },
+                                {
+                                    "value": "deezer",
+                                    "label": "Deezer (free, no key)"
+                                },
+                                {
+                                    "value": "none",
+                                    "label": "None (disable fallback)"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T07:41:09.766Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:41:07.403Z",
+                "lastDurationMs": 2324,
+                "effectiveEvery": "24h",
+                "coveredStageIds": ["artist-enrichment"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "music-popularity",
+                "name": "Fetch Artist Popularity (Last.fm)",
+                "version": "1.1.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false,
+                    "envOverride": "SYNC_MUSIC_POPULARITY_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "backlog": {
+                    "unitLabel": "artists"
+                },
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "28m"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsFullRun": true,
+                "supportsForceRun": true,
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "35m"
+                },
+                "settings": {
+                    "canToggle": false,
+                    "fields": [
+                        {
+                            "key": "source",
+                            "label": "Provider",
+                            "type": "select",
+                            "description": "Which popularity provider to use. More providers will be added in future releases.",
+                            "default": "lastfm",
+                            "options": [
+                                {
+                                    "value": "lastfm",
+                                    "label": "Last.fm"
+                                }
+                            ]
+                        },
+                        {
+                            "key": "LASTFM_API_KEY",
+                            "label": "Last.fm API Key",
+                            "type": "secret",
+                            "description": "API key from last.fm/api/account/create. Free; required when source is Last.fm."
+                        },
+                        {
+                            "key": "refresh_days",
+                            "label": "Refresh Interval (days)",
+                            "type": "number",
+                            "description": "An artist is considered stale — and re-fetched on the next drain — once its popularity row is older than this many days. Default 7.",
+                            "default": 7,
+                            "validation": {
+                                "min": 1,
+                                "max": 365
+                            }
+                        }
+                    ]
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T07:41:07.463Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:41:07.403Z",
+                "lastDurationMs": 13,
+                "effectiveEvery": "24h",
+                "coveredStageIds": ["music-popularity"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "curated-lists-sync",
+                "name": "Refresh Curated Lists",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "12h",
+                    "runOnStartup": false,
+                    "envOverride": "SYNC_CURATED_LISTS_HOURS"
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "70m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T19:45:40.893Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:45:40.856Z",
+                "lastDurationMs": 28,
+                "effectiveEvery": "12h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "fribb-anime-sync",
+                "name": "Map Anime IDs (MyAnimeList, AniList)",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "48h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "backlog": {
+                    "unitLabel": "anime"
+                },
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "25m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "confirmBeforeRun": true,
+                "supportsFullRun": true,
+                "supportsForceRun": true,
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "40m"
+                },
+                "settings": {
+                    "canToggle": false,
+                    "fields": [
+                        {
+                            "key": "dataUrl",
+                            "label": "Data URL",
+                            "type": "string",
+                            "description": "URL to the anime-list-full.json file. Useful for pointing at a local mirror or a pinned commit. Leave empty to use the official Fribb GitHub source.",
+                            "default": "https://raw.githubusercontent.com/Fribb/anime-lists/master/anime-list-full.json"
+                        }
+                    ]
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T00:03:17.451Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-18T00:03:17.372Z",
+                "lastDurationMs": 25,
+                "effectiveEvery": "48h",
+                "coveredStageIds": ["fribb-anime-sync"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "mal-anime-id-enrichment",
+                "name": "Match Anime Episodes to MyAnimeList",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "backlog": {
+                    "unitLabel": "series"
+                },
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "55m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsFullRun": true,
+                "supportsForceRun": true,
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "70m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T07:41:07.468Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:41:07.403Z",
+                "lastDurationMs": 7,
+                "effectiveEvery": "24h",
+                "coveredStageIds": ["mal-anime-id-enrichment"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "lumastra-intro-analyzer",
+                "name": "Detect Intros & Credits",
+                "description": "Detects intro / outro / recap / preview / commercial segments in episodes via FFmpeg fingerprint + chromaprint matching. Results power skip buttons in the player. Tune throughput with the batchSize and episodeConcurrency settings.",
+                "version": "2.0.0",
+                "processingVersion": 4,
+                "resourceClass": "cpu",
+                "schedule": {
+                    "every": "6h",
+                    "runOnStartup": false,
+                    "envOverride": "PLUGIN_LUMASTRA_INTRO_ANALYZER_INTERVAL_HOURS"
+                },
+                "capabilities": {
+                    "database": true,
+                    "ffmpeg": true,
+                    "cache": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "backlog": {
+                    "unitLabel": "seasons"
+                },
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "7h",
+                    "soft": "6h"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "confirmBeforeRun": true,
+                "supportsFullRun": true,
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "8h"
+                },
+                "settings": {
+                    "canToggle": false,
+                    "fields": [
+                        {
+                            "key": "chapterDetection",
+                            "label": "Chapter name detection",
+                            "type": "boolean",
+                            "description": "Detect segments from embedded chapter metadata (no FFmpeg needed)",
+                            "default": true
+                        },
+                        {
+                            "key": "blackframeDetection",
+                            "label": "Black frame credits detection",
+                            "type": "boolean",
+                            "description": "Detect credits via black frame analysis (requires FFmpeg)",
+                            "default": true
+                        },
+                        {
+                            "key": "chromaprintDetection",
+                            "label": "Audio fingerprint intro detection",
+                            "type": "boolean",
+                            "description": "Detect intros by comparing audio across episodes in a season (requires FFmpeg with chromaprint)",
+                            "default": true
+                        },
+                        {
+                            "key": "batchSize",
+                            "label": "Seasons per scheduled run",
+                            "type": "number",
+                            "description": "How many seasons one scheduled run analyses. Raise it to finish a large library sooner; lower it on a small or busy server.",
+                            "default": 150
+                        },
+                        {
+                            "key": "episodeConcurrency",
+                            "label": "Episode concurrency",
+                            "type": "number",
+                            "description": "Episodes analysed at the same time. Higher is faster but uses more CPU; lower it on a small server.",
+                            "default": 4
+                        },
+                        {
+                            "key": "ffmpegThreads",
+                            "label": "FFmpeg threads per operation",
+                            "type": "number",
+                            "description": "CPU threads each FFmpeg process may use (0 = let FFmpeg decide).",
+                            "default": 2
+                        },
+                        {
+                            "key": "maxIntroDuration",
+                            "label": "Max intro duration (seconds)",
+                            "type": "number",
+                            "description": "Longest intro that will be accepted.",
+                            "default": 120,
+                            "advanced": true
+                        },
+                        {
+                            "key": "maxCreditsDuration",
+                            "label": "Credits search window (seconds)",
+                            "type": "number",
+                            "description": "How far before the end of an episode to look for closing credits. This only widens the search — the longest credits that are accepted is set separately below.",
+                            "default": 300,
+                            "advanced": true
+                        },
+                        {
+                            "key": "maxMovieCreditsDuration",
+                            "label": "Movie credits search window (seconds)",
+                            "type": "number",
+                            "description": "The same search window for movies, whose credits run longer.",
+                            "default": 900,
+                            "advanced": true
+                        },
+                        {
+                            "key": "maxPlausibleCreditsDuration",
+                            "label": "Max plausible credits length, episodes (seconds)",
+                            "type": "number",
+                            "description": "Longest closing credits an episode may have; a longer detection is discarded.",
+                            "default": 150,
+                            "advanced": true
+                        },
+                        {
+                            "key": "maxPlausibleMovieCreditsDuration",
+                            "label": "Max plausible credits length, movies (seconds)",
+                            "type": "number",
+                            "description": "Longest closing credits a movie may have; a longer detection is discarded.",
+                            "default": 900,
+                            "advanced": true
+                        },
+                        {
+                            "key": "outroMinStartFraction",
+                            "label": "Minimum credits start position (0–1)",
+                            "type": "number",
+                            "description": "How far into an episode the credits must start. 0.80 means anything that starts before 80 % of the runtime is not treated as credits. Not applied to movies.",
+                            "default": 0.8,
+                            "advanced": true
+                        },
+                        {
+                            "key": "snapToleranceSec",
+                            "label": "Chapter snap tolerance (seconds)",
+                            "type": "number",
+                            "description": "How far a detected start or end may move to line up with a chapter mark in the file. 0 turns this off.",
+                            "default": 10,
+                            "advanced": true
+                        },
+                        {
+                            "key": "maxPointDifferences",
+                            "label": "Audio match tolerance",
+                            "type": "number",
+                            "description": "How different two audio fingerprints may be and still count as the same intro. Lower is stricter; raise it only if intros are being missed.",
+                            "default": 6,
+                            "advanced": true
+                        },
+                        {
+                            "key": "maxTimeSkip",
+                            "label": "Audio match gap (seconds)",
+                            "type": "number",
+                            "description": "Largest gap between matching audio moments before a match counts as broken.",
+                            "default": 3.5,
+                            "advanced": true
+                        },
+                        {
+                            "key": "introWindowFraction",
+                            "label": "Intro search window (share of episode, 0–1)",
+                            "type": "number",
+                            "description": "How much of each episode, from the start, is searched for the intro. 0.25 = the first quarter.",
+                            "default": 0.25,
+                            "advanced": true
+                        },
+                        {
+                            "key": "introWindowMaxSec",
+                            "label": "Intro search window limit (seconds)",
+                            "type": "number",
+                            "description": "Upper limit on that search window.",
+                            "default": 600,
+                            "advanced": true
+                        },
+                        {
+                            "key": "invertedIndexShift",
+                            "label": "Audio index tolerance",
+                            "type": "number",
+                            "description": "How loosely the audio search index matches. Higher finds more candidates but is slower.",
+                            "default": 2,
+                            "advanced": true
+                        },
+                        {
+                            "key": "minSegmentDuration",
+                            "label": "Shortest segment (seconds)",
+                            "type": "number",
+                            "description": "Ignore detected intros or credits shorter than this.",
+                            "default": 15,
+                            "advanced": true
+                        },
+                        {
+                            "key": "animePreviewFromCreditsEnd",
+                            "label": "Anime: mark a preview after the credits",
+                            "type": "boolean",
+                            "description": "After the credits, mark what remains of the episode (at least 5 seconds) as a Preview, as anime episodes often end with one. It is not detected automatically — turn it on only if your library is mostly anime.",
+                            "default": false
+                        }
+                    ]
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T19:52:22.114Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T01:52:20.856Z",
+                "lastDurationMs": 1225,
+                "effectiveEvery": "6h",
+                "coveredStageIds": ["lumastra-intro-analyzer:visual"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "stage-sweep",
+                "name": "Work Through Pipeline Backlog",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "60s",
+                    "runOnStartup": true
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "timeout": {
+                    "hard": "5m",
+                    "soft": "4m"
+                },
+                "purpose": "maintenance",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T22:02:41.776Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:03:41.609Z",
+                "lastDurationMs": 93,
+                "effectiveEvery": "60s",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "provider-artwork-poster",
+                "name": "Download Posters",
+                "description": "Downloads poster images from your metadata provider into your library folders so they keep working offline.",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "5m",
+                    "soft": "4m"
+                },
+                "purpose": "library",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-15T08:27:16.303Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": 71,
+                "coveredStageIds": ["provider-artwork-poster"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "provider-artwork-backdrop",
+                "name": "Download Backdrops",
+                "description": "Downloads backdrop images from your metadata provider into your library folders so they keep working offline.",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "5m",
+                    "soft": "4m"
+                },
+                "purpose": "library",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-15T08:27:16.304Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": 66,
+                "coveredStageIds": ["provider-artwork-backdrop"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "provider-artwork-logo",
+                "name": "Download Title Logos",
+                "description": "Downloads title logo images from your metadata provider into your library folders so they keep working offline.",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "5m",
+                    "soft": "4m"
+                },
+                "purpose": "library",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "coveredStageIds": ["provider-artwork-logo"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "provider-artwork-thumb",
+                "name": "Download Episode Stills",
+                "description": "Downloads episode still images from your metadata provider into your library folders so they keep working offline.",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "5m",
+                    "soft": "4m"
+                },
+                "purpose": "library",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "coveredStageIds": ["provider-artwork-thumb"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "provider-artwork-season-poster",
+                "name": "Download Season Posters",
+                "description": "Downloads season poster images from TMDB into your library folders. Season posters are the only artwork slot with no durable local backing today.",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "5m",
+                    "soft": "4m"
+                },
+                "purpose": "library",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "coveredStageIds": ["provider-artwork-season-poster"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "provider-artwork-report",
+                "name": "Preview Artwork Download",
+                "description": "Read-only preview of the artwork backfill: how many items remain, how much disk it needs, and how much free space each target volume has.",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "5m",
+                    "soft": "4m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "health-invariants",
+                "name": "Check Database Health",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "15m",
+                    "runOnStartup": true
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "5m",
+                    "soft": "4m"
+                },
+                "purpose": "maintenance",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T22:02:43.299Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:17:41.609Z",
+                "lastDurationMs": 1610,
+                "effectiveEvery": "15m",
+                "coveredStageIds": [],
+                "itemsPerHour": 64,
+                "lastFailedError": null
+            },
+            {
+                "id": "problem-derive",
+                "name": "Update Notifications",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "60s",
+                    "runOnStartup": true
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "2m",
+                    "soft": "90s"
+                },
+                "purpose": "maintenance",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T22:02:45.323Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:03:41.609Z",
+                "lastDurationMs": 3631,
+                "effectiveEvery": "60s",
+                "itemsPerHour": 513,
+                "lastFailedError": null
+            },
+            {
+                "id": "pause-reconcile",
+                "name": "Resume After Pause or Quiet Hours",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "1m",
+                    "runOnStartup": true
+                },
+                "capabilities": {
+                    "cache": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "1m",
+                    "soft": "20s"
+                },
+                "purpose": "maintenance",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T22:02:46.420Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:03:41.609Z",
+                "lastDurationMs": 4725,
+                "effectiveEvery": "1m",
+                "itemsPerHour": 57,
+                "lastFailedError": null
+            },
+            {
+                "id": "sonic-embedding-backfill",
+                "name": "Analyze Track Sound for Similarity",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "embedding",
+                "schedule": {
+                    "every": "2h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "backlog": {
+                    "unitLabel": "tracks"
+                },
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "12h",
+                    "soft": "11h"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "confirmBeforeRun": true,
+                "supportsPerItemRetry": true,
+                "settings": {
+                    "canToggle": false,
+                    "fields": [
+                        {
+                            "key": "cpuThreads",
+                            "label": "CPU threads",
+                            "type": "number",
+                            "description": "PyTorch intra-op thread cap sent to the sonic-embedder sidecar (or subprocess). Blank / 0 = ~half the cores (sidecar default). Lower values reduce CPU pressure on the host app.",
+                            "default": 0,
+                            "validation": {
+                                "min": 0,
+                                "max": 128
+                            }
+                        }
+                    ]
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T20:41:59.203Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:41:59.188Z",
+                "lastDurationMs": 10,
+                "effectiveEvery": "2h",
+                "coveredStageIds": ["sonic-embedding-backfill"],
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "music-embedding-projection-fit",
+                "name": "Set Up Offline Pool Ranking (one-time)",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "cpu",
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "6h",
+                    "soft": "5h"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "confirmBeforeRun": true,
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "music-embedding-projection-backfill",
+                "name": "Prepare Offline Pool Ranking",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "cpu",
+                "schedule": {
+                    "every": "2h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "backlog": {
+                    "unitLabel": "embeddings"
+                },
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "2h",
+                    "soft": "110m"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T20:41:59.204Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:41:59.188Z",
+                "lastDurationMs": 7,
+                "effectiveEvery": "2h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "sonic-map-projection",
+                "name": "Build Music Map",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "cpu",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "45m",
+                    "soft": "40m"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "settings": {
+                    "canToggle": false,
+                    "fields": [
+                        {
+                            "key": "cpuThreads",
+                            "label": "CPU threads",
+                            "type": "number",
+                            "description": "PyTorch intra-op thread cap sent to the sonic-embedder sidecar (or subprocess). Blank / 0 = ~half the cores (sidecar default). Lower values reduce CPU pressure on the host app.",
+                            "default": 0,
+                            "validation": {
+                                "min": 0,
+                                "max": 128
+                            }
+                        }
+                    ]
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T07:41:30.389Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:41:07.403Z",
+                "lastDurationMs": 22921,
+                "effectiveEvery": "24h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "sonic-clustering",
+                "name": "Group Similar-Sounding Tracks",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "cpu",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "65m",
+                    "soft": "60m"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "settings": {
+                    "canToggle": false,
+                    "fields": [
+                        {
+                            "key": "cpuThreads",
+                            "label": "CPU threads",
+                            "type": "number",
+                            "description": "PyTorch intra-op thread cap sent to the sonic-embedder sidecar (or subprocess). Blank / 0 = ~half the cores (sidecar default). Lower values reduce CPU pressure on the host app.",
+                            "default": 0,
+                            "validation": {
+                                "min": 0,
+                                "max": 128
+                            }
+                        }
+                    ]
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T07:41:08.154Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:41:07.403Z",
+                "lastDurationMs": 681,
+                "effectiveEvery": "24h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "music-genre-centroids",
+                "name": "Build Genre Sound Profiles",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "10m",
+                    "soft": "5m"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T00:03:57.389Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T00:03:57.372Z",
+                "lastDurationMs": 10,
+                "effectiveEvery": "24h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "lyrics-ingestion-backfill",
+                "name": "Index Lyrics for Search",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "embedding",
+                "schedule": {
+                    "every": "6h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "8h",
+                    "soft": "7h"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T18:04:32.543Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T00:04:32.519Z",
+                "lastDurationMs": 13,
+                "effectiveEvery": "6h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "lyrics-lrclib-fetch",
+                "name": "Download Lyrics (LRCLIB)",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "6h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "6h",
+                    "soft": "5h"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "7h"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T20:48:59.204Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T02:48:59.188Z",
+                "lastDurationMs": 10,
+                "effectiveEvery": "6h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "mood-vector-generation",
+                "name": "Build Mood Profiles",
+                "version": "1.1.0",
+                "processingVersion": 2,
+                "resourceClass": "embedding",
+                "schedule": {
+                    "every": "12h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "25m"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T19:45:41.142Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:45:40.856Z",
+                "lastDurationMs": 246,
+                "effectiveEvery": "12h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "profile-backfill",
+                "name": "Build Taste Profiles",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "6h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "4h",
+                    "soft": "3h"
+                },
+                "purpose": "music-ai",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T19:52:20.914Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T01:52:20.856Z",
+                "lastDurationMs": 9,
+                "effectiveEvery": "6h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "reconciliation-backfill",
+                "name": "Re-check Episode Matches",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "6h",
+                    "soft": "5h"
+                },
+                "purpose": "repair",
+                "visibility": "user",
+                "confirmBeforeRun": true,
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-09-28T07:39:56.702Z",
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "release-calendar-sync",
+                "name": "Refresh Release Calendar",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "schedule": {
+                    "every": "6h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 3
+                },
+                "timeout": {
+                    "hard": "20m",
+                    "soft": "18m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "30m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T19:52:20.924Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T01:52:20.856Z",
+                "lastDurationMs": 15,
+                "effectiveEvery": "6h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "airing-series-refresh",
+                "name": "Refresh Airing Series",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "6h",
+                    "runOnStartup": false,
+                    "envOverride": "AIRING_SERIES_REFRESH_INTERVAL"
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "timeout": {
+                    "hard": "10m",
+                    "soft": "9m"
+                },
+                "purpose": "library",
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "exclusiveWith": {
+                    "scope": "global",
+                    "ttl": "15m"
+                },
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T18:00:45.649Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T00:00:45.578Z",
+                "lastDurationMs": 9,
+                "effectiveEvery": "6h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "watch-history-retention",
+                "name": "Remove Old Watch History",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "24h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true
+                },
+                "scope": "global",
+                "retry": {
+                    "attempts": 3,
+                    "backoff": "exponential"
+                },
+                "timeout": {
+                    "hard": "60m",
+                    "soft": "59m"
+                },
+                "purpose": "maintenance",
+                "visibility": "system",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T07:41:12.517Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-17T07:41:07.403Z",
+                "lastDurationMs": 5030,
+                "effectiveEvery": "24h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "artwork-reaper",
+                "name": "Remove Missing Artwork Records",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "maintenance",
+                "schedule": {
+                    "every": "1h",
+                    "runOnStartup": false
+                },
+                "capabilities": {
+                    "database": true,
+                    "cache": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "10m",
+                    "soft": "9m"
+                },
+                "purpose": "maintenance",
+                "visibility": "system",
+                "confirmBeforeRun": true,
+                "supportsPerItemRetry": false,
+                "destructive": true,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T21:48:51.710Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": "2026-10-16T22:48:51.609Z",
+                "lastDurationMs": 52,
+                "effectiveEvery": "1h",
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "jellyfin-watch-sync-push",
+                "name": "Jellyfin: Export Watch State",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "purpose": "watch-sync",
+                "visibility": "system",
+                "notManuallyRunnable": true,
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "jellyfin-watch-sync-pull",
+                "name": "Jellyfin: Import Watch State",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "purpose": "watch-sync",
+                "visibility": "system",
+                "notManuallyRunnable": true,
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "audiobookshelf-watch-sync-push",
+                "name": "AudiobookShelf: Export Listening Progress",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "purpose": "watch-sync",
+                "visibility": "system",
+                "notManuallyRunnable": true,
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "audiobookshelf-watch-sync-pull",
+                "name": "AudiobookShelf: Import Listening Progress",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "purpose": "watch-sync",
+                "visibility": "system",
+                "notManuallyRunnable": true,
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": null,
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": null,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            },
+            {
+                "id": "audiobookshelf-sync",
+                "name": "Sync AudiobookShelf Library",
+                "description": "Reconciles the AudiobookShelf catalogue into Lumastra: adds new books, updates changed ones, and hides books that disappeared upstream.",
+                "version": "1.0.0",
+                "processingVersion": 1,
+                "resourceClass": "io",
+                "capabilities": {
+                    "database": true,
+                    "http": true
+                },
+                "scope": "global",
+                "quotas": {
+                    "maxConcurrent": 1
+                },
+                "timeout": {
+                    "hard": "30m",
+                    "soft": "25m"
+                },
+                "visibility": "user",
+                "supportsPerItemRetry": false,
+                "lane": "healthy",
+                "activeCount": 0,
+                "lastStartedAt": null,
+                "lastCompletedAt": "2026-10-16T22:02:41.852Z",
+                "backlogRemaining": 0,
+                "recentFailCount": 0,
+                "circuitState": "closed",
+                "schedulePaused": false,
+                "schedulePausedBy": null,
+                "schedulePausedAt": null,
+                "nextRunAt": null,
+                "lastDurationMs": 148,
+                "itemsPerHour": null,
+                "lastFailedError": null
+            }
+        ],
+        "page": {
+            "limit": 86,
+            "offset": 0,
+            "hasMore": false
+        },
+        "summary": {
+            "activeCount": 0,
+            "pendingItems": 0,
+            "failedLast24h": 0
+        },
+        "registrationErrors": []
+    },
+    "baselineProblems": []
+}
