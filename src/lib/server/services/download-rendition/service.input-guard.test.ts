@@ -131,9 +131,16 @@ async function request(inputPath: string): Promise<void> {
         isHdr: false,
     });
     // runEncode is fire-and-forget; wait for it to reach a terminal row state.
-    await vi.waitFor(() => {
-        expect(h.markFailed.mock.calls.length + h.markReady.mock.calls.length).toBe(1);
-    });
+    // The default 1 s budget is too short on a loaded runner: the first encode
+    // in this file also runs the real `ffmpeg -demuxers` / `-version` probe
+    // (media-format-whitelist, capped at 10 s) before it spawns. The wait is
+    // still on the terminal row state, not a fixed sleep.
+    await vi.waitFor(
+        () => {
+            expect(h.markFailed.mock.calls.length + h.markReady.mock.calls.length).toBe(1);
+        },
+        { timeout: 20_000 },
+    );
 }
 
 describe('download rendition — playlist-body source guard', () => {
