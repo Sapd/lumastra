@@ -153,6 +153,15 @@ describe('anidbProvider — hostile response bodies', () => {
         expect(results.length).toBeGreaterThan(0);
     });
 
+    it('decodes entities once: &amp;lt; stays the literal text &lt;', async () => {
+        const xml =
+            '<animetitles><anime aid="1"><title xml:lang="en" type="official">Tom &amp;lt; Jerry &amp; Co</title></anime></animetitles>';
+        const ctx = ctxWith(async () => new Response(gzipSync(xml)));
+
+        const results = await anidbProvider.search!(ctx, { type: 'tv', query: 'Tom Jerry Co' });
+        expect(results[0].title).toBe('Tom &lt; Jerry & Co');
+    });
+
     it('scans a title list full of unterminated <anime> blocks in linear time', async () => {
         const xml = `<animetitles>${'<anime aid="1">'.repeat(60_000)}`;
         const ctx = ctxWith(async () => new Response(gzipSync(xml)));

@@ -90,3 +90,12 @@ describe('parseMarkdownLinks — headers & bullets', () => {
         expect(out).toContain('<em>italic</em>');
     });
 });
+
+describe('parseMarkdownLinks entity handling', () => {
+    it('does not double-decode &quot; typed into an external URL', () => {
+        const out = parseMarkdownLinks('[x](https://example.com/?a=&quot;b)');
+        // The literal text "&quot;" must survive (escaped for the attribute), not become a quote.
+        expect(out).toContain('a=&amp;quot;b');
+        expect(out).not.toContain('%22');
+    });
+});

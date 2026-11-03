@@ -89,12 +89,13 @@ interface AnidbParseResult {
 // ---------------------------------------------------------------------------
 
 function decodeXmlEntities(s: string): string {
+    // `&amp;` last: decoding it first would turn `&amp;lt;` into `<` (double decode).
     return s
-        .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&apos;/g, "'")
-        .replace(/&quot;/g, '"');
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, '&');
 }
 
 function titleSimilarity(query: string, candidate: string): number {

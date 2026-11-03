@@ -111,8 +111,9 @@ function cleanValue(value: string): string {
  * since no SAX parser handles it automatically.
  */
 export function decodeXmlEntities(text: string): string {
+    // `&amp;` is decoded LAST: doing it first would turn `&amp;lt;` into `<` and
+    // `&amp;#65;` into `A` (double decode).
     return text
-        .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
@@ -126,7 +127,8 @@ export function decodeXmlEntities(text: string): string {
             const code = parseInt(hex as string, 16);
             if (code > 0x10ffff) return '';
             return String.fromCodePoint(code);
-        });
+        })
+        .replace(/&amp;/g, '&');
 }
 
 /**

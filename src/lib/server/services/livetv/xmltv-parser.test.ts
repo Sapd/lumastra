@@ -59,6 +59,11 @@ describe('parseXmltvTime', () => {
 // ── decodeXmlEntities ──────────────────────────────────────────────────
 
 describe('decodeXmlEntities', () => {
+    it('decodes once: an escaped entity stays literal text', () => {
+        expect(decodeXmlEntities('&amp;lt;b&amp;gt;')).toBe('&lt;b&gt;');
+        expect(decodeXmlEntities('&amp;quot; &amp;#65; &amp;#x41;')).toBe('&quot; &#65; &#x41;');
+    });
+
     it('should decode &amp;', () => {
         expect(decodeXmlEntities('A &amp; B')).toBe('A & B');
     });

@@ -37,12 +37,13 @@ export { escapeHtml };
  * Unescape HTML entities back to characters (for URLs)
  */
 function unescapeHtml(str: string): string {
+    // `&amp;` last: decoding it first would turn `&amp;quot;` into `"` (double decode).
     return str
-        .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'");
+        .replace(/&#039;/g, "'")
+        .replace(/&amp;/g, '&');
 }
 
 /**

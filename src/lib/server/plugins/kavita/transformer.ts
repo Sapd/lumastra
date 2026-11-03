@@ -84,11 +84,11 @@ function stripHtml(html: string): string {
     return html
         .replaceAll(/<[^>]*>/g, ' ') // Remove HTML tags
         .replaceAll('&nbsp;', ' ') // Replace nbsp
-        .replaceAll('&amp;', '&') // Replace ampersand
         .replaceAll('&lt;', '<') // Replace less than
         .replaceAll('&gt;', '>') // Replace greater than
         .replaceAll('&quot;', '"') // Replace quotes
         .replaceAll('&#39;', "'") // Replace apostrophe
+        .replaceAll('&amp;', '&') // Ampersand LAST so `&amp;lt;` stays `&lt;`
         .replaceAll(/\s+/g, ' ') // Collapse whitespace
         .trim();
 }
