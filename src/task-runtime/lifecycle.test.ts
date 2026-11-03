@@ -16,6 +16,8 @@ const state = vi.hoisted(() => ({
     failRunnerStop: false,
     failLeaseRelease: false,
     failSchedulerStop: false,
+    dbReachable: true,
+    orchestratorStop: 'ok' as 'ok' | 'fails' | 'hangs',
     pluginPending: undefined as Promise<void> | undefined,
     featurePending: undefined as Promise<void> | undefined,
     subscriberStarts: 0,
@@ -125,7 +127,10 @@ vi.mock('$lib/server/services/cluster-heartbeat.service.js', () => ({
         },
     },
 }));
-vi.mock('$lib/server/database/connection', () => ({ getDb: () => null }));
+vi.mock('$lib/server/database/connection', () => ({
+    getDb: () => null,
+    getTaskDb: () => (state.dbReachable ? async () => [{}] : null),
+}));
 vi.mock('$lib/server/database/queries/event-outbox.queries', () => ({
     syncEventOutboxFlag: vi.fn(),
 }));
@@ -144,6 +149,8 @@ vi.mock('$lib/server/tasks/orchestrator', () => ({
     orchestrator: {
         stop: async () => {
             state.events.push('stop-orchestrator');
+            if (state.orchestratorStop === 'hangs') await new Promise<void>(() => {});
+            if (state.orchestratorStop === 'fails') throw new Error('leader release unconfirmed');
         },
     },
 }));
@@ -200,6 +207,8 @@ beforeEach(() => {
     state.failRunnerStop = false;
     state.failLeaseRelease = false;
     state.failSchedulerStop = false;
+    state.dbReachable = true;
+    state.orchestratorStop = 'ok';
     state.pluginPending = undefined;
     state.featurePending = undefined;
     state.subscriberStarts = 0;
@@ -274,6 +283,24 @@ describe('dedicated task lifecycle seam', () => {
         await runtime.startTaskSubsystem({ strict: true });
         await expect(runtime.stopTaskSubsystem({ strict: true })).resolves.toBeUndefined();
         expect(state.events.at(-1)).toBe('release-lease');
+    });
+    it('stops within a few seconds when Valkey is already gone, however its releases hang', async () => {
+        // Full `docker compose restart`: the leader-lock releases and loop ticks wait on a
+        // Valkey that stopped with us. Their locks expire on their own.
+        const runtime = await import('./lifecycle.js');
+        await runtime.startTaskSubsystem({ strict: true });
+        state.coordinationHealthy = false;
+        state.orchestratorStop = 'hangs';
+        const stopping = runtime.stopTaskSubsystem({ strict: true });
+        await vi.advanceTimersByTimeAsync(10_000);
+        await expect(stopping).resolves.toBeUndefined();
+        expect(state.events.at(-1)).toBe('release-lease');
+    });
+    it('still reports a failed orchestrator teardown while the infrastructure is reachable', async () => {
+        state.orchestratorStop = 'fails';
+        const runtime = await import('./lifecycle.js');
+        await runtime.startTaskSubsystem({ strict: true });
+        await expect(runtime.stopTaskSubsystem({ strict: true })).rejects.toThrow('outcome UNKNOWN');
     });
     it('cancels while waiting for the singleton lease without starting anything', async () => {
         let grant: () => void = () => {};

@@ -511,6 +511,70 @@ export function stopTaskSubsystem(options: { strict?: boolean } = {}): Promise<v
     return shutdown;
 }
 
+/** How long a stop waits for PostgreSQL and the task Valkey to answer before calling them gone. */
+const INFRASTRUCTURE_PROBE_MS = 1_000;
+/**
+ * How long the orchestrator teardown and the lease release may take once
+ * PostgreSQL or the task Valkey are known to be gone. Every one of their waits
+ * (leader-lock release, in-flight loop ticks, final flush) is a request to the
+ * server that is not there; each took its own timeout, one class after the other,
+ * and a `docker compose restart` ran the worker into the 60 s deadline.
+ */
+const UNREACHABLE_TEARDOWN_BUDGET_MS = 5_000;
+
+/** True when PostgreSQL or the task Valkey does not answer a trivial request. */
+async function taskInfrastructureUnreachable(): Promise<boolean> {
+    const withinProbe = async (probe: () => Promise<unknown>): Promise<boolean> => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+            const running = probe().then(() => true);
+            running.catch(() => undefined);
+            return await Promise.race([
+                running,
+                new Promise<boolean>((resolve) => {
+                    timer = setTimeout(() => resolve(false), INFRASTRUCTURE_PROBE_MS);
+                }),
+            ]);
+        } catch {
+            return false;
+        } finally {
+            clearTimeout(timer);
+        }
+    };
+    try {
+        const { isCoordinationValkeyHealthy } = await import('$lib/server/cache/valkey.js');
+        const { getTaskDb } = await import('$lib/server/database/connection.js');
+        const [valkeyUp, databaseUp] = await Promise.all([
+            isCoordinationValkeyHealthy(INFRASTRUCTURE_PROBE_MS),
+            withinProbe(async () => {
+                const sql = getTaskDb();
+                if (!sql) throw new Error('no database pool');
+                await sql`SELECT 1`;
+            }),
+        ]);
+        return !valkeyUp || !databaseUp;
+    } catch {
+        // Could not even ask: stay strict rather than hide a failure.
+        return false;
+    }
+}
+
+/** Wait for `work`, but at most `budgetMs`; `work` keeps running in the background. */
+async function settledWithin(work: Promise<unknown>, budgetMs: number): Promise<boolean> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+        work.catch(() => undefined);
+        return await Promise.race([
+            work.then(() => true),
+            new Promise<boolean>((resolve) => {
+                timer = setTimeout(() => resolve(false), budgetMs);
+            }),
+        ]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 async function stop(strict: boolean): Promise<void> {
     const failures: unknown[] = [];
     let watcherStopped = false;
@@ -567,16 +631,41 @@ async function stop(strict: boolean): Promise<void> {
     // Keep its real orchestrator dependency alive until a retry accepts that
     // obligation. Stopping the facade is terminal and would make repair retries
     // impossible. Tolerant shutdown remains best-effort.
+    // Everything above stopped cleanly but PostgreSQL or Valkey are gone (they stop
+    // with this process on a `docker compose restart`): what is left is releasing
+    // locks and the lease on servers that cannot answer. All of them expire on
+    // their own TTL, so do not wait for each in turn.
+    const infrastructureGone = failures.length === 0 && (await taskInfrastructureUnreachable());
+    if (infrastructureGone)
+        startupLogger.warn(
+            'PostgreSQL or the task Valkey is unreachable; locks and the lease expire on their own',
+        );
     if (watcherStopped || !strict) {
         try {
             const { orchestrator } = await import('$lib/server/tasks/orchestrator');
-            await orchestrator.stop({ strict });
-            startupLogger.info('TaskOrchestrator stopped');
+            const stopping = orchestrator.stop({ strict });
+            if (infrastructureGone) {
+                if (await settledWithin(stopping, UNREACHABLE_TEARDOWN_BUDGET_MS))
+                    startupLogger.info('TaskOrchestrator stopped');
+                else
+                    startupLogger.warn(
+                        'TaskOrchestrator stop abandoned: its releases wait for a server that is gone',
+                    );
+            } else {
+                await stopping;
+                startupLogger.info('TaskOrchestrator stopped');
+            }
         } catch (err) {
-            failures.push(err);
-            startupLogger.warn('Failed to stop TaskOrchestrator cleanly', {
-                error: err instanceof Error ? err.message : String(err),
-            });
+            if (infrastructureGone) {
+                startupLogger.warn('TaskOrchestrator stop incomplete: infrastructure unreachable', {
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            } else {
+                failures.push(err);
+                startupLogger.warn('Failed to stop TaskOrchestrator cleanly', {
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            }
         }
     }
     // The singleton lease goes last, once everything it guards has stopped. If
@@ -586,7 +675,11 @@ async function stop(strict: boolean): Promise<void> {
     if (workerLeaseRequested && (!strict || failures.length === 0)) {
         try {
             const { releaseWorkerLease } = await import('./worker-lease.js');
-            await releaseWorkerLease();
+            if (infrastructureGone) {
+                await settledWithin(releaseWorkerLease(), UNREACHABLE_TEARDOWN_BUDGET_MS / 2);
+            } else {
+                await releaseWorkerLease();
+            }
             workerLeaseRequested = false;
         } catch (err) {
             // Not a cleanup failure: everything the lease guards has stopped by
