@@ -4,8 +4,10 @@ name: Docker
 #
 # Channels (ghcr.io/lumastra/lumastra, and -sonic-embedder for the ML sidecar):
 #   push to main  → :edge, :sha-<short>                       linux/amd64
-#   tag vX.Y.Z    → :X.Y.Z, :X.Y, :stable, :latest            linux/amd64 + linux/arm64
-#   tag vX.Y.Z-rc → :X.Y.Z-rc only (no :stable/:latest)       linux/amd64 + linux/arm64
+#   tag vX.Y.Z    → :X.Y.Z, :X.Y, :stable, :latest, :beta*    linux/amd64 + linux/arm64
+#   tag vX.Y.Z-rc → :X.Y.Z-rc, :beta* (no :stable/:latest)     linux/amd64 + linux/arm64
+#   * :beta is the newest pre-release or release, whichever is newer. :stable/:latest go
+#     to the highest release only, so a hotfix on an older line never moves either backwards.
 #   pull request  → build + checks only, nothing is pushed    linux/amd64
 # Provenance + SBOM attestations are attached on tag builds.
 #
@@ -113,10 +115,23 @@ jobs:
                     RELEASE=true
                     SEMVER="${GITHUB_REF_NAME#v}"
                     if [[ "$SEMVER" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-                      SUFFIXES=("$SEMVER" "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}" stable latest)
+                      SUFFIXES=("$SEMVER" "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}")
+                      # :stable/:latest only for the highest release, so a hotfix on an older
+                      # line (v0.1.2 after v0.2.0) doesn't move them backwards.
+                      TOP=$(git tag --list 'v*' | sed -nE 's/^v([0-9]+\.[0-9]+\.[0-9]+)$/\1/p' | sort -V | tail -1)
+                      if [ "$TOP" = "$SEMVER" ]; then SUFFIXES+=(stable latest); fi
                     else
-                      # Pre-release / non-semver tag: publish it under its own name only.
+                      # Pre-release / non-semver tag: publish it under its own name.
                       SUFFIXES=("$SEMVER")
+                    fi
+                    # :beta follows the newest version, pre-release or release. Compare the
+                    # X.Y.Z parts of all v* tags; a pre-release also yields to its own release.
+                    if [[ "$SEMVER" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-.+)?$ ]]; then
+                      BASE="${BASH_REMATCH[1]}"
+                      HIGHEST=$(git tag --list 'v*' | sed -nE 's/^v([0-9]+\.[0-9]+\.[0-9]+)(-.+)?$/\1/p' | sort -uV | tail -1)
+                      if [ "$HIGHEST" = "$BASE" ] && { [ "$BASE" = "$SEMVER" ] || ! git rev-parse -q --verify "refs/tags/v$BASE" >/dev/null; }; then
+                        SUFFIXES+=(beta)
+                      fi
                     fi
                   elif [ "$GITHUB_REF" = "refs/heads/main" ] && [ "$EVENT_NAME" != "pull_request" ]; then
                     PUSH=true
