@@ -351,7 +351,10 @@ vi.mock('../transcoding/media-probe.service.js', () => ({
     }),
 }));
 
-vi.mock('$lib/server/utils/hls-master-playlist.js', () => ({
+// Spread the real module so a new export (RENDITION_NAMES_PATH broke this once) reaches the
+// handlers; only the playlist builders are stubbed.
+vi.mock('$lib/server/utils/hls-master-playlist.js', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('$lib/server/utils/hls-master-playlist.js')>()),
     generateMasterPlaylist: vi.fn().mockReturnValue('#EXTM3U\n#EXT-X-STREAM-INF:...\n'),
     generateMuxedMasterPlaylist: vi.fn().mockReturnValue('#EXTM3U\n'),
     generateAudioOnlyMasterPlaylist: vi.fn().mockReturnValue('#EXTM3U\n'),
