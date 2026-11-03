@@ -10,6 +10,7 @@ import {
     generateMuxedMasterPlaylist,
     generateMasterPlaylist,
     localizedRenditionNames,
+    manifestAudioTracks,
     generateAudioOnlyMasterPlaylist,
     AUDIO_ONLY_BANDWIDTH,
     calculateEstimatedBandwidth,
@@ -401,12 +402,19 @@ describe('generateMasterPlaylist', () => {
             expect(lines.indexOf(session!)).toBe(lines.indexOf('#EXT-X-INDEPENDENT-SEGMENTS') + 1);
         });
 
-        it('omits the dictionary when every language has one rendition', () => {
-            const playlist = build([
-                track(1, { language: 'ger', displayTitle: '' }),
-                track(2, { language: 'eng', displayTitle: '' }),
-            ]);
-            expect(playlist).not.toContain('EXT-X-SESSION-DATA');
+        it('omits the dictionary when every language has one rendition, or the duplicates are titled', () => {
+            expect(
+                build([
+                    track(1, { language: 'ger', displayTitle: '' }),
+                    track(2, { language: 'eng', displayTitle: '' }),
+                ]),
+            ).not.toContain('EXT-X-SESSION-DATA');
+            expect(
+                build([
+                    track(1, { language: 'eng', displayTitle: '' }),
+                    track(2, { language: 'eng', displayTitle: 'Commentary' }),
+                ]),
+            ).not.toContain('EXT-X-SESSION-DATA');
         });
 
         it('leaves single renditions of different languages AUTOSELECT=YES', () => {
@@ -2624,12 +2632,12 @@ describe('localizedRenditionNames', () => {
         expect(dict['English (DTS 5.1)'].fr).toBe('anglais (DTS 5.1)');
     });
 
-    it('keeps a track title as it is in every locale', () => {
+    it('leaves a track title out: the player shows it as written in every locale', () => {
         const dict = localizedRenditionNames(
             [track(1), track(2, { displayTitle: 'Director Commentary' })],
             undefined,
         );
-        expect(dict).toEqual({ 'Director Commentary': { en: 'Director Commentary' } });
+        expect(dict).toEqual({});
     });
 
     it('names the renditions the master lists for the selected track', () => {
@@ -2639,6 +2647,62 @@ describe('localizedRenditionNames', () => {
         );
         // The DTS track is the primary now; the AC3 track is the described one.
         expect(Object.keys(dict)).toEqual(['English (AC3)']);
+    });
+
+    it('names every non-primary rendition of the master, capped tracks included', () => {
+        const tracks = [
+            track(1, { language: 'ger', isDefault: true }),
+            track(2),
+            track(3, { codec: 'dts', channels: 6 }),
+            track(4, { codec: 'dts', channels: 8 }),
+            track(5, { displayTitle: 'Commentary' }),
+        ];
+        for (const capped of [tracks, manifestAudioTracks(tracks, 2, false)]) {
+            for (const selected of [undefined, 3, 5]) {
+                const master = generateMasterPlaylist(
+                    capped,
+                    undefined,
+                    '/segment',
+                    new URLSearchParams(),
+                    25000000,
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    { selectedAudioStreamIndex: selected },
+                );
+                const nonPrimaryNames = master
+                    .split('\n')
+                    .filter(
+                        (l) =>
+                            l.startsWith('#EXT-X-MEDIA:TYPE=AUDIO') && l.includes('AUTOSELECT=NO'),
+                    )
+                    .map((l) => l.match(/NAME="([^"]*)"/)?.[1])
+                    .filter((n) => n !== 'Commentary');
+                expect(Object.keys(localizedRenditionNames(capped, selected)).sort()).toEqual(
+                    [...nonPrimaryNames].sort(),
+                );
+                expect(master).toContain('rendition-names.json');
+            }
+        }
+    });
+
+    it('translates into caseless scripts too', () => {
+        const dict = localizedRenditionNames(
+            [track(1), track(2, { codec: 'dts', channels: 6 })],
+            undefined,
+        );
+        expect(dict['English (DTS 5.1)'].ja).toBe('英語 (DTS 5.1)');
+        expect(dict['English (DTS 5.1)'].zh).toBe('英语 (DTS 5.1)');
+    });
+
+    it('does not translate a track whose own title is a language name', () => {
+        const dict = localizedRenditionNames(
+            [track(1), track(2, { displayTitle: 'English' })],
+            undefined,
+        );
+        expect(dict).toEqual({});
     });
 
     it('is empty without duplicates', () => {

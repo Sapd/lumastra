@@ -47,6 +47,8 @@ vi.mock('$lib/server/utils/hls-master-playlist.js', async (importOriginal) => {
         // assertions vacuous.
         generateAudioOnlyMasterPlaylist: actual.generateAudioOnlyMasterPlaylist,
         AUDIO_ONLY_BANDWIDTH: actual.AUDIO_ONLY_BANDWIDTH,
+        // Real implementation — a pure channel-cap rule shared with the handler.
+        manifestAudioTracks: actual.manifestAudioTracks,
         calculateEstimatedBandwidth: vi.fn(),
         // Real implementation — the client-detection policy is what these tests
         // assert on, so stubbing it would make the assertions vacuous.

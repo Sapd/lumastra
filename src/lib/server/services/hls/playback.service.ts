@@ -39,6 +39,7 @@ import { selectFileForPlayback } from '../../../../routes/api/playback/[itemId]/
 import { resolveMediaPath } from '$lib/server/utils/media-path-resolver.js';
 import { probeForTranscode } from '../transcoding/media-probe.service.js';
 import {
+    manifestAudioTracks as manifestAudioTracksFor,
     generateMasterPlaylist,
     generateMuxedMasterPlaylist,
     generateAudioOnlyMasterPlaylist,
@@ -1776,15 +1777,11 @@ export async function startHlsPlayback(request: HlsPlaybackRequest): Promise<Hls
     // `audioForcedByChannelCap`), so the renditions' CHANNELS and the audio
     // share of BANDWIDTH must describe the downmix, not the source. Read from
     // `job.config` for the same reused-job provenance reason as the quality cap.
-    const jobMaxAudioChannels = job.config.maxAudioChannels;
-    const manifestAudioTracks =
-        jobMaxAudioChannels !== undefined && !isAudioCopied
-            ? audioTracks.map((track) =>
-                  track.channels > jobMaxAudioChannels
-                      ? { ...track, channels: jobMaxAudioChannels }
-                      : track,
-              )
-            : audioTracks;
+    const manifestAudioTracks = manifestAudioTracksFor(
+        audioTracks,
+        job.config.maxAudioChannels,
+        isAudioCopied,
+    );
 
     const bandwidth = calculateEstimatedBandwidth(manifestVideoInfo, manifestAudioTracks);
     // The muxed master advertises ONE audio codec and the segments carry whichever

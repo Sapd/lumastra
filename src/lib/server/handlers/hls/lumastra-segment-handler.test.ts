@@ -1290,6 +1290,126 @@ describe('handleHlsSegment — demux master audio codec', () => {
         if (outputDir) await rm(outputDir, { recursive: true, force: true });
     });
 
+    it('serves the rendition-name dictionary for the renditions the master lists', async () => {
+        // Three English tracks next to the German default: the master names the
+        // two non-primary English renditions, and the dictionary translates them.
+        const job = (
+            transcodeServiceMock as { getJob: () => { config: { audioTracks: unknown[] } } }
+        ).getJob();
+        job.config.audioTracks = [
+            {
+                index: 1,
+                codec: 'ac3',
+                channels: 2,
+                language: 'ger',
+                displayTitle: '',
+                isDefault: true,
+            },
+            {
+                index: 2,
+                codec: 'ac3',
+                channels: 2,
+                language: 'eng',
+                displayTitle: '',
+                isDefault: false,
+            },
+            {
+                index: 3,
+                codec: 'dts',
+                channels: 6,
+                language: 'eng',
+                displayTitle: '',
+                isDefault: false,
+            },
+            {
+                index: 4,
+                codec: 'ac3',
+                channels: 2,
+                language: 'eng',
+                displayTitle: '',
+                isDefault: false,
+            },
+        ];
+        const base = 'https://example.test/api/v1/playback/item42/hls/';
+        const masterUrl = new URL(`${base}master.m3u8?PlaySessionId=session-1`);
+        const master = await (
+            await handleHlsSegment({
+                itemId: 'item42',
+                internalId: 'item42',
+                segmentPath: 'master.m3u8',
+                url: masterUrl,
+                request: new Request(masterUrl),
+                basePath: '',
+            })
+        ).text();
+        const session = master.split('\n').find((l) => l.startsWith('#EXT-X-SESSION-DATA'));
+        expect(session).toContain('DATA-ID="_hls.localized-rendition-names"');
+        const dictUri = session?.match(/URI="([^"]*)"/)?.[1] ?? '';
+        expect(dictUri).toContain('/api/v1/playback/item42/hls/rendition-names.json?');
+        const nonPrimary = master
+            .split('\n')
+            .filter((l) => l.startsWith('#EXT-X-MEDIA:TYPE=AUDIO') && l.includes('AUTOSELECT=NO'))
+            .map((l) => l.match(/NAME="([^"]*)"/)?.[1]);
+        expect(nonPrimary).toEqual(['English (DTS 5.1)', 'English (AC3)']);
+
+        const dictUrl = new URL(dictUri, base);
+        const response = await handleHlsSegment({
+            itemId: 'item42',
+            internalId: 'item42',
+            segmentPath: 'rendition-names.json',
+            url: dictUrl,
+            request: new Request(dictUrl),
+            basePath: '',
+        });
+        expect(response.status).toBe(200);
+        expect(response.headers.get('Content-Type')).toContain('application/json');
+        expect(response.headers.get('Cache-Control')).toBe('private, max-age=300');
+        const dictionary = JSON.parse(await response.text()) as Record<
+            string,
+            Record<string, string>
+        >;
+        expect(Object.keys(dictionary).sort()).toEqual([...nonPrimary].sort());
+        expect(dictionary['English (DTS 5.1)'].de).toBe('Englisch (DTS 5.1)');
+
+        // The client's own track choice moves the primary; the dictionary follows.
+        const otherUrl = new URL(
+            `${base}rendition-names.json?PlaySessionId=session-1&hlsAudioTrack=3`,
+        );
+        const other = JSON.parse(
+            await (
+                await handleHlsSegment({
+                    itemId: 'item42',
+                    internalId: 'item42',
+                    segmentPath: 'rendition-names.json',
+                    url: otherUrl,
+                    request: new Request(otherUrl),
+                    basePath: '',
+                })
+            ).text(),
+        ) as Record<string, unknown>;
+        expect(Object.keys(other).sort()).toEqual(['English (AC3)', 'English (AC3) 2']);
+    });
+
+    it('does not let a client cache an empty dictionary when the job is not resident', async () => {
+        Object.assign(transcodeServiceMock, {
+            getJob: () => undefined,
+            getJobByPlaySession: () => undefined,
+        });
+        const url = new URL(
+            'https://example.test/api/v1/playback/item42/hls/rendition-names.json?PlaySessionId=session-1',
+        );
+        const response = await handleHlsSegment({
+            itemId: 'item42',
+            internalId: 'item42',
+            segmentPath: 'rendition-names.json',
+            url,
+            request: new Request(url),
+            basePath: '',
+        });
+        expect(await response.text()).toBe('{}');
+        expect(response.headers.get('Cache-Control')).toBe('no-store');
+    });
+
     it('advertises the DEFAULT track codec, not the first track in the container', async () => {
         const url = new URL(
             'https://example.test/api/v1/playback/item42/hls/master.m3u8?PlaySessionId=session-1',

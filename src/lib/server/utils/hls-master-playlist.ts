@@ -445,13 +445,12 @@ function pickDefaultAudioPosition(
     return flagged === -1 ? 0 : flagged;
 }
 
-/**
- * NAME for an audio rendition before de-duplication. The track's own title is
- * sanitized for HLS; a title that is empty or only repeats the language code
- * (or `und`) is replaced by the language's English name, or "Audio N" when the
- * language is unknown.
- */
-function audioRenditionBaseName(track: AudioTrackInfo, langCode: string, position: number): string {
+/** The base NAME and whether it was generated from the language (not the track's own title). */
+function audioRenditionBase(
+    track: AudioTrackInfo,
+    langCode: string,
+    position: number,
+): { name: string; generated: boolean } {
     const rawTitle = (track.displayTitle ?? '').trim();
     // Apple's players show this NAME as written for a non-primary rendition, so
     // keep the title readable: only a quote or a line break would break the
@@ -462,12 +461,12 @@ function audioRenditionBaseName(track: AudioTrackInfo, langCode: string, positio
             s.trim().toLowerCase(),
         ),
     );
-    if (sanitized && !placeholders.has(rawTitle.toLowerCase())) return sanitized;
-    // localizedLanguageName returns the uppercased tag when the language has no
-    // English name; only a real name counts as a known language here.
-    const languageName = localizedLanguageName(track.language, 'en');
-    if (languageName && languageName !== languageName.toUpperCase()) return languageName;
-    return `Audio ${position + 1}`;
+    if (sanitized && !placeholders.has(rawTitle.toLowerCase())) {
+        return { name: sanitized, generated: false };
+    }
+    const languageName = knownLanguageName(track.language, 'en');
+    if (languageName) return { name: languageName, generated: true };
+    return { name: `Audio ${position + 1}`, generated: false };
 }
 
 /** A NAME attribute value: no quotes, no control characters, single spaces, 50 characters. */
@@ -562,9 +561,9 @@ function describedAudioRenditionName(
     langCode: string,
     position: number,
 ): string {
-    const base = audioRenditionBaseName(track, langCode, position);
+    const { name: base, generated } = audioRenditionBase(track, langCode, position);
     // "Audio N" is unique already; a title or an unknown language keeps its name.
-    if (base !== localizedLanguageName(track.language, 'en')) return base;
+    if (!generated) return base;
     // baseCodecLabel passes an unknown codec string through upper-cased.
     const qualifier = sanitizeRenditionName(
         [track.codec ? baseCodecLabel(track.codec) : '', channelLayoutLabel(track.channels)]
@@ -579,6 +578,35 @@ function describedAudioRenditionName(
 export const RENDITION_NAMES_PATH = 'rendition-names.json';
 /** DATA-ID of the HLS draft's (Appendix E.1) localized rendition names. */
 export const RENDITION_NAMES_DATA_ID = '_hls.localized-rendition-names';
+/**
+ * The language's name in `locale`, or '' when it has none there.
+ * `localizedLanguageName` returns the upper-cased tag for a language it cannot
+ * name; comparing against that tag (not against the name's own case) keeps
+ * caseless scripts such as Japanese.
+ */
+function knownLanguageName(language: string | undefined, locale: string): string {
+    const name = localizedLanguageName(language, locale);
+    if (!name || name === (language ?? '').trim().toUpperCase()) return '';
+    return name;
+}
+
+/**
+ * The audio tracks as a master playlist describes them: a channel-capped job
+ * transcodes its audio down to the cap, so CHANNELS, the layout in a rendition
+ * NAME and the dictionary built from them must all use the downmix. Every
+ * master and the dictionary go through this, so they name the same renditions.
+ */
+export function manifestAudioTracks(
+    audioTracks: AudioTrackInfo[],
+    maxAudioChannels: number | undefined,
+    isAudioCopied: boolean,
+): AudioTrackInfo[] {
+    if (maxAudioChannels === undefined || isAudioCopied) return audioTracks;
+    return audioTracks.map((track) =>
+        track.channels > maxAudioChannels ? { ...track, channels: maxAudioChannels } : track,
+    );
+}
+
 /** Locales the dictionary is written for: the app languages first, then common ones. */
 const RENDITION_NAME_LOCALES = [
     'en',
@@ -594,7 +622,18 @@ const RENDITION_NAME_LOCALES = [
     'fi',
     'pl',
     'cs',
+    'sk',
+    'hu',
+    'ro',
+    'el',
+    'tr',
+    'uk',
     'ru',
+    'ar',
+    'he',
+    'id',
+    'th',
+    'vi',
     'ja',
     'ko',
     'zh',
@@ -633,7 +672,7 @@ export function audioRenditionNames(
     return audioTracks.map((track, i) => {
         const langCode = langCodes[i];
         const isPrimary = primaries.has(i);
-        const base = audioRenditionBaseName(track, langCode, i);
+        const { name: base, generated } = audioRenditionBase(track, langCode, i);
         const name = uniqueAudioRenditionName(
             isPrimary ? base : describedAudioRenditionName(track, langCode, i),
             usedNames,
@@ -645,7 +684,7 @@ export function audioRenditionNames(
             name,
             isPrimary,
             isDefault: i === defaultAudioPosition,
-            generated: base === localizedLanguageName(track.language, 'en'),
+            generated,
         };
     });
 }
@@ -662,20 +701,17 @@ export function localizedRenditionNames(
 ): Record<string, Record<string, string>> {
     const dictionary: Record<string, Record<string, string>> = {};
     for (const r of audioRenditionNames(audioTracks, selectedAudioIndex)) {
-        if (r.isPrimary) continue;
-        if (!r.generated) {
-            dictionary[r.name] = { en: r.name };
-            continue;
-        }
-        const english = localizedLanguageName(r.track.language, 'en');
-        const suffix = r.name.slice(english.length); // " (DTS 5.1)", " (AC3) 2"
+        // A track's own title is shown as written in every locale already.
+        if (r.isPrimary || !r.generated) continue;
+        const english = knownLanguageName(r.track.language, 'en');
+        // " (DTS 5.1)", " (AC3) 2"
+        const suffix = r.name.startsWith(english) ? r.name.slice(english.length) : '';
         const entry: Record<string, string> = {};
         for (const locale of RENDITION_NAME_LOCALES) {
-            const translated = localizedLanguageName(r.track.language, locale);
-            if (translated && translated !== translated.toUpperCase())
-                entry[locale] = translated + suffix;
+            const translated = knownLanguageName(r.track.language, locale);
+            if (translated) entry[locale] = translated + suffix;
         }
-        dictionary[r.name] = Object.keys(entry).length ? entry : { en: r.name };
+        if (Object.keys(entry).length) dictionary[r.name] = entry;
     }
     return dictionary;
 }
@@ -719,7 +755,7 @@ export function generateMasterPlaylist(
             `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="${langCode}",NAME="${name}",DEFAULT=${isDefault ? 'YES' : 'NO'},AUTOSELECT=${isPrimary ? 'YES' : 'NO'},CHANNELS="${channels}",URI="${uri}"`,
         );
     }
-    if (renditions.some((r) => !r.isPrimary)) {
+    if (Object.keys(localizedRenditionNames(audioTracks, selectedAudioIndex)).length > 0) {
         // Apple's players show a non-primary rendition's NAME only in a locale
         // of the rendition's own language; elsewhere every English track reads
         // "Englisch". A localization dictionary (HLS draft, Appendix E.1)
@@ -727,11 +763,12 @@ export function generateMasterPlaylist(
         // `hlsAudioTrack` makes the served dictionary name the same renditions
         // as this master.
         const dictParams = new URLSearchParams(params);
-        if (selectedAudioIndex !== undefined)
-            dictParams.set('hlsAudioTrack', String(selectedAudioIndex));
+        const defaultTrack = renditions.find((r) => r.isDefault)?.track.index;
+        if (defaultTrack !== undefined) dictParams.set('hlsAudioTrack', String(defaultTrack));
         const uri = withHlsParams(`${segmentBase}/${RENDITION_NAMES_PATH}`, dictParams);
+        const header = lines.indexOf('#EXT-X-INDEPENDENT-SEGMENTS');
         lines.splice(
-            lines.indexOf('#EXT-X-INDEPENDENT-SEGMENTS') + 1,
+            header === -1 ? 2 : header + 1,
             0,
             `#EXT-X-SESSION-DATA:DATA-ID="${RENDITION_NAMES_DATA_ID}",URI="${uri}"`,
         );

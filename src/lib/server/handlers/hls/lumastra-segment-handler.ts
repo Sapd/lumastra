@@ -124,6 +124,7 @@ import {
     generateMasterPlaylist,
     calculateEstimatedBandwidth,
     localizedRenditionNames,
+    manifestAudioTracks,
     RENDITION_NAMES_PATH,
     resolveSyntheticIframes,
     type MasterPlaylistOptions,
@@ -827,28 +828,6 @@ async function serveHlsSegment(ctx: HlsSegmentContext): Promise<Response> {
     }
 
     // ================================================================
-    // RENDITION-NAME DICTIONARY: rendition-names.json
-    // The master's EXT-X-SESSION-DATA points here (HLS draft, Appendix E.1);
-    // Apple's players read it to label non-primary audio renditions in the
-    // viewer's language.
-    // ================================================================
-    if (segmentPath === RENDITION_NAMES_PATH) {
-        const namesJob = transcodeService.getJob(jobPlaySessionId);
-        const tracks = namesJob?.config?.audioTracks ?? [];
-        return new Response(
-            JSON.stringify(localizedRenditionNames(tracks, selectedAudioTrackFor(url, namesJob))),
-            {
-                status: 200,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Cache-Control': 'private, max-age=3600',
-                    'Access-Control-Allow-Origin': '*',
-                },
-            },
-        );
-    }
-
-    // ================================================================
     // TRICKPLAY HANDLING: trickplay.m3u8
     // Delegated to hls-trickplay-handler.ts
     // ================================================================
@@ -926,6 +905,31 @@ async function serveHlsSegment(ctx: HlsSegmentContext): Promise<Response> {
                 mount,
             });
             return createErrorResponse(segmentPath, 'Not found', 404);
+        }
+
+        // ================================================================
+        // RENDITION-NAME DICTIONARY: rendition-names.json
+        // The master's EXT-X-SESSION-DATA points here (HLS draft, Appendix
+        // E.1); Apple's players read it to label non-primary audio renditions
+        // in the viewer's language. After the ownership guard, like every
+        // other sub-path of a resident job.
+        // ================================================================
+        if (segmentPath === RENDITION_NAMES_PATH) {
+            const tracks = manifestAudioTracks(
+                job?.config?.audioTracks ?? [],
+                job?.config?.maxAudioChannels,
+                job?.transcodeDecisionResult?.audioAction === 'copy',
+            );
+            const dictionary = localizedRenditionNames(tracks, selectedAudioTrackFor(url, job));
+            return new Response(JSON.stringify(dictionary), {
+                status: 200,
+                headers: {
+                    ...CORS_HEADERS,
+                    'Content-Type': 'application/json; charset=utf-8',
+                    // No resident job (restart, other pod): an empty answer must not stick.
+                    'Cache-Control': job ? 'private, max-age=300' : 'no-store',
+                },
+            });
         }
 
         // Cache-backed preview whose shared artifact job isn't resident (reaped,
@@ -2085,7 +2089,13 @@ export function serveMasterPlaylist(
     url: URL,
     basePath: string,
 ): Response {
-    const { audioTracks, fileId, videoInfo, trickplayInfo } = job.config;
+    const { fileId, videoInfo, trickplayInfo } = job.config;
+    // The same downmix rule as the playback service's master and the dictionary.
+    const audioTracks: AudioTrackInfo[] = manifestAudioTracks(
+        job.config.audioTracks ?? [],
+        job.config.maxAudioChannels,
+        job.transcodeDecisionResult?.audioAction === 'copy',
+    );
 
     // Build segment base URL using the provided basePath
     // For the token surface: basePath is `base` from $app/paths → e.g., '/api/v1/playback/{id}/hls'
