@@ -2074,7 +2074,7 @@ export async function createPreview(params: CreatePreviewParams): Promise<Create
         ensureArtifactJobResident = async (): Promise<void> => {
             if (entry.state === 'ready' && !transcodeService.getJob(artifactSessionId)) {
                 // A complete artifact needs NO in-memory job anymore: the segment
-                // handler's tryServeCompletePreviewFromDisk serves the master,
+                // handler's tryServePreviewArtifactFromDisk serves the master,
                 // media playlists, and segments straight from the `.ready` dir.
                 // Re-warming here used to spawn a second FFmpeg over that same
                 // dir, rewriting segment files in place under active viewers —
@@ -2094,9 +2094,9 @@ export async function createPreview(params: CreatePreviewParams): Promise<Create
                         () => true,
                         () => false,
                     );
-                // Same gate as the disk handler (tryServeCompletePreviewFromDisk):
-                // it serves nothing without the `.ready` marker, so a playlist
-                // alone must not skip the re-warm — that would strand a 410.
+                // The disk handler (tryServePreviewArtifactFromDisk) serves an unmarked
+                // dir only as a still-growing playlist; with no job anywhere it never
+                // grows, so a playlist alone must not skip the re-warm.
                 if (
                     (await hasMaster('.ready')) &&
                     ((await hasMaster('master.m3u8')) || (await hasMaster('index.m3u8')))

@@ -774,9 +774,9 @@ describe('createPreview — content-addressed preview cache wiring', () => {
         expect(mockStartJob).toHaveBeenCalledTimes(1);
     });
 
-    // The disk handler (tryServeCompletePreviewFromDisk) serves ONLY when the
-    // `.ready` marker exists. A playlist with no marker is not disk-servable, so
-    // skipping the re-warm for it would leave the viewer with a 410.
+    // The disk handler (tryServePreviewArtifactFromDisk) treats a dir with no
+    // `.ready` marker as still warming; with no job writing it, it never completes, so
+    // skipping the re-warm for it would strand the viewer on a partial clip.
     it('still re-warms a flat artifact that has index.m3u8 but no .ready marker', async () => {
         const sql = makeFakeSql({
             file_hash_head: 'hash-flat-unmarked',

@@ -53,7 +53,7 @@ vi.mock('$lib/server/services/playback-telemetry.service.js', () => ({
     playbackTelemetryService: { record: vi.fn(async () => {}) },
 }));
 
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import * as nodePath from 'node:path';
 
@@ -1000,8 +1000,8 @@ describe('handleHlsSegment — cache-backed preview restores from complete disk 
         expect(body).not.toContain('stream_');
     });
 
-    it('falls through (no static serve) when the artifact is not yet complete (.ready absent)', async () => {
-        await rm(nodePath.join(artifactDir, '.ready'), { force: true });
+    it('falls through (no static serve) when the artifact directory does not exist', async () => {
+        await rm(artifactDir, { recursive: true, force: true });
         const url = new URL(
             `https://example.test/api/v1/playback/item42/hls/stream_1/segment_00006.m4s?PlaySessionId=${encodeURIComponent(VIEWER_ID)}`,
         );
@@ -1016,6 +1016,172 @@ describe('handleHlsSegment — cache-backed preview restores from complete disk 
 
         // Not statically served — falls through to the normal (missing-job) path.
         expect(response.headers.get('X-Lumastra-Preview-Static')).toBeNull();
+    });
+
+    describe('artifact still warming on another replica (.ready absent)', () => {
+        // Prod 2026-11-03: the preview was created on one web pod, the router sent
+        // its master.m3u8 to the other, which had no job for it and answered 410
+        // ("Session not found in memory or database") — the iPhone hero stayed a
+        // still for every first preview of an item.
+        const WARMING_PLAYLIST = [
+            '#EXTM3U',
+            '#EXT-X-VERSION:7',
+            '#EXT-X-TARGETDURATION:2',
+            '#EXT-X-PLAYLIST-TYPE:EVENT',
+            '#EXT-X-MAP:URI="init_0.mp4"',
+            '#EXTINF:2.0,',
+            'segment_00000.m4s',
+            '',
+        ].join('\n');
+
+        beforeEach(async () => {
+            await rm(nodePath.join(artifactDir, '.ready'), { force: true });
+            await writeFile(nodePath.join(artifactDir, 'index.m3u8'), WARMING_PLAYLIST);
+            await writeFile(nodePath.join(artifactDir, 'init_0.mp4'), Buffer.from('init'));
+            await writeFile(
+                nodePath.join(artifactDir, 'segment_00000.m4s'),
+                Buffer.from('warming-segment-0'),
+            );
+        });
+
+        const request = (segmentPath: string): Promise<Response> => {
+            const url = new URL(
+                `https://example.test/api/v1/playback/item42/hls/${segmentPath}?PlaySessionId=${encodeURIComponent(VIEWER_ID)}&grant=pat_x`,
+            );
+            return handleHlsSegment({
+                itemId: 'item42',
+                internalId: 'item42',
+                segmentPath,
+                url,
+                request: new Request(url),
+                basePath: '',
+            });
+        };
+
+        it('serves the muxed master as a still-live playlist instead of 410', async () => {
+            const response = await request('master.m3u8');
+
+            expect(response.status).toBe(200);
+            expect(response.headers.get('X-Lumastra-Preview-Warming')).toBe('1');
+            const body = await response.text();
+            const q = `PlaySessionId=${encodeURIComponent(VIEWER_ID)}&grant=pat_x`;
+            expect(body).toContain(`segment_00000.m4s?${q}`);
+            expect(body).not.toContain('#EXT-X-ENDLIST');
+            expect(body).not.toContain('#EXT-X-PLAYLIST-TYPE:VOD');
+        });
+
+        it('serves a segment the playlist already lists, uncached', async () => {
+            const response = await request('segment_00000.m4s');
+
+            expect(response.status).toBe(200);
+            expect(response.headers.get('X-Lumastra-Preview-Static')).toBe('segment');
+            expect(response.headers.get('Cache-Control')).toBe('private, no-cache');
+            expect(await response.text()).toBe('warming-segment-0');
+        });
+
+        it('serves the init file once the playlist maps it', async () => {
+            const response = await request('init_0.mp4');
+
+            expect(response.status).toBe(200);
+            expect(await response.text()).toBe('init');
+        });
+
+        it('waits for a segment FFmpeg has not listed yet, then serves it', async () => {
+            await writeFile(
+                nodePath.join(artifactDir, 'segment_00001.m4s'),
+                Buffer.from('partial'),
+            );
+            setTimeout(() => {
+                void (async () => {
+                    await writeFile(
+                        nodePath.join(artifactDir, 'segment_00001.m4s'),
+                        Buffer.from('warming-segment-1'),
+                    );
+                    await writeFile(
+                        nodePath.join(artifactDir, 'index.m3u8'),
+                        `${WARMING_PLAYLIST}#EXTINF:2.0,\nsegment_00001.m4s\n`,
+                    );
+                })();
+            }, 150);
+
+            const response = await request('segment_00001.m4s');
+
+            expect(response.status).toBe(200);
+            expect(await response.text()).toBe('warming-segment-1');
+        });
+
+        it('answers 503 + Retry-After when FFmpeg does not list the file before the deadline', async () => {
+            const realNow = Date.now();
+            let calls = 0;
+            // Stale check and deadline see the real clock; the first poll is already past it.
+            const nowSpy = vi
+                .spyOn(Date, 'now')
+                .mockImplementation(() => (calls++ < 2 ? realNow : realNow + 60_000));
+            try {
+                const response = await request('segment_00005.m4s');
+
+                expect(response.status).toBe(503);
+                expect(response.headers.get('Retry-After')).toBe('1');
+                expect(response.headers.get('Cache-Control')).toBe('no-store');
+                expect(response.headers.get('X-Lumastra-Preview-Static')).toBeNull();
+            } finally {
+                nowSpy.mockRestore();
+            }
+        });
+
+        it('stops treating an artifact nobody has written to for a while as warming', async () => {
+            const old = new Date(Date.now() - 120_000);
+            for (const name of ['index.m3u8', 'init_0.mp4', 'segment_00000.m4s']) {
+                await utimes(nodePath.join(artifactDir, name), old, old);
+            }
+            await utimes(nodePath.join(artifactDir, 'stream_1', 'index.m3u8'), old, old);
+            await utimes(nodePath.join(artifactDir, 'stream_1'), old, old);
+            await utimes(artifactDir, old, old);
+
+            const response = await request('segment_00000.m4s');
+
+            expect(response.headers.get('X-Lumastra-Preview-Static')).toBeNull();
+        });
+
+        it('serves a per-stream (demux) layout: live media playlist, then VOD once finished', async () => {
+            await rm(nodePath.join(artifactDir, 'index.m3u8'), { force: true });
+            await writeFile(
+                nodePath.join(artifactDir, 'stream_1', 'index.m3u8'),
+                WARMING_PLAYLIST.replace('init_0.mp4', 'init_1.mp4'),
+            );
+            await writeFile(
+                nodePath.join(artifactDir, 'stream_1', 'segment_00000.m4s'),
+                Buffer.from('stream-1-segment-0'),
+            );
+
+            const live = await request('stream_1/index.m3u8');
+            expect(live.status).toBe(200);
+            const liveBody = await live.text();
+            expect(liveBody).not.toContain('#EXT-X-PLAYLIST-TYPE:VOD');
+            expect(liveBody).toContain('segment_00000.m4s?');
+
+            const segment = await request('stream_1/segment_00000.m4s');
+            expect(segment.status).toBe(200);
+            expect(await segment.text()).toBe('stream-1-segment-0');
+
+            await writeFile(
+                nodePath.join(artifactDir, 'stream_1', 'index.m3u8'),
+                `${WARMING_PLAYLIST.replace('init_0.mp4', 'init_1.mp4')}#EXT-X-ENDLIST\n`,
+            );
+            const finished = await (await request('stream_1/index.m3u8')).text();
+            expect(finished).toContain('#EXT-X-PLAYLIST-TYPE:VOD');
+        });
+
+        it('falls through for a segment a finished playlist never listed', async () => {
+            await writeFile(
+                nodePath.join(artifactDir, 'index.m3u8'),
+                `${WARMING_PLAYLIST}#EXT-X-ENDLIST\n`,
+            );
+
+            const response = await request('segment_00009.m4s');
+
+            expect(response.headers.get('X-Lumastra-Preview-Static')).toBeNull();
+        });
     });
 
     it('marks the disk-served segment private so shared caches cannot store it', async () => {

@@ -296,25 +296,172 @@ async function serveMuxedJobMaster(
     }
 }
 
-async function tryServeCompletePreviewFromDisk(opts: {
+/**
+ * How long a request for a still-warming artifact waits for FFmpeg (on whichever
+ * replica runs it) to write the file. Short: an ambient preview that cannot
+ * start within a few seconds is worth less than the 503 + Retry-After that lets
+ * the player come back on its own.
+ */
+const PREVIEW_WARMING_WAIT_MS = 8_000;
+
+/**
+ * A warming artifact with no write for this long has lost its builder (pod
+ * killed, FFmpeg crashed): stop treating it as warming so the request takes the
+ * normal missing-job path instead of a 503 that would never end.
+ */
+const PREVIEW_WARMING_STALE_MS = 30_000;
+
+/** Newest mtime among the artifact dir and its playlists, or 0 when none can be read. */
+async function newestArtifactWriteMs(dir: string): Promise<number> {
+    const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => []);
+    const candidates = [
+        dir,
+        path.join(dir, 'index.m3u8'),
+        ...entries
+            .filter((entry) => entry.isDirectory())
+            .map((entry) => path.join(dir, entry.name, 'index.m3u8')),
+    ];
+    const times = await Promise.all(
+        candidates.map((p) =>
+            fs.stat(p).then(
+                (st) => st.mtimeMs,
+                () => 0,
+            ),
+        ),
+    );
+    return Math.max(0, ...times);
+}
+
+async function pathExists(p: string): Promise<boolean> {
+    try {
+        await fs.access(p);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function previewNotReadyResponse(): Response {
+    return new Response('Preview not ready — still being built', {
+        status: 503,
+        headers: { ...CORS_HEADERS, 'Retry-After': '1', 'Cache-Control': 'no-store' },
+    });
+}
+
+/** Whether a media playlist already lists `fileName` (a segment line or the EXT-X-MAP init). */
+function playlistListsFile(playlist: string, fileName: string): boolean {
+    return playlist
+        .split('\n')
+        .some((line) => line.trim() === fileName || line.includes(`URI="${fileName}"`));
+}
+
+/**
+ * Serve a cache-backed preview artifact that ANOTHER replica is still building.
+ *
+ * The artifact directory lives on the transcode volume every replica mounts, but
+ * the FFmpeg job that writes it is in the memory of the replica that created the
+ * preview. The router picks the replica for the create and for the stream
+ * requests independently, so the first viewer of an item lands on the other one
+ * about half the time — and before this, that replica 410'd ("Session not found
+ * in memory or database") and the hero preview stayed a still. Serve what FFmpeg
+ * has written so far, as the resident-job path does: playlists as they stand
+ * (EVENT until FFmpeg writes ENDLIST), and a segment or init file only once its
+ * playlist lists it, which is when FFmpeg has finished writing it.
+ */
+async function serveWarmingPreviewFromDisk(opts: {
+    dir: string;
+    normalizedPath: string;
+    filePath: string;
+    ext: string;
+    url: URL;
+    playSessionId: string;
+    signal?: AbortSignal;
+}): Promise<Response | null> {
+    const { dir, normalizedPath, filePath, ext, url, playSessionId, signal } = opts;
+    const deadline = Date.now() + Math.min(PREVIEW_WARMING_WAIT_MS, SEGMENT_WAIT_TIMEOUT_MS);
+    const readOrNull = (p: string): Promise<string | null> =>
+        fs.readFile(p, 'utf-8').catch(() => null);
+    const warmingHeaders = (kind: string, contentType: string): Record<string, string> => ({
+        ...CORS_HEADERS,
+        'Content-Type': contentType,
+        'Cache-Control': 'private, no-cache',
+        'X-Lumastra-Preview-Static': kind,
+        'X-Lumastra-Preview-Warming': '1',
+    });
+
+    const isSegment = ext === '.m4s' || ext === '.ts';
+    const isInit = ext === '.mp4' && normalizedPath.includes('init_');
+    if (ext !== '.m3u8' && !isSegment && !isInit) return null;
+
+    while (true) {
+        if (normalizedPath === 'master.m3u8') {
+            const master = await readOrNull(filePath);
+            if (master !== null) {
+                return new Response(
+                    rewriteMediaPlaylist(
+                        master,
+                        buildChildPlaylistParams(url, playSessionId),
+                        url.origin,
+                    ),
+                    { status: 200, headers: warmingHeaders('master', CONTENT_TYPES['.m3u8']) },
+                );
+            }
+            // Muxed (flat) artifact: its master is the root media playlist.
+            const index = await readOrNull(path.join(dir, 'index.m3u8'));
+            if (index?.includes('#EXTINF')) {
+                const response = muxedMasterResponse(
+                    index,
+                    buildChildPlaylistParams(url, playSessionId),
+                    index.includes('#EXT-X-ENDLIST'),
+                );
+                response.headers.set('X-Lumastra-Preview-Warming', '1');
+                return response;
+            }
+        } else if (ext === '.m3u8') {
+            const content = await readOrNull(filePath);
+            if (content?.includes('#EXTINF')) {
+                const rewritten = rewriteMediaPlaylist(content, url.searchParams, url.origin);
+                return new Response(
+                    content.includes('#EXT-X-ENDLIST') ? addVodMarkers(rewritten) : rewritten,
+                    { status: 200, headers: warmingHeaders('playlist', CONTENT_TYPES['.m3u8']) },
+                );
+            }
+        } else {
+            const playlist = await readOrNull(path.join(path.dirname(filePath), 'index.m3u8'));
+            if (playlist !== null && playlistListsFile(playlist, path.basename(filePath))) {
+                const bytes = await fs.readFile(filePath).catch(() => null);
+                if (bytes) {
+                    bandwidthTracker.trackHlsSegmentForSession(playSessionId, bytes.length);
+                    return new Response(new Uint8Array(bytes), {
+                        status: 200,
+                        headers: warmingHeaders(
+                            'segment',
+                            CONTENT_TYPES[ext] || 'application/octet-stream',
+                        ),
+                    });
+                }
+                // Listed but not readable yet (volume lag): poll again below.
+            }
+            // FFmpeg finished without this file: it will never appear here.
+            if (playlist?.includes('#EXT-X-ENDLIST')) return null;
+        }
+        // The player gave up on this request; nobody reads the answer.
+        if (signal?.aborted || Date.now() >= deadline) return previewNotReadyResponse();
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+    }
+}
+
+async function tryServePreviewArtifactFromDisk(opts: {
     cacheKey: string;
     segmentPath: string;
     url: URL;
     playSessionId: string;
+    signal?: AbortSignal;
 }): Promise<Response | null> {
-    const { cacheKey, segmentPath, url, playSessionId } = opts;
+    const { cacheKey, segmentPath, url, playSessionId, signal } = opts;
     if (!cacheKey) return null;
 
     const dir = getPreviewCacheStore().dirFor(cacheKey);
-
-    // Only serve a COMPLETE artifact. A warming/absent artifact falls through:
-    // during warming the in-memory job is normally still resident (so we never
-    // reach here), and if it isn't, the rare race is left to the normal path.
-    try {
-        await fs.access(path.join(dir, '.ready'));
-    } catch {
-        return null;
-    }
 
     const normalizedPath = path.normalize(segmentPath);
     if (normalizedPath.includes('..')) return null;
@@ -322,6 +469,24 @@ async function tryServeCompletePreviewFromDisk(opts: {
     if (!isPathInsideDirectory(filePath, dir)) return null;
 
     const ext = path.extname(normalizedPath).toLowerCase();
+
+    // No `.ready` marker: the artifact is still being built — by another replica,
+    // since this one has no job for it — or it does not exist at all.
+    if (!(await pathExists(path.join(dir, '.ready')))) {
+        if (!(await pathExists(dir))) return null;
+        if (Date.now() - (await newestArtifactWriteMs(dir)) > PREVIEW_WARMING_STALE_MS) {
+            return null;
+        }
+        return serveWarmingPreviewFromDisk({
+            dir,
+            normalizedPath,
+            filePath,
+            ext,
+            url,
+            playSessionId,
+            signal,
+        });
+    }
 
     // Per-stream media playlist (stream_N/index.m3u8): read FFmpeg's on-disk
     // manifest, rewrite segment URLs with this request's query params, and mark
@@ -935,15 +1100,17 @@ async function serveHlsSegment(ctx: HlsSegmentContext): Promise<Response> {
         // Cache-backed preview whose shared artifact job isn't resident (reaped,
         // or not-yet-re-warmed while a viewer is mid-playback). Preview jobs are
         // not DB-persisted, so restoreHlsJobIfMissing below would 410 → the hover
-        // preview flashes then reverts to backdrop. If the on-disk artifact is
-        // complete, serve the finished bytes straight from disk instead (no
-        // FFmpeg re-spawn → no corruption of files an active viewer is reading).
+        // preview flashes then reverts to backdrop. Serve the on-disk artifact
+        // instead: finished bytes when it is complete (no FFmpeg re-spawn → no
+        // corruption of files an active viewer is reading), or what another
+        // replica's job has written so far while it is still warming.
         if (!job && isCacheBacked) {
-            const served = await tryServeCompletePreviewFromDisk({
+            const served = await tryServePreviewArtifactFromDisk({
                 cacheKey: jobPlaySessionId.slice(PREVIEW_CACHE_JOB_PREFIX.length),
                 segmentPath,
                 url,
                 playSessionId,
+                signal: request.signal,
             });
             if (served) return served;
         }
