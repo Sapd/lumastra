@@ -908,7 +908,7 @@ When you need an exception:
 
 ## Related Documentation
 
-- [CLAUDE.md](../CLAUDE.md) - Project architectural guidelines
+- [AGENTS.md](../../AGENTS.md) - Project architectural guidelines
 
 ## Music preview shallow navigation
 

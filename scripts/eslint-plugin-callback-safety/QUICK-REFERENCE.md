@@ -87,4 +87,4 @@ export let onLibraryEvent: (event: CustomEvent<Data>) => void;
 - **Usage Guide:** `scripts/eslint-plugin-callback-safety/USAGE.md`
 - **Full Patterns:** `docs/dev/lint-rules/callback-types.md`
 - **Runtime Utils:** `src/lib/utils/runtime-validation.ts`
-- **Project Guide:** `CLAUDE.md` (Section: Custom Callback Safety Rules)
+- **Project Guide:** `AGENTS.md` (section: ESLint enforcement)

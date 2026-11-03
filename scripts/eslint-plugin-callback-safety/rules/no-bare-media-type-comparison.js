@@ -72,7 +72,7 @@
  *     if (item.Type === 'Movie') { … }
  *
  * @see docs/dev/eslint-exceptions.md
- * @see CLAUDE.md — "Critical: Media Type Case Consistency"
+ * @see AGENTS.md — "Media type case and vocabulary"
  */
 
 /**

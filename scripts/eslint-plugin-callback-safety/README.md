@@ -244,7 +244,7 @@ npm test -- scripts/eslint-plugin-callback-safety/tests
 
 - `docs/dev/lint-rules/callback-types.md` - Detailed patterns and examples
 - `src/lib/utils/runtime-validation.ts` - Runtime validation utilities
-- `CLAUDE.md` - Project coding guidelines
+- `AGENTS.md` - Project coding guidelines
 
 ## Why These Rules?
 

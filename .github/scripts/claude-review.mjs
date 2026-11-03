@@ -20,7 +20,7 @@ const MODEL = process.env.CLAUDE_REVIEW_MODEL || 'claude-sonnet-5';
 const MAX_PATCH_CHARS = 180_000; // whole diff budget
 const MAX_FILE_CHARS = 40_000; // per full-file context
 const MAX_CONTEXT_FILES_CHARS = 120_000; // all full-file context together
-const MAX_GUIDE_CHARS = 30_000; // project conventions from the base branch
+const MAX_GUIDE_CHARS = 60_000; // project conventions from the base branch
 const SKIP_FILE =
     /(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$|\.(png|jpe?g|gif|webp|ico|svg|woff2?|ttf|mp4|mkv|zip|gz|pdf)$|(^|\/)src\/lib\/api\/schema\.d\.ts$|(^|\/)docs\/api\/[^/]+\.ya?ml$/i;
 
@@ -107,7 +107,7 @@ for (const f of files) {
 
 // --- project conventions, from the trusted base-branch checkout ----------------------
 let guide = '';
-for (const p of ['CLAUDE.md', '.github/CONTRIBUTING.md']) {
+for (const p of ['AGENTS.md', '.github/CONTRIBUTING.md']) {
     if (existsSync(p)) guide += `=== ${p} ===\n${readFileSync(p, 'utf8')}\n`;
 }
 guide = guide.slice(0, MAX_GUIDE_CHARS);

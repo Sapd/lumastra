@@ -333,7 +333,7 @@ Most IDEs with ESLint integration will show warnings inline:
 - `README.md` - Plugin architecture and rule descriptions
 - `docs/dev/lint-rules/callback-types.md` - Detailed patterns and antipatterns
 - `src/lib/utils/runtime-validation.ts` - Runtime validation utilities API
-- `CLAUDE.md` - Project coding guidelines
+- `AGENTS.md` - Project coding guidelines
 
 ## Support
 

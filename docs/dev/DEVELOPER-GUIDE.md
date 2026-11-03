@@ -5,7 +5,7 @@ Comprehensive reference for Lumastra development patterns, utilities, and best p
 **Quick Links:**
 
 - 🚀 [Quick Start Guide](./QUICK-START.md) - Commands, setup, testing
-- 📖 [Main Project Guide](../CLAUDE.md) - Core architecture and critical rules
+- 📖 [Main Project Guide](../../AGENTS.md) - Core architecture and critical rules
 
 ## Table of Contents
 
@@ -1275,7 +1275,7 @@ described.
 
 ## Additional Resources
 
-- 📖 [Main Project Guide](../CLAUDE.md) - Core architecture and critical rules
+- 📖 [Main Project Guide](../../AGENTS.md) - Core architecture and critical rules
 - 🚀 [Quick Start Guide](./QUICK-START.md) - Commands, setup, deployment
 - 📁 [Query Modules](../../src/lib/server/database/queries/) - Source code
 - 📁 [Services](../../src/lib/server/services/) - Source code

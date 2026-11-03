@@ -702,5 +702,5 @@ weirdness lives. Investigate the data first.
   flow, player events, watch-state recording
 - `docs/architecture/database-architecture.md` — the three-tier DB
   pattern (queries / services / managers)
-- `CLAUDE.md` (repo root) — provider-agnostic patterns and critical
+- `AGENTS.md` (repo root) — provider-agnostic patterns and critical
   gotchas across the whole codebase

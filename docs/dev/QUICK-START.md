@@ -8,7 +8,7 @@ the dev auth bypass) and come back here for the commands.
 
 **Quick Links:**
 
-- 📖 [Main Project Guide](../../CLAUDE.md) - Core architecture and critical rules
+- 📖 [Main Project Guide](../../AGENTS.md) - Core architecture and critical rules
 - 📘 [Developer Guide](./DEVELOPER-GUIDE.md) - Comprehensive API references and patterns
 - 🌐 [Environment variables](https://lumastra.org/reference/environment-variables/) - every setting, on the website
 
@@ -556,7 +556,7 @@ npm run test -- --clearCache
 
 ## Additional Resources
 
-- 📖 [Main Project Guide](../../CLAUDE.md) - Core architecture and critical rules
+- 📖 [Main Project Guide](../../AGENTS.md) - Core architecture and critical rules
 - 📘 [Developer Guide](./DEVELOPER-GUIDE.md) - API references and patterns
 - 📁 [SvelteKit Documentation](https://kit.svelte.dev/docs)
 - 📁 [Vitest Documentation](https://vitest.dev/)

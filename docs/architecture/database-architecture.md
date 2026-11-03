@@ -696,7 +696,7 @@ describe('search.queries (Integration)', () => {
 
 ## ESLint Enforcement
 
-See **CLAUDE.md** for complete ESLint rules. Key patterns:
+See **AGENTS.md** for complete ESLint rules. Key patterns:
 
 1. **No direct `external_ids` writes** - Use `CatalogService`
 2. **No `throw error()` in API routes** - Use `ApiResponses`
@@ -769,5 +769,5 @@ await catalogService.upsertExternalId(mediaId, externalId);
 
 **See Also:**
 
-- [CLAUDE.md](../CLAUDE.md) - Complete architecture guidelines
+- [AGENTS.md](../../AGENTS.md) - Complete architecture guidelines
 - [ESLint Exceptions](../dev/eslint-exceptions.md) - Documented rule exceptions

@@ -59,7 +59,7 @@ typecheck and the unit suite; CI runs the integration and end-to-end tiers as we
 
 ## Code style & quality
 
-- **Formatting:** Prettier, 4-space indent, single quotes, no trailing commas, 80-col width.
+- **Formatting:** Prettier, 4-space indent, single quotes, trailing commas, 100-column width (see `.prettierrc`).
   Run `npm run format`. Prettier also runs automatically on commit.
 - **Linting:** ESLint with a **zero-warnings policy** (`--max-warnings=0`).
   Run `npm run lint` (or `npm run lint -- --fix`). Document any rule exception in
@@ -73,7 +73,7 @@ typecheck and the unit suite; CI runs the integration and end-to-end tiers as we
   docs for component work.
 - **Conventions:** many directories contain a `CLAUDE.md` with module-specific guidance. Read
   it before changing code in that area. The big-picture rules live in
-  [`CLAUDE.md`](../CLAUDE.md), [`AGENTS.md`](../AGENTS.md), and
+  [`AGENTS.md`](../AGENTS.md) and
   [`docs/dev/DEVELOPER-GUIDE.md`](../docs/dev/DEVELOPER-GUIDE.md).
 
 Before opening a PR, please run:

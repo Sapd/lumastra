@@ -84,7 +84,7 @@ const serverRules = {
         {
             selector: 'TemplateElement[value.raw=/INSERT INTO external_ids/]',
             message:
-                'Use CatalogService.upsertExternalId() or batchUpsertExternalIds() instead of direct INSERT INTO external_ids. See CLAUDE.md for details.',
+                'Use CatalogService.upsertExternalId() or batchUpsertExternalIds() instead of direct INSERT INTO external_ids. See AGENTS.md for details.',
         },
     ],
     'callback-safety/no-direct-external-id-access': 'warn',
@@ -187,7 +187,7 @@ module.exports = [
                 {
                     selector: 'TemplateElement[value.raw=/INSERT INTO external_ids/]',
                     message:
-                        'Use CatalogService.upsertExternalId() or batchUpsertExternalIds() instead of direct INSERT INTO external_ids. See CLAUDE.md for details.',
+                        'Use CatalogService.upsertExternalId() or batchUpsertExternalIds() instead of direct INSERT INTO external_ids. See AGENTS.md for details.',
                 },
             ],
             // Provider-agnostic external ID access - use helpers from $lib/utils/external-ids
@@ -518,12 +518,12 @@ module.exports = [
                 {
                     selector: 'TemplateElement[value.raw=/UPDATE external_ids/]',
                     message:
-                        'Use CatalogService methods instead of direct UPDATE external_ids. See CLAUDE.md External IDs section.',
+                        'Use CatalogService methods instead of direct UPDATE external_ids. See the AGENTS.md external IDs section.',
                 },
                 {
                     selector: 'TemplateElement[value.raw=/DELETE FROM external_ids/]',
                     message:
-                        'Use CatalogService methods instead of direct DELETE FROM external_ids. See CLAUDE.md External IDs section.',
+                        'Use CatalogService methods instead of direct DELETE FROM external_ids. See the AGENTS.md external IDs section.',
                 },
                 {
                     selector: 'ThrowStatement > CallExpression[callee.name="error"]',
