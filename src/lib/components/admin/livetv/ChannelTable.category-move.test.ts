@@ -67,18 +67,25 @@ function wideViewport(): void {
 }
 
 beforeEach(() => {
+    // Every test runs on fake timers. The store's 500 ms save debounce is a plain setTimeout
+    // that outlives the unmounted component; on real timers a save left over from one test
+    // fires during a later test on a slow machine and lands in that test's apiPut count.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     localStorage.clear();
     wideViewport();
     apiPut.mockResolvedValue({ data: { success: true }, error: null });
 });
-afterEach(() => {
+afterEach(async () => {
+    // Flush saves a test left pending (they belong to this test), then drop the mock's calls.
+    await vi.runOnlyPendingTimersAsync();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     apiPut.mockReset();
 });
 
 describe('Reordering categories', () => {
     test('the category menu moves a category to the top, also while expanded', async () => {
-        const user = userEvent.setup();
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         render(ChannelTable, { categories: lineup() });
         await user.click(header('Kids')); // expanded: the old drag needed all collapsed
         await user.click(within(header('Kids')).getByRole('button', { name: 'Category actions' }));
@@ -87,7 +94,6 @@ describe('Reordering categories', () => {
     });
 
     test('Alt+↓ on a category header moves it one place and announces it', async () => {
-        vi.useFakeTimers({ shouldAdvanceTime: true });
         const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         render(ChannelTable, { categories: lineup() });
         header('News').focus();
@@ -95,11 +101,9 @@ describe('Reordering categories', () => {
         expect(order()).toEqual(['Sport', 'News', 'Kids']);
         await vi.advanceTimersByTimeAsync(50);
         expect(screen.getByRole('status').textContent).toContain('News moved to position 2 of 3');
-        vi.useRealTimers();
     });
 
     test('a drag in the category rail reorders and saves only the category order', async () => {
-        vi.useFakeTimers({ shouldAdvanceTime: true });
         render(ChannelTable, { categories: lineup() });
         const rail = screen.getByRole('navigation', { name: 'Categories' });
         const zone = rail.querySelector('[data-rail-zone]') as HTMLElement;
@@ -125,11 +129,10 @@ describe('Reordering categories', () => {
         ]);
         // No channel moved: the save carries no channel rows.
         expect(body.channels).toBeUndefined();
-        vi.useRealTimers();
     });
 
     test('Alt+↑ on a rail entry moves that category', async () => {
-        const user = userEvent.setup();
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         render(ChannelTable, { categories: lineup() });
         const rail = screen.getByRole('navigation', { name: 'Categories' });
         within(rail).getByRole('button', { name: /Kids/ }).focus();
