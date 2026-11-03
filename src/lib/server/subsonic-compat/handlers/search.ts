@@ -31,11 +31,15 @@ import {
     getTrackDetail,
     getTrackPlayCounts,
     getTracksPaged,
+    getTracksByIds,
     getArtists,
     getAlbums,
 } from '$lib/server/database/queries/music.queries.js';
 import { getRandomTracks } from '$lib/server/database/queries/music-quick-picks.queries.js';
-import { searchMusic } from '$lib/server/database/queries/search.queries.js';
+import {
+    searchMusic,
+    type MusicSearchResult,
+} from '$lib/server/database/queries/search.queries.js';
 import {
     getDeniedLibraryGroups,
     toLibraryAccessUser,
@@ -117,16 +121,37 @@ export const handleSearch3: SubsonicHandler = async (
         subsonicBoundary(denied, ageRatingFromAuth(auth)),
     );
 
+    const { artist, album, song } = await serializeSearchHits(
+        sql,
+        results,
+        artistCount,
+        albumCount,
+        songCount,
+    );
+
+    return subsonicOk({ searchResult3: { artist, album, song } }, auth.format);
+};
+
+/**
+ * Turn text-search hits into Subsonic entries. Song hits are hydrated and go
+ * through serializeSong like every other song-returning endpoint, so they
+ * carry replayGain, genre, track number and file details; a client that
+ * refreshes a track from a search result would otherwise lose them.
+ */
+async function serializeSearchHits(
+    sql: postgres.Sql,
+    results: MusicSearchResult[],
+    artistCount: number,
+    albumCount: number,
+    songCount: number,
+): Promise<{ artist: SubsonicArtist[]; album: SubsonicAlbum[]; song: SubsonicSong[] }> {
     const artist: SubsonicArtist[] = [];
     const album: SubsonicAlbum[] = [];
-    const song: SubsonicSong[] = [];
+    const trackIds: string[] = [];
 
     for (const row of results) {
         if (row.media_type === 'artist' && artist.length < artistCount) {
-            const a: SubsonicArtist = {
-                id: row.id,
-                name: row.title,
-            };
+            const a: SubsonicArtist = { id: row.id, name: row.title };
             if (row.image_source_id) a.coverArt = row.image_source_id;
             artist.push(a);
         } else if (row.media_type === 'album' && album.length < albumCount) {
@@ -142,27 +167,16 @@ export const handleSearch3: SubsonicHandler = async (
             if (row.created_at) a.created = row.created_at;
             a.coverArt = row.id;
             album.push(a);
-        } else if (row.media_type === 'track' && song.length < songCount) {
-            const s: SubsonicSong = {
-                id: row.id,
-                title: row.title,
-                isDir: false,
-                type: 'music',
-                isVideo: false,
-                duration: Math.round(row.runtime_seconds ?? 0),
-            };
-            if (row.album_title) s.album = row.album_title;
-            if (row.album_id) s.albumId = row.album_id;
-            if (row.artist_name) s.artist = row.artist_name;
-            if (row.artist_id) s.artistId = row.artist_id;
-            if (row.year != null) s.year = row.year;
-            s.coverArt = row.id;
-            song.push(s);
+        } else if (row.media_type === 'track' && trackIds.length < songCount) {
+            trackIds.push(row.id);
         }
     }
 
-    return subsonicOk({ searchResult3: { artist, album, song } }, auth.format);
-};
+    // searchMusic already applied the caller's access boundary to these ids.
+    const tracks = await getTracksByIds(sql, trackIds);
+    const song = tracks.map((t) => serializeSong(t));
+    return { artist, album, song };
+}
 
 // search2 — legacy alias for search3 with response key "searchResult2".
 export const handleSearch2: SubsonicHandler = async (
@@ -235,46 +249,13 @@ export const handleSearch2: SubsonicHandler = async (
         subsonicBoundary(denied, ageRatingFromAuth(auth)),
     );
 
-    const artist: SubsonicArtist[] = [];
-    const album: SubsonicAlbum[] = [];
-    const song: SubsonicSong[] = [];
-
-    for (const row of results) {
-        if (row.media_type === 'artist' && artist.length < artistCount) {
-            const a: SubsonicArtist = { id: row.id, name: row.title };
-            if (row.image_source_id) a.coverArt = row.image_source_id;
-            artist.push(a);
-        } else if (row.media_type === 'album' && album.length < albumCount) {
-            const a: SubsonicAlbum = {
-                id: row.id,
-                name: row.title,
-                songCount: 0,
-                duration: 0,
-            };
-            if (row.artist_name) a.artist = row.artist_name;
-            if (row.artist_id) a.artistId = row.artist_id;
-            if (row.year != null) a.year = row.year;
-            if (row.created_at) a.created = row.created_at;
-            a.coverArt = row.id;
-            album.push(a);
-        } else if (row.media_type === 'track' && song.length < songCount) {
-            const s: SubsonicSong = {
-                id: row.id,
-                title: row.title,
-                isDir: false,
-                type: 'music',
-                isVideo: false,
-                duration: Math.round(row.runtime_seconds ?? 0),
-            };
-            if (row.album_title) s.album = row.album_title;
-            if (row.album_id) s.albumId = row.album_id;
-            if (row.artist_name) s.artist = row.artist_name;
-            if (row.artist_id) s.artistId = row.artist_id;
-            if (row.year != null) s.year = row.year;
-            s.coverArt = row.id;
-            song.push(s);
-        }
-    }
+    const { artist, album, song } = await serializeSearchHits(
+        sql,
+        results,
+        artistCount,
+        albumCount,
+        songCount,
+    );
 
     return subsonicOk({ searchResult2: { artist, album, song } }, auth.format);
 };

@@ -399,6 +399,34 @@ describe('Subsonic artist/album handlers count only what the caller can play (In
         },
     );
 
+    it.each([
+        [handleSearch2, 'searchResult2'],
+        [handleSearch3, 'searchResult3'],
+    ] as const)('%s text hits carry replayGain like the library listing', async (handler, key) => {
+        // Symfonium refreshes tracks from search hits; a hand-built song
+        // object without replayGain silently turned its normalization off.
+        const trackId = open.trackIds[1];
+        const title = `Gainhit${randomUUID().slice(0, 8)}`;
+        await sql`UPDATE media_items
+                  SET title = ${title},
+                      custom_metadata = custom_metadata || ${sql.json({ essentia: { loudness_lufs: -9.4 } })}
+                  WHERE id = ${trackId}`;
+        const body = await call(handler, admin(), sql, {
+            query: title,
+            songCount: '20',
+            artistCount: '0',
+            albumCount: '0',
+        });
+        const song = ((body[key] as { song?: { id: string }[] }).song ?? []).find(
+            (s) => s.id === trackId,
+        );
+        expect(song).toMatchObject({
+            title,
+            albumId: open.albumId,
+            replayGain: { trackGain: -4.6, fallbackGain: -4.6 },
+        });
+    });
+
     it('getRandomSongs passes the demoted principal library deny-list to its sampled query', async () => {
         await sql`UPDATE users SET username = ${TEST_USER}, is_admin = true, groups = ARRAY['kids'] WHERE id = ${TEST_USER}`;
         await sql`INSERT INTO subsonic_client_passwords (user_id, token)
