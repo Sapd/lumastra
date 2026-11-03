@@ -49,6 +49,7 @@ Server-side utility functions — API responses, media handling, HLS, image proc
 | `provider-config.ts`                            | Provider configuration helpers                 | Configuring providers                                       |
 | `rating-utils.ts`                               | Rating calculation utilities                   | Calculating ratings                                         |
 | `rating-utils.test.ts`                          | Rating utility tests                           | Testing rating logic                                        |
+| `repeat-warning.ts`                             | One warning per window for a loop that fails the same way each tick | Logging a recurring outage error (outbox passes) |
 | `section-builder.ts`                            | Page section builder utility                   | Building page sections                                      |
 | `string-utils.ts`                               | String manipulation utilities                  | Manipulating strings                                        |
 | `string-utils.test.ts`                          | String utility tests                           | Testing string logic                                        |

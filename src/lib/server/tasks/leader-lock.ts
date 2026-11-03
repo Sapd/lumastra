@@ -22,6 +22,9 @@ function leaderResourceFromKey(key: string): string {
     return key.startsWith('lock:orch:') ? key.slice('lock:orch:'.length) : key;
 }
 
+/** Set once a release failure was logged at warn level; later ones are debug. */
+let releaseFailureWarned = false;
+
 /**
  * Renewable SET-NX lock. Acquires `key=holderId NX PX ttl`; renews via a small
  * compare-and-extend Lua. Fires `onLost` once if a renewal sees somebody else
@@ -247,10 +250,13 @@ export class LeaderLock {
                 `LeaderLock ${this.key} pending requests`,
             );
         } catch (err) {
-            log.warn('LeaderLock release skipped: earlier requests unanswered; key left to expire', {
-                key: this.key,
-                err: errMessage(err),
-            });
+            log.warn(
+                'LeaderLock release skipped: earlier requests unanswered; key left to expire',
+                {
+                    key: this.key,
+                    err: errMessage(err),
+                },
+            );
             if (options.strict)
                 throw new Error(`UNKNOWN: LeaderLock release unconfirmed for ${this.key}`, {
                     cause: err,
@@ -275,10 +281,12 @@ export class LeaderLock {
                 throw new Error('Invalid LeaderLock release acknowledgement');
             this.releaseRequired = false;
         } catch (err) {
-            log.warn('LeaderLock release failed', {
+            // One warning per process: a Valkey that is gone fails every class lock the same way.
+            (releaseFailureWarned ? log.debug : log.warn).call(log, 'LeaderLock release failed', {
                 key: this.key,
                 err: errMessage(err),
             });
+            releaseFailureWarned = true;
             if (options.strict)
                 throw new Error(`UNKNOWN: LeaderLock release unconfirmed for ${this.key}`, {
                     cause: err,
@@ -337,13 +345,16 @@ export class LeaderLock {
         if (this.stopped || this.lastRenewOkNs === null) return false;
         const elapsedMs = Number((process.hrtime.bigint() - this.lastRenewOkNs) / 1_000_000n);
         if (elapsedMs < this.lossThresholdMs) return false;
-        log.warn('LeaderLock: no confirmed renewal within the TTL safety margin — leadership lost', {
-            key: this.key,
-            elapsedMs,
-            ttlMs: this.ttlMs,
-            lossThresholdMs: this.lossThresholdMs,
-            renewPending: this.pendingRenewGeneration === this.generation,
-        });
+        log.warn(
+            'LeaderLock: no confirmed renewal within the TTL safety margin — leadership lost',
+            {
+                key: this.key,
+                elapsedMs,
+                ttlMs: this.ttlMs,
+                lossThresholdMs: this.lossThresholdMs,
+                renewPending: this.pendingRenewGeneration === this.generation,
+            },
+        );
         this.declareLost('renewal-deadline-exceeded');
         return true;
     }

@@ -184,9 +184,12 @@ export class ConnectionWedgeWatchdog {
      */
     recordHealthy(scope: string): void {
         if (this.streaks.delete(scope)) {
-            this.log.debug?.('Worker connection recovered (job processed) — clearing wedge streak', {
-                scope,
-            });
+            this.log.debug?.(
+                'Worker connection recovered (job processed) — clearing wedge streak',
+                {
+                    scope,
+                },
+            );
         }
     }
 

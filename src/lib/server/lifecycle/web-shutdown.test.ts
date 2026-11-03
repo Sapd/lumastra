@@ -14,7 +14,7 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { EventEmitter, once } from 'node:events';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
     _resetWebShutdownForTests,
     createShutdownGateHandle,
@@ -413,6 +413,7 @@ describe('web shutdown sequence (no adapter close: vite dev, a straggler connect
 describe('web shutdown step bounds', () => {
     it('abandons steps that wait for a server that is gone and still closes the pools, exiting 0', async () => {
         const h = await serve(async () => new Response('ok'), {
+            adapter: false,
             services: [
                 { name: 'hung db flush', timeoutMs: 100, run: () => new Promise(() => undefined) },
                 {
@@ -435,6 +436,7 @@ describe('web shutdown step bounds', () => {
         process.on('unhandledRejection', unhandled);
         try {
             const h = await serve(async () => new Response('ok'), {
+                adapter: false,
                 services: [
                     {
                         name: 'rejects late',

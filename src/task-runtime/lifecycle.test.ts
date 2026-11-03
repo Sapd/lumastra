@@ -300,7 +300,9 @@ describe('dedicated task lifecycle seam', () => {
         state.orchestratorStop = 'fails';
         const runtime = await import('./lifecycle.js');
         await runtime.startTaskSubsystem({ strict: true });
-        await expect(runtime.stopTaskSubsystem({ strict: true })).rejects.toThrow('outcome UNKNOWN');
+        await expect(runtime.stopTaskSubsystem({ strict: true })).rejects.toThrow(
+            'outcome UNKNOWN',
+        );
     });
     it('cancels while waiting for the singleton lease without starting anything', async () => {
         let grant: () => void = () => {};

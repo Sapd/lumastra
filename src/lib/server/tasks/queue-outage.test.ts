@@ -149,13 +149,13 @@ describe('logTaskConnectionLoss', () => {
 
     it('logs worker connection errors once per outage and leaves other errors to the caller', () => {
         for (let i = 0; i < 90; i++)
-            expect(logTaskConnectionLoss(`task-worker:t${i}`, new Error('getaddrinfo ENOTFOUND v'))).toBe(
-                true,
-            );
+            expect(
+                logTaskConnectionLoss(`task-worker:t${i}`, new Error('getaddrinfo ENOTFOUND v')),
+            ).toBe(true);
         expect(log.warn).toHaveBeenCalledTimes(1);
-        expect(logTaskConnectionLoss('task-worker:x', new Error('NOAUTH Authentication required.'))).toBe(
-            false,
-        );
+        expect(
+            logTaskConnectionLoss('task-worker:x', new Error('NOAUTH Authentication required.')),
+        ).toBe(false);
     });
 });
 

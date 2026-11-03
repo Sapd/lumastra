@@ -18,7 +18,44 @@ import {
     parseValkeyEndpoint,
 } from '../config/valkey-endpoints.js';
 
-const logger = Logger.for('Cache');
+const baseLogger = Logger.for('Cache');
+
+/** One failed-request warning per window while Valkey is down; the rest go to debug. */
+const OUTAGE_WARN_WINDOW_MS = 30_000;
+const OUTAGE_ERROR_PATTERN =
+    /timed out|timeout|client is closed|connection (is )?(closed|lost|refused|reset)|ECONN|ENOTFOUND|EAI_AGAIN|getaddrinfo|Unable to execute requests|Reached maximum inflight/i;
+let lastOutageWarnAt = Number.NEGATIVE_INFINITY;
+let outageWarnsSuppressed = 0;
+
+/**
+ * Every cache operation logs its own warning when the server cannot be reached,
+ * so one Valkey restart produced dozens of lines per process (publishes, key
+ * writes, lock releases). Warnings caused by an unreachable server are limited to
+ * one per window, carrying the number it stands for; other failures log as before.
+ */
+const logger = Object.create(baseLogger) as typeof baseLogger;
+logger.warn = (message: string, data?: object | Error, error?: Error): void => {
+    const cause = error ?? (data instanceof Error ? data : undefined);
+    if (cause && OUTAGE_ERROR_PATTERN.test(cause.message ?? '')) {
+        const now = Date.now();
+        if (now - lastOutageWarnAt < OUTAGE_WARN_WINDOW_MS) {
+            outageWarnsSuppressed++;
+            baseLogger.debug(message, data instanceof Error ? undefined : data);
+            return;
+        }
+        lastOutageWarnAt = now;
+        const suppressed = outageWarnsSuppressed;
+        outageWarnsSuppressed = 0;
+        const context = data instanceof Error ? {} : (data ?? {});
+        baseLogger.warn(
+            message,
+            suppressed > 0 ? { ...context, suppressedSinceLastWarning: suppressed } : data,
+            error,
+        );
+        return;
+    }
+    baseLogger.warn(message, data, error);
+};
 
 /**
  * GLIDE's Rust core logs to stdout at WARN by default. At that level the only
@@ -1115,7 +1152,11 @@ export async function acquireLock(
         if (shuttingDown)
             logger.warn('Failed to acquire lock due to Valkey error', lockContext, error as Error);
         else
-            logger.error('CRITICAL: Failed to acquire lock due to Valkey error', error as Error, lockContext);
+            logger.error(
+                'CRITICAL: Failed to acquire lock due to Valkey error',
+                error as Error,
+                lockContext,
+            );
         return null;
     }
 }
@@ -1253,7 +1294,11 @@ export async function releaseLock(lockKey: string, lockValue: string): Promise<b
         if (shuttingDown)
             logger.warn('Failed to release lock due to Valkey error', lockContext, error as Error);
         else
-            logger.error('CRITICAL: Failed to release lock due to Valkey error', error as Error, lockContext);
+            logger.error(
+                'CRITICAL: Failed to release lock due to Valkey error',
+                error as Error,
+                lockContext,
+            );
         return false;
     }
 }

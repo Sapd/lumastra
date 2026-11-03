@@ -22,6 +22,7 @@
 // can never receive an operator event or another user's notification. Only
 // deliveryPass() sees both, and only because signing/backoff/DLQ are identical.
 
+import { createRepeatWarning } from '$lib/server/utils/repeat-warning.js';
 import type postgres from 'postgres';
 import {
     LUMASTRA_WEBHOOK_RETRY_ATTEMPTS,
@@ -52,6 +53,7 @@ const MAX_ERROR_BODY_BYTES = 8 * 1024;
 export const WEBHOOK_HOOKS_INVALIDATE_CHANNEL = 'task:webhook-hooks:invalidate';
 
 const log = Logger.for('WebhookOutbox');
+const passFailures = createRepeatWarning(log);
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -521,9 +523,10 @@ export class WebhookOutbox {
         if (this.stopped || this.inFlight) return Promise.resolve();
         this.inFlight = this.deliveryPass()
             .then(
-                () => undefined,
+                () => passFailures.reset(),
                 (err: unknown) => {
-                    log.warn('WebhookOutbox delivery pass error', { err: errMsg(err) });
+                    // Every second while PostgreSQL is down: one warning per window.
+                    passFailures.warn('WebhookOutbox delivery pass error', { err: errMsg(err) });
                 },
             )
             .finally(() => {

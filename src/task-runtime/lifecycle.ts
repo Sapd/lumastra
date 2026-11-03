@@ -698,7 +698,8 @@ async function stop(strict: boolean): Promise<void> {
         try {
             const { releaseWorkerLease } = await import('./worker-lease.js');
             const releasing = releaseWorkerLease();
-            if (infrastructureGone) await settledWithin(releasing, UNREACHABLE_TEARDOWN_BUDGET_MS / 2);
+            if (infrastructureGone)
+                await settledWithin(releasing, UNREACHABLE_TEARDOWN_BUDGET_MS / 2);
             else await settledUnlessInfrastructureGone(releasing);
             workerLeaseRequested = false;
         } catch (err) {

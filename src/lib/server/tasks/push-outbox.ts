@@ -18,6 +18,7 @@
 // worker delivers the lock-screen nudge on top of them. A nudge that arrives
 // tomorrow is spam, so the row dies rather than lingering.
 
+import { createRepeatWarning } from '$lib/server/utils/repeat-warning.js';
 import type postgres from 'postgres';
 import { config } from '$lib/server/config.js';
 import { Logger } from '$lib/server/utils/logger.js';
@@ -59,6 +60,7 @@ import { pushDeliveriesTotal } from './metrics.js';
 import { awaitInFlightTick, LOOP_STOP_TIMEOUT_MS } from './loop-stop.js';
 
 const log = Logger.for('PushOutbox');
+const passFailures = createRepeatWarning(log);
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -237,9 +239,10 @@ export class PushOutbox {
         if (this.stopped || this.inFlight) return Promise.resolve();
         this.inFlight = this.deliveryPass()
             .then(
-                () => undefined,
+                () => passFailures.reset(),
                 (err: unknown) => {
-                    log.warn('PushOutbox delivery pass error', { err: errMsg(err) });
+                    // Every second while PostgreSQL is down: one warning per window.
+                    passFailures.warn('PushOutbox delivery pass error', { err: errMsg(err) });
                 },
             )
             .finally(() => {

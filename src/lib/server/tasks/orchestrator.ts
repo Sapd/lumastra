@@ -4405,6 +4405,7 @@ export class TaskOrchestrator {
             }
         }
         await Promise.allSettled(this.leadershipAcquisitions);
+        const releaseWarned = new Set<string>();
         for (const [key, rt] of this.classes) {
             const priorFailures = failures.length;
             // Cancel any pending leader re-acquire so we don't schedule new
@@ -4428,7 +4429,12 @@ export class TaskOrchestrator {
                     this.releasedAtShutdown.add(resource);
                 } catch (err) {
                     failures.push(err);
-                    log.warn(label, { cls: rt.cls, err: errMessage(err) });
+                    // Valkey gone: the same release fails for every class; say it once.
+                    (this.queueEventsCloseTimeoutLogged && releaseWarned.has(label)
+                        ? log.debug
+                        : log.warn
+                    ).call(log, label, { cls: rt.cls, err: errMessage(err) });
+                    releaseWarned.add(label);
                 }
             };
             const queueEvents = rt.queueEvents;

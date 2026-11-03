@@ -325,7 +325,9 @@ export function createWebShutdown(options: WebShutdownOptions): (signal: string)
                 if (outcome === 'timeout') {
                     failed = true;
                     degraded = true;
-                    log.warn(`Shutdown: ${step.name} still running after ${stepTimeoutMs} ms; moving on`);
+                    log.warn(
+                        `Shutdown: ${step.name} still running after ${stepTimeoutMs} ms; moving on`,
+                    );
                 }
             } catch (error) {
                 failed = true;
