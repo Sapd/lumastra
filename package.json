@@ -126,7 +126,7 @@
         "eslint-plugin-svelte": "^3.23.0",
         "fast-check": "^4.10.0",
         "globals": "^17.12.0",
-        "happy-dom": "^20.14.5",
+        "happy-dom": "^21.0.4",
         "husky": "^9.1.7",
         "lint-staged": "^17.6.0",
         "oauth2-mock-server": "^9.2.0",
@@ -142,7 +142,7 @@
         "tailwindcss": "^4.3.3",
         "typescript": "~6.0.2",
         "typescript-go": "npm:typescript@~7.0.2",
-        "vite": "~8.0.16",
+        "vite": "~8.3.5",
         "vitest": "^5.0.2",
         "zod-openapi": "^6.0.2"
     },

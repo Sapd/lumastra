@@ -1,7 +1,8 @@
 name: Unit tests
 
-# Two jobs, both on GitHub-hosted runners (safe for pull requests from forks):
-#   unit-tests         the unit, component, stream-proxy and plugin-SDK suites (no database).
+# Three jobs, all on GitHub-hosted runners (safe for pull requests from forks):
+#   unit-tests         the unit suite (no database), split into 8 shards.
+#   other-suites       the component, stream-proxy and plugin-SDK suites.
 #   integration-tests  the integration suite against PostgreSQL 18 + pgvector and Valkey service
 #                      containers, with the pinned jellyfin-ffmpeg build, split into 4 shards.
 # End-to-end (Playwright) runs on demand: see e2e.yml.
@@ -22,6 +23,55 @@ concurrency:
 
 jobs:
     unit-tests:
+        name: Unit tests (shard ${{ matrix.shard }}/8)
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        # The unit suite takes ~16 min on 48 cores and did not finish in 45 min on one 4-core
+        # hosted runner (2026-11-03), so it runs in eight shards.
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        steps:
+            - name: Check out the repo
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Set up Node
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+              with:
+                  node-version: 22
+                  cache: npm
+
+            # A few transcode/trickplay tests probe the real ffmpeg/ffprobe binaries.
+            - name: Install FFmpeg
+              run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+            # --legacy-peer-deps matches the Dockerfile (see typecheck.yml).
+            - name: Install dependencies
+              run: npm ci --legacy-peer-deps
+
+            - name: Generate build artifacts the tests import
+              run: |
+                  npx svelte-kit sync
+                  npm run paraglide:compile
+                  npm run openapi:types
+                  npm run build:task-runtime
+
+            - name: Unit suite
+              env:
+                  NODE_OPTIONS: '--max-old-space-size=8192'
+              run: >-
+                  npx vitest run --exclude='**/*.integration.test.ts'
+                  --shard=${{ matrix.shard }}/8
+                  --reporter=default --reporter=json
+                  --outputFile.json=/tmp/vitest-unit-main.json
+
+            # A misconfigured glob can make vitest "pass" with zero tests; fail that loudly.
+            - name: Guard against a silent zero-test result
+              run: node scripts/check-vitest-json.mjs /tmp/vitest-unit-main.json
+
+    other-suites:
+        name: Component, stream-proxy and plugin SDK suites
         runs-on: ubuntu-latest
         timeout-minutes: 45
         steps:
@@ -47,14 +97,6 @@ jobs:
                   npx svelte-kit sync
                   npm run paraglide:compile
                   npm run openapi:types
-
-            - name: Unit suite
-              env:
-                  NODE_OPTIONS: '--max-old-space-size=8192'
-              run: >-
-                  npx vitest run --exclude='**/*.integration.test.ts'
-                  --reporter=default --reporter=json
-                  --outputFile.json=/tmp/vitest-unit-main.json
 
             - name: Component suite
               run: >-
@@ -91,7 +133,6 @@ jobs:
             - name: Guard against a silent zero-test result
               run: |
                   node scripts/check-vitest-json.mjs \
-                    /tmp/vitest-unit-main.json \
                     /tmp/vitest-unit-components.json \
                     /tmp/vitest-proxy.json \
                     /tmp/vitest-sdk.json \
