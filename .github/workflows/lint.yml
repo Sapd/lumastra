@@ -53,25 +53,12 @@ jobs:
 
     svelte-types:
         name: Svelte component types
-        # On demand only for now: svelte-check peaks at ~11.6 GB and does not finish on a 16 GB
-        # hosted runner, even with swap (2026-11-03). Maintainers run it before merging a pull
-        # request that touches .svelte files. Make it automatic again once it needs less memory.
-        if: github.event_name == 'workflow_dispatch'
+        # svelte-check on tsgo over the components and the files that import them peaks at
+        # 6.0 GB and takes ~90 s on the 2 vCPU / 8 GB private-repo runner, without swap
+        # (2026-11-03); see scripts/typecheck/svelte-entry-config.mjs.
         runs-on: ubuntu-latest
-        timeout-minutes: 30
+        timeout-minutes: 20
         steps:
-            # svelte-check peaks at ~11.6 GB (measured 2026-11-03) and the hosted runner has
-            # 16 GB, so without extra swap the runner is killed. A stopgap until the check
-            # needs less memory.
-            - name: Add swap
-              run: |
-                  sudo swapoff -a || true
-                  sudo fallocate -l 10G /mnt/ci-swapfile
-                  sudo chmod 600 /mnt/ci-swapfile
-                  sudo mkswap /mnt/ci-swapfile
-                  sudo swapon /mnt/ci-swapfile
-                  free -h
-
             - name: Check out the repo
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -90,6 +77,6 @@ jobs:
                   npm run paraglide:compile
                   npm run openapi:types
 
-            # svelte-check over every component (~4 min); the script sets its own heap size.
+            # svelte-check (tsgo) over every component and every file that imports one (~90 s).
             - name: Type-check Svelte components
               run: npm run check:svelte-types

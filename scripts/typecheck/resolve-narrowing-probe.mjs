@@ -84,7 +84,11 @@ if (!original.includes(CAST)) {
 // report the probe's error count long after the file is restored. Clearing it
 // on both sides is what makes this script safe to run.
 function clearIncremental() {
-    for (const f of ['tsconfig.typecheck.src.tsbuildinfo', 'tsconfig.typecheck.test.tsbuildinfo']) {
+    for (const f of [
+        'tsconfig.typecheck.src.tsbuildinfo',
+        'tsconfig.typecheck.test-server.tsbuildinfo',
+        'tsconfig.typecheck.test-rest.tsbuildinfo',
+    ]) {
         try {
             execFileSync('rm', ['-f', f], { cwd: ROOT });
         } catch {

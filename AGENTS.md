@@ -42,8 +42,9 @@ npm run build:no-sw         # Build without bumping the service worker
 
 ```bash
 npm run typecheck            # Type-check .ts (tsgo) — does NOT cover .svelte
-npm run check:svelte-types  # Type-check .svelte (official svelte-check, ~90s, blocking in CI)
-npm run check               # Fast structural pass only — does NOT type-check .svelte
+npm run check:svelte-types  # Type-check .svelte (official svelte-check on tsgo, ~1 min, blocking in CI)
+npm run check               # Same as check:svelte-types
+npm run check:native        # Fast structural pass only — does NOT type-check .svelte
 npm run check:watch         # Watch mode for the .svelte type check
 npm run lint                # Run ESLint (zero warnings policy)
 npm run lint -- --fix       # Auto-fix linting issues

@@ -1,9 +1,11 @@
 {
-    // Test pass of the tsgo typecheck gate (see scripts/typecheck/tsgo-check.mjs).
+    // Test pass, part 1 of 2, of the tsgo typecheck gate (see scripts/typecheck/tsgo-check.mjs):
+    // every test/spec file under src/lib/server/. Part 2 is tsconfig.typecheck.test-rest.json;
+    // together they cover every test file exactly once.
     //
-    // Companion to tsconfig.typecheck.src.json — see that file for why the batch
-    // typecheck is split. This pass checks every test/spec file (and the source it
-    // imports, pulled in transitively); the source-only pass checks the rest.
+    // The tests are split in two for MEMORY only: as one program they peaked at 7.1 GB plus
+    // 1.8 GB of swap on GitHub's 2 vCPU / 8 GB runner (2026-11-03); the halves peak at 5.9 GB
+    // and 4.4 GB. This does nothing for TS2859 floods — see tsconfig.typecheck.src.json.
     //
     // The `include` is restated (it does NOT merge across `extends`) and lists ONLY
     // test files plus the ambient/global declarations that source relies on —
@@ -18,12 +20,10 @@
         ".svelte-kit/types/**/$types.d.ts",
         "src/app.d.ts",
         "src/**/*.d.ts",
-        "src/**/*.test.ts",
-        "src/**/*.spec.ts",
-        "src/**/__tests__/**/*.ts",
-        "src/**/__fixtures__/**/*.ts",
-        "test/**/*.ts",
-        "tests/**/*.ts"
+        "src/lib/server/**/*.test.ts",
+        "src/lib/server/**/*.spec.ts",
+        "src/lib/server/**/__tests__/**/*.ts",
+        "src/lib/server/**/__fixtures__/**/*.ts"
     ],
     "exclude": [
         "node_modules/**",

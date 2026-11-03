@@ -7,8 +7,8 @@
  *
  * WHY THIS EXISTS
  * ---------------
- * `npm run check` runs `svelte-check-native`, a fast reimplementation that
- * reports zero problems for `.svelte` files. `npm run typecheck` runs tsgo,
+ * `npm run check` used to run `svelte-check-native` (now `npm run check:native`), a fast
+ * reimplementation that reports zero problems for `.svelte` files. `npm run typecheck` runs tsgo,
  * which skips `.svelte` by design. The net effect, measured on 2026-08-27:
  * planting
  *
@@ -63,10 +63,21 @@
  * and standalone `.css` files are invisible to it. The baseline said 6 while
  * 11 sites actually had the defect.
  *
- * Run: `npm run check:svelte-types` (~90s). Wired as a blocking CI job.
+ * HOW IT STAYS UNDER 8 GB
+ * -----------------------
+ * The checker runs on tsgo (`--tsgo`, TypeScript 7 installed as `@typescript/native`)
+ * over a generated tsconfig whose entry points are the components and the files that
+ * import them (scripts/typecheck/svelte-entry-config.mjs explains why that loses
+ * nothing). Measured 2026-11-03: 5.6 GB peak and ~40 s, where the TypeScript 6 checker
+ * over ./tsconfig.json took 11.6 GB and 240 s and was killed on a GitHub-hosted runner.
+ * svelte-check >= 4.7.8 is required: older versions read a crashed or OOM-killed tsgo
+ * as "0 errors" and type DOM elements differently with --tsgo.
+ *
+ * Run: `npm run check:svelte-types` (~45 s on 4 cores, ~90 s on a 2 vCPU runner). Blocking in CI.
  */
 
 import { spawnSync } from 'node:child_process';
+import { ENTRY_TSCONFIG, writeEntryTsconfig } from './typecheck/svelte-entry-config.mjs';
 
 /**
  * Files allowed to still have `.svelte` type errors, with the exact count each
@@ -84,7 +95,14 @@ import { spawnSync } from 'node:child_process';
  */
 const QUARANTINE = {};
 
-const SVELTE_CHECK_ARGS = ['svelte-check', '--tsconfig', './tsconfig.json', '--output', 'machine'];
+const SVELTE_CHECK_ARGS = [
+    'svelte-check',
+    '--tsgo',
+    '--tsconfig',
+    `./${ENTRY_TSCONFIG}`,
+    '--output',
+    'machine',
+];
 
 // `--output machine` emits one record per line:
 //   <epoch> ERROR "<relative path>" <line>:<col> "<message>"
@@ -93,13 +111,16 @@ const SVELTE_CHECK_ARGS = ['svelte-check', '--tsconfig', './tsconfig.json', '--o
 const RECORD = /^\d+\s+(ERROR|WARNING)\s+"((?:[^"\\]|\\.)*)"\s+(\d+):(\d+)\s+"((?:[^"\\]|\\.)*)"/;
 
 function run() {
+    const importers = writeEntryTsconfig(process.cwd());
+    console.log(`svelte-check entry points: all components + ${importers} importing file(s).`);
+
     const result = spawnSync('npx', SVELTE_CHECK_ARGS, {
         encoding: 'utf8',
         maxBuffer: 64 * 1024 * 1024,
         env: {
             ...process.env,
-            // Without this the checker OOMs on this codebase. See header.
-            NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --max-old-space-size=12288`.trim(),
+            // svelte-check's own process peaked at 1.8 GB; the type checker is the tsgo child.
+            NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --max-old-space-size=4096`.trim(),
         },
     });
 

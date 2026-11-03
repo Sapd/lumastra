@@ -64,8 +64,8 @@ npm run build:watcher
 # Type checking — .ts files (tsgo)
 npm run typecheck
 
-# Type checking — .svelte components (~90s, blocking in CI).
-# Nothing else type-checks components: `npm run check` is a fast
+# Type checking — .svelte components (~1 min, blocking in CI).
+# `npm run check` runs the same thing. `npm run check:native` is a fast
 # structural pass that reports zero errors for .svelte.
 npm run check:svelte-types
 

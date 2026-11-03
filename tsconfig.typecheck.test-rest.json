@@ -1,0 +1,32 @@
+{
+    // Test pass, part 2 of 2, of the tsgo typecheck gate (see scripts/typecheck/tsgo-check.mjs):
+    // every test/spec file OUTSIDE src/lib/server/, plus test/ and tests/. Part 1 is
+    // tsconfig.typecheck.test-server.json, which explains why the tests are split.
+    //
+    // The `exclude` of src/lib/server/** only stops those files from being entry points
+    // here; server source a test imports is still pulled in and checked. `exclude` does
+    // NOT merge across `extends`, so the inherited exclusions are restated.
+    "extends": "./tsconfig.json",
+    "include": [
+        ".svelte-kit/ambient.d.ts",
+        ".svelte-kit/non-ambient.d.ts",
+        ".svelte-kit/types/**/$types.d.ts",
+        "src/app.d.ts",
+        "src/**/*.d.ts",
+        "src/**/*.test.ts",
+        "src/**/*.spec.ts",
+        "src/**/__tests__/**/*.ts",
+        "src/**/__fixtures__/**/*.ts",
+        "test/**/*.ts",
+        "tests/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules/**",
+        "**/node_modules/**",
+        "src/paraglide/**",
+        "src/lib/paraglide/**",
+        "src/service-worker.d.ts",
+        "src/service-worker/**/*.d.ts",
+        "src/lib/server/**"
+    ]
+}

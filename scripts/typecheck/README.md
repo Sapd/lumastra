@@ -24,9 +24,10 @@ The native compiler type-checks the full program in ~25 s with no crash, with fu
 SvelteKit support.
 
 It is now the **released TypeScript 7**, installed as a normal devDependency under the
-alias `typescript-go` (`npm:typescript@~7.0.2`) and addressed by path from
+alias `@typescript/native` (`npm:typescript@~7.0.2`) and addressed by path from
 `tsgo-run.mjs`, which the gate and the headroom probe share so the two cannot drift
-onto different compilers. That replaces the old `npx -p @typescript/native-preview@…`
+onto different compilers. The alias name is the one `svelte-check --tsgo` looks for, so
+`npm run check:svelte-types` runs on the same compiler. That replaces the old `npx -p @typescript/native-preview@…`
 dev preview, which was re-fetched over the network on every run.
 
 **Why `typescript` itself stays on 6.** TypeScript 7's package ships the Go binary and
@@ -98,7 +99,7 @@ Two things cause it, in this order of likelihood:
    ~9k template-literal members at ~1450 routes. Find the hot site:
 
     ```bash
-    node node_modules/typescript-go/bin/tsc --noEmit \
+    node node_modules/@typescript/native/bin/tsc --noEmit \
         -p tsconfig.typecheck.src.json \
       | grep 'error TS2859' | sed 's/(.*//' | sort | uniq -c | sort -rn | head
     ```
@@ -117,8 +118,10 @@ The in-scope error count was driven from 1674 → 0 on 2026-07-23 (genuine fixes
 suppressions). On 2026-07-28 the `resolve()` call site in `src/lib/paths.ts` was
 narrowed: the gate had only **3 routes** of headroom before the complexity budget blew
 (that one site produced 71k of 88k TS2859s), and now clears **>1500** added routes while
-running ~3x faster. The two-pass split is kept as margin but is no longer load-bearing —
-a single whole-project pass also measures 0. This gate replaced an earlier
+running ~3x faster. The two-pass split was kept as margin and was not load-bearing for
+TS2859 — a single whole-project pass also measures 0. On 2026-11-03 the test pass was split
+in two (server tests / the rest) and tsgo runs one checker, purely for MEMORY: GitHub's
+2 vCPU / 8 GB runner killed the single test pass (see `runPass` in `tsgo-run.mjs`). This gate replaced an earlier
 **tsc-baseline ratchet**
 (`ratchet.mjs` + `baseline.json`, removed) that only caught _new_ errors versus a
 frozen, platform-specific baseline — a workaround for when zero wasn't reachable.

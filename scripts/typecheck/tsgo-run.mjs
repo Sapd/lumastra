@@ -8,7 +8,8 @@
  * TypeScript 7 — the Go-native compiler this gate has always wanted — is RELEASED
  * now, so the dev preview (`@typescript/native-preview@7.0.0-dev.*`, fetched over
  * the network by `npx` on every run) is gone. It ships as `typescript@7`, installed
- * here under the alias `typescript-go` because the `typescript` dependency itself
+ * here under the alias `@typescript/native` (the name `svelte-check --tsgo` looks for)
+ * because the `typescript` dependency itself
  * must stay on 6: TypeScript 7's package contains no JS compiler API at all
  * (`require('typescript').createProgram` is undefined), and @typescript-eslint,
  * svelte-check and svelte2tsx all consume that API. See README.md.
@@ -24,16 +25,17 @@ import { dirname, resolve } from 'node:path';
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 /** The native compiler binary, addressed by path — `node_modules/.bin/tsc` is
- *  ambiguous while both `typescript` (6) and `typescript-go` (7) are installed. */
-export const TSGO_BIN = resolve(REPO_ROOT, 'node_modules/typescript-go/bin/tsc');
+ *  ambiguous while both `typescript` (6) and `@typescript/native` (7) are installed. */
+export const TSGO_BIN = resolve(REPO_ROOT, 'node_modules/@typescript/native/bin/tsc');
 
 /** Matches a real diagnostic line: `path/file.ts(12,34): error TS1234: …`. */
 export const ERROR_LINE = /\(\d+,\d+\): error TS\d+/;
 
-/** The two programs the gate checks. Union = the whole project; both must be 0. */
+/** The programs the gate checks. Union = the whole project; every one must be 0. */
 export const CONFIGS = [
     { label: 'src', file: 'tsconfig.typecheck.src.json' },
-    { label: 'test', file: 'tsconfig.typecheck.test.json' },
+    { label: 'test-server', file: 'tsconfig.typecheck.test-server.json' },
+    { label: 'test-rest', file: 'tsconfig.typecheck.test-rest.json' },
 ];
 
 /**
@@ -45,13 +47,22 @@ export const CONFIGS = [
  *   type errors", which callers must not conflate with success).
  */
 export function runPass(configFile) {
-    // Two type checkers instead of tsgo's default: the test pass peaked at 10.4 GB with the
-    // default and at 3.2 GB with two (2026-11-03), and GitHub's hosted runners have 16 GB.
-    const res = spawnSync(process.execPath, [TSGO_BIN, '--noEmit', '--checkers', '2', '-p', configFile], {
-        encoding: 'utf8',
-        maxBuffer: 512 * 1024 * 1024,
-        cwd: REPO_ROOT,
-    });
+    // One type checker instead of tsgo's default four: every checker holds its own copy of
+    // the types it creates. Measured on GitHub's 2 vCPU / 8 GB runner (2026-11-03, uncached):
+    // src 4.2 GB / 48 s, test-server 5.9 GB / 69 s, test-rest 4.4 GB / 48 s. A second checker
+    // added ~1 GB per pass and was not faster on 2 vCPU; one test pass of all tests with two
+    // got the runner killed. Measure with `--incremental false` (or delete *.tsbuildinfo):
+    // tsconfig.json sets `incremental`, so a repeat run of the same config skips checking and
+    // reports a tiny, meaningless peak. An earlier note here was based on exactly that.
+    const res = spawnSync(
+        process.execPath,
+        [TSGO_BIN, '--noEmit', '--checkers', '1', '-p', configFile],
+        {
+            encoding: 'utf8',
+            maxBuffer: 512 * 1024 * 1024,
+            cwd: REPO_ROOT,
+        },
+    );
     if (res.error) return { errors: [], launchError: res.error.message };
     const output = `${res.stdout ?? ''}${res.stderr ?? ''}`;
     return {

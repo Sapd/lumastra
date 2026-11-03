@@ -32,7 +32,7 @@ including the disclosure in the PR template.
 | https://lumastra.org/guides/plugins/                  | Plugin operations (operators) — drop-in vs signed install, trusted keys, webhook secrets, restart semantics, env vars                                     | Installing or trusting plugins; anything an operator sees                                              |
 | `docs/dev/QUICK-START.md`                             | Development commands, setup, testing                                                                                                                      | First-time setup, running tests, deployments                                                           |
 | `docs/dev/testing-traps.md`                           | Ways a test passes or fails for the wrong reason: mocks, env differences, real PostgreSQL, Playwright                                                     | Writing a `vi.mock`, an integration test or a Playwright spec                                          |
-| `docs/dev/livetv-e2e.md` | Real Live TV E2E: synthetic one-slot provider, stream proxy, sessions, Chromium and runner reuse | Running or extending Live TV end-to-end tests |
+| `docs/dev/livetv-e2e.md`                              | Real Live TV E2E: synthetic one-slot provider, stream proxy, sessions, Chromium and runner reuse                                                          | Running or extending Live TV end-to-end tests                                                          |
 | `docs/architecture/database-architecture.md`          | Database architecture, migrations                                                                                                                         | Writing database code, schema changes                                                                  |
 | https://lumastra.org/architecture/task-system/        | Task system architecture (orchestrator, runner, pipeline coverage, reliability)                                                                           | Debugging or modifying the task subsystem; understanding stage_state, orphan classification, watchdogs |
 | `docs/architecture/task-system-schema.md`             | Raw DDL + Valkey key reference for the task system                                                                                                        | Hand-querying task tables / Valkey keys                                                                |
@@ -264,7 +264,9 @@ Types: `src/lib/types/server-driven-ui.ts`
   `src/lib/server/database`, `src/routes/api` and `src/routes/public-api`. The full `npm run lint`
   covers them through `lint:typed`; when you lint only your files, pass them to `eslint` directly.
 - **`npm run typecheck` (tsgo) does not read `.svelte` files.** Use `npm run check:svelte-types`
-  for those.
+  (same as `npm run check`) for those: svelte-check on tsgo over the components and every file
+  that imports one, ~1 min and ~6 GB. `npm run check:native` is the old fast pass that reports
+  no `.svelte` type errors at all.
 - **A missing message key is a runtime crash, not a build error.** Paraglide omits the export, so
   `m.some_key()` throws inside a render. `src/lib/paraglide-message-keys.test.ts` catches it; run it
   after every edit of `messages/*.json`, and check the keys are still in the file after you commit.

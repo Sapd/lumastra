@@ -30,9 +30,11 @@
 import { CONFIGS, runPass } from './tsgo-run.mjs';
 
 /*
- * TWO-PASS split — source and tests are checked as two separate programs. Coverage
- * is complete either way: every source file is checked in the src pass, every test
- * file in the test pass, and source imported by a test is checked there too.
+ * THREE-PASS split — source, server tests and all other tests are checked as separate
+ * programs. Coverage is complete either way: every source file is checked in the src
+ * pass, every test file in exactly one test pass, and source imported by a test is
+ * checked there too. The tests are split in two for MEMORY only (see
+ * tsconfig.typecheck.test-server.json and runPass in tsgo-run.mjs).
  *
  * WHAT THE SPLIT IS *NOT* FOR (corrected 2026-07-28 — the earlier note here was
  * wrong and cost a day of debugging):
@@ -52,7 +54,7 @@ import { CONFIGS, runPass } from './tsgo-run.mjs';
  * and left the gate only 3 routes from breaking. Narrowing that one signature restored
  * headroom from +3 to >+1500 routes and made the gate ~3x faster.
  *
- * So: if TS2859 ever reappears, DO NOT split further and DO NOT raise or ignore the
+ * So: if TS2859 ever reappears, DO NOT split further (it cannot help) and DO NOT raise or ignore the
  * count. Instead find the hot call site — run a pass, then group TS2859 by file:
  *   npx -y -p <pinned tsgo> tsgo --noEmit -p tsconfig.typecheck.src.json \
  *     | grep 'error TS2859' | cut -d'(' -f1 | sort | uniq -c | sort -rn | head
