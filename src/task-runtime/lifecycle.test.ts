@@ -17,6 +17,7 @@ const state = vi.hoisted(() => ({
     failLeaseRelease: false,
     failSchedulerStop: false,
     dbReachable: true,
+    schedulerStopHangs: false,
     orchestratorStop: 'ok' as 'ok' | 'fails' | 'hangs',
     pluginPending: undefined as Promise<void> | undefined,
     featurePending: undefined as Promise<void> | undefined,
@@ -184,6 +185,7 @@ vi.mock('$lib/server/tasks/scheduler.js', () => ({
         }
         async stop(): Promise<void> {
             state.events.push('stop-scheduler');
+            if (state.schedulerStopHangs) await new Promise<void>(() => {});
             if (state.failSchedulerStop) throw new Error('scheduler stop failed');
         }
     },
@@ -208,6 +210,7 @@ beforeEach(() => {
     state.failLeaseRelease = false;
     state.failSchedulerStop = false;
     state.dbReachable = true;
+    state.schedulerStopHangs = false;
     state.orchestratorStop = 'ok';
     state.pluginPending = undefined;
     state.featurePending = undefined;
@@ -295,6 +298,30 @@ describe('dedicated task lifecycle seam', () => {
         await vi.advanceTimersByTimeAsync(10_000);
         await expect(stopping).resolves.toBeUndefined();
         expect(state.events.at(-1)).toBe('release-lease');
+    });
+    it('does not wait for an in-flight scheduler tick that waits for a Valkey that is gone', async () => {
+        const runtime = await import('./lifecycle.js');
+        await runtime.startTaskSubsystem({ strict: true });
+        state.coordinationHealthy = false;
+        state.schedulerStopHangs = true;
+        const stopping = runtime.stopTaskSubsystem({ strict: true });
+        await vi.advanceTimersByTimeAsync(10_000);
+        await expect(stopping).resolves.toBeUndefined();
+        expect(state.events).toContain('stop-runner');
+        expect(state.events.at(-1)).toBe('release-lease');
+    });
+    it('still waits for a hung scheduler stop while the infrastructure answers', async () => {
+        const runtime = await import('./lifecycle.js');
+        await runtime.startTaskSubsystem({ strict: true });
+        state.schedulerStopHangs = true;
+        let settled = false;
+        const stopping = runtime.stopTaskSubsystem({ strict: true }).finally(() => {
+            settled = true;
+        });
+        await vi.advanceTimersByTimeAsync(30_000);
+        expect(settled).toBe(false);
+        expect(state.events).not.toContain('stop-runner');
+        void stopping.catch(() => undefined);
     });
     it('still reports a failed orchestrator teardown while the infrastructure is reachable', async () => {
         state.orchestratorStop = 'fails';

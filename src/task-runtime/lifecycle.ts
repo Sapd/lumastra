@@ -596,6 +596,32 @@ async function stop(strict: boolean): Promise<void> {
     // Asked now and answered while the consumers drain: a gone server shows up
     // within a second, and nothing below should wait for it to find out later.
     const infrastructureProbe = taskInfrastructureUnreachable();
+    let infrastructureVanished = false;
+    /**
+     * Wait for one teardown step. While PostgreSQL and the task Valkey answer it
+     * gets all the time it needs; once they are gone (or vanish meanwhile) the
+     * step is abandoned after a short budget, and its error is no failure: it can
+     * only be the missing server, and every lock it would release expires.
+     */
+    const waitForStep = async (work: Promise<unknown>, what: string): Promise<void> => {
+        work.catch(() => undefined);
+        try {
+            const gone = infrastructureVanished || (await infrastructureProbe);
+            const settled = gone
+                ? await settledWithin(
+                      work,
+                      infrastructureVanished
+                          ? UNREACHABLE_TEARDOWN_BUDGET_MS / 2
+                          : UNREACHABLE_TEARDOWN_BUDGET_MS,
+                  )
+                : await settledUnlessInfrastructureGone(work);
+            if (settled) return;
+        } catch (err) {
+            if (!infrastructureVanished && !(await infrastructureProbe)) throw err;
+        }
+        infrastructureVanished = true;
+        startupLogger.warn(`${what} abandoned: it waits for a server that is gone`);
+    };
     // A signal during initialization must not leave late-starting consumers alive.
     await startup?.catch(() => undefined);
     if (watcherEnsureTimer) clearInterval(watcherEnsureTimer);
@@ -608,7 +634,10 @@ async function stop(strict: boolean): Promise<void> {
         const { fileScannerMediaSource } =
             await import('$lib/server/tasks/builtin/native/media-sources/file-scanner.js');
         const { buildPluginContext } = await import('$lib/server/tasks/plugin-context.js');
-        await fileScannerMediaSource.stopWatching!(buildPluginContext('file-scanner'));
+        await waitForStep(
+            fileScannerMediaSource.stopWatching!(buildPluginContext('file-scanner')),
+            'File scanner watcher stop',
+        );
         watcherStopped = true;
     } catch (err) {
         failures.push(err);
@@ -622,7 +651,7 @@ async function stop(strict: boolean): Promise<void> {
     // don't need to coordinate with the new boot path here.
     if (taskScheduler) {
         try {
-            await taskScheduler.stop();
+            await waitForStep(taskScheduler.stop(), 'TaskScheduler stop');
             startupLogger.info('TaskScheduler stopped');
             taskScheduler = null;
         } catch (err) {
@@ -636,7 +665,7 @@ async function stop(strict: boolean): Promise<void> {
     // Stop the TaskRunner (consumer side of the new task system).
     try {
         const { stopTaskRunner } = await import('$lib/server/tasks/runner');
-        await stopTaskRunner({ strict });
+        await waitForStep(stopTaskRunner({ strict }), 'TaskRunner stop');
         startupLogger.info('TaskRunner stopped');
     } catch (err) {
         failures.push(err);
@@ -656,7 +685,9 @@ async function stop(strict: boolean): Promise<void> {
     // The early probe may have run while the server was still up: ask again.
     let infrastructureGone =
         failures.length === 0 &&
-        ((await infrastructureProbe) || (await taskInfrastructureUnreachable()));
+        (infrastructureVanished ||
+            (await infrastructureProbe) ||
+            (await taskInfrastructureUnreachable()));
     if (infrastructureGone)
         startupLogger.warn(
             'PostgreSQL or the task Valkey is unreachable; locks and the lease expire on their own',
