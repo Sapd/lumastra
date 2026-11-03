@@ -9,6 +9,7 @@
 import {
     createHash,
     randomBytes,
+    randomInt,
     timingSafeEqual,
     scrypt as scryptCb,
     type ScryptOptions,
@@ -266,10 +267,10 @@ function openForDisplay(userId: string, sealed: string | null): string | null {
 }
 
 function generatePassword(): string {
-    const bytes = randomBytes(PASSWORD_LENGTH);
     let password = '';
     for (let i = 0; i < PASSWORD_LENGTH; i++) {
-        password += PASSWORD_CHARS[bytes[i] % PASSWORD_CHARS.length];
+        // randomInt rejects out-of-range draws: `byte % 31` favoured the first 8 characters.
+        password += PASSWORD_CHARS[randomInt(PASSWORD_CHARS.length)];
     }
     return password;
 }

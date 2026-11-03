@@ -4,7 +4,7 @@
 // Device Code Service for OAuth 2.0 Device Authorization Grant
 // Manages device authorization codes and their lifecycle
 
-import { randomBytes, randomUUID } from 'crypto';
+import { randomBytes, randomInt, randomUUID } from 'crypto';
 import type { UserId } from '$lib/shared/user-id';
 import type postgres from 'postgres';
 import { Database } from '../database/connection.js';
@@ -178,8 +178,8 @@ export class DeviceCodeService {
         let code = '';
         for (let i = 0; i < 8; i++) {
             if (i === 4) code += '-';
-            const randomIndex = Math.floor((randomBytes(1)[0] / 256) * chars.length);
-            code += chars[randomIndex];
+            // randomInt rejects out-of-range draws: no modulo bias toward early characters.
+            code += chars[randomInt(chars.length)];
         }
         return code;
     }

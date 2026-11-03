@@ -20,6 +20,15 @@ vi.mock('$lib/server/services/user-credential-lock', () => ({
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Spy on randomInt (real implementation underneath) to prove the alphabet index
+// comes from an unbiased draw, not from a byte modulo.
+const { randomIntSpy } = vi.hoisted(() => ({ randomIntSpy: vi.fn() }));
+vi.mock('crypto', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('crypto')>();
+    randomIntSpy.mockImplementation(actual.randomInt as (...a: unknown[]) => number);
+    return { ...actual, default: actual, randomInt: randomIntSpy };
+});
+
 process.env.LUMASTRA_MASTER_KEY = 'a'.repeat(64);
 
 interface StoredRow {
@@ -88,6 +97,22 @@ const { getOrCreatePassword, resetPassword, revealPassword, validatePassword } =
 
 beforeEach(() => {
     rows.clear();
+});
+
+describe('client password generation', () => {
+    it('draws every character with an unbiased randomInt over the whole alphabet', async () => {
+        const actual = await vi.importActual<typeof import('crypto')>('crypto');
+        randomIntSpy.mockClear();
+        randomIntSpy.mockImplementation(((max: number) => max - 1) as never);
+        const pw = await resetPassword('u-bias').finally(() =>
+            randomIntSpy.mockImplementation(actual.randomInt as never),
+        );
+        // Last alphabet character, eight times: only possible if the index is the
+        // randomInt result itself.
+        expect(pw).toBe('99999999');
+        expect(randomIntSpy).toHaveBeenCalledTimes(8);
+        expect(randomIntSpy).toHaveBeenCalledWith(31);
+    });
 });
 
 describe('client password reveal', () => {

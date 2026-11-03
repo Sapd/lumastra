@@ -2,6 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+const randomIntSpy = vi.hoisted(() => vi.fn());
+vi.mock('crypto', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('crypto')>();
+    randomIntSpy.mockImplementation(actual.randomInt as never);
+    return { ...actual, default: actual, randomInt: randomIntSpy };
+});
 const paths = vi.hoisted(() => ({ base: '' }));
 vi.mock('$app/paths', () => paths);
 const pollSql = vi.hoisted(() => vi.fn());
@@ -90,4 +96,22 @@ it('approval log identifiers disclose neither the code nor its offline-enumerabl
     const reversible = createHash('sha256').update(result.user_code).digest('hex').slice(0, 8);
     expect(JSON.stringify(logs.info.mock.calls)).not.toContain(reversible);
     expect(redactUserCode(result.user_code)).toBe('[REDACTED]');
+});
+
+it('draws user-code characters with an unbiased randomInt over the whole alphabet', async () => {
+    const actual = await vi.importActual<typeof import('crypto')>('crypto');
+    randomIntSpy.mockClear();
+    randomIntSpy.mockImplementation(((max: number) => max - 1) as never);
+    try {
+        const body = await new DeviceCodeService().createDeviceCode(
+            { clientId: 'lumastra-ios' },
+            'https://example.com',
+        );
+        // Last alphabet character everywhere: only possible if the index is the
+        // randomInt result itself rather than a scaled random byte.
+        expect(body.user_code).toBe('9999-9999');
+        expect(randomIntSpy).toHaveBeenCalledWith(29);
+    } finally {
+        randomIntSpy.mockImplementation(actual.randomInt as never);
+    }
 });
