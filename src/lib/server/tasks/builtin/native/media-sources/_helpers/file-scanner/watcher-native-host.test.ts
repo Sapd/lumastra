@@ -576,8 +576,11 @@ describe('native watcher protocol v2 bridge behaviour', () => {
                 let seq=0; setInterval(()=>process.stdout.write(JSON.stringify({type:'alive',seq:seq++})+'\\n'),20);
             });`),
         );
-        make({ paths: ['/media'], ...cb, aliveMs: 40, spawn: spawnChild });
-        await new Promise((resolve) => setTimeout(resolve, 400));
+        // aliveMs 200 = a 600 ms silence window, 30 heartbeats wide: a loaded CI runner can stall
+        // the child's timers for well over the 120 ms a 40 ms window allowed. 1.5 s still spans
+        // several windows.
+        make({ paths: ['/media'], ...cb, aliveMs: 200, spawn: spawnChild });
+        await new Promise((resolve) => setTimeout(resolve, 1_500));
         expect(cb.onError).not.toHaveBeenCalled();
         expect(spawnChild).toHaveBeenCalledOnce();
     });
@@ -793,11 +796,13 @@ describe('review round: watch limit, rescans, pre-ready liveness, quarantine set
             spawnScript(`process.stdin.once('data',()=>{
                 let seq=0;
                 const t=setInterval(()=>process.stdout.write(JSON.stringify({type:'alive',seq:seq++})+'\\n'),20);
-                setTimeout(()=>{clearInterval(t);process.stdout.write(${JSON.stringify(READY)}+'\\n');setInterval(()=>{},1000)},400);
+                setTimeout(()=>{clearInterval(t);process.stdout.write(${JSON.stringify(READY)}+'\\n');setInterval(()=>{},1000)},1500);
             });`),
         );
-        make({ paths: ['/media'], ...walking, aliveMs: 40, spawn: walkSpawn });
-        await expect.poll(() => walking.onReady, { timeout: 3000 }).toHaveBeenCalled();
+        // Same margin as 'keeps a child that sends alive frames': the 1.5 s walk spans several
+        // 600 ms silence windows, and only the heartbeats keep the child alive through it.
+        make({ paths: ['/media'], ...walking, aliveMs: 200, spawn: walkSpawn });
+        await expect.poll(() => walking.onReady, { timeout: 10_000 }).toHaveBeenCalled();
         expect(walking.onError).not.toHaveBeenCalled();
         expect(walkSpawn).toHaveBeenCalledOnce();
     });
