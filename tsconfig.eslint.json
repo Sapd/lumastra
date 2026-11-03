@@ -1,0 +1,33 @@
+{
+    // Type information for lint:typed (eslint.config.cjs `parserOptions.project`).
+    // Covers only non-test source in the trees lint:typed lints, plus the ambient
+    // declarations they need. The root tsconfig.json pulls in every file, tests
+    // included (~28k files), which is what made the type-aware pass expensive.
+    // Test files are linted by lint:tests without a program, so they stay out.
+    // `exclude` does not merge across `extends`, so the parent's excludes are restated.
+    "extends": "./tsconfig.json",
+    "include": [
+        ".svelte-kit/ambient.d.ts",
+        ".svelte-kit/non-ambient.d.ts",
+        ".svelte-kit/types/**/$types.d.ts",
+        "src/app.d.ts",
+        "src/**/*.d.ts",
+        "src/lib/server/services/**/*.ts",
+        "src/lib/server/database/**/*.ts",
+        "src/routes/api/**/*.ts",
+        "src/routes/public-api/**/*.ts",
+        "src/lib/shared/**/*.ts",
+        "src/lib/stores/**/*.ts",
+        "src/lib/utils/**/*.ts",
+        "src/lib/components/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules/**",
+        "**/node_modules/**",
+        "src/paraglide/**",
+        "src/lib/paraglide/**",
+        "**/*.test.ts",
+        "**/*.integration.test.ts",
+        "**/*.perf.test.ts"
+    ]
+}

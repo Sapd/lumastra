@@ -262,7 +262,9 @@ Types: `src/lib/types/server-driven-ui.ts`
 - **`lint:fast` skips whole trees.** It ignores `src/lib/stores`, `src/lib/utils/**/*.ts`,
   `src/lib/components/**/*.ts`, `src/lib/shared/**/*.ts`, `src/lib/server/services`,
   `src/lib/server/database`, `src/routes/api` and `src/routes/public-api`. The full `npm run lint`
-  covers them through `lint:typed`; when you lint only your files, pass them to `eslint` directly.
+  covers them through `lint:typed` (non-test source, type-aware, `tsconfig.eslint.json`) and
+  `lint:tests` (their `*.test.ts` files, no type information); when you lint only your files, pass
+  them to `eslint` directly.
 - **`npm run typecheck` (tsgo) does not read `.svelte` files.** Use `npm run check:svelte-types`
   (same as `npm run check`) for those: svelte-check on tsgo over the components and every file
   that imports one, ~1 min and ~6 GB. `npm run check:native` is the old fast pass that reports

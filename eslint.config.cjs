@@ -45,6 +45,63 @@ const upsertUserGroupsRestrictedPattern = {
         'Use syncUserGroups() from $lib/server/services/user-groups.service.js instead.',
 };
 
+// ── Server-tree split: lint:typed (type-aware) vs lint:tests (no types) ─────
+// lint:typed lints NON-test source in the server trees with type information
+// from tsconfig.eslint.json. Their test files are linted by lint:tests, which
+// runs without a TypeScript program: the type-aware rules are enabled only on
+// non-test source (the typed block below), and the one type-aware plugin rule
+// (no-comparator-on-narrowed-media-type) already returns early for test files.
+// `scripts/check-lint-tiers.mjs` checks that lint:typed and lint:tests cover
+// the same trees.
+const TEST_FILE_GLOBS = ['**/*.test.ts', '**/*.integration.test.ts', '**/*.perf.test.ts'];
+
+// Rules that need type information. Enabled for non-test source in the server
+// trees only; never on test files.
+const serverTypeAwareRules = {
+    '@typescript-eslint/await-thenable': 'error',
+    '@typescript-eslint/no-floating-promises': 'error',
+    '@typescript-eslint/no-misused-promises': 'error',
+    '@typescript-eslint/no-unsafe-assignment': 'error',
+    '@typescript-eslint/no-unsafe-call': 'error',
+    '@typescript-eslint/no-unsafe-member-access': 'error',
+    '@typescript-eslint/no-unsafe-return': 'error',
+    '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
+};
+
+// Every rule of the server-tree block that needs no type information. Used by
+// both the typed block (non-test files) and the test block (test files).
+const serverRules = {
+    ...tsPlugin.configs.recommended.rules,
+    '@typescript-eslint/consistent-type-imports': 'warn',
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+    ],
+    'no-unsafe-optional-chaining': 'error',
+    'no-restricted-syntax': [
+        'error',
+        {
+            selector: 'TemplateElement[value.raw=/INSERT INTO external_ids/]',
+            message:
+                'Use CatalogService.upsertExternalId() or batchUpsertExternalIds() instead of direct INSERT INTO external_ids. See CLAUDE.md for details.',
+        },
+    ],
+    'callback-safety/no-direct-external-id-access': 'warn',
+    'callback-safety/no-duplicate-response-types': 'warn',
+    'callback-safety/no-empty-catch': 'warn',
+    // Disallow raw sql.begin/savepoint in services/plugins — see rule docs.
+    'callback-safety/no-direct-sql-begin': 'warn',
+    // Require an access-filter marker in any function whose sql template
+    // touches media_items. ERROR (see the primary config block above).
+    'callback-safety/no-unscoped-media-items': 'error',
+    // Flag `unrestrictedAccess()` bypasses outside the admin/scanner/compat
+    // allowlist (see the primary config block above).
+    'callback-safety/no-unrestricted-access-outside-allowlist': 'error',
+    // Require `has_files = true` filter in user-facing movie/tv queries.
+    'callback-safety/require-has-files-with-active-status': 'warn',
+};
+
 module.exports = [
     {
         ignores: [
@@ -207,7 +264,8 @@ module.exports = [
             'callback-safety/no-username-in-user-id-sql': 'off',
         },
     },
-    // Critical server files - full type-aware linting with projectService
+    // Critical server files - non-test source, type-aware (lint:typed).
+    // Type information comes from tsconfig.eslint.json, not the root tsconfig.json.
     {
         files: [
             'src/lib/server/services/**/*.ts',
@@ -215,10 +273,11 @@ module.exports = [
             'src/routes/api/**/*.ts',
             'src/routes/public-api/**/*.ts',
         ],
+        ignores: TEST_FILE_GLOBS,
         languageOptions: {
             parser: tsParser,
             parserOptions: {
-                projectService: true,
+                project: './tsconfig.eslint.json',
                 tsconfigRootDir: __dirname,
             },
             ecmaVersion: 2022,
@@ -230,43 +289,37 @@ module.exports = [
             'callback-safety': callbackSafety,
         },
         rules: {
-            ...tsPlugin.configs.recommended.rules,
-            '@typescript-eslint/await-thenable': 'error',
-            '@typescript-eslint/consistent-type-imports': 'warn',
-            '@typescript-eslint/no-explicit-any': 'error',
-            '@typescript-eslint/no-floating-promises': 'error',
-            '@typescript-eslint/no-misused-promises': 'error',
-            '@typescript-eslint/no-unsafe-assignment': 'error',
-            '@typescript-eslint/no-unsafe-call': 'error',
-            '@typescript-eslint/no-unsafe-member-access': 'error',
-            '@typescript-eslint/no-unsafe-return': 'error',
-            '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
-            '@typescript-eslint/no-unused-vars': [
-                'error',
-                { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
-            ],
-            'no-unsafe-optional-chaining': 'error',
-            'no-restricted-syntax': [
-                'error',
-                {
-                    selector: 'TemplateElement[value.raw=/INSERT INTO external_ids/]',
-                    message:
-                        'Use CatalogService.upsertExternalId() or batchUpsertExternalIds() instead of direct INSERT INTO external_ids. See CLAUDE.md for details.',
-                },
-            ],
-            'callback-safety/no-direct-external-id-access': 'warn',
-            'callback-safety/no-duplicate-response-types': 'warn',
-            'callback-safety/no-empty-catch': 'warn',
-            // Disallow raw sql.begin/savepoint in services/plugins — see rule docs.
-            'callback-safety/no-direct-sql-begin': 'warn',
-            // Require an access-filter marker in any function whose sql template
-            // touches media_items. ERROR (see the primary config block above).
-            'callback-safety/no-unscoped-media-items': 'error',
-            // Flag `unrestrictedAccess()` bypasses outside the admin/scanner/compat
-            // allowlist (see the primary config block above).
-            'callback-safety/no-unrestricted-access-outside-allowlist': 'error',
-            // Require `has_files = true` filter in user-facing movie/tv queries.
-            'callback-safety/require-has-files-with-active-status': 'warn',
+            ...serverRules,
+            ...serverTypeAwareRules,
+        },
+    },
+    // Test files in the same server trees (lint:tests). No type information:
+    // the same non-type-aware rules as the block above, nothing type-aware.
+    // Without a program the scope manager knows only the ES lib, so `no-undef`
+    // would flag DOM type names (HeadersInit, RequestInit, ...) that the typed
+    // run used to see. `parserOptions.lib` restores exactly that lib set.
+    {
+        files: [
+            'src/lib/server/services/**/*.test.ts',
+            'src/lib/server/database/**/*.test.ts',
+            'src/routes/api/**/*.test.ts',
+            'src/routes/public-api/**/*.test.ts',
+        ],
+        languageOptions: {
+            parser: tsParser,
+            ecmaVersion: 2022,
+            sourceType: 'module',
+            parserOptions: {
+                lib: ['esnext', 'dom', 'dom.iterable'],
+            },
+            globals: sharedGlobals,
+        },
+        plugins: {
+            '@typescript-eslint': tsPlugin,
+            'callback-safety': callbackSafety,
+        },
+        rules: {
+            ...serverRules,
         },
     },
     // Svelte 5 rune modules (.svelte.ts) — basic linting without type-aware rules
@@ -397,7 +450,9 @@ module.exports = [
             '@typescript-eslint/no-require-imports': 'off',
         },
     },
-    // Test files - disable type-aware rules (they don't have projectService)
+    // Test files get no type information anywhere, so no type-aware rule is
+    // enabled for them: the typed rules above and in serverTypeAwareRules only
+    // apply to non-test source. (Previously these were listed here as 'off'.)
     {
         files: ['**/*.test.ts', '**/*.integration.test.ts', '**/*.perf.test.ts'],
         plugins: {
@@ -405,14 +460,6 @@ module.exports = [
         },
         rules: {
             '@typescript-eslint/no-unused-vars': 'warn',
-            '@typescript-eslint/no-unsafe-assignment': 'off',
-            '@typescript-eslint/no-unsafe-call': 'off',
-            '@typescript-eslint/no-unsafe-member-access': 'off',
-            '@typescript-eslint/no-unsafe-return': 'off',
-            '@typescript-eslint/await-thenable': 'off',
-            '@typescript-eslint/no-floating-promises': 'off',
-            '@typescript-eslint/no-misused-promises': 'off',
-            '@typescript-eslint/no-unnecessary-type-assertion': 'off',
         },
     },
     // Allow CatalogService to use direct INSERT INTO external_ids (it's the single source of truth)
@@ -898,11 +945,11 @@ module.exports = [
             'src/lib/utils/**/*.ts',
             'src/lib/components/**/*.ts',
         ],
-        ignores: ['**/*.test.ts', '**/*.integration.test.ts', '**/*.perf.test.ts'],
+        ignores: TEST_FILE_GLOBS,
         languageOptions: {
             parser: tsParser,
             parserOptions: {
-                projectService: true,
+                project: './tsconfig.eslint.json',
                 tsconfigRootDir: __dirname,
             },
         },

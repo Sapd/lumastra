@@ -68,7 +68,9 @@ function extractProjectServiceGlobs(configSrc) {
     }
 
     const globs = new Set();
-    const projectServiceRe = /projectService:\s*true/g;
+    // Type-aware blocks use `project: './tsconfig.eslint.json'` (lint:typed's own
+    // program); older ones used `projectService: true`. Both mean "type-aware".
+    const projectServiceRe = /projectService:\s*true|project:\s*['"]\.\/tsconfig\.eslint\.json['"]/g;
     let p;
     while ((p = projectServiceRe.exec(configSrc))) {
         // Nearest files-block that starts before this projectService hit.
@@ -111,14 +113,14 @@ function extractIgnorePatterns(scriptStr) {
     return out;
 }
 
-function extractTypedTargetGlobs(scriptStr) {
+function extractTypedTargetGlobs(scriptStr, scriptName = 'lint:typed') {
     // Locate the actual `eslint <globs...> --flags` invocation. Everything before
     // " eslint " may itself contain quoted strings (NODE_OPTIONS='...'), so we must
     // not scan the whole script string.
     const eslintIdx = scriptStr.indexOf(' eslint ');
     if (eslintIdx === -1) {
         console.error(
-            'check-lint-tiers: could not find an " eslint " invocation inside the lint:typed ' +
+            `check-lint-tiers: could not find an " eslint " invocation inside the ${scriptName} ` +
                 'script in package.json — the heuristic in scripts/check-lint-tiers.mjs needs updating.',
         );
         process.exit(1);
@@ -223,7 +225,43 @@ if (leakedIntoFast.length > 0 || droppedEntirely.length > 0) {
     process.exit(1);
 }
 
+// --- 4. lint:typed skips test files; lint:tests must lint them instead. ------------
+//        Otherwise the tests of a lint:typed tree get no lint at all.
+
+function checkTestsTier(pkg, lintTypedScript, typedGlobs) {
+    const problems = [];
+    const lintTestsScript = pkg.scripts?.['lint:tests'];
+    if (!lintTestsScript) {
+        return ['package.json has no "lint:tests" script.'];
+    }
+    if (!(pkg.scripts?.lint ?? '').includes('npm run lint:tests')) {
+        problems.push('"npm run lint" does not run lint:tests.');
+    }
+    if (!/--ignore-pattern\s+['"]\*\*\/\*\.test\.ts['"]/.test(lintTypedScript)) {
+        problems.push(
+            "lint:typed does not pass --ignore-pattern '**/*.test.ts', so its test files are " +
+                'linted twice (once without type information, in lint:tests).',
+        );
+    }
+    const testGlobs = extractTypedTargetGlobs(lintTestsScript, 'lint:tests');
+    for (const g of typedGlobs) {
+        const expected = g.replace(/\*\.ts$/, '*.test.ts');
+        if (!testGlobs.includes(expected)) {
+            problems.push(`lint:tests does not lint ${expected} (the tests of lint:typed glob ${g}).`);
+        }
+    }
+    return problems;
+}
+
+const testsTierProblems = checkTestsTier(pkg, lintTypedScript, typedGlobs);
+if (testsTierProblems.length > 0) {
+    console.error('check-lint-tiers: lint:tests does not cover the test files of lint:typed:\n');
+    for (const p of testsTierProblems) console.error(`  ${p}`);
+    process.exit(1);
+}
+
 console.log(
     `check-lint-tiers: OK — all ${projectServiceGlobs.length} type-aware glob(s) in ` +
-        `eslint.config.cjs are excluded from lint:fast and covered by lint:typed.`,
+        `eslint.config.cjs are excluded from lint:fast and covered by lint:typed; ` +
+        `lint:tests covers the test files of all ${typedGlobs.length} lint:typed glob(s).`,
 );
