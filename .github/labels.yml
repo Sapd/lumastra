@@ -8,7 +8,7 @@
   description: Something is broken.
 - name: 'type:feature'
   color: '0e8a16'
-  description: Accepted feature proposal being built (opened by a maintainer from a Features discussion — never filed directly).
+  description: Accepted feature being built; a maintainer opens it from a Features discussion.
 - name: 'type:docs'
   color: '0075ca'
   description: Documentation.
@@ -22,7 +22,7 @@
 - { name: 'area:livetv', color: '5319e7', description: Live TV }
 - { name: 'area:tasks', color: '5319e7', description: Task system }
 - { name: 'area:admin', color: '5319e7', description: Admin surfaces }
-- { name: 'area:ui', color: '5319e7', description: Web interface, layout and UX }
+- { name: 'area:ui', color: '5319e7', description: 'Web interface, layout and UX' }
 - { name: 'area:ai', color: '5319e7', description: AI / recommendations / assistant }
 - { name: 'area:database', color: '5319e7', description: DB / migrations }
 - { name: 'area:auth', color: '5319e7', description: Auth / OAuth / middleware }
