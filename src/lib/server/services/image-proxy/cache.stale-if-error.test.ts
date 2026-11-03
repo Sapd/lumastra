@@ -16,7 +16,7 @@ describe('ImageCache staleIfError', () => {
         dir = await fs.mkdtemp(path.join(os.tmpdir(), 'image-cache-stale-'));
     });
     afterEach(async () => {
-        await fs.rm(dir, { recursive: true, force: true });
+        await fs.rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 25 });
     });
 
     async function seedExpired(key: string, body: string): Promise<void> {
@@ -95,7 +95,7 @@ describe('FileSystemCacheStorage writes', () => {
         dir = await fs.mkdtemp(path.join(os.tmpdir(), 'image-cache-write-'));
     });
     afterEach(async () => {
-        await fs.rm(dir, { recursive: true, force: true });
+        await fs.rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 25 });
     });
 
     it('leaves only the final file behind', async () => {
