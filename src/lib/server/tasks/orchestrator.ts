@@ -149,6 +149,8 @@ const log = Logger.for('TaskOrchestrator');
 
 /** Longest a shutdown waits for one QueueEvents.close() before abandoning it. */
 const QUEUE_EVENTS_CLOSE_TIMEOUT_MS = 2_000;
+/** Once one close timed out, Valkey is known unreachable: later closes wait less. */
+const QUEUE_EVENTS_CLOSE_RETRY_TIMEOUT_MS = 200;
 
 // Failure-log throttle (OSS-readiness diagnosability). Genuine task failures are
 // surfaced to the server logs (see writeTerminalToPostgres), but a provider
@@ -344,6 +346,8 @@ export class TaskOrchestrator {
     private stopped = false;
     private stopPending: Promise<void> | undefined;
     private strictStopRequested = false;
+    private queueEventsCloseTimeoutMs = QUEUE_EVENTS_CLOSE_TIMEOUT_MS;
+    private queueEventsCloseTimeoutLogged = false;
     private readonly subscriptionLostGates = new Map<
         ResourceClass,
         ReturnType<typeof createOutageGate>
@@ -4349,6 +4353,8 @@ export class TaskOrchestrator {
 
     private async stopResources(): Promise<void> {
         const failures: unknown[] = [];
+        this.queueEventsCloseTimeoutMs = QUEUE_EVENTS_CLOSE_TIMEOUT_MS;
+        this.queueEventsCloseTimeoutLogged = false;
         this.stopped = true;
         if (this.queueDepthTimer) {
             clearInterval(this.queueDepthTimer);
@@ -4425,10 +4431,14 @@ export class TaskOrchestrator {
                 await release(queueEvents, 'QueueEvents close failed', () =>
                     this.closeQueueEventsAtShutdown(rt, queueEvents),
                 );
-            for (const qe of rt.perTaskQueueEvents)
-                await release(qe, 'Per-task QueueEvents close failed', () =>
-                    this.closeQueueEventsAtShutdown(rt, qe),
-                );
+            // Concurrently: with Valkey down each close waits out its timeout.
+            await Promise.all(
+                rt.perTaskQueueEvents.map((qe) =>
+                    release(qe, 'Per-task QueueEvents close failed', () =>
+                        this.closeQueueEventsAtShutdown(rt, qe),
+                    ),
+                ),
+            );
             // Already-admitted callbacks may still be resolving a BullMQ job.
             // Keep their queue and batcher usable until those observations land.
             for (const observation of [...rt.terminalObservations]) {
@@ -4526,11 +4536,20 @@ export class TaskOrchestrator {
      * subscription, so a forced close leaves nothing for a successor to collide with.
      */
     private async closeQueueEventsAtShutdown(rt: ClassRuntime, qe: QueueEvents): Promise<void> {
-        const settled = await closeQueueEventsBounded(qe, QUEUE_EVENTS_CLOSE_TIMEOUT_MS);
-        if (!settled)
-            log.warn('QueueEvents close timed out (Valkey unreachable); connection abandoned', {
-                cls: rt.cls,
-            });
+        const settled = await closeQueueEventsBounded(qe, this.queueEventsCloseTimeoutMs);
+        if (!settled) {
+            // Valkey is unreachable: the remaining closes would wait just as long.
+            this.queueEventsCloseTimeoutMs = QUEUE_EVENTS_CLOSE_RETRY_TIMEOUT_MS;
+            if (!this.queueEventsCloseTimeoutLogged) {
+                this.queueEventsCloseTimeoutLogged = true;
+                log.warn(
+                    'QueueEvents close timed out (Valkey unreachable); connections abandoned',
+                    {
+                        cls: rt.cls,
+                    },
+                );
+            }
+        }
     }
 
     // -- helpers -------------------------------------------------------------

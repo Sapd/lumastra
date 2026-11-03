@@ -638,51 +638,48 @@ describe('TaskOrchestrator.startRun', () => {
                 ownerId: '10000000-0000-4000-8000-000000000001',
             } satisfies AuthorityToken,
         },
-    ])(
-        'isRunQueued looks up the actual startRun jobId $label',
-        async ({ authority }) => {
-            const { orch, queue } = await bootOrchestrator({
-                client,
-                sql: makeFakeSql().sql,
-                authority,
-            });
-            try {
-                const input = { name: 'queued-scan' };
-                const { runId } = await orch.startRun('basic-task', input);
-                expect(queue.add).toHaveBeenCalledOnce();
-                const [, , { jobId }] = queue.add.mock.calls[0] as unknown as [
-                    string,
-                    unknown,
-                    { jobId: string },
-                ];
-                expect(jobId).toEqual(expect.any(String));
-                expect(taskJobOrigin(jobId)).toEqual(authority);
+    ])('isRunQueued looks up the actual startRun jobId $label', async ({ authority }) => {
+        const { orch, queue } = await bootOrchestrator({
+            client,
+            sql: makeFakeSql().sql,
+            authority,
+        });
+        try {
+            const input = { name: 'queued-scan' };
+            const { runId } = await orch.startRun('basic-task', input);
+            expect(queue.add).toHaveBeenCalledOnce();
+            const [, , { jobId }] = queue.add.mock.calls[0] as unknown as [
+                string,
+                unknown,
+                { jobId: string },
+            ];
+            expect(jobId).toEqual(expect.any(String));
+            expect(taskJobOrigin(jobId)).toEqual(authority);
 
-                for (const [state, queued] of [
-                    ['waiting', true],
-                    ['prioritized', true],
-                    ['delayed', true],
-                    ['active', false],
-                    ['waiting-children', false],
-                    ['completed', false],
-                    ['failed', false],
-                    ['unknown', false],
-                    ['missing', false],
-                ] as const) {
-                    queue.getJob.mockClear();
-                    queue.getJob.mockResolvedValue(
-                        state === 'missing'
-                            ? null
-                            : { name: 'basic-task', getState: async () => state },
-                    );
-                    expect(await orch.isRunQueued('basic-task', input, runId), state).toBe(queued);
-                    expect(queue.getJob.mock.calls, state).toEqual([[jobId]]);
-                }
-            } finally {
-                await orch.stop();
+            for (const [state, queued] of [
+                ['waiting', true],
+                ['prioritized', true],
+                ['delayed', true],
+                ['active', false],
+                ['waiting-children', false],
+                ['completed', false],
+                ['failed', false],
+                ['unknown', false],
+                ['missing', false],
+            ] as const) {
+                queue.getJob.mockClear();
+                queue.getJob.mockResolvedValue(
+                    state === 'missing'
+                        ? null
+                        : { name: 'basic-task', getState: async () => state },
+                );
+                expect(await orch.isRunQueued('basic-task', input, runId), state).toBe(queued);
+                expect(queue.getJob.mock.calls, state).toEqual([[jobId]]);
             }
-        },
-    );
+        } finally {
+            await orch.stop();
+        }
+    });
 
     it('rejects invalid input with a permanent TaskError', async () => {
         const { orch } = await bootOrchestrator({ client });
@@ -1655,20 +1652,27 @@ describe('TaskOrchestrator.startRun', () => {
         await orch.stop();
     });
 
-    it.each(['delayed', 'active', 'waiting', 'prioritized'])('retains the exclusive key for a failed attempt whose job is still %s', async (jobState) => {
-        mockLuaInvoke.mockResolvedValue(['duplicate', 'run_retrying']);
-        const fake = makeFakeSql();
-        fake.recorder.responses.set('SELECT state FROM task_history', [{ state: 'failed' }]);
-        const queue = makeFakeQueue();
-        queue.getJob.mockResolvedValue({ getState: async () => jobState });
-        const { orch } = await bootOrchestrator({ client, sql: fake.sql, queue });
-        try {
-            const result = await orch.startRun('exclusive-task', { id: 'foo' });
-            expect(result).toMatchObject({ deduped: true, existingRunId: 'run_retrying' });
-            expect(mockLuaInvoke.mock.calls.filter((call) => call[0] === 'release-identity')).toHaveLength(0);
-            expect(queue.add).not.toHaveBeenCalled();
-        } finally { await orch.stop(); }
-    });
+    it.each(['delayed', 'active', 'waiting', 'prioritized'])(
+        'retains the exclusive key for a failed attempt whose job is still %s',
+        async (jobState) => {
+            mockLuaInvoke.mockResolvedValue(['duplicate', 'run_retrying']);
+            const fake = makeFakeSql();
+            fake.recorder.responses.set('SELECT state FROM task_history', [{ state: 'failed' }]);
+            const queue = makeFakeQueue();
+            queue.getJob.mockResolvedValue({ getState: async () => jobState });
+            const { orch } = await bootOrchestrator({ client, sql: fake.sql, queue });
+            try {
+                const result = await orch.startRun('exclusive-task', { id: 'foo' });
+                expect(result).toMatchObject({ deduped: true, existingRunId: 'run_retrying' });
+                expect(
+                    mockLuaInvoke.mock.calls.filter((call) => call[0] === 'release-identity'),
+                ).toHaveLength(0);
+                expect(queue.add).not.toHaveBeenCalled();
+            } finally {
+                await orch.stop();
+            }
+        },
+    );
 
     it('treats the dedup as REAL (no release, no metric) when the dedup runId is LIVE', async () => {
         const before = await readPhantomMetric('exclusive-task');
@@ -2928,319 +2932,314 @@ describe('TaskOrchestrator.listRuns', () => {
     });
 });
 
-describe.each([false, true])('live run heartbeat contract (per-task queues: %s)', (perTaskQueues) => {
-    const runId = 'run_heartbeat_contract';
+describe.each([false, true])(
+    'live run heartbeat contract (per-task queues: %s)',
+    (perTaskQueues) => {
+        const runId = 'run_heartbeat_contract';
 
-    function activeRunRow(heartbeatAt: string | Date | null = '2026-10-26T07:59:00Z') {
-        return {
-            id: runId,
-            task_id: 'basic-task',
-            label: 'Basic',
-            state: 'active',
-            input: { name: 'heartbeat' },
-            scope: null,
-            trigger: { kind: 'manual' },
-            actor: { type: 'user' },
-            started_at: new Date('2026-10-26T07:58:00Z'),
-            execution_started_at: null,
-            heartbeat_at: heartbeatAt,
-            stages: [],
-        };
-    }
-
-    async function startReader(client: FakeClient, fake: ReturnType<typeof makeFakeSql>) {
-        const queue = makeFakeQueue();
-        return TaskOrchestrator.start(['io'], {
-            registry: makeRegistry(),
-            stateMachine: {
-                transitionRun: vi.fn(async () => ({ ok: true })),
-            } as unknown as StateMachine,
-            getSql: () => fake.sql as unknown as postgres.Sql,
-            getClient: () => client,
-            queueFactory: () => queue as unknown as Queue,
-            queueEventsFactory: () => null,
-            perTaskQueues,
-            taskQueueFactory: () => queue as unknown as Queue,
-            perTaskQueueEventsFactory: () => null,
-            flowProducer: null,
-        });
-    }
-
-    it.each([
-        ['Postgres text', '2026-10-25 13:14:15.123456+02', '2026-10-25T11:14:15.123Z'],
-        ['Date', new Date('2026-10-25T11:14:15.123Z'), '2026-10-25T11:14:15.123Z'],
-        ['malformed text', 'not-a-timestamp', undefined],
-        ['invalid Date', new Date(NaN), undefined],
-        ['absent', null, undefined],
-    ])('serializes a SQL heartbeat as ISO or absent: %s', async (_label, value, expected) => {
-        const client = makeFakeClient();
-        const fake = makeFakeSql();
-        fake.recorder.responses.set('SELECT id, task_id, parent_run_id, label, state', [
-            activeRunRow(value),
-        ]);
-        const orch = await startReader(client, fake);
-        try {
-            const single = await orch.getRun(runId);
-            expect(single).not.toBeNull();
-            expect(single?.heartbeatAt).toBe(expected);
-            const listed = await orch.listRuns({ limit: 50 });
-            expect(listed.runs).toHaveLength(1);
-            expect(listed.runs[0]?.heartbeatAt).toBe(expected);
-            expect(RunSchema.safeParse(listed.runs[0]).success).toBe(true);
-        } finally {
-            await orch.stop();
-        }
-    });
-
-    it('normalizes a runner-shaped epoch heartbeat through getRun and listRuns', async () => {
-        const client = makeFakeClient();
-        const fake = makeFakeSql();
-        fake.recorder.responses.set(
-            'SELECT id, task_id, parent_run_id, label, state',
-            [activeRunRow()],
-        );
-        client._hashes.set(
-            `task:run:active:${runId}`,
-            new Map([
-                ['state', 'active'],
-                ['heartbeatAt', '1793001600123'],
-                ['stage:scan:processed', '4'],
-                ['stage:scan:total', '9'],
-                ['stage:scan:currentItem', 'episode.mkv'],
-            ]),
-        );
-        const orch = await startReader(client, fake);
-        try {
-            const expectedHeartbeat = new Date(1793001600123).toISOString();
-            const single = await orch.getRun(runId);
-            expect(single?.heartbeatAt).toBe(expectedHeartbeat);
-            expect(RunSchema.safeParse(single).success).toBe(true);
-            expect(single?.stages).toContainEqual({
-                id: 'scan',
-                label: 'scan',
+        function activeRunRow(heartbeatAt: string | Date | null = '2026-10-26T07:59:00Z') {
+            return {
+                id: runId,
+                task_id: 'basic-task',
+                label: 'Basic',
                 state: 'active',
-                processed: 4,
-                total: 9,
-                currentItem: 'episode.mkv',
+                input: { name: 'heartbeat' },
+                scope: null,
+                trigger: { kind: 'manual' },
+                actor: { type: 'user' },
+                started_at: new Date('2026-10-26T07:58:00Z'),
+                execution_started_at: null,
+                heartbeat_at: heartbeatAt,
+                stages: [],
+            };
+        }
+
+        async function startReader(client: FakeClient, fake: ReturnType<typeof makeFakeSql>) {
+            const queue = makeFakeQueue();
+            return TaskOrchestrator.start(['io'], {
+                registry: makeRegistry(),
+                stateMachine: {
+                    transitionRun: vi.fn(async () => ({ ok: true })),
+                } as unknown as StateMachine,
+                getSql: () => fake.sql as unknown as postgres.Sql,
+                getClient: () => client,
+                queueFactory: () => queue as unknown as Queue,
+                queueEventsFactory: () => null,
+                perTaskQueues,
+                taskQueueFactory: () => queue as unknown as Queue,
+                perTaskQueueEventsFactory: () => null,
+                flowProducer: null,
             });
-
-            const listed = await orch.listRuns({});
-            expect(listed.runs[0]?.heartbeatAt).toBe(expectedHeartbeat);
-            expect(RunSchema.safeParse(listed.runs[0]).success).toBe(true);
-            expect(listed.runs[0]?.stages).toEqual(single?.stages);
-        } finally {
-            await orch.stop();
         }
-    });
 
-    it('canonicalizes a valid legacy ISO offset without changing its instant', async () => {
-        const client = makeFakeClient();
-        const fake = makeFakeSql();
-        fake.recorder.responses.set(
-            'SELECT id, task_id, parent_run_id, label, state',
-            [activeRunRow()],
-        );
-        client._hashes.set(
-            `task:run:active:${runId}`,
-            new Map([['heartbeatAt', '2026-10-26T10:01:02.003+02:00']]),
-        );
-        const orch = await startReader(client, fake);
-        try {
-            const run = await orch.getRun(runId);
-            expect(run?.heartbeatAt).toBe('2026-10-26T08:01:02.003Z');
-            expect(RunSchema.safeParse(run).success).toBe(true);
-        } finally {
-            await orch.stop();
-        }
-    });
-
-    it('keeps newer SQL heartbeat evidence over an older valid live observation', async () => {
-        const client = makeFakeClient();
-        const fake = makeFakeSql();
-        fake.recorder.responses.set(
-            'SELECT id, task_id, parent_run_id, label, state',
-            [activeRunRow('2026-10-26T08:01:00Z')],
-        );
-        client._hashes.set(
-            `task:run:active:${runId}`,
-            new Map([['heartbeatAt', '1793001600123']]),
-        );
-        const orch = await startReader(client, fake);
-        try {
-            const single = await orch.getRun(runId);
-            expect(single?.heartbeatAt).toBe('2026-10-26T08:01:00.000Z');
-            expect(RunSchema.safeParse(single).success).toBe(true);
-
-            const listed = await orch.listRuns({});
-            expect(listed.runs[0]?.heartbeatAt).toBe('2026-10-26T08:01:00.000Z');
-            expect(RunSchema.safeParse(listed.runs[0]).success).toBe(true);
-        } finally {
-            await orch.stop();
-        }
-    });
-
-    it('uses a valid newer live heartbeat when SQL has no heartbeat', async () => {
-        const client = makeFakeClient();
-        const fake = makeFakeSql();
-        fake.recorder.responses.set(
-            'SELECT id, task_id, parent_run_id, label, state',
-            [activeRunRow(null)],
-        );
-        client._hashes.set(
-            `task:run:active:${runId}`,
-            new Map([['heartbeatAt', '1793001600123']]),
-        );
-        const orch = await startReader(client, fake);
-        try {
-            const expectedHeartbeat = new Date(1793001600123).toISOString();
-            const single = await orch.getRun(runId);
-            expect(single?.heartbeatAt).toBe(expectedHeartbeat);
-            expect(RunSchema.safeParse(single).success).toBe(true);
-
-            const listed = await orch.listRuns({});
-            expect(listed.runs[0]?.heartbeatAt).toBe(expectedHeartbeat);
-            expect(RunSchema.safeParse(listed.runs[0]).success).toBe(true);
-        } finally {
-            await orch.stop();
-        }
-    });
-
-    it.each([
-        '',
-        'garbage',
-        'NaN',
-        '1.5',
-        '9007199254740992',
-        '8640000000000001',
-        '2026-02-30T00:00:00Z',
-    ])('keeps SQL heartbeat when live value %j is unusable', async (liveHeartbeat) => {
-        const client = makeFakeClient();
-        const fake = makeFakeSql();
-        fake.recorder.responses.set(
-            'SELECT id, task_id, parent_run_id, label, state',
-            [activeRunRow('2026-10-26T07:59:00Z')],
-        );
-        client._hashes.set(
-            `task:run:active:${runId}`,
-            new Map([['heartbeatAt', liveHeartbeat]]),
-        );
-        const orch = await startReader(client, fake);
-        try {
-            const run = await orch.getRun(runId);
-            expect(run?.heartbeatAt).toBe('2026-10-26T07:59:00.000Z');
-            expect(RunSchema.safeParse(run).success).toBe(true);
-        } finally {
-            await orch.stop();
-        }
-    });
-
-    it.each(['8640000000000000', '-8640000000000000'])(
-        'keeps strict RunSchema timestamps when live epoch %s is a valid Date with an extended year',
-        async (liveHeartbeat) => {
+        it.each([
+            ['Postgres text', '2026-10-25 13:14:15.123456+02', '2026-10-25T11:14:15.123Z'],
+            ['Date', new Date('2026-10-25T11:14:15.123Z'), '2026-10-25T11:14:15.123Z'],
+            ['malformed text', 'not-a-timestamp', undefined],
+            ['invalid Date', new Date(NaN), undefined],
+            ['absent', null, undefined],
+        ])('serializes a SQL heartbeat as ISO or absent: %s', async (_label, value, expected) => {
             const client = makeFakeClient();
             const fake = makeFakeSql();
-            fake.recorder.responses.set(
-                'SELECT id, task_id, parent_run_id, label, state',
-                [activeRunRow('2026-10-26T07:59:00Z')],
+            fake.recorder.responses.set('SELECT id, task_id, parent_run_id, label, state', [
+                activeRunRow(value),
+            ]);
+            const orch = await startReader(client, fake);
+            try {
+                const single = await orch.getRun(runId);
+                expect(single).not.toBeNull();
+                expect(single?.heartbeatAt).toBe(expected);
+                const listed = await orch.listRuns({ limit: 50 });
+                expect(listed.runs).toHaveLength(1);
+                expect(listed.runs[0]?.heartbeatAt).toBe(expected);
+                expect(RunSchema.safeParse(listed.runs[0]).success).toBe(true);
+            } finally {
+                await orch.stop();
+            }
+        });
+
+        it('normalizes a runner-shaped epoch heartbeat through getRun and listRuns', async () => {
+            const client = makeFakeClient();
+            const fake = makeFakeSql();
+            fake.recorder.responses.set('SELECT id, task_id, parent_run_id, label, state', [
+                activeRunRow(),
+            ]);
+            client._hashes.set(
+                `task:run:active:${runId}`,
+                new Map([
+                    ['state', 'active'],
+                    ['heartbeatAt', '1793001600123'],
+                    ['stage:scan:processed', '4'],
+                    ['stage:scan:total', '9'],
+                    ['stage:scan:currentItem', 'episode.mkv'],
+                ]),
             );
+            const orch = await startReader(client, fake);
+            try {
+                const expectedHeartbeat = new Date(1793001600123).toISOString();
+                const single = await orch.getRun(runId);
+                expect(single?.heartbeatAt).toBe(expectedHeartbeat);
+                expect(RunSchema.safeParse(single).success).toBe(true);
+                expect(single?.stages).toContainEqual({
+                    id: 'scan',
+                    label: 'scan',
+                    state: 'active',
+                    processed: 4,
+                    total: 9,
+                    currentItem: 'episode.mkv',
+                });
+
+                const listed = await orch.listRuns({});
+                expect(listed.runs[0]?.heartbeatAt).toBe(expectedHeartbeat);
+                expect(RunSchema.safeParse(listed.runs[0]).success).toBe(true);
+                expect(listed.runs[0]?.stages).toEqual(single?.stages);
+            } finally {
+                await orch.stop();
+            }
+        });
+
+        it('canonicalizes a valid legacy ISO offset without changing its instant', async () => {
+            const client = makeFakeClient();
+            const fake = makeFakeSql();
+            fake.recorder.responses.set('SELECT id, task_id, parent_run_id, label, state', [
+                activeRunRow(),
+            ]);
+            client._hashes.set(
+                `task:run:active:${runId}`,
+                new Map([['heartbeatAt', '2026-10-26T10:01:02.003+02:00']]),
+            );
+            const orch = await startReader(client, fake);
+            try {
+                const run = await orch.getRun(runId);
+                expect(run?.heartbeatAt).toBe('2026-10-26T08:01:02.003Z');
+                expect(RunSchema.safeParse(run).success).toBe(true);
+            } finally {
+                await orch.stop();
+            }
+        });
+
+        it('keeps newer SQL heartbeat evidence over an older valid live observation', async () => {
+            const client = makeFakeClient();
+            const fake = makeFakeSql();
+            fake.recorder.responses.set('SELECT id, task_id, parent_run_id, label, state', [
+                activeRunRow('2026-10-26T08:01:00Z'),
+            ]);
+            client._hashes.set(
+                `task:run:active:${runId}`,
+                new Map([['heartbeatAt', '1793001600123']]),
+            );
+            const orch = await startReader(client, fake);
+            try {
+                const single = await orch.getRun(runId);
+                expect(single?.heartbeatAt).toBe('2026-10-26T08:01:00.000Z');
+                expect(RunSchema.safeParse(single).success).toBe(true);
+
+                const listed = await orch.listRuns({});
+                expect(listed.runs[0]?.heartbeatAt).toBe('2026-10-26T08:01:00.000Z');
+                expect(RunSchema.safeParse(listed.runs[0]).success).toBe(true);
+            } finally {
+                await orch.stop();
+            }
+        });
+
+        it('uses a valid newer live heartbeat when SQL has no heartbeat', async () => {
+            const client = makeFakeClient();
+            const fake = makeFakeSql();
+            fake.recorder.responses.set('SELECT id, task_id, parent_run_id, label, state', [
+                activeRunRow(null),
+            ]);
+            client._hashes.set(
+                `task:run:active:${runId}`,
+                new Map([['heartbeatAt', '1793001600123']]),
+            );
+            const orch = await startReader(client, fake);
+            try {
+                const expectedHeartbeat = new Date(1793001600123).toISOString();
+                const single = await orch.getRun(runId);
+                expect(single?.heartbeatAt).toBe(expectedHeartbeat);
+                expect(RunSchema.safeParse(single).success).toBe(true);
+
+                const listed = await orch.listRuns({});
+                expect(listed.runs[0]?.heartbeatAt).toBe(expectedHeartbeat);
+                expect(RunSchema.safeParse(listed.runs[0]).success).toBe(true);
+            } finally {
+                await orch.stop();
+            }
+        });
+
+        it.each([
+            '',
+            'garbage',
+            'NaN',
+            '1.5',
+            '9007199254740992',
+            '8640000000000001',
+            '2026-02-30T00:00:00Z',
+        ])('keeps SQL heartbeat when live value %j is unusable', async (liveHeartbeat) => {
+            const client = makeFakeClient();
+            const fake = makeFakeSql();
+            fake.recorder.responses.set('SELECT id, task_id, parent_run_id, label, state', [
+                activeRunRow('2026-10-26T07:59:00Z'),
+            ]);
             client._hashes.set(
                 `task:run:active:${runId}`,
                 new Map([['heartbeatAt', liveHeartbeat]]),
             );
             const orch = await startReader(client, fake);
             try {
-                const single = await orch.getRun(runId);
-                expect.soft(RunSchema.safeParse(single).success).toBe(true);
-                expect(single?.heartbeatAt).toBe('2026-10-26T07:59:00.000Z');
-
-                const listed = await orch.listRuns({});
-                expect.soft(RunSchema.safeParse(listed.runs[0]).success).toBe(true);
-                expect(listed.runs[0]?.heartbeatAt).toBe('2026-10-26T07:59:00.000Z');
+                const run = await orch.getRun(runId);
+                expect(run?.heartbeatAt).toBe('2026-10-26T07:59:00.000Z');
+                expect(RunSchema.safeParse(run).success).toBe(true);
             } finally {
                 await orch.stop();
             }
-        },
-    );
-
-    it('omits malformed live heartbeat when SQL has none and preserves other live facts', async () => {
-        const client = makeFakeClient();
-        const fake = makeFakeSql();
-        fake.recorder.responses.set(
-            'SELECT id, task_id, parent_run_id, label, state',
-            [activeRunRow(null)],
-        );
-        client._hashes.set(
-            `task:run:active:${runId}`,
-            new Map([
-                ['heartbeatAt', 'not-a-time'],
-                ['stage:scan:processed', '4'],
-            ]),
-        );
-        const orch = await startReader(client, fake);
-        try {
-            const run = await orch.getRun(runId);
-            expect(run?.heartbeatAt).toBeUndefined();
-            expect(run?.stages[0]?.processed).toBe(4);
-            expect(RunSchema.safeParse(run).success).toBe(true);
-        } finally {
-            await orch.stop();
-        }
-    });
-
-    it('leaves SQL evidence intact when Valkey observation fails', async () => {
-        const client = makeFakeClient();
-        const fake = makeFakeSql();
-        fake.recorder.responses.set(
-            'SELECT id, task_id, parent_run_id, label, state',
-            [activeRunRow('2026-10-26T07:59:00Z')],
-        );
-        const orch = await startReader(client, fake);
-        client.customCommand = vi.fn(async (command: string[]) => {
-            if (command[0] === 'HGETALL') throw new Error('Valkey unavailable');
-            return null;
         });
-        try {
-            const run = await orch.getRun(runId);
-            expect(run?.heartbeatAt).toBe('2026-10-26T07:59:00.000Z');
-            expect(run?.state).toBe('active');
-            expect(RunSchema.safeParse(run).success).toBe(true);
-        } finally {
-            await orch.stop();
-        }
-    });
 
-    it('does not observe or merge stale live state for a terminal SQL row', async () => {
-        const client = makeFakeClient();
-        const fake = makeFakeSql();
-        fake.recorder.responses.set('SELECT id, task_id, parent_run_id, label, state', [
-            {
-                ...activeRunRow('2026-10-26T07:59:00Z'),
-                state: 'completed',
-                completed_at: new Date('2026-10-26T08:00:00Z'),
+        it.each(['8640000000000000', '-8640000000000000'])(
+            'keeps strict RunSchema timestamps when live epoch %s is a valid Date with an extended year',
+            async (liveHeartbeat) => {
+                const client = makeFakeClient();
+                const fake = makeFakeSql();
+                fake.recorder.responses.set('SELECT id, task_id, parent_run_id, label, state', [
+                    activeRunRow('2026-10-26T07:59:00Z'),
+                ]);
+                client._hashes.set(
+                    `task:run:active:${runId}`,
+                    new Map([['heartbeatAt', liveHeartbeat]]),
+                );
+                const orch = await startReader(client, fake);
+                try {
+                    const single = await orch.getRun(runId);
+                    expect.soft(RunSchema.safeParse(single).success).toBe(true);
+                    expect(single?.heartbeatAt).toBe('2026-10-26T07:59:00.000Z');
+
+                    const listed = await orch.listRuns({});
+                    expect.soft(RunSchema.safeParse(listed.runs[0]).success).toBe(true);
+                    expect(listed.runs[0]?.heartbeatAt).toBe('2026-10-26T07:59:00.000Z');
+                } finally {
+                    await orch.stop();
+                }
             },
-        ]);
-        client._hashes.set(
-            `task:run:active:${runId}`,
-            new Map([
-                ['state', 'active'],
-                ['heartbeatAt', '1793001600123'],
-            ]),
         );
-        const orch = await startReader(client, fake);
-        try {
-            const run = await orch.getRun(runId);
-            expect(run?.state).toBe('completed');
-            expect(run?.heartbeatAt).toBe('2026-10-26T07:59:00.000Z');
-            expect(client.customCommand).not.toHaveBeenCalledWith([
-                'HGETALL',
-                `task:run:active:${runId}`,
+
+        it('omits malformed live heartbeat when SQL has none and preserves other live facts', async () => {
+            const client = makeFakeClient();
+            const fake = makeFakeSql();
+            fake.recorder.responses.set('SELECT id, task_id, parent_run_id, label, state', [
+                activeRunRow(null),
             ]);
-            expect(RunSchema.safeParse(run).success).toBe(true);
-        } finally {
-            await orch.stop();
-        }
-    });
-});
+            client._hashes.set(
+                `task:run:active:${runId}`,
+                new Map([
+                    ['heartbeatAt', 'not-a-time'],
+                    ['stage:scan:processed', '4'],
+                ]),
+            );
+            const orch = await startReader(client, fake);
+            try {
+                const run = await orch.getRun(runId);
+                expect(run?.heartbeatAt).toBeUndefined();
+                expect(run?.stages[0]?.processed).toBe(4);
+                expect(RunSchema.safeParse(run).success).toBe(true);
+            } finally {
+                await orch.stop();
+            }
+        });
+
+        it('leaves SQL evidence intact when Valkey observation fails', async () => {
+            const client = makeFakeClient();
+            const fake = makeFakeSql();
+            fake.recorder.responses.set('SELECT id, task_id, parent_run_id, label, state', [
+                activeRunRow('2026-10-26T07:59:00Z'),
+            ]);
+            const orch = await startReader(client, fake);
+            client.customCommand = vi.fn(async (command: string[]) => {
+                if (command[0] === 'HGETALL') throw new Error('Valkey unavailable');
+                return null;
+            });
+            try {
+                const run = await orch.getRun(runId);
+                expect(run?.heartbeatAt).toBe('2026-10-26T07:59:00.000Z');
+                expect(run?.state).toBe('active');
+                expect(RunSchema.safeParse(run).success).toBe(true);
+            } finally {
+                await orch.stop();
+            }
+        });
+
+        it('does not observe or merge stale live state for a terminal SQL row', async () => {
+            const client = makeFakeClient();
+            const fake = makeFakeSql();
+            fake.recorder.responses.set('SELECT id, task_id, parent_run_id, label, state', [
+                {
+                    ...activeRunRow('2026-10-26T07:59:00Z'),
+                    state: 'completed',
+                    completed_at: new Date('2026-10-26T08:00:00Z'),
+                },
+            ]);
+            client._hashes.set(
+                `task:run:active:${runId}`,
+                new Map([
+                    ['state', 'active'],
+                    ['heartbeatAt', '1793001600123'],
+                ]),
+            );
+            const orch = await startReader(client, fake);
+            try {
+                const run = await orch.getRun(runId);
+                expect(run?.state).toBe('completed');
+                expect(run?.heartbeatAt).toBe('2026-10-26T07:59:00.000Z');
+                expect(client.customCommand).not.toHaveBeenCalledWith([
+                    'HGETALL',
+                    `task:run:active:${runId}`,
+                ]);
+                expect(RunSchema.safeParse(run).success).toBe(true);
+            } finally {
+                await orch.stop();
+            }
+        });
+    },
+);
 
 // ── recoverOnBoot ─────────────────────────────────────────────────────────────
 
@@ -3484,6 +3483,30 @@ describe('TaskOrchestrator lost-leader re-acquire', () => {
             }
         },
     );
+
+    it('stop() does not wait forever on a QueueEvents whose close never settles (Valkey down)', async () => {
+        vi.useFakeTimers();
+        const client = makeFakeClient();
+        const database = makeFakeSql();
+        const queue = makeTerminalQueue('io');
+        const events = makeQueueSubscription('io');
+        // BullMQ behaviour while Valkey is down: close() waits for an 'end' that never comes.
+        events.close.mockImplementation(() => new Promise<void>(() => {}));
+        const { orch } = await bootOrchestrator({
+            client,
+            sql: database.sql,
+            queue,
+            queueEventsFactory: () => events as unknown as QueueEvents,
+        });
+        let stopped = false;
+        const stopping = orch.stop().then(() => {
+            stopped = true;
+        });
+        await vi.advanceTimersByTimeAsync(10_000);
+        await stopping;
+        expect(stopped).toBe(true);
+        expect(events.close).toHaveBeenCalledTimes(1);
+    });
 
     it.each([false, true])(
         'a crashed class submits no fallback or terminal event after awaited SQL, failure: %s',
@@ -5298,7 +5321,6 @@ it('retains the real submission facade until a strict watcher repair retry is ac
         start.mockRestore();
     }
 });
-
 
 it('does not put the full boot sweep on the worker startup path', async () => {
     const { orch, queue } = await bootOrchestrator({
