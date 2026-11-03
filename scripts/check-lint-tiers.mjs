@@ -70,7 +70,8 @@ function extractProjectServiceGlobs(configSrc) {
     const globs = new Set();
     // Type-aware blocks use `project: './tsconfig.eslint.json'` (lint:typed's own
     // program); older ones used `projectService: true`. Both mean "type-aware".
-    const projectServiceRe = /projectService:\s*true|project:\s*['"]\.\/tsconfig\.eslint\.json['"]/g;
+    const projectServiceRe =
+        /projectService:\s*true|project:\s*['"]\.\/tsconfig\.eslint\.json['"]/g;
     let p;
     while ((p = projectServiceRe.exec(configSrc))) {
         // Nearest files-block that starts before this projectService hit.
@@ -247,7 +248,9 @@ function checkTestsTier(pkg, lintTypedScript, typedGlobs) {
     for (const g of typedGlobs) {
         const expected = g.replace(/\*\.ts$/, '*.test.ts');
         if (!testGlobs.includes(expected)) {
-            problems.push(`lint:tests does not lint ${expected} (the tests of lint:typed glob ${g}).`);
+            problems.push(
+                `lint:tests does not lint ${expected} (the tests of lint:typed glob ${g}).`,
+            );
         }
     }
     return problems;
