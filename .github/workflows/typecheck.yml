@@ -5,6 +5,10 @@ name: Typecheck (tsgo)
 # prod-import guard and the custom ESLint rules' own test suites.
 #
 # ESLint and the Svelte component type check run in lint.yml.
+#
+# Pull requests skip this when no changed file can affect it (changes.yml,
+# docs/dev/ci-change-detection.md): tsgo does not read .svelte files, so editing a component
+# cannot change its result. Pushes to main always run it.
 
 on:
     push:
@@ -21,7 +25,14 @@ concurrency:
     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+    changes:
+        name: Select jobs
+        uses: ./.github/workflows/changes.yml
+
     typecheck:
+        needs: changes
+        # Also runs when the selection itself failed: skipping on an error would hide a check.
+        if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.typecheck == 'true') }}
         runs-on: ubuntu-latest
         steps:
             - name: Check out the repo

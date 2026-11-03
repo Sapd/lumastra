@@ -1,29 +1,29 @@
-# First DB-backed public workflow; not a required check (path-filtered).
+# First DB-backed public workflow; not a required check.
 name: Jellyfin client contract
-# Runs ONLY when /j-shaping code changes, or by hand. Real handlers + PG/Valkey ->
-# contract validator, then the outputs are decoded with jellyfin-sdk-kotlin
-# 1.6.3 / 1.7.1 / 1.8.12 / 1.9.2.
+# Real handlers + PG/Valkey -> contract validator, then the outputs are decoded with
+# jellyfin-sdk-kotlin 1.6.3 / 1.7.1 / 1.8.12 / 1.9.2.
+# Pull requests run it only when /j-shaping code, a migration or a global input (lockfile,
+# configs, workflows) changes; pushes to main and manual runs always run it. The path list is
+# JELLYFIN_PATHS in scripts/ci/changed-jobs.mjs, next to the other selection rules.
 on:
     workflow_dispatch:
+    push:
+        branches: [main]
     pull_request:
-        paths:
-            - 'src/routes/(proprietary)/j/**'
-            - 'src/lib/server/proprietary/jellyfin-compat/**'
-            - 'src/lib/server/utils/external-subtitle-index.ts'
-            - 'src/lib/server/utils/media-stream-mapper.ts'
-            - 'src/lib/server/database/queries/media-streams.queries.ts'
-            - 'src/lib/server/database/queries/external-subtitles.queries.ts'
-            - 'tests/jellyfin-contract/**'
-            - 'src/lib/server/compat/jellyfin-response-observer.ts'
-            - 'vitest.jellyfin-contract.config.ts'
-            - '.github/workflows/jellyfin-contract.yml'
 permissions:
     contents: read
 concurrency:
     group: jellyfin-contract-${{ github.ref }}
-    cancel-in-progress: true
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+    changes:
+        name: Select jobs
+        uses: ./.github/workflows/changes.yml
+
     contract:
+        needs: changes
+        # Also runs when the selection itself failed: skipping on an error would hide a check.
+        if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.jellyfin == 'true') }}
         runs-on: ubuntu-latest
         timeout-minutes: 30
         services:

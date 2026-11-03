@@ -4,6 +4,9 @@ name: Lint
 # licence boundary, operator-copy check), the Svelte component type check, and the guard that
 # every action in .github/workflows is pinned by commit SHA. The type-aware ESLint pass peaks
 # near 5 GB of memory; the 16 GB GitHub-hosted runners for public repositories have room for it.
+#
+# Pull requests run only what their files can affect (changes.yml,
+# docs/dev/ci-change-detection.md); pushes to main run everything, without the ESLint cache.
 
 on:
     push:
@@ -20,8 +23,15 @@ concurrency:
     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+    changes:
+        name: Select jobs
+        uses: ./.github/workflows/changes.yml
+
     eslint:
         name: ESLint
+        needs: changes
+        # Also runs when the selection itself failed: skipping on an error would hide a check.
+        if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.eslint == 'true') }}
         runs-on: ubuntu-latest
         timeout-minutes: 30
         steps:
@@ -45,17 +55,79 @@ jobs:
                   npm run paraglide:compile
                   npm run openapi:types
 
+            # Pull requests only. ESLint's cache keeps the result of every file whose content and
+            # configuration are unchanged, so a later push to the same pull request re-lints
+            # just the files it touches. The key names what the results depend on besides file
+            # content: dependency versions, the ESLint and TypeScript configs, and the local
+            # callback-safety rules (ESLint does not hash plugin code). The type-aware cache
+            # also depends on the generated type inputs (OpenAPI spec, messages). Pushes to
+            # main run uncached: typed results can go stale when another file's types change,
+            # and main is the full check.
+            - name: Restore ESLint cache (pull requests)
+              if: github.event_name == 'pull_request'
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: .eslintcache-fast
+                  key: eslint-fast-${{ runner.os }}-${{ hashFiles('package.json', 'package-lock.json', 'eslint.config.cjs', 'tsconfig*.json', 'scripts/eslint-plugin-callback-safety/**') }}-${{ github.run_id }}
+                  restore-keys: |
+                      eslint-fast-${{ runner.os }}-${{ hashFiles('package.json', 'package-lock.json', 'eslint.config.cjs', 'tsconfig*.json', 'scripts/eslint-plugin-callback-safety/**') }}-
+
+            - name: Restore type-aware ESLint cache (pull requests)
+              if: github.event_name == 'pull_request'
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: .eslintcache-typed
+                  key: eslint-typed-${{ runner.os }}-${{ hashFiles('package.json', 'package-lock.json', 'eslint.config.cjs', 'tsconfig*.json', 'scripts/eslint-plugin-callback-safety/**', 'docs/api/openapi.yaml', 'messages/*.json', 'project.inlang/**') }}-${{ github.run_id }}
+                  restore-keys: |
+                      eslint-typed-${{ runner.os }}-${{ hashFiles('package.json', 'package-lock.json', 'eslint.config.cjs', 'tsconfig*.json', 'scripts/eslint-plugin-callback-safety/**', 'docs/api/openapi.yaml', 'messages/*.json', 'project.inlang/**') }}-
+
+            # Pull requests run the sub-scripts of `npm run lint` one by one so the two ESLint
+            # passes can be given `--cache-strategy content`: the default compares file
+            # modification times, which a fresh checkout resets, so it would never hit the
+            # restored cache. If `lint` stops being a plain `npm run a && npm run b ...` chain,
+            # this falls back to `npm run lint` (uncached) rather than guessing.
             - name: ESLint and repository checks
-              run: npm run lint
+              env:
+                  EVENT_NAME: ${{ github.event_name }}
+              run: |
+                  if [ "$EVENT_NAME" != "pull_request" ]; then
+                      npm run lint
+                      exit 0
+                  fi
+                  STEPS=$(node -p "const p = require('./package.json').scripts.lint.split(' && '); p.every((c) => /^npm run [a-z:-]+$/.test(c)) ? p.map((c) => c.slice(8)).join(' ') : 'lint'")
+                  echo "Running: $STEPS"
+                  for step in $STEPS; do
+                      case "$step" in
+                          lint:fast|lint:typed) npm run "$step" -- --cache-strategy content ;;
+                          *) npm run "$step" ;;
+                      esac
+                  done
+
+            - name: Save ESLint cache (pull requests)
+              if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: .eslintcache-fast
+                  key: eslint-fast-${{ runner.os }}-${{ hashFiles('package.json', 'package-lock.json', 'eslint.config.cjs', 'tsconfig*.json', 'scripts/eslint-plugin-callback-safety/**') }}-${{ github.run_id }}
+
+            - name: Save type-aware ESLint cache (pull requests)
+              if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: .eslintcache-typed
+                  key: eslint-typed-${{ runner.os }}-${{ hashFiles('package.json', 'package-lock.json', 'eslint.config.cjs', 'tsconfig*.json', 'scripts/eslint-plugin-callback-safety/**', 'docs/api/openapi.yaml', 'messages/*.json', 'project.inlang/**') }}-${{ github.run_id }}
 
             - name: Workflow actions are pinned by commit SHA
               run: node scripts/check-actions-pinned.mjs
 
     svelte-types:
         name: Svelte component types
+        needs: changes
         # svelte-check on tsgo over the components and the files that import them peaks at
         # 6.0 GB and takes ~90 s on the 2 vCPU / 8 GB private-repo runner, without swap
-        # (2026-11-03); see scripts/typecheck/svelte-entry-config.mjs.
+        # (2026-11-03); see scripts/typecheck/svelte-entry-config.mjs. Pull requests run it
+        # when components, the TS they import, messages or the OpenAPI types change.
+        if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.svelte_types == 'true') }}
         runs-on: ubuntu-latest
         timeout-minutes: 20
         steps:

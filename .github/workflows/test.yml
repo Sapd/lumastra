@@ -6,6 +6,11 @@ name: Unit tests
 #   integration-tests  the integration suite against PostgreSQL 18 + pgvector and Valkey service
 #                      containers, with the pinned jellyfin-ffmpeg build, split into 4 shards.
 # End-to-end (Playwright) runs on demand: see e2e.yml.
+#
+# Pull requests run only the suites their files can affect (changes.yml,
+# docs/dev/ci-change-detection.md); pushes to main run everything. "Tests (gate)" is the check
+# to require: it is green when every suite that ran passed and, unlike a matrix job skipped by
+# `if:`, it always reports under one fixed name.
 
 on:
     push:
@@ -22,8 +27,15 @@ concurrency:
     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+    changes:
+        name: Select jobs
+        uses: ./.github/workflows/changes.yml
+
     unit-tests:
         name: Unit tests (shard ${{ matrix.shard }}/8)
+        needs: changes
+        # Also runs when the selection itself failed: skipping on an error would hide a check.
+        if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.unit == 'true') }}
         runs-on: ubuntu-latest
         timeout-minutes: 45
         # The unit suite takes ~16 min on 48 cores and did not finish in 45 min on one 4-core
@@ -72,6 +84,8 @@ jobs:
 
     other-suites:
         name: Component, stream-proxy and plugin SDK suites
+        needs: changes
+        if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.other_suites == 'true') }}
         runs-on: ubuntu-latest
         timeout-minutes: 45
         steps:
@@ -140,6 +154,8 @@ jobs:
 
     integration-tests:
         name: Integration tests (shard ${{ matrix.shard }}/4)
+        needs: changes
+        if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.integration == 'true') }}
         runs-on: ubuntu-latest
         timeout-minutes: 60
         # The suite runs its 500+ files one after another (fileParallelism: false); four shards
@@ -266,3 +282,22 @@ jobs:
             - name: Guard against a silent zero-test result
               if: always()
               run: node scripts/check-vitest-json.mjs ${{ runner.temp }}/vitest-integration.json
+
+    # A matrix job skipped by `if:` reports under its unexpanded name ("Unit tests (shard
+    # ${{ matrix.shard }}/8)"), so a required check on "shard 1/8" would wait forever. This job
+    # always runs, has a fixed name, and fails if any suite that ran failed or was cancelled.
+    tests-gate:
+        name: Tests (gate)
+        needs: [unit-tests, other-suites, integration-tests]
+        if: ${{ !cancelled() }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            - name: Every suite that ran passed
+              env:
+                  RESULTS: ${{ join(needs.*.result, ' ') }}
+              run: |
+                  echo "Suite results: $RESULTS (skipped = no changed file can affect it)"
+                  case " $RESULTS " in
+                      *" failure "*|*" cancelled "*) exit 1 ;;
+                  esac

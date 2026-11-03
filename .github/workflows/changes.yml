@@ -1,0 +1,69 @@
+name: Changes
+
+# Reusable: decides which heavy jobs a pull request has to run, from the files it changes.
+# Called as the first job ("changes") of lint.yml, typecheck.yml, test.yml and
+# jellyfin-contract.yml; those jobs `need` it and gate on its outputs. The rules, and why a
+# file may skip a job, are in docs/dev/ci-change-detection.md and scripts/ci/changed-jobs.mjs.
+#
+# Why one job and not `on.pull_request.paths`: a workflow skipped by `paths` never reports,
+# so a required check on it would wait forever. A job skipped by `if:` reports success.
+#
+# Pushes to main, tags and manual runs always select every job. Anything this job cannot work
+# out selects every job too.
+
+on:
+    workflow_call:
+        outputs:
+            eslint:
+                description: ESLint, repository checks and the action-pin guard
+                value: ${{ jobs.changes.outputs.eslint }}
+            typecheck:
+                description: tsgo typecheck, sandbox bundle guard, rule self-tests
+                value: ${{ jobs.changes.outputs.typecheck }}
+            svelte_types:
+                description: svelte-check over the components
+                value: ${{ jobs.changes.outputs.svelte_types }}
+            unit:
+                description: Unit suite (8 shards)
+                value: ${{ jobs.changes.outputs.unit }}
+            other_suites:
+                description: Component, stream-proxy and plugin SDK suites
+                value: ${{ jobs.changes.outputs.other_suites }}
+            integration:
+                description: Integration suite (4 shards)
+                value: ${{ jobs.changes.outputs.integration }}
+            jellyfin:
+                description: Jellyfin client contract
+                value: ${{ jobs.changes.outputs.jellyfin }}
+
+permissions:
+    contents: read
+
+jobs:
+    changes:
+        name: Select jobs
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        outputs:
+            eslint: ${{ steps.select.outputs.eslint }}
+            typecheck: ${{ steps.select.outputs.typecheck }}
+            svelte_types: ${{ steps.select.outputs.svelte_types }}
+            unit: ${{ steps.select.outputs.unit }}
+            other_suites: ${{ steps.select.outputs.other_suites }}
+            integration: ${{ steps.select.outputs.integration }}
+            jellyfin: ${{ steps.select.outputs.jellyfin }}
+        steps:
+            # Pull requests check out the merge commit of base and head. Depth 2 brings both
+            # of its parents, and the diff against the first (the base) is the pull request.
+            - name: Check out the repo
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 2
+
+            # The script has no dependencies, so the runner's own Node is enough.
+            - name: Select jobs
+              id: select
+              env:
+                  EVENT_NAME: ${{ github.event_name }}
+                  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+              run: node scripts/ci/changed-jobs.mjs
