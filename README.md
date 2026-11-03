@@ -40,8 +40,8 @@ were priorities from the start.
 
 Until 1.0, I'm focusing on bugs and polish rather than new features. Ideas are welcome
 in [Discussions](https://github.com/Sapd/lumastra/discussions/categories/features).
-I maintain Lumastra because I use it, but can't sustain the initial development pace;
-please be patient with replies and fixes. If issues grow, I may split features into
+I maintain Lumastra because I use it myself. If I can't keep up the pace of the first
+months, replies and fixes may take a while; please be patient. If issues grow, I may split features into
 a supported core and areas maintained as time allows.
 
 [![Lumastra Home: a playing hero preview followed by a smooth scroll through recommendations and the series calendar](docs/assets/screenshots/home-scroll.gif)](https://lumastra.org/#preview)
@@ -334,19 +334,19 @@ external AI or metadata service local.
 
 ## Free core and supporter features
 
-| Feature                           | Licence                                   | Availability                                                             |
-| --------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------ |
-| Movies & series                   | AGPL-3.0-only                             | Library management, playback and hardware transcoding                    |
-| Music                             | AGPL-3.0-only                             | Playback, mixes and music discovery                                      |
-| Audiobooks via Audiobookshelf     | AGPL-3.0-only (Lumastra integration)      | Requires an Audiobookshelf server                                        |
-| Live TV                           | AGPL-3.0-only                             | Programme guide and playback; no DVR                                     |
-| Jellyfin app compatibility (`/j`) | Source-available proprietary              | Two concurrent streams free per server; more with supporter access       |
-| Subsonic / OpenSubsonic           | AGPL-3.0-only                             | Connect compatible music apps                                            |
-| Watch Together                    | AGPL-3.0-only                             | Synchronized sessions between web and Apple TV                           |
-| AI recommendations                | AGPL-3.0-only                             | Recommendations and semantic search; configured providers may charge     |
-| AI chat assistant                 | Source-available proprietary              | Supporter feature (free during early access); needs an AI provider key   |
-| Apple apps                        | Closed source                             | iPhone, iPad and Apple TV; separate from the server                      |
-| Plugins                           | AGPL-3.0-only; SDK and samples Apache-2.0 | Bundled plugins are AGPL; third-party plugins have their own licences    |
+| Feature                           | Licence                                   | Availability                                                           |
+| --------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------- |
+| Movies & series                   | AGPL-3.0-only                             | Library management, playback and hardware transcoding                  |
+| Music                             | AGPL-3.0-only                             | Playback, mixes and music discovery                                    |
+| Audiobooks via Audiobookshelf     | AGPL-3.0-only (Lumastra integration)      | Requires an Audiobookshelf server                                      |
+| Live TV                           | AGPL-3.0-only                             | Programme guide and playback; no DVR                                   |
+| Jellyfin app compatibility (`/j`) | Source-available proprietary              | Two concurrent streams free per server; more with supporter access     |
+| Subsonic / OpenSubsonic           | AGPL-3.0-only                             | Connect compatible music apps                                          |
+| Watch Together                    | AGPL-3.0-only                             | Synchronized sessions between web and Apple TV                         |
+| AI recommendations                | AGPL-3.0-only                             | Recommendations and semantic search; configured providers may charge   |
+| AI chat assistant                 | Source-available proprietary              | Supporter feature (free during early access); needs an AI provider key |
+| Apple apps                        | Closed source                             | iPhone, iPad and Apple TV; separate from the server                    |
+| Plugins                           | AGPL-3.0-only; SDK and samples Apache-2.0 | Bundled plugins are AGPL; third-party plugins have their own licences  |
 
 The `/j` Jellyfin compatibility surface and AI chat assistant ship in this repository as
 **source-available, licence-gated proprietary components** under
