@@ -222,7 +222,7 @@ describe('generateMasterPlaylist', () => {
             const lines = audioLines(
                 build([track(1, { language: 'eng', displayTitle: 'Director Commentary' })]),
             );
-            expect(lines[0]).toContain('NAME="Director_Commentary"');
+            expect(lines[0]).toContain('NAME="Director Commentary"');
         });
 
         // Apple's players label an AUTOSELECT=YES rendition with the language
@@ -287,7 +287,100 @@ describe('generateMasterPlaylist', () => {
                     }),
                 ]),
             );
-            expect(lines[1]).toContain('NAME="Director_Commentary",DEFAULT=NO,AUTOSELECT=NO');
+            expect(lines[1]).toContain('NAME="Director Commentary",DEFAULT=NO,AUTOSELECT=NO');
+        });
+
+        it('keeps every unknown-language track primary', () => {
+            const lines = audioLines(build([track(1), track(2), track(3)]));
+            expect(lines.every((l) => l.includes('AUTOSELECT=YES'))).toBe(true);
+            expect(lines[2]).toContain('NAME="Audio 3"');
+        });
+
+        it('prefers the file default of a language as its primary', () => {
+            const lines = audioLines(
+                build(
+                    [
+                        track(1, {
+                            language: 'ger',
+                            displayTitle: '',
+                            codec: 'ac3',
+                            isDefault: true,
+                        }),
+                        track(2, { language: 'eng', displayTitle: 'Commentary', codec: 'ac3' }),
+                        track(3, {
+                            language: 'eng',
+                            displayTitle: '',
+                            codec: 'ac3',
+                            isDefault: true,
+                        }),
+                    ],
+                    { selectedAudioStreamIndex: 1 },
+                ),
+            );
+            expect(lines[1]).toContain('NAME="Commentary",DEFAULT=NO,AUTOSELECT=NO');
+            expect(lines[2]).toContain('NAME="English",DEFAULT=NO,AUTOSELECT=YES');
+        });
+
+        it('strips only what breaks the NAME attribute from a title or codec', () => {
+            const lines = audioLines(
+                build([
+                    track(1, { language: 'eng', displayTitle: 'Español "Latino"\n', codec: 'ac3' }),
+                    track(2, {
+                        language: 'eng',
+                        displayTitle: '',
+                        codec: 'pcm"_s16le',
+                        channels: 7,
+                    }),
+                ]),
+            );
+            expect(lines[0]).toContain('NAME="Español Latino",');
+            expect(lines[1]).toContain('NAME="English (PCM_S16LE 6.1)",');
+        });
+
+        it('does not let a numbered name collide with a plain one', () => {
+            const lines = audioLines(
+                build([
+                    track(1, { language: 'eng', displayTitle: 'Audio', codec: 'ac3' }),
+                    track(2, { language: 'eng', displayTitle: 'Audio', codec: 'ac3' }),
+                    track(3, { language: 'eng', displayTitle: 'Audio 2', codec: 'ac3' }),
+                ]),
+            );
+            const names = lines.map((l) => l.match(/NAME="([^"]*)"/)?.[1]);
+            expect(new Set(names).size).toBe(3);
+        });
+
+        it('holds the rendition invariants on a mixed file', () => {
+            const lines = audioLines(
+                build(
+                    [
+                        track(1, {
+                            language: 'ger',
+                            displayTitle: '',
+                            codec: 'ac3',
+                            isDefault: true,
+                        }),
+                        track(2, { language: 'eng', displayTitle: '', codec: 'ac3' }),
+                        track(3, { language: 'eng', displayTitle: '', codec: 'dts', channels: 6 }),
+                        track(4, { language: 'eng', displayTitle: '', codec: 'ac3' }),
+                        track(5, { displayTitle: '', codec: 'aac' }),
+                        track(6, { displayTitle: '', codec: 'aac' }),
+                    ],
+                    { selectedAudioStreamIndex: 3 },
+                ),
+            );
+            const attrs = lines.map((l) => ({
+                name: l.match(/NAME="([^"]*)"/)?.[1],
+                lang: l.match(/LANGUAGE="([^"]*)"/)?.[1],
+                isDefault: l.includes('DEFAULT=YES'),
+                autoselect: l.includes('AUTOSELECT=YES'),
+            }));
+            expect(attrs.filter((a) => a.isDefault)).toHaveLength(1);
+            expect(attrs.filter((a) => a.isDefault && !a.autoselect)).toHaveLength(0);
+            expect(new Set(attrs.map((a) => a.name)).size).toBe(attrs.length);
+            for (const lang of ['ger', 'eng']) {
+                expect(attrs.filter((a) => a.lang === lang && a.autoselect)).toHaveLength(1);
+            }
+            expect(attrs.filter((a) => a.lang === 'und').every((a) => a.autoselect)).toBe(true);
         });
 
         it('leaves single renditions of different languages AUTOSELECT=YES', () => {

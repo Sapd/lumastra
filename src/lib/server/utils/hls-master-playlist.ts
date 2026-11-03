@@ -453,10 +453,10 @@ function pickDefaultAudioPosition(
  */
 function audioRenditionBaseName(track: AudioTrackInfo, langCode: string, position: number): string {
     const rawTitle = (track.displayTitle ?? '').trim();
-    const sanitized = rawTitle
-        .replace(/[^a-zA-Z0-9\s_-]/g, '')
-        .replace(/\s+/g, '_')
-        .slice(0, 50);
+    // Apple's players show this NAME as written for a non-primary rendition, so
+    // keep the title readable: only a quote or a line break would break the
+    // attribute (and the whole master playlist).
+    const sanitized = sanitizeRenditionName(rawTitle);
     const placeholders = new Set(
         ['', 'und', langCode, track.language ?? '', normalizeLanguage(track.language)].map((s) =>
             s.trim().toLowerCase(),
@@ -470,13 +470,30 @@ function audioRenditionBaseName(track: AudioTrackInfo, langCode: string, positio
     return `Audio ${position + 1}`;
 }
 
+/** A NAME attribute value: no quotes, no control characters, single spaces, 50 characters. */
+function sanitizeRenditionName(raw: string): string {
+    return raw
+        .replace(/["\p{Cc}]/gu, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 50)
+        .trim();
+}
+
 /**
- * Append " 2", " 3"... when an earlier rendition already used the same NAME.
+ * Append " 2", " 3"... when an earlier rendition already used the same NAME; a
+ * numbered name that collides too ("Audio 2" next to a second "Audio") moves on.
  */
 function uniqueAudioRenditionName(base: string, usedNames: Map<string, number>): string {
-    const count = (usedNames.get(base) ?? 0) + 1;
+    let count = (usedNames.get(base) ?? 0) + 1;
+    let candidate = count === 1 ? base : `${base} ${count}`;
+    while (count > 1 && usedNames.has(candidate)) {
+        count += 1;
+        candidate = `${base} ${count}`;
+    }
     usedNames.set(base, count);
-    return count === 1 ? base : `${base} ${count}`;
+    if (candidate !== base) usedNames.set(candidate, 1);
+    return candidate;
 }
 
 /**
@@ -488,18 +505,30 @@ function uniqueAudioRenditionName(base: string, usedNames: Map<string, number>):
  * that language, else the first. Every other rendition of the language gets
  * AUTOSELECT=NO, and the player then shows its NAME as written.
  */
-function primaryAudioPositions(langCodes: string[], defaultPosition: number): Set<number> {
+function primaryAudioPositions(
+    audioTracks: AudioTrackInfo[],
+    langCodes: string[],
+    defaultPosition: number,
+): Set<number> {
     const primaries = new Set<number>();
     const seen = new Set<string>();
-    if (defaultPosition >= 0 && defaultPosition < langCodes.length) {
-        primaries.add(defaultPosition);
-        seen.add(langCodes[defaultPosition]);
-    }
-    langCodes.forEach((lang, i) => {
+    const claim = (i: number): void => {
+        const lang = langCodes[i];
+        // Tracks of unknown language are not one language: each stays primary.
+        if (lang === 'und') {
+            primaries.add(i);
+            return;
+        }
         if (seen.has(lang)) return;
         seen.add(lang);
         primaries.add(i);
+    };
+    if (defaultPosition >= 0 && defaultPosition < langCodes.length) claim(defaultPosition);
+    // The file's own default flags next, then the first track of each language.
+    audioTracks.forEach((track, i) => {
+        if (track.isDefault) claim(i);
     });
+    langCodes.forEach((_, i) => claim(i));
     return primaries;
 }
 
@@ -510,12 +539,16 @@ function channelLayoutLabel(channels: number): string {
             return 'Mono';
         case 2:
             return '';
+        case 3:
+            return '2.1';
         case 6:
             return '5.1';
+        case 7:
+            return '6.1';
         case 8:
             return '7.1';
         default:
-            return channels > 0 ? `${channels}ch` : '';
+            return Number.isFinite(channels) && channels > 0 ? `${channels}ch` : '';
     }
 }
 
@@ -532,9 +565,13 @@ function describedAudioRenditionName(
     const base = audioRenditionBaseName(track, langCode, position);
     // "Audio N" is unique already; a title or an unknown language keeps its name.
     if (base !== localizedLanguageName(track.language, 'en')) return base;
-    const qualifier = [baseCodecLabel(track.codec || ''), channelLayoutLabel(track.channels)]
-        .filter((part) => part)
-        .join(' ');
+    // baseCodecLabel passes an unknown codec string through upper-cased.
+    const qualifier = sanitizeRenditionName(
+        [track.codec ? baseCodecLabel(track.codec) : '', channelLayoutLabel(track.channels)]
+            .filter((part) => part)
+            .join(' ')
+            .replace(/[()]/g, ''),
+    );
     return qualifier ? `${base} (${qualifier})` : base;
 }
 
@@ -576,7 +613,7 @@ export function generateMasterPlaylist(
     const langCodes = audioTracks.map(
         (track) => (toIso6392B(track.language) || 'und').replace(/[^a-z]/g, '') || 'und',
     );
-    const primaries = primaryAudioPositions(langCodes, defaultAudioPosition);
+    const primaries = primaryAudioPositions(audioTracks, langCodes, defaultAudioPosition);
     const usedNames = new Map<string, number>();
     for (let i = 0; i < audioTracks.length; i++) {
         const track = audioTracks[i];

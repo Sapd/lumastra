@@ -51,8 +51,8 @@ exports[`generateMasterPlaylist (demux) — characterization > Dolby Vision, mpe
 #EXT-X-VERSION:7
 #EXT-X-INDEPENDENT-SEGMENTS
 
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English_AAC_51",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch_DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English AAC 5.1",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
 
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="eng",NAME="English_Forced",DEFAULT=YES,AUTOSELECT=YES,FORCED=YES,URI="/api/v1/playback/itm_1/hls/subs_0/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=3&fileId=file_1"
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="ger",NAME="Deutsch",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="/api/v1/playback/itm_1/hls/subs_1/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=4&fileId=file_1"
@@ -67,8 +67,8 @@ exports[`generateMasterPlaylist (demux) — characterization > PROBE: subs prese
 #EXT-X-VERSION:7
 #EXT-X-INDEPENDENT-SEGMENTS
 
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English_AAC_51",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch_DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English AAC 5.1",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
 
 #EXT-X-STREAM-INF:BANDWIDTH=8000000,AVERAGE-BANDWIDTH=6400000,RESOLUTION=1920x1080,CODECS="avc1.64002a,mp4a.40.2",FRAME-RATE=23.976,AUDIO="audio",CLOSED-CAPTIONS=NONE
 /api/v1/playback/itm_1/hls/stream_2/index.m3u8?playSessionId=ps_1&planId=plan_1
@@ -80,8 +80,8 @@ exports[`generateMasterPlaylist (demux) — characterization > PROBE: subs prese
 #EXT-X-VERSION:7
 #EXT-X-INDEPENDENT-SEGMENTS
 
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English_AAC_51",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch_DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English AAC 5.1",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
 
 #EXT-X-STREAM-INF:BANDWIDTH=8000000,AVERAGE-BANDWIDTH=6400000,RESOLUTION=1920x1080,CODECS="avc1.64002a,mp4a.40.2",FRAME-RATE=23.976,AUDIO="audio",CLOSED-CAPTIONS=NONE
 /api/v1/playback/itm_1/hls/stream_2/index.m3u8?playSessionId=ps_1&planId=plan_1
@@ -107,8 +107,8 @@ exports[`generateMasterPlaylist (demux) — characterization > SDR h264 with sub
 #EXT-X-VERSION:7
 #EXT-X-INDEPENDENT-SEGMENTS
 
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English_AAC_51",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch_DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English AAC 5.1",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
 
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="eng",NAME="English_Forced",DEFAULT=YES,AUTOSELECT=YES,FORCED=YES,URI="/api/v1/playback/itm_1/hls/subs_0/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=3&fileId=file_1"
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="ger",NAME="Deutsch",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="/api/v1/playback/itm_1/hls/subs_1/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=4&fileId=file_1"
@@ -123,8 +123,8 @@ exports[`generateMasterPlaylist (demux) — characterization > kitchen sink: 2 a
 #EXT-X-VERSION:7
 #EXT-X-INDEPENDENT-SEGMENTS
 
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English_AAC_51",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch_DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English AAC 5.1",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
 
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="eng",NAME="English_Forced",DEFAULT=YES,AUTOSELECT=YES,FORCED=YES,URI="/api/v1/playback/itm_1/hls/subs_0/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=3&fileId=file_1"
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="ger",NAME="Deutsch",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="/api/v1/playback/itm_1/hls/subs_1/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=4&fileId=file_1"
@@ -143,7 +143,7 @@ exports[`generateMasterPlaylist (demux) — characterization > minimal: 1 audio,
 #EXT-X-VERSION:7
 #EXT-X-INDEPENDENT-SEGMENTS
 
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English_AAC_51",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English AAC 5.1",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
 
 #EXT-X-STREAM-INF:BANDWIDTH=5000000,AVERAGE-BANDWIDTH=4000000,RESOLUTION=1920x1080,CODECS="avc1.64002a,mp4a.40.2",FRAME-RATE=23.976,AUDIO="audio",CLOSED-CAPTIONS=NONE
 /api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1
@@ -262,8 +262,8 @@ exports[`video-info matrix: 10-bit SDR HEVC > demux STREAM-INF tail 1`] = `
 #EXT-X-VERSION:7
 #EXT-X-INDEPENDENT-SEGMENTS
 
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English_AAC_51",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch_DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English AAC 5.1",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
 
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="eng",NAME="English_Forced",DEFAULT=YES,AUTOSELECT=YES,FORCED=YES,URI="/api/v1/playback/itm_1/hls/subs_0/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=3&fileId=file_1"
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="ger",NAME="Deutsch",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="/api/v1/playback/itm_1/hls/subs_1/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=4&fileId=file_1"
@@ -288,8 +288,8 @@ exports[`video-info matrix: AV1 SDR > demux STREAM-INF tail 1`] = `
 #EXT-X-VERSION:7
 #EXT-X-INDEPENDENT-SEGMENTS
 
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English_AAC_51",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch_DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English AAC 5.1",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
 
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="eng",NAME="English_Forced",DEFAULT=YES,AUTOSELECT=YES,FORCED=YES,URI="/api/v1/playback/itm_1/hls/subs_0/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=3&fileId=file_1"
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="ger",NAME="Deutsch",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="/api/v1/playback/itm_1/hls/subs_1/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=4&fileId=file_1"
@@ -314,8 +314,8 @@ exports[`video-info matrix: DV profile 5 (dvh1 as the primary CODECS entry) > de
 #EXT-X-VERSION:7
 #EXT-X-INDEPENDENT-SEGMENTS
 
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English_AAC_51",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch_DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English AAC 5.1",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
 
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="eng",NAME="English_Forced",DEFAULT=YES,AUTOSELECT=YES,FORCED=YES,URI="/api/v1/playback/itm_1/hls/subs_0/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=3&fileId=file_1"
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="ger",NAME="Deutsch",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="/api/v1/playback/itm_1/hls/subs_1/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=4&fileId=file_1"
@@ -340,8 +340,8 @@ exports[`video-info matrix: DV profile 8 with SDR base layer (compat id 2) > dem
 #EXT-X-VERSION:7
 #EXT-X-INDEPENDENT-SEGMENTS
 
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English_AAC_51",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch_DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English AAC 5.1",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
 
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="eng",NAME="English_Forced",DEFAULT=YES,AUTOSELECT=YES,FORCED=YES,URI="/api/v1/playback/itm_1/hls/subs_0/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=3&fileId=file_1"
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="ger",NAME="Deutsch",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="/api/v1/playback/itm_1/hls/subs_1/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=4&fileId=file_1"
@@ -366,8 +366,8 @@ exports[`video-info matrix: HLG > demux STREAM-INF tail 1`] = `
 #EXT-X-VERSION:7
 #EXT-X-INDEPENDENT-SEGMENTS
 
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English_AAC_51",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch_DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English AAC 5.1",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
 
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="eng",NAME="English_Forced",DEFAULT=YES,AUTOSELECT=YES,FORCED=YES,URI="/api/v1/playback/itm_1/hls/subs_0/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=3&fileId=file_1"
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="ger",NAME="Deutsch",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="/api/v1/playback/itm_1/hls/subs_1/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=4&fileId=file_1"
@@ -392,8 +392,8 @@ exports[`video-info matrix: integer frame rate (formatting: 24.000 must render a
 #EXT-X-VERSION:7
 #EXT-X-INDEPENDENT-SEGMENTS
 
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English_AAC_51",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch_DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="eng",NAME="English AAC 5.1",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_0/index.m3u8?playSessionId=ps_1&planId=plan_1"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="ger",NAME="Deutsch DTS",DEFAULT=NO,AUTOSELECT=YES,CHANNELS="6",URI="/api/v1/playback/itm_1/hls/stream_1/index.m3u8?playSessionId=ps_1&planId=plan_1"
 
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="eng",NAME="English_Forced",DEFAULT=YES,AUTOSELECT=YES,FORCED=YES,URI="/api/v1/playback/itm_1/hls/subs_0/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=3&fileId=file_1"
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",LANGUAGE="ger",NAME="Deutsch",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="/api/v1/playback/itm_1/hls/subs_1/index.m3u8?playSessionId=ps_1&planId=plan_1&SubtitleIndex=4&fileId=file_1"
