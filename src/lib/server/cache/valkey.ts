@@ -640,6 +640,8 @@ async function connectCoordClient(): Promise<boolean> {
     }
 }
 
+let shuttingDown = false;
+
 /**
  * The process is about to exit. GLIDE's Rust core logs ERROR lines while its
  * clients close (`Failed to unsubscribe ... Internal client has been dropped`,
@@ -647,6 +649,7 @@ async function connectCoordClient(): Promise<boolean> {
  * information at that point and showed up as errors in every full-stack restart.
  */
 export function silenceGlideLoggerForShutdown(): void {
+    shuttingDown = true;
     try {
         GlideLogger.setLoggerConfig('off');
     } catch {
@@ -1106,10 +1109,13 @@ export async function acquireLock(
     } catch (error) {
         // Connection error or other critical failure
         lockMetrics.acquisitionFailures++;
-        logger.error('CRITICAL: Failed to acquire lock due to Valkey error', error as Error, {
-            lockKey: truncateKeyForLog(lockKey),
-            reason: 'connection_error',
-        });
+        // While the process shuts down its Valkey is usually gone too (compose restart):
+        // the lock expires on its TTL, which is not an error worth an alert.
+        const lockContext = { lockKey: truncateKeyForLog(lockKey), reason: 'connection_error' };
+        if (shuttingDown)
+            logger.warn('Failed to acquire lock due to Valkey error', lockContext, error as Error);
+        else
+            logger.error('CRITICAL: Failed to acquire lock due to Valkey error', error as Error, lockContext);
         return null;
     }
 }
@@ -1241,10 +1247,13 @@ export async function releaseLock(lockKey: string, lockValue: string): Promise<b
         return deleted;
     } catch (error) {
         lockMetrics.releaseFailures++;
-        logger.error('CRITICAL: Failed to release lock due to Valkey error', error as Error, {
-            lockKey: truncateKeyForLog(lockKey),
-            reason: 'connection_error',
-        });
+        // While the process shuts down its Valkey is usually gone too (compose restart):
+        // the lock expires on its TTL, which is not an error worth an alert.
+        const lockContext = { lockKey: truncateKeyForLog(lockKey), reason: 'connection_error' };
+        if (shuttingDown)
+            logger.warn('Failed to release lock due to Valkey error', lockContext, error as Error);
+        else
+            logger.error('CRITICAL: Failed to release lock due to Valkey error', error as Error, lockContext);
         return false;
     }
 }
@@ -2400,7 +2409,7 @@ export async function closeAllSubscriptions(): Promise<void> {
     subscriberPromise = null;
     if (!client) return;
     try {
-        await client.unsubscribe(null, 2000);
+        await client.unsubscribe(null, 500);
     } catch (error) {
         logger.debug('UNSUBSCRIBE-all before close failed', {
             error: error instanceof Error ? error.message : String(error),

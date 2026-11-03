@@ -520,7 +520,7 @@ const INFRASTRUCTURE_PROBE_MS = 1_000;
  * server that is not there; each took its own timeout, one class after the other,
  * and a `docker compose restart` ran the worker into the 60 s deadline.
  */
-const UNREACHABLE_TEARDOWN_BUDGET_MS = 5_000;
+const UNREACHABLE_TEARDOWN_BUDGET_MS = 3_000;
 
 /** True when PostgreSQL or the task Valkey does not answer a trivial request. */
 async function taskInfrastructureUnreachable(): Promise<boolean> {
@@ -575,9 +575,27 @@ async function settledWithin(work: Promise<unknown>, budgetMs: number): Promise<
     }
 }
 
+/** How often a long teardown asks again whether PostgreSQL and Valkey are still there. */
+const INFRASTRUCTURE_WATCH_MS = 3_000;
+
+/**
+ * Wait for `work` as long as it takes, unless PostgreSQL or the task Valkey
+ * vanish meanwhile (they stop together with the worker on a compose restart, and
+ * can go while a teardown is already under way). Rejects when `work` rejects.
+ */
+async function settledUnlessInfrastructureGone(work: Promise<unknown>): Promise<boolean> {
+    for (;;) {
+        if (await settledWithin(work, INFRASTRUCTURE_WATCH_MS)) return true;
+        if (await taskInfrastructureUnreachable()) return false;
+    }
+}
+
 async function stop(strict: boolean): Promise<void> {
     const failures: unknown[] = [];
     let watcherStopped = false;
+    // Asked now and answered while the consumers drain: a gone server shows up
+    // within a second, and nothing below should wait for it to find out later.
+    const infrastructureProbe = taskInfrastructureUnreachable();
     // A signal during initialization must not leave late-starting consumers alive.
     await startup?.catch(() => undefined);
     if (watcherEnsureTimer) clearInterval(watcherEnsureTimer);
@@ -635,7 +653,10 @@ async function stop(strict: boolean): Promise<void> {
     // with this process on a `docker compose restart`): what is left is releasing
     // locks and the lease on servers that cannot answer. All of them expire on
     // their own TTL, so do not wait for each in turn.
-    const infrastructureGone = failures.length === 0 && (await taskInfrastructureUnreachable());
+    // The early probe may have run while the server was still up: ask again.
+    let infrastructureGone =
+        failures.length === 0 &&
+        ((await infrastructureProbe) || (await taskInfrastructureUnreachable()));
     if (infrastructureGone)
         startupLogger.warn(
             'PostgreSQL or the task Valkey is unreachable; locks and the lease expire on their own',
@@ -644,16 +665,17 @@ async function stop(strict: boolean): Promise<void> {
         try {
             const { orchestrator } = await import('$lib/server/tasks/orchestrator');
             const stopping = orchestrator.stop({ strict });
-            if (infrastructureGone) {
-                if (await settledWithin(stopping, UNREACHABLE_TEARDOWN_BUDGET_MS))
-                    startupLogger.info('TaskOrchestrator stopped');
-                else
-                    startupLogger.warn(
-                        'TaskOrchestrator stop abandoned: its releases wait for a server that is gone',
-                    );
-            } else {
-                await stopping;
+            const stopped = infrastructureGone
+                ? await settledWithin(stopping, UNREACHABLE_TEARDOWN_BUDGET_MS)
+                : await settledUnlessInfrastructureGone(stopping);
+            if (stopped) {
                 startupLogger.info('TaskOrchestrator stopped');
+            } else {
+                // Only a failure-free teardown reaches this point with a gone server.
+                infrastructureGone = failures.length === 0;
+                startupLogger.warn(
+                    'TaskOrchestrator stop abandoned: its releases wait for a server that is gone',
+                );
             }
         } catch (err) {
             if (infrastructureGone) {
@@ -675,11 +697,9 @@ async function stop(strict: boolean): Promise<void> {
     if (workerLeaseRequested && (!strict || failures.length === 0)) {
         try {
             const { releaseWorkerLease } = await import('./worker-lease.js');
-            if (infrastructureGone) {
-                await settledWithin(releaseWorkerLease(), UNREACHABLE_TEARDOWN_BUDGET_MS / 2);
-            } else {
-                await releaseWorkerLease();
-            }
+            const releasing = releaseWorkerLease();
+            if (infrastructureGone) await settledWithin(releasing, UNREACHABLE_TEARDOWN_BUDGET_MS / 2);
+            else await settledUnlessInfrastructureGone(releasing);
             workerLeaseRequested = false;
         } catch (err) {
             // Not a cleanup failure: everything the lease guards has stopped by

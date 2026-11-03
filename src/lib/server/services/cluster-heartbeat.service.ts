@@ -465,6 +465,9 @@ export async function readClusterNodes(
     return nodes;
 }
 
+/** Longest the heartbeat stop waits for each of its writes at shutdown. */
+const SHUTDOWN_VALKEY_BOUND_MS = 1_500;
+
 export class ClusterHeartbeatService {
     private intervalHandle: ReturnType<typeof setInterval> | null = null;
     private lastKnownNodes: Set<string> = new Set();
@@ -572,7 +575,7 @@ export class ClusterHeartbeatService {
             try {
                 const { insertNodeEvent } =
                     await import('../database/queries/cluster-nodes.queries.js');
-                await insertNodeEvent(this.sql, {
+                const recording = insertNodeEvent(this.sql, {
                     instanceId: this.instanceId,
                     eventType: 'offline',
                     role: deriveNodeRole(),
@@ -580,28 +583,52 @@ export class ClusterHeartbeatService {
                     hostname: this.hostname,
                     reason: 'stop',
                 });
+                recording.catch(() => undefined);
+                // A database that is gone (compose restart) can hold a connect for 10 s.
+                let recordTimer: ReturnType<typeof setTimeout> | undefined;
+                try {
+                    await Promise.race([
+                        recording,
+                        new Promise<void>((resolve) => {
+                            recordTimer = setTimeout(resolve, SHUTDOWN_VALKEY_BOUND_MS);
+                        }),
+                    ]);
+                } finally {
+                    clearTimeout(recordTimer);
+                }
             } catch (err) {
                 logger.warn('Failed to record graceful offline event', {
                     error: String(err),
                 });
             }
         }
-        try {
-            await cacheDel(`${HEARTBEAT_KEY_PREFIX}${this.instanceId}`);
-        } catch (err) {
-            logger.warn('Failed to delete heartbeat key during shutdown', {
-                error: String(err),
-            });
-        }
-        if (this.lockValue) {
-            try {
-                await releaseLock(TRANSITION_LOCK_KEY, this.lockValue);
-            } catch (err) {
-                logger.warn('Failed to release transition lock during shutdown', {
+        // Both keys carry a TTL. With Valkey gone (compose restart) each request would
+        // wait out the client's own timeout, one after the other: give them a short
+        // shared bound and let the TTL do the rest.
+        const lockValue = this.lockValue;
+        this.lockValue = null;
+        const shutdownRequests = Promise.allSettled([
+            cacheDel(`${HEARTBEAT_KEY_PREFIX}${this.instanceId}`).catch((err: unknown) => {
+                logger.warn('Failed to delete heartbeat key during shutdown', {
                     error: String(err),
                 });
-            }
-            this.lockValue = null;
+            }),
+            lockValue
+                ? releaseLock(TRANSITION_LOCK_KEY, lockValue).catch((err: unknown) => {
+                      logger.warn('Failed to release transition lock during shutdown', {
+                          error: String(err),
+                      });
+                  })
+                : Promise.resolve(),
+        ]);
+        let boundTimer: ReturnType<typeof setTimeout> | undefined;
+        const bound = new Promise<void>((resolve) => {
+            boundTimer = setTimeout(resolve, SHUTDOWN_VALKEY_BOUND_MS);
+        });
+        try {
+            await Promise.race([shutdownRequests, bound]);
+        } finally {
+            clearTimeout(boundTimer);
         }
         logger.info('ClusterHeartbeat stopped', {
             instanceId: this.instanceId,
