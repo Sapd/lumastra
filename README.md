@@ -68,181 +68,8 @@ public-domain works, or services you're licensed to use.
 - **Media management with review built in:** traceable artwork choices, previewed repairs,
   file-health evidence and episode mappings that match the files you actually have.
 
-## Full feature list
-
-<details>
-<summary><b>Movies and series</b>: recommendations, semantic search, calendar, episode matching</summary>
-
-- **Recommendations:** For You shelves, mood picks and similar titles, including titles
-  outside your collection.
-- **Semantic search:** search by what a film is about (needs your own AI provider key).
-- **Release calendar:** upcoming episodes and releases for what's in your library.
-- **Multi-episode files** (`S01E01-E02`) link to every episode they contain.
-- **Episode ordering:** matches the layout on disk, including DVD and absolute ordering.
-- **More than entertainment:** library types for home videos, training and educational
-  content.
-- **AI assistant:** ask for something to watch in plain language, with your own AI provider
-  key. Part of the supporter tier.
-
-</details>
-
-<details>
-<summary><b>Playback</b>: direct play, remux or transcode per device; hardware transcoding; subtitles without burn-in</summary>
-
-- The server decides per client whether to play a file directly, remux it or transcode it,
-  based on codecs, HDR and subtitles.
-  ([Playback decisions](https://lumastra.org/architecture/playback-decisions/))
-- **Hardware transcoding** is tested most on **Intel** (Quick Sync / VA-API), less on
-  **NVIDIA** (NVENC) and least on **AMD**. All three should work, but expect bugs outside
-  Intel for now. Software transcoding always works as a fallback.
-- **Subtitles without burn-in:** styled ASS/SSA and PGS/VobSub overlay the video,
-  preserving HDR and avoiding a video re-encode. Browsers use
-  [AkariSub](https://github.com/altqx/akarisub) (libass for the web) and
-  [libbitsub](https://github.com/altqx/libbitsub); Apple apps receive server-rendered
-  pictures with timing data. Burn-in remains available for clients that need it.
-- Trickplay thumbnails for seeking, chapters, and gapless audio.
-
-</details>
-
-<details>
-<summary><b>Music</b>, all built in: sonic analysis, smart queue, DJ crossfades, auto mixes, OpenSubsonic</summary>
-
-- **Audio analysis:** tempo, key, energy and mood, built into the x86-64 image; an optional
-  sonic sidecar adds sound similarity ("sounds like").
-- **Smart queue:** keeps going with tracks that fit, in an order that flows, with **DJ
-  crossfades** between them.
-- **Mixes and collections** built on their own, per genre and by sound.
-- **Song Paths** (a smooth path between two songs), a **Music Map** of your library, and
-  **search by sound** ("calm solo piano") or by the meaning of lyrics.
-- **Careful tag reading**, so albums, discs and compilations come out in the right order.
-- **OpenSubsonic compatibility**, so your favourite music apps keep working. No separate
-  Subsonic server or smart-playlist scripts needed.
-- ([Music discovery](https://lumastra.org/guides/music-discovery/))
-
-</details>
-
-<details>
-<summary><b>Audiobooks and books</b>: Audiobookshelf integration, Kavita search</summary>
-
-- Connect Audiobookshelf, then browse and listen in the web app and the iPhone, iPad and
-  Apple TV apps, with progress synced back to Audiobookshelf.
-- In the web player, see where others on your server are in the same book.
-- Search your Kavita books from Lumastra and open them in Kavita.
-
-</details>
-
-<details>
-<summary><b>Live TV</b>: built and tested for reliable viewing</summary>
-
-- **Your sources, one guide:** M3U, Xtream or HDHomeRun sources you're licensed to receive,
-  with automatic channel grouping, numbering and a programme guide.
-- **Shared streams:** the default Rust proxy shares one upstream connection among viewers
-  of the same channel; viewer heartbeats manage active sessions.
-- **Backup feeds:** automatic failover tries alternate feeds. If none work, the player
-  shows a failure with a choice to try another channel.
-- **Adaptive quality:** optional GPU encoding from 1080p down to 360p lets the player
-  switch quality to match each viewer's connection. Tested with an Intel Arc A380.
-- **Simple mode:** large controls, a personal numbered channel list, now/next information
-  and an optional helper PIN for viewers who want a familiar TV screen.
-- **End-to-end testing:** a synthetic provider exercises real imports, decoded playback,
-  stream limits and upstream failures through the app and proxy.
-
-See the [Live TV guide](https://lumastra.org/guides/live-tv/),
-[simple mode](https://lumastra.org/guides/live-tv-simple-mode/) and
-[proxy architecture](https://lumastra.org/architecture/live-tv/).
-Recording (DVR) isn't available yet.
-
-<img src="docs/assets/screenshots/livetv-adaptive.webp" width="292" alt="Live TV player with the adaptive bitrate menu open: four qualities from 1080p up to 8 Mbps down to 360p up to 1 Mbps, with 360p playing">
-
-</details>
-
-<details>
-<summary><b>Media management</b>: traceable artwork, reviewed repairs and file-health evidence</summary>
-
-- **Artwork with provenance:** inspect image candidates and their recorded sources,
-  choose the image to use and protect a curated selection. Unknown origins stay explicit.
-- **Reviewed identity repairs:** preview a two-episode TMDB ID exchange before applying it;
-  internal episode IDs, file links and watch data stay attached to their existing episodes.
-- **Album merges with a plan:** review the kept album, tracks, artwork and user-data
-  policies before confirming. Duplicate track candidates keep their separate files.
-- **Episodes that match your files:** review boundaries in combined multi-episode files.
-  Join split episodes into one file on disk before importing them.
-- **File-health evidence:** inspect stream and audio-tail measurements, run a bounded
-  recheck and keep warnings when the result is inconclusive.
-- **Quarantine for uncertain matches:** compare historical proposals with current files
-  and metadata, then review eligible changes before accepting a batch.
-
-See [media enrichment](https://lumastra.org/guides/media-enrichment/),
-[administration](https://lumastra.org/guides/administration/) and
-[library troubleshooting](https://lumastra.org/guides/library-troubleshooting/).
-
-</details>
-
-<details>
-<summary><b>Together</b>: Watch Together, ratings and reviews, who watched what</summary>
-
-- **Watch Together:** synchronized sessions between the web app and the Apple TV app.
-  Start on the TV and friends join from a browser. (The iPhone and iPad app can't join
-  sessions yet.)
-- Shared ratings, reviews and watch activity, with per-user privacy controls.
-- **Trakt and MyAnimeList sync:** each user can link their own Trakt account (history in
-  either or both directions), and watch progress goes to MyAnimeList automatically. Optional
-  progress sync with an existing Jellyfin server works alongside.
-
-</details>
-
-<details>
-<summary><b>Apps and clients</b>: iPhone, iPad, Apple TV, web app, Jellyfin and Subsonic clients</summary>
-
-- Native iPhone and iPad apps with offline downloads, and an Apple TV app with music,
-  audiobooks and Top Shelf.
-- An installable web app for desktop and mobile.
-- Jellyfin-compatible clients (such as Streamyfin) and (Open)Subsonic music apps connect
-  directly. No Jellyfin server needed.
-- See [Watch and listen on your devices](#watch-and-listen-on-your-devices) below.
-
-</details>
-
-<details>
-<summary><b>Sign-in and security</b>: single sign-on everywhere, per-user data isolation, scoped tokens</summary>
-
-- **Single sign-on:** OIDC and reverse-proxy forward authentication are fully supported
-  everywhere: web, iPhone, iPad, Apple TV and the API.
-- **Built-in accounts:** username and password, on their own or alongside single sign-on.
-  The first-run wizard creates your admin account.
-- **OAuth 2.0 device flow** for native apps: approve a code through your server's login,
-  with refreshable, revocable tokens. No TV passwords or pairing that bypasses SSO.
-- **Your data is yours:** ratings, playlists, watch state, watchlists and devices belong to
-  their user. Other users can't read or change them, and admin rights are separate from
-  everyday use.
-- **Every route has an explicit access rule** (public, signed-in user, admin, or a scoped
-  token). A test fails when a route has no rule, or when a rule gets looser without a
-  written reason.
-- **Checks per item, not just per page:** a title from a library you can't access answers
-  "not found", so its existence doesn't leak.
-- **Narrow credentials:** scoped, revocable tokens for apps and the API, short-lived
-  playback grants instead of long-lived stream links, and read-only service tokens for
-  integrations.
-- **Signed plugins:** the admin decides which signing keys to trust.
-- **Reviewed before releases,** with a private disclosure process
-  ([`SECURITY.md`](.github/SECURITY.md)).
-
-</details>
-
-<details>
-<summary><b>API, plugins and operations</b>: documented API, signed plugins, task system, replicas</summary>
-
-- **`/api/v1`** is documented, versioned and described by an
-  [OpenAPI spec](docs/api/openapi.yaml), with scoped personal access tokens and the same
-  OAuth device flow for your own players. See the
-  [developer docs](https://lumastra.org/developers/api/).
-- **Plugins** for media sources, providers, subtitles, lyrics, tasks, watch sync and
-  authentication, with an SDK for your own integrations.
-- A tracked background pipeline, an admin task system and health monitoring, and web and
-  worker replicas. More in [Under the hood](#under-the-hood).
-- **Deployment:** Docker Compose, or Kubernetes with a Helm chart (beta).
-
-</details>
+The full feature list, area by area, is at
+[lumastra.org/start/features](https://lumastra.org/start/features/).
 
 <table>
   <tr>
@@ -289,48 +116,17 @@ self-signed certificates don't work. They sign in through the **Public API** set
 
 ## What you need, and what is optional
 
-Lumastra runs as a **standalone media server for movies, series and music**.
-You do not need a Jellyfin server to use it. Every integration is optional and is skipped
-quietly when it isn't configured, but some make a big difference.
-
-**Required**
-
-- **PostgreSQL 17+ with pgvector** and **Valkey** (or Redis). The example Docker Compose
-  file sets up both.
-
-**For the full experience**
-
-| What                                                                  | What you get                                                                                                      | How                                                                                                                                                                                  |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **TMDB API key** (free)                                               | Metadata, posters and backdrops, search and discovery. Without it, titles only have their file names.             | `TMDB_API_KEY` or the setup wizard                                                                                                                                                   |
-| **Embeddings key** (OpenAI or Voyage AI, paid per use, usually cheap) | Recommendations, "For You", mood picks and semantic search. Also needed for the music features below.             | `OPENAI_API_KEY` or `VOYAGE_API_KEY`                                                                                                                                                 |
-| **MDBList API key** (free account)                                    | The Trending and Popular shows rows, and keyword tags that make recommendations noticeably better.                | `MDBLIST_API_KEY`                                                                                                                                                                    |
-| **Sonic embedder sidecar** (x86-64; a GPU helps but isn't needed)     | Music by sound: sound-alike tracks, a smart queue that follows the sound, mixes and collections, search by sound. | `docker compose --profile sonic up -d`, then `FEATURE_MUSIC_SONIC` and the per-feature flags ([Music discovery](https://lumastra.org/guides/music-discovery/#enabling-the-features)) |
-| **AcoustID API key** (free)                                           | Identifies your music by its sound, for accurate matches in MusicBrainz.                                          | `ACOUSTID_API_KEY`                                                                                                                                                                   |
-| **HTTPS with a trusted certificate**                                  | Needed by the iPhone, iPad and Apple TV apps.                                                                     | your reverse proxy                                                                                                                                                                   |
-
-Tempo, key and energy analysis for DJ crossfades and mood picks is built into the image on
-x86-64 and needs no setup.
-
-**Optional**
-
-| Integration                                             | Purpose                                                                                           |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **Audiobookshelf**                                      | Required for the audiobook library and playback.                                                  |
-| **Identity provider** (OIDC or forward auth)            | Single sign-on; built-in accounts work without one.                                               |
-| **Kavita**                                              | Search books in Lumastra, then open them in Kavita.                                               |
-| **Jellyfin**                                            | Watch-progress sync with an existing Jellyfin server; separate from the client compatibility API. |
-| **Sonarr / Radarr**                                     | Release calendar for your series and movies.                                                      |
-| **Request service** (Seerr)                             | Lets users ask the admin to add a title.                                                          |
-| **Last.fm, Discogs, AniDB**                             | Music popularity, artist details and anime metadata.                                              |
-| **Chat assistant key** (OpenAI-compatible or Anthropic) | The AI chat assistant (a supporter feature, free during early access).                            |
-
-The full list, with every setting, is in
-[Optional integrations](https://lumastra.org/guides/integrations/).
-
-You control the server and which integrations it uses. Relevant metadata or
-prompts may be sent to providers you configure; self-hosting does not make an
-external AI or metadata service local.
+Lumastra is a standalone media server; it doesn't need a Jellyfin server. Required:
+**PostgreSQL 17+ with pgvector** and **Valkey** (or Redis), both provided by the example
+compose file. Strongly recommended: a free **TMDB API key** for metadata and artwork. An
+**embeddings key** (OpenAI or Voyage AI) enables recommendations, semantic search and
+the music-by-sound features. The iPhone, iPad and Apple TV apps need **HTTPS with a
+trusted certificate**. Everything else (Audiobookshelf, Kavita, Jellyfin sync, Sonarr,
+Radarr, Seerr, MDBList, AcoustID, Last.fm, Discogs, AniDB, the sonic sidecar, the chat
+assistant key) is optional and skipped quietly when unset; see
+[Optional integrations](https://lumastra.org/guides/integrations/). Metadata or prompts
+may be sent to the providers you configure; self-hosting doesn't make an external AI or
+metadata service local.
 
 ## Free core and supporter features
 
@@ -366,41 +162,23 @@ has not been published. AI provider credentials and usage are separate.
 
 ### Why a few parts are source-available
 
-The free core includes hardware transcoding, Live TV and remote access. The `/j`
-bridge takes extra maintenance to follow another project's API; I'd rather new apps
-use the fully open, documented `/api/v1`. Donations rarely cover costs, and I hope
-supporter features help offset development and hosting.
-
-**The iPhone, iPad and Apple TV apps are closed source.** They're free for now; some
-features, such as offline downloads, will probably become paid later. They talk to the
-server only through the same open `/api/v1` any other app can use. What went into
-building them is in the developer docs:
-[building a player](https://lumastra.org/developers/building-a-player/) (streaming, state,
-subtitles), [Watch Together](https://lumastra.org/developers/watch-together/),
-[OAuth sign-in](https://lumastra.org/developers/oauth-clients/),
-[offline downloads](https://lumastra.org/developers/offline-downloads/), and music,
-audiobook and Live TV playback. The LGPL libraries they include are published at
-[Lumastra/lgpl-source](https://github.com/Lumastra/lgpl-source).
-
-What's open source today stays open source and maintained; I won't move existing
-features behind a license. Most future features will be open source too. The likely
-exception is recording (DVR).
-
-Contributions need a Contributor License Agreement so I can also offer a commercial
-license to companies that can't use the AGPL, and the supporter features. Many well-known
-projects do the same, including Kubernetes, the Apache Software Foundation projects, Python
-and Go. You keep the copyright to your code, contributions to the open-source core stay
-available under the AGPL (or another open-source license), and anyone can fork the core under the AGPL at any time.
-
-For licensing or CLA questions, contact <git@sapd.eu>.
-
-See [editions and licensing](https://lumastra.org/guides/licensing/) for the
-current offering and [LICENSING.md](LICENSING.md) for the source-code boundaries.
+The free core includes hardware transcoding, Live TV, SSO and remote access. The `/j`
+bridge takes extra maintenance to follow another project's API; I'd rather new apps use
+the fully open, documented `/api/v1`. Donations rarely cover costs, and I hope supporter
+features help offset development and hosting. **The iPhone, iPad and Apple TV apps are
+closed source.** They're free for now; some features, such as offline downloads, will
+probably become paid later. They talk to the server only through the same open `/api/v1`
+any other app can use ([building a player](https://lumastra.org/developers/building-a-player/)),
+and the LGPL libraries they include are published at
+[Lumastra/lgpl-source](https://github.com/Lumastra/lgpl-source). What's open source today
+stays open source and maintained; I won't move existing features behind a licence, and
+most future features will be open source too (the likely exception is DVR). Contributions
+need a Contributor License Agreement; why, and what you keep, is in
+[CONTRIBUTING.md](.github/CONTRIBUTING.md) and [LICENSING.md](LICENSING.md). See
+[editions and licensing](https://lumastra.org/guides/licensing/) for the current
+offering; for licensing or CLA questions, contact <git@sapd.eu>.
 
 ## Quick start
-
-Lumastra runs alongside **PostgreSQL with pgvector** and **Valkey**; the reference
-compose file provisions PostgreSQL 18 and Valkey.
 
 ```bash
 mkdir lumastra && cd lumastra
@@ -409,9 +187,8 @@ curl -fsSL -o .env https://raw.githubusercontent.com/Sapd/lumastra/main/.env.exa
 ```
 
 The secrets file must be named exactly `.env`, because compose reads its variables
-from it. You only need to clone the repository if you want to build from source.
-
-Generate the three secrets straight into `.env` (copy-paste; macOS and Linux):
+from it. Generate the three secrets straight into `.env` (macOS and Linux; Windows
+users see the [full quick start](https://lumastra.org/start/quick-start/#2-generate-secrets)):
 
 ```bash
 sed -i.bak \
@@ -421,13 +198,9 @@ sed -i.bak \
   .env && rm -f .env.bak
 ```
 
-(Windows without WSL: set those three lines in `.env` by hand; hex values only, since the
-passwords end up inside connection URLs.) `LUMASTRA_MASTER_KEY` encrypts every secret
-Lumastra stores and, unless you set `JWT_SECRET`, signs every login token: back it up.
-
-In `docker-compose.yml`, uncomment the media line under the `lumastra` service's
-`volumes:` and point it at your media folder (`- /path/to/media:/data/media:ro`).
-Then:
+`LUMASTRA_MASTER_KEY` encrypts every secret Lumastra stores: back it up. In
+`docker-compose.yml`, uncomment the media line under the `lumastra` service's `volumes:`
+and point it at your media folder (`- /path/to/media:/data/media:ro`). Then:
 
 ```bash
 docker compose up -d
@@ -438,14 +211,9 @@ what to persist and why: **[lumastra.org/start/quick-start](https://lumastra.org
 
 Next: put it behind HTTPS. The iPhone, iPad and Apple TV apps need it. See the
 **[reverse proxy guide](https://lumastra.org/guides/reverse-proxy/)** for Caddy, nginx,
-Traefik and Nginx Proxy Manager.
-
-Image tags on `ghcr.io/lumastra/lumastra`: `:stable` (= `:latest`) is the newest release, and
-`:X.Y.Z` / `:X.Y` pin one; all of these are published for `linux/amd64` and `linux/arm64`.
-`:edge` follows every commit to `main` and is `linux/amd64` only. Before you commit
-to a host, read **[Known limitations](https://lumastra.org/reference/known-limitations/)**.
-It covers arm64 gaps, CPU requirements, scaling rules and the `/config` volume you
-must never lose.
+Traefik and Nginx Proxy Manager. Before you commit to a host, read
+**[Known limitations](https://lumastra.org/reference/known-limitations/)**: arm64 gaps,
+CPU requirements, scaling rules and the `/config` volume you must never lose.
 
 ## Documentation
 
@@ -468,29 +236,17 @@ are served by every instance at `/api-docs` and `/llms.txt`.
 ## Under the hood
 
 - **Tracked processing pipeline:** 72 built-in tasks cover scanning, metadata, artwork,
-  analysis and embeddings. Crash recovery, watchdogs and circuit breakers handle
-  failed runs and services. ([Task system](https://lumastra.org/architecture/task-system/))
-- **Separate web and worker roles:** web replicas serve requests and submit work;
-  exactly one lean TypeScript worker runs existing tasks/plugins and supervises a
-  Rust file-watcher child in the same container. BullMQ uses persistent noeviction
-  Valkey for task/shared coordination, alongside a separate evictable cache.
-  Valkey heartbeats let another web process take over a playback session when its
-  server goes away.
-- **Playback decisions** use client codecs, HDR, subtitles, hardware encoder detection
-  and device profiles. ([Playback decisions](https://lumastra.org/architecture/playback-decisions/))
-- **HLS remuxing** repackages audio and video without re-encoding, supporting reliable
-  seeking and track switching on Apple devices, browsers and other clients. Avoiding
-  unnecessary video re-encoding matters more than direct play at any cost.
-- **Cached image subtitles:** the server decodes PGS/VobSub once and sends pictures,
-  avoiding client decoders and video re-encoding.
-- **Live TV stream proxy:** automatic backup-feed grouping, failover and category numbering.
-  ([Live TV](https://lumastra.org/architecture/live-tv/))
-- **Signed plugins:** Ed25519-signed repositories use a built-in trusted key;
-  unsigned or tampered manifests are refused.
-- **Versioned public API:** more than 300 `/api/v1` operations in an OpenAPI spec,
-  checked against the code in CI.
-- **License boundaries enforced in CI:** the open core never imports source-available
-  modules; every source file carries its license header.
+  analysis and embeddings, with crash recovery, watchdogs and circuit breakers.
+  ([Task system](https://lumastra.org/architecture/task-system/))
+- **Separate web and worker roles:** web replicas serve requests; one worker runs tasks
+  and plugins and supervises a Rust file watcher. Valkey coordinates both and lets another
+  web process take over a playback session when its server goes away.
+- **Playback decisions and HLS remuxing:** per-client direct play, remux or transcode,
+  based on codecs, HDR, subtitles and detected encoders; video is re-encoded only when
+  needed. ([Playback decisions](https://lumastra.org/architecture/playback-decisions/))
+- **Versioned public API and enforced licence boundaries:** more than 300 `/api/v1`
+  operations in an OpenAPI spec checked in CI; the open core never imports
+  source-available modules.
 
 [Architecture decisions](https://lumastra.org/developers/architecture-decisions/)
 explain the choices and tradeoffs.
@@ -499,58 +255,25 @@ explain the choices and tradeoffs.
 
 I'm the sole developer and use Claude Code daily for code drafts, fixes, tests,
 documentation and design discussions. Architecture, data models, security-sensitive
-code and merge decisions remain mine. I read what lands and don't merge code I
-don't understand.
-
-AI-assisted security reviews helped prepare this release. I verified each finding
-against the code and measured fixes on a test instance, which caught issues the reviews
-missed. More than 2,500 test files and hands-on testing with friends' and my own
-libraries provide further checks.
-
-More in [the Lumastra story](https://lumastra.org/about/story/).
-
-AI-assisted contributions are welcome, with the same rules I follow myself:
-
-- **Tested end to end, no exceptions.** Every change, AI-assisted or not, must have been
-  run on a real Lumastra instance and seen working, not only pass the tests.
-- **AI code review on every PR.** Every pull request gets an AI review before it is merged,
-  and each finding needs an answer.
-- **Experience for the big and the tricky.** Bigger features, and changes in complicated
-  areas such as authentication, playback or the task system, need real development
-  experience. Smaller fixes are welcome from anyone.
-
-- **No vibe-coded PRs.** Code that wasn't fully tested, or that the author can't explain,
-  isn't accepted.
-- **Zero tolerance for farming and copying.** Opening PRs just for the sake of it, or
-  submitting someone else's code, translations or other work as your own, gets you banned
-  without warning.
-
-Details in [CONTRIBUTING-AI.md](.github/CONTRIBUTING-AI.md).
+code and merge decisions remain mine. I read what lands and don't merge code I don't
+understand. AI-assisted security reviews helped prepare this release; I verified each
+finding against the code. More in [the Lumastra story](https://lumastra.org/about/story/).
+AI-assisted contributions are welcome under the same rules: tested end to end on a real
+instance, reviewed, and explainable by the author. Details in
+[CONTRIBUTING-AI.md](.github/CONTRIBUTING-AI.md).
 
 ## Community and support
 
 [![Join the Lumastra Discord](https://img.shields.io/badge/Join%20the%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/ZhaFYkuqq9)
 
-Join the [Lumastra Discord](https://discord.gg/ZhaFYkuqq9) to chat with other users, introduce yourself and get
-informal help in the `#help` forum (one post per question). Personal instance or library
-showcases are not part of the community. Use the destinations below for lasting support
-answers, reports and proposals so they remain searchable and maintainers can track them. A
-Discord conversation does not replace a GitHub report or an accepted feature discussion.
-
-| You want to…                                                                  | Go to                                                                                                                                                                                          |
-| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Find installation, configuration or operating instructions                    | [lumastra.org](https://lumastra.org)                                                                                                                                                           |
-| Chat with other users or get quick, informal help                             | [Discord](https://discord.gg/ZhaFYkuqq9)                                                                                                                                                       |
-| Ask for help with installation, deployment, playback, clients or integrations | [GitHub Discussions](https://github.com/Sapd/lumastra/discussions): choose the matching category; use [Q&A](https://github.com/Sapd/lumastra/discussions/categories/q-a) for general questions |
-| Report a reproducible bug, playback problem or documentation issue            | [GitHub issue forms](https://github.com/Sapd/lumastra/issues/new/choose)                                                                                                                       |
-| Propose a feature                                                             | [Discussions → Features](https://github.com/Sapd/lumastra/discussions/categories/features); maintainers open tracking issues for accepted proposals                                            |
-| Report a security vulnerability                                               | Privately, following [SECURITY.md](.github/SECURITY.md); never in a public channel                                                                                                             |
-| Report a Code of Conduct violation                                            | Privately to <git@sapd.eu>, following the [Code of Conduct](.github/CODE_OF_CONDUCT.md#reporting)                                                                                              |
-
-The [Code of Conduct](.github/CODE_OF_CONDUCT.md) applies on GitHub and Discord, including the
-content rules: no references to pirated content, redact sensitive information before posting,
-and verify reports yourself. Contribution requirements and project policies live in this
-repository; user documentation lives on the website.
+- **Chat and informal help:** the [Discord](https://discord.gg/ZhaFYkuqq9) (`#help` forum,
+  one post per question). A Discord conversation doesn't replace a GitHub report.
+- **Help and feature proposals:** [GitHub Discussions](https://github.com/Sapd/lumastra/discussions)
+  ([Q&A](https://github.com/Sapd/lumastra/discussions/categories/q-a) for questions,
+  [Features](https://github.com/Sapd/lumastra/discussions/categories/features) for ideas).
+- **Bugs:** the [issue forms](https://github.com/Sapd/lumastra/issues/new/choose).
+- **Security vulnerabilities:** privately, following [SECURITY.md](.github/SECURITY.md).
+- The [Code of Conduct](.github/CODE_OF_CONDUCT.md) applies on GitHub and Discord.
 
 ## Support the project
 
