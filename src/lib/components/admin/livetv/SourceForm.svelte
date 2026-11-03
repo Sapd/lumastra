@@ -323,9 +323,6 @@
                         credentialTestResult = null;
                     }}>
                     {m.livetv_admin_source_type_xtream()}
-                    <span
-                        class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-900/50 text-orange-300"
-                        >UNTESTED</span>
                 </button>
                 <button
                     type="button"
