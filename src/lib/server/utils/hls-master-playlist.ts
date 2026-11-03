@@ -17,6 +17,7 @@ import { isHlsCompatibleAudioCodec } from '$lib/shared/codec-tables';
 import { Logger } from './logger.js';
 import { HLS_TAGS, DEFAULT_HLS_VERSION } from './hls-definitions.js';
 import { classifyHdrSource, dvBaseLayerIsHdr } from '../services/transcoding/types.js';
+import { baseCodecLabel } from './media-quality-summary.js';
 
 const logger = Logger.for('HLSMasterPlaylist');
 
@@ -470,12 +471,71 @@ function audioRenditionBaseName(track: AudioTrackInfo, langCode: string, positio
 }
 
 /**
- * Append " (2)", " (3)"... when an earlier rendition already used the same NAME.
+ * Append " 2", " 3"... when an earlier rendition already used the same NAME.
  */
 function uniqueAudioRenditionName(base: string, usedNames: Map<string, number>): string {
     const count = (usedNames.get(base) ?? 0) + 1;
     usedNames.set(base, count);
-    return count === 1 ? base : `${base} (${count})`;
+    return count === 1 ? base : `${base} ${count}`;
+}
+
+/**
+ * Positions of the renditions Apple's players treat as a language's primary
+ * one. AVFoundation labels a primary rendition (AUTOSELECT=YES) with the
+ * localized language name and ignores NAME (HLS draft, Appendix E.2), so three
+ * untitled English tracks all read "English" in the Apple TV menu. Only the
+ * primary of each language stays AUTOSELECT=YES: the DEFAULT one when it has
+ * that language, else the first. Every other rendition of the language gets
+ * AUTOSELECT=NO, and the player then shows its NAME as written.
+ */
+function primaryAudioPositions(langCodes: string[], defaultPosition: number): Set<number> {
+    const primaries = new Set<number>();
+    const seen = new Set<string>();
+    if (defaultPosition >= 0 && defaultPosition < langCodes.length) {
+        primaries.add(defaultPosition);
+        seen.add(langCodes[defaultPosition]);
+    }
+    langCodes.forEach((lang, i) => {
+        if (seen.has(lang)) return;
+        seen.add(lang);
+        primaries.add(i);
+    });
+    return primaries;
+}
+
+/** "5.1", "7.1", "Mono", "" for stereo, else "Nch". */
+function channelLayoutLabel(channels: number): string {
+    switch (channels) {
+        case 1:
+            return 'Mono';
+        case 2:
+            return '';
+        case 6:
+            return '5.1';
+        case 8:
+            return '7.1';
+        default:
+            return channels > 0 ? `${channels}ch` : '';
+    }
+}
+
+/**
+ * NAME for a rendition the player will display as written (a non-primary one):
+ * the track's own title when it has one, else the language name qualified by
+ * codec and layout, "English (DTS 5.1)".
+ */
+function describedAudioRenditionName(
+    track: AudioTrackInfo,
+    langCode: string,
+    position: number,
+): string {
+    const base = audioRenditionBaseName(track, langCode, position);
+    // "Audio N" is unique already; a title or an unknown language keeps its name.
+    if (base !== localizedLanguageName(track.language, 'en')) return base;
+    const qualifier = [baseCodecLabel(track.codec || ''), channelLayoutLabel(track.channels)]
+        .filter((part) => part)
+        .join(' ');
+    return qualifier ? `${base} (${qualifier})` : base;
 }
 
 export function generateMasterPlaylist(
@@ -509,24 +569,32 @@ export function generateMasterPlaylist(
     // Exactly one rendition in the group is DEFAULT=YES; several would leave the
     // player to pick one at random.
     const defaultAudioPosition = pickDefaultAudioPosition(audioTracks, selectedAudioIndex);
+    // toIso6392B's fallback branch passes through any unmapped 3-character
+    // string, so a language tag carrying a quote would close the LANGUAGE
+    // attribute and break the whole master playlist. Tags come from file
+    // metadata.
+    const langCodes = audioTracks.map(
+        (track) => (toIso6392B(track.language) || 'und').replace(/[^a-z]/g, '') || 'und',
+    );
+    const primaries = primaryAudioPositions(langCodes, defaultAudioPosition);
     const usedNames = new Map<string, number>();
     for (let i = 0; i < audioTracks.length; i++) {
         const track = audioTracks[i];
-        // toIso6392B's fallback branch passes through any unmapped 3-character
-        // string, so a language tag carrying a quote would close the LANGUAGE
-        // attribute and break the whole master playlist. Tags come from file
-        // metadata.
-        const langCode = (toIso6392B(track.language) || 'und').replace(/[^a-z]/g, '') || 'und';
+        const langCode = langCodes[i];
+        const isPrimary = primaries.has(i);
         const name = uniqueAudioRenditionName(
-            audioRenditionBaseName(track, langCode, i),
+            isPrimary
+                ? audioRenditionBaseName(track, langCode, i)
+                : describedAudioRenditionName(track, langCode, i),
             usedNames,
         );
         const isDefault = i === defaultAudioPosition ? 'YES' : 'NO';
+        const autoselect = isPrimary ? 'YES' : 'NO';
         const channels = Math.min(track.channels, 6);
         const uri = withHlsParams(`${segmentBase}/stream_${i}/index.m3u8`, params);
 
         audioMediaLines.push(
-            `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="${langCode}",NAME="${name}",DEFAULT=${isDefault},AUTOSELECT=YES,CHANNELS="${channels}",URI="${uri}"`,
+            `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="${langCode}",NAME="${name}",DEFAULT=${isDefault},AUTOSELECT=${autoselect},CHANNELS="${channels}",URI="${uri}"`,
         );
     }
     lines.push(...audioMediaLines);

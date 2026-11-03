@@ -225,17 +225,79 @@ describe('generateMasterPlaylist', () => {
             expect(lines[0]).toContain('NAME="Director_Commentary"');
         });
 
-        it('appends (2), (3) when renditions would otherwise share a NAME', () => {
+        // Apple's players label an AUTOSELECT=YES rendition with the language
+        // name and ignore NAME (HLS draft, Appendix E.2); only the first
+        // rendition of a language keeps AUTOSELECT=YES, the rest carry a NAME
+        // the player shows as written.
+        it('describes the further renditions of a language by codec and layout', () => {
             const lines = audioLines(
                 build([
-                    track(1, { language: 'eng', displayTitle: '' }),
-                    track(2, { language: 'eng', displayTitle: '' }),
-                    track(3, { language: 'eng', displayTitle: '' }),
+                    track(1, { language: 'eng', displayTitle: '', codec: 'ac3' }),
+                    track(2, { language: 'eng', displayTitle: '', codec: 'dts', channels: 6 }),
+                    track(3, { language: 'eng', displayTitle: '', codec: 'ac3' }),
+                ]),
+            );
+            expect(lines[0]).toContain('NAME="English",DEFAULT=YES,AUTOSELECT=YES');
+            expect(lines[1]).toContain('NAME="English (DTS 5.1)",DEFAULT=NO,AUTOSELECT=NO');
+            expect(lines[2]).toContain('NAME="English (AC3)",DEFAULT=NO,AUTOSELECT=NO');
+        });
+
+        it('numbers renditions that still share a NAME', () => {
+            const lines = audioLines(
+                build([
+                    track(1, { language: 'eng', displayTitle: '', codec: 'ac3' }),
+                    track(2, { language: 'eng', displayTitle: '', codec: 'ac3' }),
+                    track(3, { language: 'eng', displayTitle: '', codec: 'ac3' }),
                 ]),
             );
             expect(lines[0]).toContain('NAME="English"');
-            expect(lines[1]).toContain('NAME="English (2)"');
-            expect(lines[2]).toContain('NAME="English (3)"');
+            expect(lines[1]).toContain('NAME="English (AC3)"');
+            expect(lines[2]).toContain('NAME="English (AC3) 2"');
+        });
+
+        it('makes the client-selected rendition the primary of its language', () => {
+            const lines = audioLines(
+                build(
+                    [
+                        track(1, {
+                            language: 'ger',
+                            displayTitle: '',
+                            codec: 'ac3',
+                            isDefault: true,
+                        }),
+                        track(2, { language: 'eng', displayTitle: '', codec: 'ac3' }),
+                        track(3, { language: 'eng', displayTitle: '', codec: 'dts', channels: 6 }),
+                    ],
+                    { selectedAudioStreamIndex: 3 },
+                ),
+            );
+            expect(lines[0]).toContain('NAME="German",DEFAULT=NO,AUTOSELECT=YES');
+            expect(lines[1]).toContain('NAME="English (AC3)",DEFAULT=NO,AUTOSELECT=NO');
+            expect(lines[2]).toContain('NAME="English",DEFAULT=YES,AUTOSELECT=YES');
+        });
+
+        it('keeps a real title on a further rendition and only drops its AUTOSELECT', () => {
+            const lines = audioLines(
+                build([
+                    track(1, { language: 'eng', displayTitle: '', codec: 'ac3' }),
+                    track(2, {
+                        language: 'eng',
+                        displayTitle: 'Director Commentary',
+                        codec: 'ac3',
+                    }),
+                ]),
+            );
+            expect(lines[1]).toContain('NAME="Director_Commentary",DEFAULT=NO,AUTOSELECT=NO');
+        });
+
+        it('leaves single renditions of different languages AUTOSELECT=YES', () => {
+            const lines = audioLines(
+                build([
+                    track(1, { language: 'ger', displayTitle: '' }),
+                    track(2, { language: 'eng', displayTitle: '' }),
+                ]),
+            );
+            expect(lines.every((l) => l.includes('AUTOSELECT=YES'))).toBe(true);
         });
     });
 

@@ -101,7 +101,7 @@ function videoRangeFromTier(
 }
 
 /** Friendly display name for a raw audio codec string. */
-function baseCodecLabel(codec: string): string {
+export function baseCodecLabel(codec: string): string {
     switch (codec.toLowerCase()) {
         case 'truehd':
             return 'TrueHD';
