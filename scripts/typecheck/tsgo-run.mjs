@@ -45,7 +45,9 @@ export const CONFIGS = [
  *   type errors", which callers must not conflate with success).
  */
 export function runPass(configFile) {
-    const res = spawnSync(process.execPath, [TSGO_BIN, '--noEmit', '-p', configFile], {
+    // Two type checkers instead of tsgo's default: the test pass peaked at 10.4 GB with the
+    // default and at 3.2 GB with two (2026-11-03), and GitHub's hosted runners have 16 GB.
+    const res = spawnSync(process.execPath, [TSGO_BIN, '--noEmit', '--checkers', '2', '-p', configFile], {
         encoding: 'utf8',
         maxBuffer: 512 * 1024 * 1024,
         cwd: REPO_ROOT,

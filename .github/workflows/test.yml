@@ -133,11 +133,23 @@ jobs:
                     --health-interval=5s
                     --health-timeout=5s
                     --health-retries=10
+            # The task store is a second Valkey (TASK_CACHE_URL), separate from the cache.
+            taskvalkey:
+                image: valkey/valkey:9-alpine
+                ports:
+                    - 6380:6379
+                options: >-
+                    --health-cmd="valkey-cli ping"
+                    --health-interval=5s
+                    --health-timeout=5s
+                    --health-retries=10
         env:
             # vitest.integration.config.ts moves CACHE_URL onto scratch Valkey DB 15 and uses
             # TEST_DATABASE_URL for every database access.
             TEST_DATABASE_URL: postgres://lumastra_ci:lumastra_ci_test_password@localhost:5432/lumastra_tests
             CACHE_URL: redis://localhost:6379
+            TASK_CACHE_URL: redis://localhost:6380/15
+            TEST_TASK_CACHE_URL: redis://localhost:6380/15
         steps:
             - name: Check out the repo
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
