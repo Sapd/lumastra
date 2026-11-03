@@ -41,8 +41,8 @@ were priorities from the start.
 Until 1.0, I'm focusing on bugs and polish rather than new features. Ideas are welcome
 in [Discussions](https://github.com/Sapd/lumastra/discussions/categories/features).
 I maintain Lumastra because I use it myself. If I can't keep up the pace of the first
-months, replies and fixes may take a while; please be patient. If issues grow, I may split features into
-a supported core and areas maintained as time allows.
+months, replies and fixes may take a while; please be patient. If issues grow, I may
+split features into a supported core and areas maintained as time allows.
 
 [![Lumastra Home: a playing hero preview followed by a smooth scroll through recommendations and the series calendar](docs/assets/screenshots/home-scroll.gif)](https://lumastra.org/#preview)
 
