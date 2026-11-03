@@ -1045,7 +1045,7 @@ export async function createSession(
         const now = Date.now();
         // Generate clientId for host if not provided
         const hostClientId =
-            clientId || `${hostUserId}-${now}-${Math.random().toString(36).substr(2, 9)}`;
+            clientId || `${hostUserId}-${now}-${crypto.randomUUID()}`;
 
         const session: StoredSession = {
             code,
@@ -1498,7 +1498,7 @@ async function joinSessionLocked(
 
         // Generate clientId if not provided
         const finalClientId =
-            clientId || `${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            clientId || `${userId}-${Date.now()}-${crypto.randomUUID()}`;
 
         // Check if this exact client is already in session (same clientId)
         const existingClient = session.participants.find((p) => p.clientId === finalClientId);
