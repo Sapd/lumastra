@@ -31,6 +31,21 @@ const g = globalThis as unknown as Record<string, unknown> & {
     __vitest_mocker__?: { reset?: () => void };
 };
 
+// These are Vitest internals (Vitest 5 base runner: `moduleRunner.mocker?.reset()`
+// and `resetModules(workerState.evaluatedModules)`). If an upgrade renames them,
+// the reset below would silently do nothing and files would leak into each other
+// again, so fail every file loudly instead.
+if (
+    typeof g.__vitest_mocker__?.reset !== 'function' ||
+    !(g.__vitest_worker__?.evaluatedModules?.idToModuleMap instanceof Map)
+) {
+    throw new Error(
+        'vitest.shared-setup.ts: Vitest internals __vitest_mocker__.reset / ' +
+            '__vitest_worker__.evaluatedModules.idToModuleMap are gone (Vitest upgrade?). ' +
+            'Update the per-file reset here, or set isolate: true for the unit project.',
+    );
+}
+
 // Work the previous file left in flight must not run while this file's modules
 // are being reset and mocked. The case that bites is an un-awaited dynamic
 // `import()` (or a promise chain that reaches one) that is still loading modules
