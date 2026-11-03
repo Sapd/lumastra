@@ -186,4 +186,67 @@ describe('music encode interrupted by shutdown', () => {
         expect(log.warn).not.toHaveBeenCalledWith('ffmpeg non-zero exit', expect.anything());
         expect(log.info).toHaveBeenCalledWith('ffmpeg terminated during shutdown', { code: 255 });
     });
+    // ffmpeg exits 0 without output when SIGTERM lands while it is starting
+    // (measured ~1 in 8 at a 3-4 ms delay). A cancelled stream must not be
+    // recorded as finished, nor its empty output promoted into the cache.
+    describe.each([
+        ['m4a (encode to file)', 'm4a' as const],
+        ['mp3 (live pipe)', 'mp3' as const],
+    ])('cancel racing ffmpeg start-up, %s', (_label, codec) => {
+        it('records error and never promotes when ffmpeg exits 0 after our SIGTERM', async () => {
+            vi.spyOn(shutdown, 'isShuttingDown').mockReturnValue(false);
+            vi.spyOn(shutdown, 'getWebShutdownPhase').mockReturnValue('serving');
+            const proc = Object.assign(new EventEmitter(), {
+                stdout: new PassThrough(),
+                stderr: new PassThrough(),
+                pid: 123,
+                exitCode: null,
+                signalCode: null,
+                kill: vi.fn(),
+            });
+            vi.mocked(spawn).mockReturnValue(proc as unknown as ReturnType<typeof spawn>);
+            const writer = {
+                isPrimary: true,
+                partialPath: `/tmp/music-cancel-${codec}-${process.pid}.partial`,
+                finalPath: `/tmp/music-cancel-${codec}-${process.pid}.final`,
+                waitForPrimary: async () => {},
+                promote: vi.fn(async () => {}),
+                abort: vi.fn(async () => {}),
+            };
+            const cache: MusicTranscodeCache = {
+                getCachedFinalPath: async () => null,
+                beginWrite: async () => writer,
+                peekInFlight: () => false,
+                waitForKey: async () => {},
+                reapToCap: async () => {},
+            };
+            const abort = new AbortController();
+            const svc = new MusicTranscodeService({
+                sql: vi.fn(() =>
+                    Promise.resolve([{ id: req.session.sessionId }]),
+                ) as unknown as postgres.Sql,
+                cache,
+            });
+            const pending = svc.streamFor({ ...req, codec, abortSignal: abort.signal });
+            await vi.waitFor(() => expect(proc.listenerCount('close')).toBeGreaterThan(0));
+            if (codec === 'mp3') await pending;
+            else pending.catch(() => {});
+            abort.abort();
+            expect(proc.kill).toHaveBeenCalledWith('SIGTERM');
+            proc.emit('close', 0);
+            proc.stdout.end();
+            await vi.waitFor(() => expect(writer.abort).toHaveBeenCalledOnce());
+            expect(updateTranscodeJobStatus).toHaveBeenCalledWith(
+                expect.anything(),
+                req.session.sessionId,
+                expect.objectContaining({ status: 'error' }),
+            );
+            expect(updateTranscodeJobStatus).not.toHaveBeenCalledWith(
+                expect.anything(),
+                req.session.sessionId,
+                expect.objectContaining({ status: 'stopped' }),
+            );
+            expect(writer.promote).not.toHaveBeenCalled();
+        });
+    });
 });

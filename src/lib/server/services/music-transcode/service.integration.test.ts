@@ -761,16 +761,20 @@ describe('MusicTranscodeService integration', () => {
 
         const result = await service.streamFor(req);
 
-        // Cancel almost immediately. ffmpeg is sent SIGTERM via the
-        // controller -> kill bridge; the close event fires with non-zero
-        // code, which routes to finalizeJob(false).
-        service.cancel(sessionId);
-
-        // The body should terminate. We don't strictly care about the byte
-        // count — just that it doesn't hang.
+        // Cancel once the first encoded bytes arrive, so the encode is
+        // provably running (not still starting up). The 600 s source cannot
+        // finish: the body is unread beyond this chunk, so ffmpeg is held on a
+        // full pipe. A cancel at start-up is covered deterministically in
+        // service.shutdown.test.ts (ffmpeg may exit 0 there).
         const reader = result.body.getReader();
-        const timer = setTimeout(() => void reader.cancel('test timeout'), 5_000);
+        const timer = setTimeout(() => void reader.cancel('test timeout'), 20_000);
         try {
+            const first = await reader.read();
+            expect(first.done).toBe(false);
+            service.cancel(sessionId);
+
+            // The body should terminate. We don't strictly care about the byte
+            // count — just that it doesn't hang.
             for (;;) {
                 const { done } = await reader.read();
                 if (done) break;

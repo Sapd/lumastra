@@ -153,6 +153,8 @@ export class MusicTranscodeService {
      * currently in flight.
      */
     private cancellers = new Map<string, AbortController>();
+    /** Processes `killOnAbort` sent SIGTERM; their exit code 0 is not a finished encode. */
+    private signalledProcs = new WeakSet<FfmpegProcess>();
     /** Streams whose process we actually signalled after HTTP draining finished. */
     private shutdownKills = new Set<string>();
     /**
@@ -911,14 +913,14 @@ export class MusicTranscodeService {
 
         // ffmpeg-driven finalize: success when exit==0, error otherwise.
         ff.on('close', (code) => {
-            if (code === 0) {
+            if (this.exitedCleanly(ff, code)) {
                 void this.finalizeJob(req.session.sessionId, streamId, true);
             } else {
                 void this.finalizeJob(
                     req.session.sessionId,
                     streamId,
                     false,
-                    `ffmpeg exit ${code}`,
+                    this.exitReason(ff, code),
                 );
             }
         });
@@ -1008,14 +1010,14 @@ export class MusicTranscodeService {
         // error otherwise. These run regardless of the cache-writer branch
         // so cache misses still get a clean stopped row.
         ff.on('close', (code) => {
-            if (code === 0) {
+            if (this.exitedCleanly(ff, code)) {
                 void this.finalizeJob(req.session.sessionId, streamId, true);
             } else {
                 void this.finalizeJob(
                     req.session.sessionId,
                     streamId,
                     false,
-                    `ffmpeg exit ${code}`,
+                    this.exitReason(ff, code),
                 );
             }
         });
@@ -1100,7 +1102,7 @@ export class MusicTranscodeService {
             const maybeFinalize = (): void => {
                 if (settled) return;
                 if (!ffExited || !fileFinished) return;
-                if (ffExitCode === 0) void finalizeOk();
+                if (this.exitedCleanly(ff, ffExitCode)) void finalizeOk();
                 else void finalizeErr();
             };
 
@@ -1388,33 +1390,39 @@ export class MusicTranscodeService {
                   ff.stdout.pipe(file);
               })
             : Promise.resolve(null);
-        const exited = await new Promise<{ code: number | null; err?: Error }>((resolve) => {
+        const exited = await new Promise<{
+            code: number | null;
+            clean: boolean;
+            err?: Error;
+        }>((resolve) => {
             ff.once('close', (code) => {
-                args.onEncodingStopped?.(code === 0);
-                resolve({ code });
+                // A killed encode is unfinished whatever code it exits with.
+                const clean = this.exitedCleanly(ff, code);
+                args.onEncodingStopped?.(clean);
+                resolve({ code, clean });
             });
             ff.once('error', (err) => {
                 args.onEncodingStopped?.(false);
-                resolve({ code: null, err });
+                resolve({ code: null, clean: false, err });
             });
         });
         // An unsuccessful process may leave pending disk writes. Close the
         // fd before the caller unlinks its partial or releases its slot.
-        if (exited.code !== 0 && file && !file.closed) {
+        if (!exited.clean && file && !file.closed) {
             await new Promise<void>((resolve) => {
                 file.once('close', resolve);
                 file.destroy();
             });
         }
         await recorded;
-        const writeErr = exited.code === 0 ? await flushed : null;
-        const outcome = writeErr ? { code: null, err: writeErr } : exited;
+        const writeErr = exited.clean ? await flushed : null;
+        const outcome = writeErr ? { code: null, clean: false, err: writeErr } : exited;
         if (this.shutdownKills.has(args.streamId)) {
             await this.finalizeJob(args.req.session.sessionId, args.streamId, false);
             throw new ShutdownInterruptedError();
         }
-        if (outcome.code !== 0) {
-            const reason = outcome.err ? outcome.err.message : `ffmpeg exit ${outcome.code}`;
+        if (!outcome.clean) {
+            const reason = outcome.err ? outcome.err.message : this.exitReason(ff, outcome.code);
             await this.finalizeJob(args.req.session.sessionId, args.streamId, false, reason);
             throw new Error(`music-transcode: encode to file failed (${reason})`);
         }
@@ -1422,11 +1430,31 @@ export class MusicTranscodeService {
         // has actually been streamed, which respondWithFile's hooks handle.
     }
 
+    /**
+     * True when ffmpeg finished its job. An exit code of 0 is not enough: a
+     * SIGTERM that lands while ffmpeg is starting up makes it exit 0 having
+     * written nothing (measured with the pinned jellyfin-ffmpeg: ~1 in 8 at a
+     * 3-4 ms delay, otherwise 255 or death by signal). Treating that as
+     * success recorded a cancelled stream as `stopped` and promoted an empty
+     * file into the cache. Once we have signalled the process, no exit code
+     * counts as a completed encode.
+     */
+    private exitedCleanly(proc: FfmpegProcess, code: number | null): boolean {
+        return code === 0 && !this.signalledProcs.has(proc);
+    }
+
+    private exitReason(proc: FfmpegProcess, code: number | null): string {
+        return code === 0 && this.signalledProcs.has(proc)
+            ? 'ffmpeg cancelled (exit 0 after SIGTERM)'
+            : `ffmpeg exit ${code}`;
+    }
+
     private killOnAbort(proc: FfmpegProcess, controller: AbortController, streamId: string): void {
         const kill = (): void => {
             // An exit that already happened is not a shutdown kill. The drain
             // window alone is never evidence that a failure was intentional.
             if (proc.exitCode !== null || proc.signalCode !== null) return;
+            this.signalledProcs.add(proc);
             if (getWebShutdownPhase() === 'closing') this.shutdownKills.add(streamId);
             proc.kill('SIGTERM');
         };
