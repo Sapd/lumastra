@@ -195,12 +195,13 @@ sed -i.bak \
   -e "s|^DATABASE_PASSWORD=.*|DATABASE_PASSWORD=$(openssl rand -hex 24)|" \
   -e "s|^CACHE_PASSWORD=.*|CACHE_PASSWORD=$(openssl rand -hex 24)|" \
   -e "s|^# LUMASTRA_MASTER_KEY=.*|LUMASTRA_MASTER_KEY=$(openssl rand -hex 32)|" \
-  .env && rm -f .env.bak
+  .env && rm -f .env.bak && chmod 600 .env
 ```
 
 `LUMASTRA_MASTER_KEY` encrypts every secret Lumastra stores: back it up. In
-`docker-compose.yml`, uncomment the media line under the `lumastra` service's `volumes:`
-and point it at your media folder (`- /path/to/media:/data/media:ro`). Then:
+`docker-compose.yml`, uncomment the media line under `volumes:` of both the `lumastra` and
+the `lumastra-worker` service (the worker scans) and point it at your media folder
+(`- /path/to/media:/data/media:ro`). Then:
 
 ```bash
 docker compose up -d
@@ -231,7 +232,7 @@ CPU requirements, scaling rules and the `/config` volume you must never lose.
 
 The interactive OpenAPI reference is at [lumastra.org/reference](https://lumastra.org/reference/);
 the same long-form API notes ship in this repo at [`docs/api/API.md`](docs/api/API.md) and
-are served by every instance at `/api-docs` and `/llms.txt`.
+are served by every instance at `/api-docs` and `/llms.txt` (after sign-in).
 
 ## Under the hood
 

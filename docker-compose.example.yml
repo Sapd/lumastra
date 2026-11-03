@@ -1,5 +1,5 @@
 # Lumastra: web, one task worker (with its Rust watcher), PostgreSQL and two Valkeys.
-# Copy this file to compose.yml. Copy .env.example to .env; set DATABASE_PASSWORD, CACHE_PASSWORD and LUMASTRA_MASTER_KEY.
+# Save this file as docker-compose.yml. Copy .env.example to .env; set DATABASE_PASSWORD, CACHE_PASSWORD and LUMASTRA_MASTER_KEY.
 # Optional: TASK_CACHE_PASSWORD gives the task Valkey its own password (default: CACHE_PASSWORD).
 # Passwords end up inside redis:// URLs and Compose cannot percent-encode them: use only letters,
 # digits and - . _ ~ (openssl rand -hex 24 does), or percent-encode other characters yourself.
