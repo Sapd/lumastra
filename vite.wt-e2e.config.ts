@@ -10,9 +10,14 @@
  * window /api/v1 answers 401 — which signs the Apple TV app out (a PAT has no
  * refresh token), ending the run for a reason unrelated to Watch Together.
  */
-import { mergeConfig } from 'vite';
+import { defineConfig, mergeConfig, type ConfigEnv, type UserConfig } from 'vite';
 import base from './vite.config';
 
-export default mergeConfig(base, {
-    server: { watch: { ignored: ['**/*'] }, hmr: false },
+// vite.config.ts exports a callback (it reads `mode`); mergeConfig refuses a
+// callback, so resolve it for this run first.
+export default defineConfig((env: ConfigEnv) => {
+    const resolved = (typeof base === 'function' ? base(env) : base) as UserConfig;
+    return mergeConfig(resolved, {
+        server: { watch: { ignored: ['**/*'] }, hmr: false },
+    });
 });
