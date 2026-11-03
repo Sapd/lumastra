@@ -488,6 +488,7 @@ async function bootOrchestrator(opts: {
     queue?: ReturnType<typeof makeFakeQueue>;
     leaderShouldAcquire?: boolean;
     authority?: AuthorityToken;
+    classes?: import('@sapd/lumastra-plugin-sdk').ResourceClass[];
     queueEventsFactory?: (
         cls: import('@sapd/lumastra-plugin-sdk').ResourceClass,
     ) => QueueEvents | null;
@@ -516,7 +517,7 @@ async function bootOrchestrator(opts: {
         });
     }
 
-    const orch = await TaskOrchestrator.start(['io'], {
+    const orch = await TaskOrchestrator.start(opts.classes ?? ['io'], {
         registry: reg,
         stateMachine: sm,
         authority: opts.authority,
@@ -3484,28 +3485,71 @@ describe('TaskOrchestrator lost-leader re-acquire', () => {
         },
     );
 
-    it('stop() does not wait forever on a QueueEvents whose close never settles (Valkey down)', async () => {
+    it('stop() does not wait forever on QueueEvents whose close never settles (Valkey down)', async () => {
         vi.useFakeTimers();
-        const client = makeFakeClient();
-        const database = makeFakeSql();
-        const queue = makeTerminalQueue('io');
-        const events = makeQueueSubscription('io');
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const classes = ['io', 'cpu', 'maintenance'] as const;
+        const subscriptions = new Map(classes.map((cls) => [cls, makeQueueSubscription(cls)]));
         // BullMQ behaviour while Valkey is down: close() waits for an 'end' that never comes.
-        events.close.mockImplementation(() => new Promise<void>(() => {}));
+        for (const events of subscriptions.values())
+            events.close.mockImplementation(() => new Promise<void>(() => {}));
         const { orch } = await bootOrchestrator({
-            client,
-            sql: database.sql,
-            queue,
-            queueEventsFactory: () => events as unknown as QueueEvents,
+            client: makeFakeClient(),
+            sql: makeFakeSql().sql,
+            classes: [...classes],
+            queueEventsFactory: (cls) => subscriptions.get(cls as 'io') as unknown as QueueEvents,
         });
         let stopped = false;
         const stopping = orch.stop().then(() => {
             stopped = true;
         });
-        await vi.advanceTimersByTimeAsync(10_000);
+        // The first close is given 2 s ...
+        await vi.advanceTimersByTimeAsync(1_900);
+        expect(stopped).toBe(false);
+        // ... then Valkey is known unreachable and each remaining close gets only 200 ms.
+        await vi.advanceTimersByTimeAsync(100 + 2 * 200 + 50);
         await stopping;
         expect(stopped).toBe(true);
-        expect(events.close).toHaveBeenCalledTimes(1);
+        for (const events of subscriptions.values()) expect(events.close).toHaveBeenCalledTimes(1);
+        const timedOutWarnings = warn.mock.calls.filter((c) =>
+            String(c[0]).includes('QueueEvents close timed out'),
+        );
+        expect(timedOutWarnings).toHaveLength(1);
+        warn.mockRestore();
+    });
+
+    it('tells SSE subscribers once per outage and class, and always about other errors', async () => {
+        vi.useFakeTimers();
+        const events = makeQueueSubscription('io');
+        const { orch } = await bootOrchestrator({
+            client: makeFakeClient(),
+            sql: makeFakeSql().sql,
+            queueEventsFactory: () => events as unknown as QueueEvents,
+        });
+        const emitMeta = vi
+            .spyOn(
+                orch as unknown as { emitMeta: (t: string, d: unknown) => Promise<void> },
+                'emitMeta',
+            )
+            .mockResolvedValue(undefined);
+        const lost = (): number =>
+            emitMeta.mock.calls.filter((c) => c[0] === 'subscription-lost').length;
+        try {
+            for (let i = 0; i < 10; i++) {
+                events.emit('error', new Error('getaddrinfo ENOTFOUND lumastra-valkey'));
+                await vi.advanceTimersByTimeAsync(1_000);
+            }
+            expect(lost()).toBe(1);
+            // A different error inside the outage is not swallowed.
+            events.emit('error', new Error('NOAUTH Authentication required.'));
+            expect(lost()).toBe(2);
+            // Quiet for longer than the window: the next connection loss is a new outage.
+            await vi.advanceTimersByTimeAsync(31_000);
+            events.emit('error', new Error('connect ECONNREFUSED 10.0.0.1:6379'));
+            expect(lost()).toBe(3);
+        } finally {
+            await orch.stop();
+        }
     });
 
     it.each([false, true])(

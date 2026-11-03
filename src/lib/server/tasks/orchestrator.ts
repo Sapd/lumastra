@@ -66,6 +66,7 @@ import {
 import { TaskQueueRegistry } from './task-queue-registry.js';
 import {
     closeQueueEventsBounded,
+    isConnectionLossError,
     createOutageGate,
     logQueueConnectionErrors,
 } from './queue-outage.js';
@@ -1341,12 +1342,15 @@ export class TaskOrchestrator {
         logQueueConnectionErrors(qe, `queue-events:${rt.cls}`);
         qe.on('error', (err: Error) => {
             if (rt.crashSimulatedForTesting) return;
-            let gate = this.subscriptionLostGates.get(rt.cls);
-            if (!gate) {
-                gate = createOutageGate();
-                this.subscriptionLostGates.set(rt.cls, gate);
+            // Only connection loss repeats per reconnect attempt; any other error is news.
+            if (isConnectionLossError(err)) {
+                let gate = this.subscriptionLostGates.get(rt.cls);
+                if (!gate) {
+                    gate = createOutageGate();
+                    this.subscriptionLostGates.set(rt.cls, gate);
+                }
+                if (!gate.note().first) return;
             }
-            if (!gate.note().first) return;
             void this.emitMeta('subscription-lost', {
                 cls: rt.cls,
                 error: err.message,
@@ -4355,6 +4359,7 @@ export class TaskOrchestrator {
         const failures: unknown[] = [];
         this.queueEventsCloseTimeoutMs = QUEUE_EVENTS_CLOSE_TIMEOUT_MS;
         this.queueEventsCloseTimeoutLogged = false;
+        this.subscriptionLostGates.clear();
         this.stopped = true;
         if (this.queueDepthTimer) {
             clearInterval(this.queueDepthTimer);
