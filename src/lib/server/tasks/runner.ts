@@ -21,6 +21,7 @@
 // stubs are wired through `context.ts` / `plugin-context.ts` / `secrets.ts`;
 // see those modules for the runtime details.
 
+import { logQueueConnectionErrors } from './queue-outage.js';
 import { withApiCallSpend } from './api-call-spend.js';
 
 import { setTimeout as delay } from 'node:timers/promises';
@@ -1563,11 +1564,13 @@ export class TaskRunner {
         if (!connection) {
             throw new Error('TaskRunner: cannot build queue — CACHE_URL not configured');
         }
-        return new Queue(taskQueueName(cls), {
+        const queue = new Queue(taskQueueName(cls), {
             connection,
             prefix: QUEUE_PREFIX,
             defaultJobOptions: BULL_DEFAULT_RETENTION,
         });
+        logQueueConnectionErrors(queue, `class-queue:${cls}`);
+        return queue;
     }
 
     // -- per-task worker construction (FEATURE_PER_TASK_QUEUES) ---------------
@@ -1616,11 +1619,13 @@ export class TaskRunner {
         if (!connection) {
             throw new Error('TaskRunner: cannot build queue — CACHE_URL not configured');
         }
-        return new Queue(perTaskQueueName(taskId), {
+        const queue = new Queue(perTaskQueueName(taskId), {
             connection,
             prefix: PER_TASK_QUEUE_PREFIX,
             defaultJobOptions: BULL_DEFAULT_RETENTION,
         });
+        logQueueConnectionErrors(queue, 'task-queue');
+        return queue;
     }
 
     private async startTaskWorker(task: TaskDefinition<unknown, unknown>): Promise<void> {

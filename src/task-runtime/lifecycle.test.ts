@@ -14,6 +14,7 @@ const state = vi.hoisted(() => ({
     failRunner: false,
     failWatcherStop: false,
     failRunnerStop: false,
+    failLeaseRelease: false,
     failSchedulerStop: false,
     pluginPending: undefined as Promise<void> | undefined,
     featurePending: undefined as Promise<void> | undefined,
@@ -39,6 +40,7 @@ vi.mock('./worker-lease.js', () => ({
     },
     releaseWorkerLease: async (): Promise<void> => {
         state.events.push('release-lease');
+        if (state.failLeaseRelease) throw new Error('the database system is shutting down');
     },
 }));
 vi.mock('$lib/server/config.js', () => ({
@@ -196,6 +198,7 @@ beforeEach(() => {
     state.failRunner = false;
     state.failWatcherStop = false;
     state.failRunnerStop = false;
+    state.failLeaseRelease = false;
     state.failSchedulerStop = false;
     state.pluginPending = undefined;
     state.featurePending = undefined;
@@ -261,6 +264,15 @@ describe('dedicated task lifecycle seam', () => {
         expect(state.events).toContain('runner');
         expect(state.events).toContain('scheduler');
         await runtime.stopTaskSubsystem({ strict: true });
+        expect(state.events.at(-1)).toBe('release-lease');
+    });
+    it('does not treat a failed lease release as an unknown cleanup outcome', async () => {
+        // `docker compose restart` stops PostgreSQL together with the worker. Every
+        // consumer is already stopped here, so an unreleased lease only expires.
+        state.failLeaseRelease = true;
+        const runtime = await import('./lifecycle.js');
+        await runtime.startTaskSubsystem({ strict: true });
+        await expect(runtime.stopTaskSubsystem({ strict: true })).resolves.toBeUndefined();
         expect(state.events.at(-1)).toBe('release-lease');
     });
     it('cancels while waiting for the singleton lease without starting anything', async () => {

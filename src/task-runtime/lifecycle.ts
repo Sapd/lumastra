@@ -589,7 +589,11 @@ async function stop(strict: boolean): Promise<void> {
             await releaseWorkerLease();
             workerLeaseRequested = false;
         } catch (err) {
-            failures.push(err);
+            // Not a cleanup failure: everything the lease guards has stopped by
+            // now, so an unreleased lease only delays a successor until it
+            // expires (a compose restart takes PostgreSQL down with the worker,
+            // so this is the normal outcome there). Counting it as a failure
+            // made every `docker compose restart` log "cleanup outcome UNKNOWN".
             startupLogger.warn('Worker singleton lease release failed; it expires on its own', {
                 error: err instanceof Error ? err.message : String(err),
             });

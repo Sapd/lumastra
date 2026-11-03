@@ -64,6 +64,11 @@ import {
     taskQueueQualifiedName,
 } from './queue-naming.js';
 import { TaskQueueRegistry } from './task-queue-registry.js';
+import {
+    closeQueueEventsBounded,
+    createOutageGate,
+    logQueueConnectionErrors,
+} from './queue-outage.js';
 import { BULL_DEFAULT_RETENTION, taskRetryOptions } from './bull-defaults.js';
 import { luaLoader } from './lua/loader.js';
 import { invokeOwnedCommand } from './owned-write.js';
@@ -141,6 +146,9 @@ import {
 } from '$lib/server/database/queries/builders/keyset-cursor.builder.js';
 
 const log = Logger.for('TaskOrchestrator');
+
+/** Longest a shutdown waits for one QueueEvents.close() before abandoning it. */
+const QUEUE_EVENTS_CLOSE_TIMEOUT_MS = 2_000;
 
 // Failure-log throttle (OSS-readiness diagnosability). Genuine task failures are
 // surfaced to the server logs (see writeTerminalToPostgres), but a provider
@@ -336,6 +344,10 @@ export class TaskOrchestrator {
     private stopped = false;
     private stopPending: Promise<void> | undefined;
     private strictStopRequested = false;
+    private readonly subscriptionLostGates = new Map<
+        ResourceClass,
+        ReturnType<typeof createOutageGate>
+    >();
     private readonly releasedAtShutdown = new Set<object>();
     private readonly leadershipAcquisitions = new Set<Promise<boolean>>();
     private circuitBreaker: CircuitBreaker | null = null;
@@ -659,6 +671,7 @@ export class TaskOrchestrator {
             } else {
                 throw new Error('TaskOrchestrator: no connection available for Queue');
             }
+            logQueueConnectionErrors(queue, `class-queue:${cls}`);
             const leader = new LeaderLock(
                 this.getClient(),
                 `lock:orch:${cls}`,
@@ -785,6 +798,7 @@ export class TaskOrchestrator {
                 prefix: QUEUE_PREFIX,
             });
         }
+        logQueueConnectionErrors(this.flowProducer, 'flow-producer');
 
         const sql = this.getSql();
         if (sql) {
@@ -1317,9 +1331,18 @@ export class TaskOrchestrator {
         };
         qe.on('completed', ({ jobId }) => admit(jobId, 'completed'));
         qe.on('failed', ({ jobId }) => admit(jobId, 'failed'));
+        // Every QueueEvents of a class errors on every reconnect attempt while
+        // Valkey is down: log once per outage (shared gate) and tell SSE
+        // subscribers once per class and outage.
+        logQueueConnectionErrors(qe, `queue-events:${rt.cls}`);
         qe.on('error', (err: Error) => {
             if (rt.crashSimulatedForTesting) return;
-            log.warn('QueueEvents error', { cls: rt.cls, err: err.message });
+            let gate = this.subscriptionLostGates.get(rt.cls);
+            if (!gate) {
+                gate = createOutageGate();
+                this.subscriptionLostGates.set(rt.cls, gate);
+            }
+            if (!gate.note().first) return;
             void this.emitMeta('subscription-lost', {
                 cls: rt.cls,
                 error: err.message,
@@ -2340,7 +2363,10 @@ export class TaskOrchestrator {
                         // phantom (terminal); if so, compare-and-delete the stale
                         // key (only if it still holds that exact dead runId) and
                         // re-attempt the claim once.
-                        if (attempt === 0 && (await this.isPhantomDedup(existing, sql, taskId, jobId))) {
+                        if (
+                            attempt === 0 &&
+                            (await this.isPhantomDedup(existing, sql, taskId, jobId))
+                        ) {
                             log.warn(
                                 'Phantom identity dedup detected — releasing stale key and retrying',
                                 {
@@ -2472,7 +2498,9 @@ export class TaskOrchestrator {
                 // Keep its exclusive identity through backoff and queue waits.
                 const queue = this.resolveTaskQueue(taskId);
                 if (!queue) return false;
-                const job = await queue.getJob(taskJobId(`${jobId}#${existingRunId}`, this.authority));
+                const job = await queue.getJob(
+                    taskJobId(`${jobId}#${existingRunId}`, this.authority),
+                );
                 if (job && !['failed', 'completed'].includes(await job.getState())) return false;
             }
             return state === 'completed' || state === 'failed' || state === 'cancelled';
@@ -3983,10 +4011,7 @@ export class TaskOrchestrator {
             const liveHeartbeatAt = normalizeLiveHeartbeatAt(live.heartbeatAt);
             if (liveHeartbeatAt) {
                 const baseHeartbeatAt = normalizeLiveHeartbeatAt(base.heartbeatAt);
-                if (
-                    !baseHeartbeatAt ||
-                    Date.parse(liveHeartbeatAt) > Date.parse(baseHeartbeatAt)
-                ) {
+                if (!baseHeartbeatAt || Date.parse(liveHeartbeatAt) > Date.parse(baseHeartbeatAt)) {
                     merged.heartbeatAt = liveHeartbeatAt;
                 }
             }
@@ -4397,9 +4422,13 @@ export class TaskOrchestrator {
             };
             const queueEvents = rt.queueEvents;
             if (queueEvents)
-                await release(queueEvents, 'QueueEvents close failed', () => queueEvents.close());
+                await release(queueEvents, 'QueueEvents close failed', () =>
+                    this.closeQueueEventsAtShutdown(rt, queueEvents),
+                );
             for (const qe of rt.perTaskQueueEvents)
-                await release(qe, 'Per-task QueueEvents close failed', () => qe.close());
+                await release(qe, 'Per-task QueueEvents close failed', () =>
+                    this.closeQueueEventsAtShutdown(rt, qe),
+                );
             // Already-admitted callbacks may still be resolving a BullMQ job.
             // Keep their queue and batcher usable until those observations land.
             for (const observation of [...rt.terminalObservations]) {
@@ -4488,6 +4517,20 @@ export class TaskOrchestrator {
         if (this.strictStopRequested && failures.length) {
             throw new AggregateError(failures, 'TaskOrchestrator shutdown is incomplete');
         }
+    }
+
+    /**
+     * BullMQ's QueueEvents.close() never settles while Valkey is down (see
+     * queue-outage.ts); a worker restarted together with Valkey sat on it until
+     * its shutdown deadline. Bound the wait: a QueueEvents is a read-only stream
+     * subscription, so a forced close leaves nothing for a successor to collide with.
+     */
+    private async closeQueueEventsAtShutdown(rt: ClassRuntime, qe: QueueEvents): Promise<void> {
+        const settled = await closeQueueEventsBounded(qe, QUEUE_EVENTS_CLOSE_TIMEOUT_MS);
+        if (!settled)
+            log.warn('QueueEvents close timed out (Valkey unreachable); connection abandoned', {
+                cls: rt.cls,
+            });
     }
 
     // -- helpers -------------------------------------------------------------
@@ -4920,9 +4963,10 @@ function normalizeLiveHeartbeatAt(value: string | undefined): string | undefined
         return toStrictUtcTimestamp(epochMs);
     }
 
-    const iso = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|([+-])(\d{2}):(\d{2}))$/.exec(
-        value,
-    );
+    const iso =
+        /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|([+-])(\d{2}):(\d{2}))$/.exec(
+            value,
+        );
     if (!iso) return undefined;
 
     const year = Number(iso[1]);
@@ -4958,9 +5002,7 @@ function toStrictUtcTimestamp(epochMs: number): string | undefined {
     const date = new Date(epochMs);
     if (!Number.isFinite(date.getTime())) return undefined;
     const iso = date.toISOString();
-    return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(iso)
-        ? iso
-        : undefined;
+    return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(iso) ? iso : undefined;
 }
 
 /**

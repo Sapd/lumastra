@@ -23,6 +23,7 @@
 // Once Wave 8.5 lands and class queues are removed, the discriminator
 // becomes redundant but stays for backwards compat.
 
+import { logQueueConnectionErrors } from './queue-outage.js';
 import { Queue, type ConnectionOptions } from 'bullmq';
 import type { TaskDefinition } from '@sapd/lumastra-plugin-sdk';
 import { Logger } from '$lib/server/utils/logger.js';
@@ -84,6 +85,7 @@ export class TaskQueueRegistry {
             // Per-job overrides on the producer side still win.
             defaultJobOptions: BULL_DEFAULT_RETENTION,
         });
+        logQueueConnectionErrors(queue, 'task-queue');
         this.queues.set(taskId, queue);
         log.debug('task queue created', {
             taskId,

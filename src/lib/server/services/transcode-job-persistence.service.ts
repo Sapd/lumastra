@@ -10,6 +10,7 @@
  * - Graceful shutdown and orphan cleanup
  */
 
+import { getWebShutdownPhase } from '$lib/server/lifecycle/web-shutdown.js';
 import type postgres from 'postgres';
 import { getDb } from '$lib/server/database/connection.js';
 import { getUserIdByUsername } from '$lib/server/database/queries/users.queries.js';
@@ -132,6 +133,24 @@ export interface CleanedUpJob {
 
 export class TranscodeJobPersistenceService {
     private sql: postgres.Sql;
+
+    /**
+     * Log a failed database operation. While the process shuts down the database
+     * may already be gone (`docker compose restart` stops PostgreSQL with the
+     * app), and every caller on that path treats the write as best effort: the
+     * rows are retired by the orphan sweep on the next start. That is a warning,
+     * not an error.
+     */
+    private logFailure(message: string, error: Error, context?: object): void {
+        if (getWebShutdownPhase() === 'closing') {
+            logger.warn(`${message} (shutting down; the next start retires stale jobs)`, {
+                ...context,
+                error: error?.message,
+            });
+            return;
+        }
+        logger.error(message, error, context);
+    }
 
     /**
      * @param sql Injected only by integration tests, which run against
@@ -272,7 +291,7 @@ export class TranscodeJobPersistenceService {
                 }
             }
         } catch (error) {
-            logger.error('Failed to persist transcode job', error as Error, {
+            this.logFailure('Failed to persist transcode job', error as Error, {
                 playSessionId: job.config.playSessionId,
                 jobId: job.id,
             });
@@ -445,7 +464,7 @@ export class TranscodeJobPersistenceService {
 
             return fixJsonbFields(row as unknown as PersistedJobMetadata);
         } catch (error) {
-            logger.error('Failed to load job from database', error as Error, {
+            this.logFailure('Failed to load job from database', error as Error, {
                 playSessionId,
             });
             throw error;
@@ -569,7 +588,7 @@ export class TranscodeJobPersistenceService {
                 canRestore,
             });
         } catch (err) {
-            logger.error('Failed to update job status', err as Error, {
+            this.logFailure('Failed to update job status', err as Error, {
                 playSessionId,
                 status,
             });
@@ -639,7 +658,7 @@ export class TranscodeJobPersistenceService {
                 playSessionId,
             });
         } catch (error) {
-            logger.error('Failed to delete job from database', error as Error, {
+            this.logFailure('Failed to delete job from database', error as Error, {
                 playSessionId,
             });
             throw error;
@@ -684,7 +703,7 @@ export class TranscodeJobPersistenceService {
 
             return result;
         } catch (error) {
-            logger.error('Failed to cleanup expired jobs', error as Error);
+            this.logFailure('Failed to cleanup expired jobs', error as Error);
             throw error;
         }
     }
@@ -704,7 +723,7 @@ export class TranscodeJobPersistenceService {
 
             return (result as unknown as PersistedJobMetadata[]).map(fixJsonbFields);
         } catch (error) {
-            logger.error('Failed to get jobs for pod', error as Error, {
+            this.logFailure('Failed to get jobs for pod', error as Error, {
                 podName,
             });
             throw error;
@@ -725,7 +744,7 @@ export class TranscodeJobPersistenceService {
 
             return (result as unknown as PersistedJobMetadata[]).map(fixJsonbFields);
         } catch (error) {
-            logger.error('Failed to get all active jobs', error as Error);
+            this.logFailure('Failed to get all active jobs', error as Error);
             throw error;
         }
     }
@@ -784,7 +803,7 @@ export class TranscodeJobPersistenceService {
 
             return result;
         } catch (error) {
-            logger.error('Failed to get jobs by play sessions', error as Error);
+            this.logFailure('Failed to get jobs by play sessions', error as Error);
             throw error;
         }
     }
@@ -825,7 +844,7 @@ export class TranscodeJobPersistenceService {
             });
             return true;
         } catch (error) {
-            logger.error('Failed to claim job for restoration', error as Error, {
+            this.logFailure('Failed to claim job for restoration', error as Error, {
                 playSessionId,
                 podName,
             });
@@ -859,7 +878,7 @@ export class TranscodeJobPersistenceService {
 
             return result.length;
         } catch (error) {
-            logger.error('Failed to mark pod jobs as stopped', error as Error, {
+            this.logFailure('Failed to mark pod jobs as stopped', error as Error, {
                 podName,
                 reason,
             });
