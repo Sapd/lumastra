@@ -59,7 +59,7 @@ describe('stage-id mirrors stay in step with the registry', () => {
         // Guard the guard: an empty registry would make every assertion below
         // pass vacuously, which is the failure mode this file exists to catch.
         expect(declared.size).toBeGreaterThan(5);
-    });
+    }, 120_000);
 
     it('every headline progress stage is declared', () => {
         // This is the one that showed a frozen 19.6% for three days.

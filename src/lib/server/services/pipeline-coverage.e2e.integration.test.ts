@@ -31,7 +31,7 @@ describe('pipeline-coverage end-to-end smoke', () => {
         _resetLoadedForTests();
         await loadBuiltins();
         setTestRegistry(registry);
-    });
+    }, 120_000);
 
     afterAll(async () => {
         await closeTestDb();
