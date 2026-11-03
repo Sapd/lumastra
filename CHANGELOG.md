@@ -16,6 +16,40 @@ health → Cluster also warns when the running proxy is behind.
 The iPhone, iPad and Apple TV apps have their own version numbers. Their notes are on
 [lumastra.org/about/changelog/](https://lumastra.org/about/changelog/).
 
+## 0.1.1 - 2026-11-04
+
+Live TV proxy: no update needed.
+
+A patch release with fixes from the first day of public CI, the first CodeQL scan and a fresh
+install test of 0.1.0.
+
+### Security
+
+- Device sign-in codes (the code you type on a TV) and the passwords Lumastra generates for
+  Jellyfin-compatible clients now draw every character with an unbiased random number. Before,
+  some characters came up slightly more often than others, which made the codes a little
+  easier to guess. Codes stay short-lived and rate-limited.
+- Search boxes that match text with SQL `ILIKE` (Live TV channels and guide, the
+  Jellyfin-compatible browse) now also escape the backslash, so a search can no longer
+  disable the escaping of the next character.
+- The Watch Together fallback client ID comes from `crypto.randomUUID()` instead of
+  `Math.random()`.
+
+### Fixed
+
+- `docker compose restart` of a fresh install no longer leaves the worker hanging for 60 s and
+  logging "Task runtime shutdown failed". Closing the task queue listeners gave up waiting while
+  Valkey was restarting; it now stops after a few seconds.
+- A Valkey or PostgreSQL restart no longer floods the log: connection errors are logged once
+  per outage (other Valkey errors are still logged every time), and failed best-effort writes
+  while the app shuts down are warnings, not errors.
+- Cancelling a music transcode right as ffmpeg started could record the stream as finished and
+  put an empty file into the audio cache. A cancelled encode now always ends as an error.
+- Titles and descriptions from XMLTV guides, AniDB, Kavita and the assistant's links are no
+  longer HTML-decoded twice (`&amp;lt;` now stays `&lt;`).
+- A backslash before `|` in a diagnostics, playback-incident, transcode-failure or
+  failure-timeline report no longer breaks the report's Markdown table.
+
 ## 0.1.0 - 2026-11-03
 
 Live TV proxy: update needed (protocol 0 → 1) if you ran the 2026-10-15 release candidate;
