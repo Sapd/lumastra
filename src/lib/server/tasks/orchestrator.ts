@@ -65,7 +65,7 @@ import {
 } from './queue-naming.js';
 import { TaskQueueRegistry } from './task-queue-registry.js';
 import {
-    closeQueueEventsBounded,
+    closeBullmqBounded,
     isConnectionLossError,
     createOutageGate,
     logQueueConnectionErrors,
@@ -4472,7 +4472,9 @@ export class TaskOrchestrator {
                 rt.leader.release({ strict: true }),
             );
             if (this.releasedAtShutdown.has(rt.batcher))
-                await release(rt.queue, 'Queue close failed', () => rt.queue.close());
+                await release(rt.queue, 'Queue close failed', () =>
+                    this.closeQueueEventsAtShutdown(rt, rt.queue),
+                );
             if (failures.length === priorFailures) {
                 this.classes.delete(key);
                 for (const resource of [
@@ -4487,7 +4489,7 @@ export class TaskOrchestrator {
         }
         if (this.flowProducer) {
             try {
-                await this.flowProducer.close();
+                await this.closeQueueEventsAtShutdown(undefined, this.flowProducer);
                 this.flowProducer = null;
             } catch (err) {
                 failures.push(err);
@@ -4540,17 +4542,20 @@ export class TaskOrchestrator {
      * its shutdown deadline. Bound the wait: a QueueEvents is a read-only stream
      * subscription, so a forced close leaves nothing for a successor to collide with.
      */
-    private async closeQueueEventsAtShutdown(rt: ClassRuntime, qe: QueueEvents): Promise<void> {
-        const settled = await closeQueueEventsBounded(qe, this.queueEventsCloseTimeoutMs);
+    private async closeQueueEventsAtShutdown(
+        rt: ClassRuntime | undefined,
+        qe: Parameters<typeof closeBullmqBounded>[0],
+    ): Promise<void> {
+        const settled = await closeBullmqBounded(qe, this.queueEventsCloseTimeoutMs);
         if (!settled) {
             // Valkey is unreachable: the remaining closes would wait just as long.
             this.queueEventsCloseTimeoutMs = QUEUE_EVENTS_CLOSE_RETRY_TIMEOUT_MS;
             if (!this.queueEventsCloseTimeoutLogged) {
                 this.queueEventsCloseTimeoutLogged = true;
                 log.warn(
-                    'QueueEvents close timed out (Valkey unreachable); connections abandoned',
+                    'Queue connection close timed out (Valkey unreachable); connections abandoned',
                     {
-                        cls: rt.cls,
+                        cls: rt?.cls,
                     },
                 );
             }

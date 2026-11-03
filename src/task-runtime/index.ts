@@ -132,6 +132,12 @@ async function main(): Promise<void> {
         cleanup: () =>
             cleanupTaskProcess([
                 async () => {
+                    // The Valkey clients' native core logs at ERROR while they lose their server.
+                    const { silenceGlideLoggerForShutdown } =
+                        await import('$lib/server/cache/valkey.js');
+                    silenceGlideLoggerForShutdown();
+                },
+                async () => {
                     if (consumerSampler) clearInterval(consumerSampler);
                 },
                 async () => {

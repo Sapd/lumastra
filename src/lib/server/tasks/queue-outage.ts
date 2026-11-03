@@ -16,8 +16,11 @@
 //    ioredis' reconnect wait: BullMQ calls `client.disconnect()` and waits for an
 //    `end` event that a socket-less client never emits, so the worker's graceful
 //    shutdown sat there until its 60 s deadline killed it ("cleanup outcome
-//    UNKNOWN"). `closeQueueEventsBounded` bounds that wait and stops the clients
-//    from reconnecting.
+//    UNKNOWN"). Queue, FlowProducer and Worker closes wait the same way.
+//    `closeBullmqBounded` bounds that wait and stops the clients from
+//    reconnecting.
+// 3. Outage length. Reconnects (`ready`) extend the running outage, so the
+//    recovery INFO reports how long the Valkey was really gone.
 
 import { Logger } from '../utils/logger.js';
 
@@ -41,6 +44,14 @@ export interface OutageGate {
      * meaningful when `first`).
      */
     note(now?: number): { first: boolean; suppressed: number };
+    /**
+     * Record that a connection became usable again. During an outage this moves
+     * the end of the outage forward, so its length is measured up to the last
+     * reconnect and not only to the last error (a client that fails a few times
+     * in the first second and then waits out a long retry delay stops erroring
+     * long before it is connected again). Ignored when no outage is running.
+     */
+    recovered(now?: number): void;
 }
 
 /** `onEnd` (optional) fires once an outage has been quiet for `quietMs`. */
@@ -48,7 +59,11 @@ export function createOutageGate(
     quietMs: number = OUTAGE_QUIET_MS,
     onEnd?: (end: OutageEnd) => void,
 ): OutageGate {
-    let lastAt = Number.NEGATIVE_INFINITY;
+    // Last error of the running outage; decides `first`.
+    let lastErrorAt = Number.NEGATIVE_INFINITY;
+    // Last error or reconnect of the running outage; decides when it is over and
+    // how long it lasted.
+    let lastActivityAt = Number.NEGATIVE_INFINITY;
     let startedAt = 0;
     let errors = 0;
     let suppressed = 0;
@@ -56,20 +71,21 @@ export function createOutageGate(
     const arm = (delayMs: number): void => {
         timer = setTimeout(() => {
             timer = undefined;
-            const idleMs = Date.now() - lastAt;
+            const idleMs = Date.now() - lastActivityAt;
             if (idleMs < quietMs) {
                 arm(quietMs - idleMs);
                 return;
             }
-            onEnd?.({ durationMs: lastAt - startedAt, errors });
+            onEnd?.({ durationMs: lastActivityAt - startedAt, errors });
         }, delayMs);
         timer.unref?.();
     };
     return {
         note(now = Date.now()) {
-            const first = now - lastAt > quietMs;
+            const first = now - lastActivityAt > quietMs;
             const previouslySuppressed = suppressed;
-            lastAt = now;
+            lastErrorAt = now;
+            lastActivityAt = now;
             if (first) {
                 suppressed = 0;
                 errors = 1;
@@ -80,6 +96,10 @@ export function createOutageGate(
             errors++;
             suppressed++;
             return { first: false, suppressed: 0 };
+        },
+        recovered(now = Date.now()) {
+            if (now - lastActivityAt > quietMs || now < lastErrorAt) return;
+            lastActivityAt = now;
         },
     };
 }
@@ -121,6 +141,40 @@ function isErrorEmitter(target: unknown): target is ErrorEmitter {
 }
 
 /**
+ * Log a connection-loss error of the task Valkey once per outage per process,
+ * whichever BullMQ object (Queue, QueueEvents, FlowProducer, Worker) it came
+ * from. Returns `false` for any other error so the caller logs it as before.
+ */
+export function logTaskConnectionLoss(scope: string, err: unknown): boolean {
+    if (!isConnectionLossError(err)) return false;
+    const message = err instanceof Error ? err.message : String(err);
+    const outage = processGate.note();
+    if (!outage.first) return true;
+    log.warn(
+        'Task Valkey connection error; BullMQ reconnects on its own. Further connection errors of this outage are not logged',
+        {
+            scope,
+            err: message,
+            ...(outage.suppressed > 0 ? { suppressedInPreviousOutage: outage.suppressed } : {}),
+        },
+    );
+    return true;
+}
+
+/** BullMQ 6: the backend re-emits `ready` whenever one of its connections is usable again. */
+function watchRecovery(target: unknown): void {
+    try {
+        const backend = (target as { getBackend?: () => unknown }).getBackend?.();
+        (backend as { on?: (event: 'ready', listener: () => void) => unknown } | undefined)?.on?.(
+            'ready',
+            () => processGate.recovered(),
+        );
+    } catch {
+        // Test doubles and older BullMQ versions have no backend; the quiet window still ends the outage.
+    }
+}
+
+/**
  * Attach the outage-aware `error` listener to a BullMQ Queue, QueueEvents or
  * FlowProducer. Connection-loss errors are logged once per outage; any other
  * error (NOAUTH, WRONGTYPE, OOM, script errors) is always logged. No-op for
@@ -129,22 +183,19 @@ function isErrorEmitter(target: unknown): target is ErrorEmitter {
 export function logQueueConnectionErrors(target: unknown, scope: string): void {
     if (!isErrorEmitter(target)) return;
     target.on('error', (err: Error) => {
-        const message = err?.message ?? String(err);
-        if (!isConnectionLossError(err)) {
-            log.warn('Task Valkey error', { scope, err: message });
-            return;
-        }
-        const outage = processGate.note();
-        if (!outage.first) return;
-        log.warn(
-            'Task Valkey connection error; BullMQ reconnects on its own. Further connection errors of this outage are not logged',
-            {
-                scope,
-                err: message,
-                ...(outage.suppressed > 0 ? { suppressedInPreviousOutage: outage.suppressed } : {}),
-            },
-        );
+        if (logTaskConnectionLoss(scope, err)) return;
+        log.warn('Task Valkey error', { scope, err: err?.message ?? String(err) });
     });
+    watchRecovery(target);
+}
+
+/**
+ * For a BullMQ Worker: only follow its reconnects, so the outage length is real.
+ * Its `error` events are handled by the runner, which routes connection-loss
+ * errors through {@link logTaskConnectionLoss}.
+ */
+export function watchWorkerRecovery(worker: unknown): void {
+    watchRecovery(worker);
 }
 
 /** Test hook: forget the process-wide outage state. */
@@ -164,7 +215,7 @@ interface BackendInternals {
     blockingConnection?: { _client?: RawClient };
 }
 
-interface ClosableQueueEvents {
+interface ClosableBullmq {
     close(): Promise<void>;
     /** BullMQ 6: the datastore backend that owns the ioredis connections. */
     getBackend?(): unknown;
@@ -188,21 +239,24 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | unde
 }
 
 /**
- * Close a QueueEvents without waiting forever on a connection that is
- * reconnecting. On timeout both of its ioredis clients (command and blocking)
- * are told to stop reconnecting, so the orphaned connection neither retries nor
- * keeps the event loop alive, and the close counts as done: a QueueEvents only
- * reads the event stream, it holds no lock, lease or write that a successor
- * could collide with. Its `error` listeners stay attached on purpose; without
- * one BullMQ would console.error the next error. Rejects only when close()
- * itself fails.
+ * Close a BullMQ QueueEvents, Queue, FlowProducer or idle Worker without waiting
+ * forever on a connection that is reconnecting. On timeout both of its ioredis
+ * clients (command and blocking) are told to stop reconnecting, so the orphaned
+ * connection neither retries nor keeps the event loop alive, and the close
+ * counts as done. That is only right for objects that hold no lock, lease or
+ * in-flight write a successor could collide with: a QueueEvents reads the event
+ * stream, a Queue/FlowProducer owns no state outside Valkey, and a Worker with
+ * no active job has nothing left to settle (the caller decides that). Its
+ * `error` listeners stay attached on purpose; without one BullMQ would
+ * console.error the next error. Rejects only when close() itself fails.
  *
  * @returns `true` when close() settled by itself, `false` when it was forced.
  */
-export async function closeQueueEventsBounded(
-    qe: ClosableQueueEvents,
+export async function closeBullmqBounded(
+    target: ClosableBullmq,
     timeoutMs: number,
 ): Promise<boolean> {
+    const qe = target;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const closing = qe.close();
     // The abandoned close must not surface as an unhandled rejection later.
@@ -235,3 +289,6 @@ export async function closeQueueEventsBounded(
     }
     return false;
 }
+
+/** Former name, from when only QueueEvents needed it. */
+export const closeQueueEventsBounded = closeBullmqBounded;

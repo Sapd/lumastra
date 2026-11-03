@@ -410,6 +410,52 @@ describe('web shutdown sequence (no adapter close: vite dev, a straggler connect
     });
 });
 
+describe('web shutdown step bounds', () => {
+    it('abandons steps that wait for a server that is gone and still closes the pools, exiting 0', async () => {
+        const h = await serve(async () => new Response('ok'), {
+            services: [
+                { name: 'hung db flush', timeoutMs: 100, run: () => new Promise(() => undefined) },
+                {
+                    name: 'second hung step',
+                    timeoutMs: 100,
+                    run: () => new Promise(() => undefined),
+                },
+                { name: 'quick', run: () => h.order.push('quick ran') },
+            ],
+        });
+        const startedAt = Date.now();
+        void h.signal();
+        await expect(h.exited).resolves.toBe(0);
+        expect(Date.now() - startedAt).toBeLessThan(1_500);
+        expect(h.order).toEqual(['quick ran', 'valkey closed', 'db closed', 'exit 0']);
+    });
+
+    it('stays silent when an abandoned step rejects later', async () => {
+        const unhandled = vi.fn();
+        process.on('unhandledRejection', unhandled);
+        try {
+            const h = await serve(async () => new Response('ok'), {
+                services: [
+                    {
+                        name: 'rejects late',
+                        timeoutMs: 20,
+                        run: () =>
+                            new Promise((_, reject) =>
+                                setTimeout(() => reject(new Error('late')), 60),
+                            ),
+                    },
+                ],
+            });
+            void h.signal();
+            await h.exited;
+            await tick(100);
+            expect(unhandled).not.toHaveBeenCalled();
+        } finally {
+            process.off('unhandledRejection', unhandled);
+        }
+    });
+});
+
 describe('drainTimeoutMsFromEnv', () => {
     it('follows adapter-node SHUTDOWN_TIMEOUT plus a margin; 3 s when unset (Docker stop timeout 10 s)', () => {
         expect(drainTimeoutMsFromEnv({ SHUTDOWN_TIMEOUT: '30' })).toBe(32_000);

@@ -3512,7 +3512,7 @@ describe('TaskOrchestrator lost-leader re-acquire', () => {
         expect(stopped).toBe(true);
         for (const events of subscriptions.values()) expect(events.close).toHaveBeenCalledTimes(1);
         const timedOutWarnings = warn.mock.calls.filter((c) =>
-            String(c[0]).includes('QueueEvents close timed out'),
+            String(c[0]).includes('Queue connection close timed out'),
         );
         expect(timedOutWarnings).toHaveLength(1);
         warn.mockRestore();

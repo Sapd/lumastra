@@ -640,8 +640,23 @@ async function connectCoordClient(): Promise<boolean> {
     }
 }
 
+/**
+ * The process is about to exit. GLIDE's Rust core logs ERROR lines while its
+ * clients close (`Failed to unsubscribe ... Internal client has been dropped`,
+ * `received error ...` against a server that stopped with us). They carry no
+ * information at that point and showed up as errors in every full-stack restart.
+ */
+export function silenceGlideLoggerForShutdown(): void {
+    try {
+        GlideLogger.setLoggerConfig('off');
+    } catch {
+        // Best-effort (and absent under module mocks).
+    }
+}
+
 /** Late creates/PINGs from an older connection generation can never resurrect it. */
 export async function disconnectValkey(): Promise<void> {
+    silenceGlideLoggerForShutdown();
     connectionRequested = false;
     connectionGeneration++;
     const cache = valkeyClient;
@@ -2376,6 +2391,7 @@ export async function lLen(key: string): Promise<number> {
  * Rust core log `Internal client has been dropped` at ERROR.
  */
 export async function closeAllSubscriptions(): Promise<void> {
+    silenceGlideLoggerForShutdown();
     for (const timer of unsubscribeTimers.values()) clearTimeout(timer);
     unsubscribeTimers.clear();
     channelCallbacks.clear();

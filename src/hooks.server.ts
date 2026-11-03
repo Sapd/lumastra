@@ -1981,11 +1981,21 @@ const gracefulShutdown = createWebShutdown({
     exit: (code) => process.exit(code),
     services: [
         {
+            // First: the Valkey clients' native core logs at ERROR while they lose their server.
+            name: 'native Valkey logs',
+            run: async () => {
+                const { silenceGlideLoggerForShutdown } =
+                    await import('$lib/server/cache/valkey.js');
+                silenceGlideLoggerForShutdown();
+            },
+        },
+        {
             name: 'sessions cache',
             run: () => sessionsCacheService.stopCaching(),
         },
         {
             name: 'web task subsystem',
+            timeoutMs: 6_000,
             run: async () => {
                 const { stopWebTaskSubsystem } = await import('./task-runtime/web-lifecycle.js');
                 await stopWebTaskSubsystem();
@@ -2026,6 +2036,7 @@ const gracefulShutdown = createWebShutdown({
         {
             // Stops active FFmpeg jobs; must happen before advisory lock release.
             name: 'FFmpeg transcode service',
+            timeoutMs: 8_000,
             run: async () => {
                 const { shutdownFFmpegTranscodeService } =
                     await import('$lib/server/services/ffmpeg-transcode.service.js');

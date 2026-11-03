@@ -21,7 +21,12 @@
 // stubs are wired through `context.ts` / `plugin-context.ts` / `secrets.ts`;
 // see those modules for the runtime details.
 
-import { logQueueConnectionErrors } from './queue-outage.js';
+import {
+    closeBullmqBounded,
+    logQueueConnectionErrors,
+    logTaskConnectionLoss,
+    watchWorkerRecovery,
+} from './queue-outage.js';
 import { withApiCallSpend } from './api-call-spend.js';
 
 import { setTimeout as delay } from 'node:timers/promises';
@@ -234,6 +239,9 @@ const BUDGET_RETRY_DELAY_BASE_MS = 1_000;
 const BUDGET_RETRY_DELAY_JITTER_MS = 2_000;
 /** Min interval between "class budget saturated" deferral logs, per class. */
 const BUDGET_DEFER_LOG_THROTTLE_MS = 15_000;
+
+/** Longest a shutdown waits for one idle Worker.close() before abandoning its connections. */
+const WORKER_CLOSE_TIMEOUT_MS = 2_000;
 
 /**
  * BullMQ lock-loss zombie detection. BullMQ emits a Worker `error`
@@ -1281,6 +1289,8 @@ export class TaskRunner {
 
     private async stopResources(): Promise<void> {
         const failures: unknown[] = [];
+        // Read before the handlers below are aborted: those unwind on their own time.
+        const hadActiveJobs = this.abortControllers.size > 0 || this.heartbeats.size > 0;
         this.stopped = true;
         this.connWatchdog?.stop();
         // Setup reserves ownership before calling a factory. A hotload already
@@ -1347,30 +1357,50 @@ export class TaskRunner {
             }
         }
 
-        for (const [key, rt] of this.classes) {
-            try {
-                await rt.worker.close();
-                this.classes.delete(key);
-            } catch (err) {
-                failures.push(err);
-                log.warn('Worker close failed', {
-                    cls: rt.cls,
-                    err: errMessage(err),
-                });
-            }
-        }
-        for (const [key, rt] of this.taskWorkers) {
-            try {
-                await rt.worker.close();
-                this.taskWorkers.delete(key);
-            } catch (err) {
-                failures.push(err);
-                log.warn('Task worker close failed', {
-                    taskId: rt.taskId,
-                    err: errMessage(err),
-                });
-            }
-        }
+        // Close every Worker at once. A Worker with no active job has nothing left
+        // to settle, so its close is bounded: BullMQ's own close() never returns
+        // while the task Valkey is down (a compose restart stops Valkey together
+        // with the worker) and used to run the process into its shutdown deadline,
+        // one worker after the other. With a job still active the close waits for
+        // it as before.
+        let workersForcedClosed = 0;
+        const closeWorker = (worker: WorkerLike): Promise<unknown> =>
+            hadActiveJobs
+                ? worker.close()
+                : closeBullmqBounded(worker, WORKER_CLOSE_TIMEOUT_MS).then((settled) => {
+                      if (!settled) workersForcedClosed++;
+                  });
+        await Promise.all([
+            ...[...this.classes].map(async ([key, rt]) => {
+                try {
+                    await closeWorker(rt.worker);
+                    this.classes.delete(key);
+                } catch (err) {
+                    failures.push(err);
+                    log.warn('Worker close failed', {
+                        cls: rt.cls,
+                        err: errMessage(err),
+                    });
+                }
+            }),
+            ...[...this.taskWorkers].map(async ([key, rt]) => {
+                try {
+                    await closeWorker(rt.worker);
+                    this.taskWorkers.delete(key);
+                } catch (err) {
+                    failures.push(err);
+                    log.warn('Task worker close failed', {
+                        taskId: rt.taskId,
+                        err: errMessage(err),
+                    });
+                }
+            }),
+        ]);
+        if (workersForcedClosed > 0)
+            log.warn(
+                'Task worker close timed out (task Valkey unreachable); connections abandoned',
+                { workers: workersForcedClosed },
+            );
         // Terminate any isolated plugin worker threads still alive so a
         // shutdown doesn't leak threads + their DB pools. Best-effort, grace 0
         // (we're shutting down — don't wait).
@@ -1527,6 +1557,7 @@ export class TaskRunner {
             const worker = this.workerFactory(cls, processor);
             this.classes.set(cls, { cls, worker });
             this.watchConsumerProgress(worker);
+            watchWorkerRecovery(worker);
             worker.on('error', (err: unknown) => {
                 if (this.logMemoryCriticalIfMatch(err, { cls })) return;
                 if (this.maybeReactToLockLoss(err)) return;
@@ -1534,6 +1565,8 @@ export class TaskRunner {
                 // connection, so `cls` IS the right wedge-tracking scope (matches
                 // `job.queueName` for jobs processed on it — see `recordHealthy`).
                 this.connWatchdog?.recordError(cls, err);
+                // Valkey went away: one warning per outage, not one per Worker.
+                if (logTaskConnectionLoss(`class-worker:${cls}`, err)) return;
                 log.warn('Worker error', { cls, err: errMessage(err) });
             });
             log.info('Worker started for class', {
@@ -1641,6 +1674,7 @@ export class TaskRunner {
                 worker,
             });
             this.watchConsumerProgress(worker);
+            watchWorkerRecovery(worker);
             worker.on('error', (err: unknown) => {
                 if (this.logMemoryCriticalIfMatch(err, { taskId })) return;
                 if (this.maybeReactToLockLoss(err)) return;
@@ -1648,6 +1682,8 @@ export class TaskRunner {
                 // `taskId` alone, so `taskId` IS the wedge-tracking scope — it must
                 // NOT be masked by (or mask) any other task's healthy connection.
                 this.connWatchdog?.recordError(taskId, err);
+                // Valkey went away: one warning per outage, not one per Worker.
+                if (logTaskConnectionLoss(`task-worker:${taskId}`, err)) return;
                 log.warn('Task worker error', { taskId, err: errMessage(err) });
             });
             log.info('Worker started for task', {

@@ -401,7 +401,9 @@ async function closeOwnedPools(): Promise<void> {
     const results = await Promise.allSettled(
         owned.map(async ({ pool, clear }) => {
             if (!pool) return;
-            await pool.end();
+            // Force-close after 3 s: a server that is already gone (compose restart) never
+            // acknowledges, and pool.end() would otherwise wait for it indefinitely.
+            await pool.end({ timeout: 3 });
             clear();
         }),
     );

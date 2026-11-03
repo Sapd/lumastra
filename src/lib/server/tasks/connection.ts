@@ -20,6 +20,7 @@
 //
 // Tasks always target the dedicated persistent noeviction instance.
 
+import { logTaskConnectionLoss } from './queue-outage.js';
 import type { ConnectionOptions } from 'bullmq';
 import IORedis from 'ioredis';
 import { Logger } from '../utils/logger';
@@ -105,6 +106,7 @@ export function getQueueConnection(): ConnectionOptions | null {
     if (!options) return null;
     sharedConnection = new IORedis(options);
     sharedConnection.on('error', (err) => {
+        if (logTaskConnectionLoss('shared-queue-connection', err)) return;
         logger.warn('Shared queue connection error', { err: err.message });
     });
     return sharedConnection;

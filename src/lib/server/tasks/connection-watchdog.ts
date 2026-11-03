@@ -59,6 +59,7 @@ const DEFAULT_CHECK_INTERVAL_MS = 15_000;
 // Structurally compatible with the app's LoggerInstance (utils/logger.ts), so a
 // real logger can be passed as the default without a cast.
 interface WatchdogLogger {
+    debug?: (msg: string, meta?: Record<string, unknown>) => void;
     info: (msg: string, meta?: Record<string, unknown>) => void;
     warn: (msg: string, meta?: Record<string, unknown>) => void;
     error: (msg: string, err?: Error, meta?: Record<string, unknown>) => void;
@@ -162,7 +163,9 @@ export class ConnectionWedgeWatchdog {
         const existing = this.streaks.get(scope);
         if (!existing) {
             this.streaks.set(scope, { streakStartedAt: now, lastErrorAt: now });
-            this.log.warn('Worker connection-error streak started — watching for a wedge', {
+            // Per scope and so ~90 lines per Valkey restart: the one warning per outage
+            // comes from queue-outage.ts; the wedge exit below is logged at error level.
+            this.log.debug?.('Worker connection-error streak started — watching for a wedge', {
                 scope,
                 thresholdMs: this.thresholdMs,
             });
@@ -181,7 +184,7 @@ export class ConnectionWedgeWatchdog {
      */
     recordHealthy(scope: string): void {
         if (this.streaks.delete(scope)) {
-            this.log.info('Worker connection recovered (job processed) — clearing wedge streak', {
+            this.log.debug?.('Worker connection recovered (job processed) — clearing wedge streak', {
                 scope,
             });
         }
@@ -251,7 +254,7 @@ export class ConnectionWedgeWatchdog {
                 continue;
             }
             // Errors stopped for this scope → recovered transient blip.
-            this.log.info('Worker connection-error streak cleared (errors stopped)', { scope });
+            this.log.debug?.('Worker connection-error streak cleared (errors stopped)', { scope });
             this.streaks.delete(scope);
         }
 

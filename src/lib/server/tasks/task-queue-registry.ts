@@ -23,7 +23,7 @@
 // Once Wave 8.5 lands and class queues are removed, the discriminator
 // becomes redundant but stays for backwards compat.
 
-import { logQueueConnectionErrors } from './queue-outage.js';
+import { closeBullmqBounded, logQueueConnectionErrors } from './queue-outage.js';
 import { Queue, type ConnectionOptions } from 'bullmq';
 import type { TaskDefinition } from '@sapd/lumastra-plugin-sdk';
 import { Logger } from '$lib/server/utils/logger.js';
@@ -31,6 +31,9 @@ import { BULL_DEFAULT_RETENTION } from './bull-defaults.js';
 import { PER_TASK_QUEUE_PREFIX, perTaskQueueName } from './queue-naming.js';
 
 const log = Logger.for('TaskQueueRegistry');
+
+/** Longest a shutdown waits for one Queue.close() before abandoning its connections. */
+const QUEUE_CLOSE_TIMEOUT_MS = 2_000;
 
 export interface TaskQueueRegistryOpts {
     connection: ConnectionOptions;
@@ -124,14 +127,18 @@ export class TaskQueueRegistry {
      */
     async closeAll(options: { strict?: boolean } = {}): Promise<void> {
         const errors: unknown[] = [];
-        for (const [taskId, queue] of this.queues) {
-            try {
-                await queue.close();
-                if (options.strict) this.queues.delete(taskId);
-            } catch (err) {
-                errors.push({ taskId, err });
-            }
-        }
+        // Concurrently and bounded: Queue.close() never settles while the task
+        // Valkey is down, and one wait per Queue added up to the shutdown deadline.
+        await Promise.all(
+            [...this.queues].map(async ([taskId, queue]) => {
+                try {
+                    await closeBullmqBounded(queue, QUEUE_CLOSE_TIMEOUT_MS);
+                    if (options.strict) this.queues.delete(taskId);
+                } catch (err) {
+                    errors.push({ taskId, err });
+                }
+            }),
+        );
         if (!options.strict) this.queues.clear();
         if (errors.length > 0) {
             log.warn('queue close errors', { count: errors.length });

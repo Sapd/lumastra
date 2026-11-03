@@ -20,6 +20,9 @@ services:
         # :stable supports amd64 and arm64; :edge is amd64-only. Pin a version for controlled updates.
         image: ghcr.io/lumastra/lumastra:stable
         restart: unless-stopped
+        # The web server drains requests and flushes state within a few seconds; the default 10 s
+        # leaves no margin when playback sessions are open. It force-exits after 25 s at the latest.
+        stop_grace_period: 30s
         # Runs unprivileged. For a read-only root, also provide writable disk-backed /tmp for transcodes.
         security_opt:
             - no-new-privileges:true
@@ -149,6 +152,8 @@ services:
         image: ghcr.io/lumastra/lumastra:stable
         restart: unless-stopped
         # Gives running jobs time to finish on stop/update instead of being killed after 10 s.
+        # The worker stops itself after at most 60 s (an idle one in a few seconds, even when
+        # PostgreSQL and Valkey stop with it); the rest is margin before Docker's SIGKILL.
         stop_grace_period: 90s
         # No `init: true` needed: the image's ENTRYPOINT is `tini -s`, which forwards SIGTERM to
         # Node and reaps orphaned ffmpeg/watcher children.
@@ -257,7 +262,7 @@ services:
             # SONIC_MODEL_FP: '/models/clap-2023.pth'
         volumes:
             # Match the web/worker container path; media must be readable by uid/gid 1000.
-            - /path/to/media:/data/media:ro
+            # - /path/to/media:/data/media:ro
             # Persist downloaded model weights across container updates.
             - sonic-model-cache:/app/.cache/huggingface
             # Offline weights (also set SONIC_MODEL_FP above):

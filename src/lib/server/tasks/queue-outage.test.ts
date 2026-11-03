@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { EventEmitter } from 'node:events';
-import { QueueEvents } from 'bullmq';
+import { Queue, QueueEvents, Worker } from 'bullmq';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const log = vi.hoisted(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }));
@@ -10,10 +10,12 @@ vi.mock('../utils/logger.js', () => ({ Logger: { for: () => log } }));
 
 import {
     OUTAGE_QUIET_MS,
+    closeBullmqBounded,
     closeQueueEventsBounded,
     createOutageGate,
     isConnectionLossError,
     logQueueConnectionErrors,
+    logTaskConnectionLoss,
     resetQueueOutageGateForTests,
 } from './queue-outage.js';
 
@@ -45,6 +47,31 @@ describe('createOutageGate', () => {
         } finally {
             vi.useRealTimers();
         }
+    });
+
+    it('measures the outage up to the last reconnect, not only to the last error', () => {
+        vi.useFakeTimers();
+        try {
+            const onEnd = vi.fn();
+            const gate = createOutageGate(1000, onEnd);
+            gate.note();
+            // Every client fails in the first moment, then waits out a long retry delay.
+            vi.advanceTimersByTime(800);
+            gate.recovered();
+            vi.advanceTimersByTime(900);
+            gate.recovered();
+            vi.advanceTimersByTime(1100);
+            expect(onEnd).toHaveBeenCalledTimes(1);
+            expect(onEnd).toHaveBeenCalledWith({ durationMs: 1700, errors: 1 });
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('ignores a reconnect when no outage is running', () => {
+        const gate = createOutageGate(1000);
+        gate.recovered(50_000);
+        expect(gate.note(60_000).first).toBe(true);
     });
 
     it('keeps the quiet window above BullMQ longest reconnect delay (20 s)', () => {
@@ -111,6 +138,24 @@ describe('logQueueConnectionErrors', () => {
 
     it('ignores test doubles without an event API', () => {
         expect(() => logQueueConnectionErrors({}, 'q')).not.toThrow();
+    });
+});
+
+describe('logTaskConnectionLoss', () => {
+    beforeEach(() => {
+        resetQueueOutageGateForTests();
+        log.warn.mockReset();
+    });
+
+    it('logs worker connection errors once per outage and leaves other errors to the caller', () => {
+        for (let i = 0; i < 90; i++)
+            expect(logTaskConnectionLoss(`task-worker:t${i}`, new Error('getaddrinfo ENOTFOUND v'))).toBe(
+                true,
+            );
+        expect(log.warn).toHaveBeenCalledTimes(1);
+        expect(logTaskConnectionLoss('task-worker:x', new Error('NOAUTH Authentication required.'))).toBe(
+            false,
+        );
     });
 });
 
@@ -202,4 +247,48 @@ describe('closeQueueEventsBounded', () => {
             expect(attempts).toBe(0);
         }, 20_000);
     });
+});
+
+describe('closeBullmqBounded against a Queue and an idle Worker whose server is unreachable', () => {
+    const connection = {
+        host: '127.0.0.1',
+        port: 1,
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+    };
+    const opened: Array<Queue | Worker> = [];
+
+    afterEach(() => {
+        for (const o of opened.splice(0)) {
+            const backend = o.getBackend() as unknown as {
+                connection?: { _client?: { disconnect(): void } };
+                blockingConnection?: { _client?: { disconnect(): void } };
+            };
+            backend?.connection?._client?.disconnect();
+            backend?.blockingConnection?._client?.disconnect();
+        }
+    });
+
+    it('returns within the bound for a Queue', async () => {
+        const queue = new Queue('outage-q', { connection, prefix: 'bull:outage-test' });
+        opened.push(queue);
+        queue.on('error', () => {});
+        await new Promise((r) => setTimeout(r, 300));
+        const startedAt = Date.now();
+        await closeBullmqBounded(queue, 300);
+        expect(Date.now() - startedAt).toBeLessThan(3_000);
+    }, 20_000);
+
+    it('returns within the bound for a Worker', async () => {
+        const worker = new Worker('outage-w', async () => undefined, {
+            connection,
+            prefix: 'bull:outage-test',
+        });
+        opened.push(worker);
+        worker.on('error', () => {});
+        await new Promise((r) => setTimeout(r, 300));
+        const startedAt = Date.now();
+        await closeBullmqBounded(worker, 300);
+        expect(Date.now() - startedAt).toBeLessThan(3_000);
+    }, 20_000);
 });
