@@ -123,6 +123,8 @@ import {
 import {
     generateMasterPlaylist,
     calculateEstimatedBandwidth,
+    localizedRenditionNames,
+    RENDITION_NAMES_PATH,
     resolveSyntheticIframes,
     type MasterPlaylistOptions,
     resolveMasterHevcMain10,
@@ -822,6 +824,28 @@ async function serveHlsSegment(ctx: HlsSegmentContext): Promise<Response> {
                 internalId,
             );
         }
+    }
+
+    // ================================================================
+    // RENDITION-NAME DICTIONARY: rendition-names.json
+    // The master's EXT-X-SESSION-DATA points here (HLS draft, Appendix E.1);
+    // Apple's players read it to label non-primary audio renditions in the
+    // viewer's language.
+    // ================================================================
+    if (segmentPath === RENDITION_NAMES_PATH) {
+        const namesJob = transcodeService.getJob(jobPlaySessionId);
+        const tracks = namesJob?.config?.audioTracks ?? [];
+        return new Response(
+            JSON.stringify(localizedRenditionNames(tracks, selectedAudioTrackFor(url, namesJob))),
+            {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'private, max-age=3600',
+                    'Access-Control-Allow-Origin': '*',
+                },
+            },
+        );
     }
 
     // ================================================================
@@ -2085,11 +2109,7 @@ export function serveMasterPlaylist(
 
     // The client's chosen audio track wins over the job's: a demux job is never
     // restarted for a new track, so job.config can hold the first request's choice.
-    const hlsAudioTrackParam = parseInt(url.searchParams.get('hlsAudioTrack') ?? '', 10);
-    const selectedAudioStreamIndex =
-        Number.isInteger(hlsAudioTrackParam) && hlsAudioTrackParam >= 0
-            ? hlsAudioTrackParam
-            : job.config.hlsOutput?.hlsAudioTrackIndex;
+    const selectedAudioStreamIndex = selectedAudioTrackFor(url, job);
 
     let segmentBase: string;
     if (apiPrefix === 'j') {
@@ -2533,4 +2553,16 @@ function buildSegmentDebugHeaders(
         'X-Lumastra-SessionGenerations': retainedGenerationCount.toString(),
         ...diagnosticHeaders,
     };
+}
+
+/**
+ * The audio track the client asked for (`hlsAudioTrack`, absolute stream index),
+ * else the one the job was started with. Shared by the master playlist and the
+ * rendition-name dictionary so both describe the same renditions.
+ */
+function selectedAudioTrackFor(url: URL, job: TranscodeJob | undefined): number | undefined {
+    const hlsAudioTrackParam = parseInt(url.searchParams.get('hlsAudioTrack') ?? '', 10);
+    return Number.isInteger(hlsAudioTrackParam) && hlsAudioTrackParam >= 0
+        ? hlsAudioTrackParam
+        : job?.config.hlsOutput?.hlsAudioTrackIndex;
 }

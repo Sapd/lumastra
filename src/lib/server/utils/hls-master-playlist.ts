@@ -575,6 +575,111 @@ function describedAudioRenditionName(
     return qualifier ? `${base} (${qualifier})` : base;
 }
 
+/** Sub-path of the HLS base that serves the rendition-name dictionary. */
+export const RENDITION_NAMES_PATH = 'rendition-names.json';
+/** DATA-ID of the HLS draft's (Appendix E.1) localized rendition names. */
+export const RENDITION_NAMES_DATA_ID = '_hls.localized-rendition-names';
+/** Locales the dictionary is written for: the app languages first, then common ones. */
+const RENDITION_NAME_LOCALES = [
+    'en',
+    'de',
+    'fr',
+    'es',
+    'it',
+    'nl',
+    'pt',
+    'sv',
+    'da',
+    'nb',
+    'fi',
+    'pl',
+    'cs',
+    'ru',
+    'ja',
+    'ko',
+    'zh',
+];
+
+export interface AudioRenditionName {
+    position: number;
+    track: AudioTrackInfo;
+    langCode: string;
+    name: string;
+    isPrimary: boolean;
+    isDefault: boolean;
+    /** The name was built from the language (not the track's own title). */
+    generated: boolean;
+}
+
+/**
+ * NAME, DEFAULT and AUTOSELECT of every audio rendition, in source order. The
+ * master playlist and the rendition-name dictionary both derive from this, so
+ * the dictionary always names the renditions the master lists.
+ */
+export function audioRenditionNames(
+    audioTracks: AudioTrackInfo[],
+    selectedAudioIndex: number | undefined,
+): AudioRenditionName[] {
+    const defaultAudioPosition = pickDefaultAudioPosition(audioTracks, selectedAudioIndex);
+    // toIso6392B's fallback branch passes through any unmapped 3-character
+    // string, so a language tag carrying a quote would close the LANGUAGE
+    // attribute and break the whole master playlist. Tags come from file
+    // metadata.
+    const langCodes = audioTracks.map(
+        (track) => (toIso6392B(track.language) || 'und').replace(/[^a-z]/g, '') || 'und',
+    );
+    const primaries = primaryAudioPositions(audioTracks, langCodes, defaultAudioPosition);
+    const usedNames = new Map<string, number>();
+    return audioTracks.map((track, i) => {
+        const langCode = langCodes[i];
+        const isPrimary = primaries.has(i);
+        const base = audioRenditionBaseName(track, langCode, i);
+        const name = uniqueAudioRenditionName(
+            isPrimary ? base : describedAudioRenditionName(track, langCode, i),
+            usedNames,
+        );
+        return {
+            position: i,
+            track,
+            langCode,
+            name,
+            isPrimary,
+            isDefault: i === defaultAudioPosition,
+            generated: base === localizedLanguageName(track.language, 'en'),
+        };
+    });
+}
+
+/**
+ * The HLS draft's (Appendix E.1) localization dictionary for this master: one
+ * entry per non-primary rendition NAME. A generated name is translated per
+ * locale ("Englisch (DTS 5.1)"); a track's own title keeps its text everywhere
+ * (an entry with no translation for the viewer's locale shows the NAME itself).
+ */
+export function localizedRenditionNames(
+    audioTracks: AudioTrackInfo[],
+    selectedAudioIndex: number | undefined,
+): Record<string, Record<string, string>> {
+    const dictionary: Record<string, Record<string, string>> = {};
+    for (const r of audioRenditionNames(audioTracks, selectedAudioIndex)) {
+        if (r.isPrimary) continue;
+        if (!r.generated) {
+            dictionary[r.name] = { en: r.name };
+            continue;
+        }
+        const english = localizedLanguageName(r.track.language, 'en');
+        const suffix = r.name.slice(english.length); // " (DTS 5.1)", " (AC3) 2"
+        const entry: Record<string, string> = {};
+        for (const locale of RENDITION_NAME_LOCALES) {
+            const translated = localizedLanguageName(r.track.language, locale);
+            if (translated && translated !== translated.toUpperCase())
+                entry[locale] = translated + suffix;
+        }
+        dictionary[r.name] = Object.keys(entry).length ? entry : { en: r.name };
+    }
+    return dictionary;
+}
+
 export function generateMasterPlaylist(
     audioTracks: AudioTrackInfo[],
     subtitleTracks: SubtitleTrackInfo[] | undefined,
@@ -605,33 +710,30 @@ export function generateMasterPlaylist(
     const selectedAudioIndex = options?.selectedAudioStreamIndex;
     // Exactly one rendition in the group is DEFAULT=YES; several would leave the
     // player to pick one at random.
-    const defaultAudioPosition = pickDefaultAudioPosition(audioTracks, selectedAudioIndex);
-    // toIso6392B's fallback branch passes through any unmapped 3-character
-    // string, so a language tag carrying a quote would close the LANGUAGE
-    // attribute and break the whole master playlist. Tags come from file
-    // metadata.
-    const langCodes = audioTracks.map(
-        (track) => (toIso6392B(track.language) || 'und').replace(/[^a-z]/g, '') || 'und',
-    );
-    const primaries = primaryAudioPositions(audioTracks, langCodes, defaultAudioPosition);
-    const usedNames = new Map<string, number>();
-    for (let i = 0; i < audioTracks.length; i++) {
-        const track = audioTracks[i];
-        const langCode = langCodes[i];
-        const isPrimary = primaries.has(i);
-        const name = uniqueAudioRenditionName(
-            isPrimary
-                ? audioRenditionBaseName(track, langCode, i)
-                : describedAudioRenditionName(track, langCode, i),
-            usedNames,
-        );
-        const isDefault = i === defaultAudioPosition ? 'YES' : 'NO';
-        const autoselect = isPrimary ? 'YES' : 'NO';
+    const renditions = audioRenditionNames(audioTracks, selectedAudioIndex);
+    for (const { position: i, track, langCode, name, isPrimary, isDefault } of renditions) {
         const channels = Math.min(track.channels, 6);
         const uri = withHlsParams(`${segmentBase}/stream_${i}/index.m3u8`, params);
 
         audioMediaLines.push(
-            `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="${langCode}",NAME="${name}",DEFAULT=${isDefault},AUTOSELECT=${autoselect},CHANNELS="${channels}",URI="${uri}"`,
+            `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="${langCode}",NAME="${name}",DEFAULT=${isDefault ? 'YES' : 'NO'},AUTOSELECT=${isPrimary ? 'YES' : 'NO'},CHANNELS="${channels}",URI="${uri}"`,
+        );
+    }
+    if (renditions.some((r) => !r.isPrimary)) {
+        // Apple's players show a non-primary rendition's NAME only in a locale
+        // of the rendition's own language; elsewhere every English track reads
+        // "Englisch". A localization dictionary (HLS draft, Appendix E.1)
+        // overrides that per NAME, so the menu reads "Englisch (DTS 5.1)".
+        // `hlsAudioTrack` makes the served dictionary name the same renditions
+        // as this master.
+        const dictParams = new URLSearchParams(params);
+        if (selectedAudioIndex !== undefined)
+            dictParams.set('hlsAudioTrack', String(selectedAudioIndex));
+        const uri = withHlsParams(`${segmentBase}/${RENDITION_NAMES_PATH}`, dictParams);
+        lines.splice(
+            lines.indexOf('#EXT-X-INDEPENDENT-SEGMENTS') + 1,
+            0,
+            `#EXT-X-SESSION-DATA:DATA-ID="${RENDITION_NAMES_DATA_ID}",URI="${uri}"`,
         );
     }
     lines.push(...audioMediaLines);

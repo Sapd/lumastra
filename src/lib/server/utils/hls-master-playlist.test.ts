@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
     generateMuxedMasterPlaylist,
     generateMasterPlaylist,
+    localizedRenditionNames,
     generateAudioOnlyMasterPlaylist,
     AUDIO_ONLY_BANDWIDTH,
     calculateEstimatedBandwidth,
@@ -381,6 +382,31 @@ describe('generateMasterPlaylist', () => {
                 expect(attrs.filter((a) => a.lang === lang && a.autoselect)).toHaveLength(1);
             }
             expect(attrs.filter((a) => a.lang === 'und').every((a) => a.autoselect)).toBe(true);
+        });
+
+        it('points Apple players at a localized name dictionary when a language has several renditions', () => {
+            const playlist = build(
+                [
+                    track(1, { language: 'ger', displayTitle: '', codec: 'ac3', isDefault: true }),
+                    track(2, { language: 'eng', displayTitle: '', codec: 'ac3' }),
+                    track(3, { language: 'eng', displayTitle: '', codec: 'dts', channels: 6 }),
+                ],
+                { selectedAudioStreamIndex: 2 },
+            );
+            const lines = playlist.split('\n');
+            const session = lines.find((l) => l.startsWith('#EXT-X-SESSION-DATA'));
+            expect(session).toContain('DATA-ID="_hls.localized-rendition-names"');
+            expect(session).toContain('URI="/segment/rendition-names.json?');
+            expect(session).toContain('hlsAudioTrack=2');
+            expect(lines.indexOf(session!)).toBe(lines.indexOf('#EXT-X-INDEPENDENT-SEGMENTS') + 1);
+        });
+
+        it('omits the dictionary when every language has one rendition', () => {
+            const playlist = build([
+                track(1, { language: 'ger', displayTitle: '' }),
+                track(2, { language: 'eng', displayTitle: '' }),
+            ]);
+            expect(playlist).not.toContain('EXT-X-SESSION-DATA');
         });
 
         it('leaves single renditions of different languages AUTOSELECT=YES', () => {
@@ -2568,5 +2594,56 @@ describe('CODECS on a source with no audio', () => {
     it('assumes audio when the caller says nothing (unchanged for every old caller)', () => {
         const unspecified = generateMuxedMasterPlaylist('index.m3u8', 8_000_000, SDR, 'h264');
         expect(codecsOf(unspecified)).toContain('mp4a.40.2');
+    });
+});
+
+describe('localizedRenditionNames', () => {
+    const track = (index: number, overrides: Partial<AudioTrackInfo> = {}): AudioTrackInfo => ({
+        index: asAbsoluteStreamIndex(index),
+        displayTitle: '',
+        language: 'eng',
+        channels: 2,
+        codec: 'ac3',
+        isDefault: false,
+        ...overrides,
+    });
+
+    it('translates a generated name per locale and keeps the qualifier', () => {
+        const dict = localizedRenditionNames(
+            [
+                track(1, { language: 'ger', isDefault: true }),
+                track(2),
+                track(3, { codec: 'dts', channels: 6 }),
+                track(4),
+            ],
+            undefined,
+        );
+        expect(Object.keys(dict).sort()).toEqual(['English (AC3)', 'English (DTS 5.1)']);
+        expect(dict['English (DTS 5.1)'].de).toBe('Englisch (DTS 5.1)');
+        expect(dict['English (DTS 5.1)'].en).toBe('English (DTS 5.1)');
+        expect(dict['English (DTS 5.1)'].fr).toBe('anglais (DTS 5.1)');
+    });
+
+    it('keeps a track title as it is in every locale', () => {
+        const dict = localizedRenditionNames(
+            [track(1), track(2, { displayTitle: 'Director Commentary' })],
+            undefined,
+        );
+        expect(dict).toEqual({ 'Director Commentary': { en: 'Director Commentary' } });
+    });
+
+    it('names the renditions the master lists for the selected track', () => {
+        const dict = localizedRenditionNames(
+            [track(1), track(2, { codec: 'dts', channels: 6 })],
+            2,
+        );
+        // The DTS track is the primary now; the AC3 track is the described one.
+        expect(Object.keys(dict)).toEqual(['English (AC3)']);
+    });
+
+    it('is empty without duplicates', () => {
+        expect(
+            localizedRenditionNames([track(1), track(2, { language: 'ger' })], undefined),
+        ).toEqual({});
     });
 });
