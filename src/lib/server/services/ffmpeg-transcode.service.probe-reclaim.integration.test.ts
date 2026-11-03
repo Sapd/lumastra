@@ -243,6 +243,17 @@ describe.skipIf(!canRun)('a Jellyfin resume probe with real FFmpeg', () => {
         return { sid, gen1 };
     }
 
+    /**
+     * The jump back to T, aimed just past what the parked generation produced
+     * before it was stopped. A fixed T+2 is only "past" on a slow CPU: a fast
+     * runner encodes several segments of the synthetic source in the half second
+     * before the probe parks generation 1, and a segment it already has is served
+     * as `retained-covered`, not reclaimed. Read only once the process is stopped.
+     */
+    function justPastProduction(job: TranscodeJob): number {
+        return job.segmentOffset + job.segmentsReady + 2;
+    }
+
     /** What the segment route does for a request: route it, then record the access. */
     async function request(
         sid: string,
@@ -291,7 +302,7 @@ describe.skipIf(!canRun)('a Jellyfin resume probe with real FFmpeg', () => {
 
         // The jump back to T: generation 1 is reclaimed — resumed and current
         // again — instead of a third generation being spawned.
-        const jump = await request(sid, RESUME_SEGMENT + 2);
+        const jump = await request(sid, justPastProduction(gen1));
         expect(jump.reason).toBe('retained-reclaim');
         expect(jump.job.id).toBe(gen1.id);
         expect(svc.getJobByPlaySession(sid)?.id).toBe(gen1.id);
@@ -389,15 +400,16 @@ describe.skipIf(!canRun)('a Jellyfin resume probe with real FFmpeg', () => {
         // This harness has no transcode decision on the job, so every stream
         // counts as video; declare one audio rendition the way a demuxed job has.
         const audioDir = 'stream_0';
+        const target = justPastProduction(gen1);
         const seekGate = vi
             .spyOn(svc, 'canStreamTriggerSeekForJob')
             .mockImplementation((_job, streamDir) => streamDir !== audioDir);
-        const audio = await request(sid, RESUME_SEGMENT + 2, { streamDir: audioDir });
+        const audio = await request(sid, target, { streamDir: audioDir });
         seekGate.mockRestore();
         expect(audio.reason).not.toBe('retained-reclaim');
         expect(audio.job.id).toBe(gen2.id);
 
-        const thumbnail = await request(sid, RESUME_SEGMENT + 2, { allowReclaim: false });
+        const thumbnail = await request(sid, target, { allowReclaim: false });
         expect(thumbnail.reason).not.toBe('retained-reclaim');
         expect(thumbnail.job.id).toBe(gen2.id);
 
@@ -406,7 +418,7 @@ describe.skipIf(!canRun)('a Jellyfin resume probe with real FFmpeg', () => {
         expect(procState(pid1)).toBe('T');
 
         // The video request still reclaims afterwards.
-        expect((await request(sid, RESUME_SEGMENT + 2)).reason).toBe('retained-reclaim');
+        expect((await request(sid, target)).reason).toBe('retained-reclaim');
         expect(svc.getJobByPlaySession(sid)?.id).toBe(gen1.id);
     }, 120_000);
 });
