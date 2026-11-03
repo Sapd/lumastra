@@ -14,6 +14,8 @@
  *   • redactPaths    — COPY time. Protects a public GitHub issue.
  */
 
+import { escapeTablePipes } from './markdown-table-cell.js';
+
 /**
  * Query-parameter names whose VALUE is a credential. Matched case-insensitively.
  *
@@ -352,7 +354,7 @@ export function formatFailureReport(input: FailureReportInput, mode: 'github' | 
 /** Flatten to one line and neutralize the column separator so a noisy value
  *  cannot shred the Markdown table it lives in. */
 function tableCell(text: string): string {
-    return text.replace(/\s*[\r\n]+\s*/g, ' ').replace(/\|/g, '\\|');
+    return escapeTablePipes(text.replace(/\s*[\r\n]+\s*/g, ' '));
 }
 
 export interface TranscodeIncidentsReportInput {

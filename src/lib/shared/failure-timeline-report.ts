@@ -21,6 +21,7 @@
  */
 
 import { stripSecrets } from './transcode-failure-report.js';
+import { escapeTablePipes } from './markdown-table-cell.js';
 
 export interface FailureTimelineEventInput {
     reason?: string;
@@ -38,7 +39,7 @@ function formatTimestamp(val: string | Date): string {
  *  would terminate the table early and dump every following row as literal
  *  text. */
 function escapeTableCell(text: string): string {
-    return text.replace(/\|/g, '\\|').replace(/\r\n|\r|\n/g, '<br>');
+    return escapeTablePipes(text).replace(/\r\n|\r|\n/g, '<br>');
 }
 
 /**

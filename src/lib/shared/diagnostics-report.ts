@@ -15,6 +15,8 @@
  * matches the `"password": "x"` JSON shape. The schema flag is the authority for config.
  */
 
+import { escapeTablePipes } from './markdown-table-cell.js';
+
 /** Placeholder for a sensitive config key that HAS a value. */
 export const REDACTED = '<redacted>';
 /** Placeholder for a sensitive config key that is empty/unset. */
@@ -129,7 +131,7 @@ export function isRedactionAvailable(roots: { readonly libraryRoots: readonly st
 /** Flatten to a single line and neutralize the column separator so one noisy
  *  value cannot shred the table it lives in. */
 export function cell(text: string): string {
-    return text.replace(/\s*[\r\n]+\s*/g, ' ').replace(/\|/g, '\\|');
+    return escapeTablePipes(text.replace(/\s*[\r\n]+\s*/g, ' '));
 }
 
 /**

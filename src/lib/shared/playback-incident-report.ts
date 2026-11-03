@@ -11,6 +11,7 @@
  * appending, generalized here to a fixed set of always-excluded fields.
  */
 
+import { escapeTablePipes } from './markdown-table-cell.js';
 import {
     stripSecrets,
     redactPaths,
@@ -111,7 +112,7 @@ export function formatIncidentReport(
 /** Flatten to one line and neutralize the column separator so a noisy value
  *  cannot shred the Markdown table it lives in. */
 function tableCell(text: string): string {
-    return text.replace(/\s*[\r\n]+\s*/g, ' ').replace(/\|/g, '\\|');
+    return escapeTablePipes(text.replace(/\s*[\r\n]+\s*/g, ' '));
 }
 
 /**
