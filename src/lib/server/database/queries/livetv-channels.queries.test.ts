@@ -457,6 +457,14 @@ describe('searchChannels', () => {
         expect(templateArgs).toContain('%WBN%');
     });
 
+    it('escapes the backslash itself so it cannot swallow the next escape', async () => {
+        const { sql, calls } = createMockSql([]);
+
+        await searchChannels(sql, 'a\\%b');
+
+        expect(calls[0] as unknown[]).toContain('%a\\\\\\%b%');
+    });
+
     it('passes the similarity threshold 0.25', async () => {
         const { sql, calls } = createMockSql([]);
 
@@ -1512,6 +1520,15 @@ describe('searchEpgChannels', () => {
 
         const selectArgs = txCalls[1] as unknown[];
         expect(selectArgs).toContain('%channel\\_one%');
+    });
+
+    it('escapes the backslash itself so it cannot swallow the next escape', async () => {
+        const { sql, txCalls } = createSequentialTx([[], []]);
+
+        await searchEpgChannels(sql, 'uuid-source-1', 'a\\%b');
+
+        const selectArgs = txCalls[1] as unknown[];
+        expect(selectArgs).toContain('%a\\\\\\%b%');
     });
 
     it('passes unescaped query for trigram similarity', async () => {

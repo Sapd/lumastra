@@ -42,6 +42,7 @@ import { deriveSortTitle } from '../../utils/sort-title.js';
 import { MAX_FILTER_LIST, capDistinct } from '../../utils/filter-list.js';
 import { buildMetadataLateralJoinFragment } from './builders/provider-metadata.builder';
 import { buildLibraryAccessFilter } from './builders/library-access.builder';
+import { escapeLikePattern } from './builders/search-filter.builder.js';
 import {
     buildAgeRatingFilter,
     buildSeriesOwnedAgeRatingFilter,
@@ -735,9 +736,7 @@ export async function browseMediaItems(
     const uid = sql`${userId ?? null}::uuid`;
     const normalizedGenreIds = (genreIds ?? []).map((g) => g.replace(/-/g, '').toLowerCase());
 
-    const escapedSearchTerm = searchTerm
-        ? searchTerm.replace(/%/g, '\\%').replace(/_/g, '\\_')
-        : '';
+    const escapedSearchTerm = searchTerm ? escapeLikePattern(searchTerm) : '';
 
     const sortSpecs = parseJellyfinSort(sortBy, sortOrder);
     const orderBy = buildBrowseOrderBy(sql, sortSpecs, userId);

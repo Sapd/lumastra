@@ -17,6 +17,7 @@
 import type postgres from 'postgres';
 import type { UserId } from '$lib/shared/user-id';
 import { runWithTrigramThreshold } from './builders/trigram-threshold.builder.js';
+import { escapeLikePattern } from './builders/search-filter.builder.js';
 
 // =============================================================================
 // Types
@@ -885,8 +886,9 @@ export async function searchChannels(
     if (!query.trim()) return [];
 
     const trimmedQuery = query.trim();
-    // Escape ILIKE wildcards (% and _) to prevent user input from matching everything
-    const escaped = trimmedQuery.replace(/%/g, '\\%').replace(/_/g, '\\_');
+    // Escape ILIKE wildcards (% and _) and the escape character itself so user input
+    // can neither match everything nor swallow the escape of the next character.
+    const escaped = escapeLikePattern(trimmedQuery);
     const pattern = `%${escaped}%`;
     const threshold = 0.25;
 
@@ -1961,7 +1963,7 @@ export async function searchEpgChannels(
     if (!query.trim()) return [];
 
     const trimmedQuery = query.trim();
-    const escaped = trimmedQuery.replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const escaped = escapeLikePattern(trimmedQuery);
     const pattern = `%${escaped}%`;
 
     return runWithTrigramThreshold(sql, true, (db) => {
