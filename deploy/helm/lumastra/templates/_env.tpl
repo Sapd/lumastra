@@ -20,10 +20,10 @@ is sorted (deterministic). Rendered into the <release>-env ConfigMap; its hash r
 {{- $_ := set $e "METADATA_STORAGE_LOCATION" $v.app.metadataStorageLocation -}}
 {{- with $v.app.origin }}{{ $_ := set $e "ORIGIN" . }}{{ end -}}
 {{- with $v.app.protocolHeader }}{{ $_ := set $e "PROTOCOL_HEADER" . }}{{ end -}}
-{{- /* Client address only (never identity): the router pods' addresses are a pod CIDR the chart
-       cannot know, and TRUSTED_PROXY_IPS would also hand that CIDR forward-auth identity trust. */ -}}
+{{- /* Client address only (never identity), unauthenticated: an explicit, narrow list (README: Routing).
+       The router needs none of it: it authenticates with the hop header (router.hop). */ -}}
 {{- $cip := $v.app.clientIpProxyIps -}}
-{{- if and (eq (toString $cip) "<nil>") $v.router.enabled }}{{ $cip = "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10" }}{{ end -}}
+{{- if kindIs "slice" $cip }}{{ $cip = join "," $cip }}{{ end -}}
 {{- if and $cip (ne (toString $cip) "<nil>") }}{{ $_ := set $e "CLIENT_IP_PROXY_IPS" (toString $cip) }}{{ end -}}
 {{- if $v.app.lowRamMode }}{{ $_ := set $e "LUMASTRA_LOW_RAM_MODE" "true" }}{{ end -}}
 {{- /* auth */ -}}

@@ -2,7 +2,7 @@
 SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
 SPDX-License-Identifier: AGPL-3.0-only
 
-Router nginx.conf. Context: dict root r fa strip upstreams (see router.yaml).
+Router nginx.conf. Context: dict root r fa strip upstreams hop (see router.yaml).
 */ -}}
 {{- define "lumastra.routerConf" -}}
 {{- $r := .r -}}
@@ -28,6 +28,12 @@ http {
 
     resolver {{ default (printf "kube-dns.kube-system.svc.%s" $r.clusterDomain) $r.resolver }} valid={{ $r.dnsValid }} ipv6=off;
     resolver_timeout 3s;
+    {{- if .hop }}
+    # Router-hop secret (init container hop-secret): a `map "" $lumastra_hop { default "<secret>"; }`.
+    include /etc/lumastra-router-hop/hop.conf;
+    {{- else }}
+    map "" $lumastra_hop { default ""; }
+    {{- end }}
     {{- range $r.realIp.fromCIDRs }}
     set_real_ip_from {{ . }};
     {{- end }}

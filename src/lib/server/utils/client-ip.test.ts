@@ -662,20 +662,176 @@ describe('client-ip', () => {
             expect(getClientIp(makeEvent({ peer: '10.42.0.11', xff: '1.2.3.4' }))).toBe('1.2.3.4');
         });
 
-        it('isForwardedHeaderPeerTrusted follows the list, clientIpProxiesPinned reports it', async () => {
-            const { isForwardedHeaderPeerTrusted, clientIpProxiesPinned } = await importClientIp(
+        it('isForwardedHeaderPeerTrusted follows the list', async () => {
+            const { isForwardedHeaderPeerTrusted } = await importClientIp(
                 undefined,
                 undefined,
                 POD_NET,
             );
-            expect(clientIpProxiesPinned()).toBe(true);
             expect(isForwardedHeaderPeerTrusted(() => '10.42.0.11')).toBe(true);
             expect(isForwardedHeaderPeerTrusted(() => '203.0.113.50')).toBe(false);
+        });
+
+        it('clientIpProxiesPinned: a wide unauthenticated list is NOT pinned, a narrow one is', async () => {
+            const wide = await importClientIp(undefined, undefined, POD_NET);
+            expect(wide.clientIpProxiesPinned()).toBe(false);
+            const narrow = await importClientIp(undefined, undefined, '10.42.0.11,10.42.1.0/24');
+            expect(narrow.clientIpProxiesPinned()).toBe(true);
+        });
+
+        it('malformed CIDR entries fall back to an exact match and match no real peer', async () => {
+            const { getClientIpStrict } = await importClientIp(
+                undefined,
+                undefined,
+                '10.0.0.0/33,10.0.0.0/x,300.1.1.1/8',
+            );
+            expect(getClientIpStrict(makeEvent({ peer: '10.0.0.7', xff: '1.2.3.4' }))).toBe(
+                '10.0.0.7',
+            );
+        });
+
+        it('IPv6 range entries match nothing; exact IPv6 and ::ffff: IPv4-mapped peers work', async () => {
+            const range = await importClientIp(undefined, undefined, 'fd00::/8');
+            expect(range.getClientIpStrict(makeEvent({ peer: 'fd00::5', xff: '1.2.3.4' }))).toBe(
+                'fd00::5',
+            );
+            const exact = await importClientIp(undefined, undefined, 'fd00::5,10.9.0.0/16');
+            expect(exact.getClientIpStrict(makeEvent({ peer: 'fd00::5', xff: '1.2.3.4' }))).toBe(
+                '1.2.3.4',
+            );
+            expect(
+                exact.getClientIpStrict(makeEvent({ peer: '::ffff:10.9.1.1', xff: '1.2.3.4' })),
+            ).toBe('1.2.3.4');
         });
 
         it('clientIpProxiesPinned is false with neither variable set', async () => {
             const { clientIpProxiesPinned } = await importClientIp(undefined);
             expect(clientIpProxiesPinned()).toBe(false);
+        });
+    });
+
+    // Router hop (Helm chart): the router's request carries HMAC(master key); no list involved.
+    describe('router hop secret', () => {
+        const KEY = 'a'.repeat(64);
+
+        async function importWithKey(key: string | undefined, trusted?: string) {
+            if (key === undefined) delete process.env.LUMASTRA_MASTER_KEY;
+            else process.env.LUMASTRA_MASTER_KEY = key;
+            const mod = await importClientIp(trusted);
+            const hop = await import('./router-hop');
+            return { ...mod, hop };
+        }
+
+        function hopEvent(opts: EventOpts & { hop?: string }): RequestEvent {
+            const ev = makeEvent(opts);
+            if (opts.hop !== undefined) ev.request.headers.set('x-lumastra-router-hop', opts.hop);
+            return ev;
+        }
+
+        let savedKey: string | undefined;
+        beforeEach(() => {
+            savedKey = process.env.LUMASTRA_MASTER_KEY;
+        });
+        afterEach(() => {
+            if (savedKey === undefined) delete process.env.LUMASTRA_MASTER_KEY;
+            else process.env.LUMASTRA_MASTER_KEY = savedKey;
+        });
+
+        it('matching secret: strict IP is the forwarded client, from any peer address (two router pods)', async () => {
+            const { getClientIpStrict, hop } = await importWithKey(KEY);
+            const secret = hop.deriveRouterHopSecret(KEY);
+            for (const peer of ['10.42.0.11', '10.42.1.27', 'fd00::7']) {
+                expect(getClientIpStrict(hopEvent({ peer, xff: '203.0.113.9', hop: secret }))).toBe(
+                    '203.0.113.9',
+                );
+            }
+        });
+
+        it('wrong, missing or empty secret: strict IP stays the raw peer', async () => {
+            const { getClientIpStrict } = await importWithKey(KEY);
+            for (const hopValue of ['wrong', '', undefined]) {
+                expect(
+                    getClientIpStrict(
+                        hopEvent({ peer: '10.42.0.11', xff: '6.6.6.6', hop: hopValue }),
+                    ),
+                ).toBe('10.42.0.11');
+            }
+        });
+
+        it('no master key in the env: the hop never authenticates, even a header computed from an empty key', async () => {
+            const { getClientIpStrict, hop } = await importWithKey(undefined);
+            expect(hop.deriveRouterHopSecret('')).toBe('');
+            expect(
+                getClientIpStrict(hopEvent({ peer: '10.42.0.11', xff: '6.6.6.6', hop: '' })),
+            ).toBe('10.42.0.11');
+        });
+
+        it('the secret of another master key is rejected', async () => {
+            const { getClientIpStrict, hop } = await importWithKey(KEY);
+            const other = hop.deriveRouterHopSecret('b'.repeat(64));
+            expect(
+                getClientIpStrict(hopEvent({ peer: '10.42.0.11', xff: '6.6.6.6', hop: other })),
+            ).toBe('10.42.0.11');
+        });
+
+        it('a hop request grants no identity trust', async () => {
+            const { isForwardAuthPeerTrusted, forwardAuthTrustPosture } = await importWithKey(KEY);
+            expect(isForwardAuthPeerTrusted('10.42.0.11')).toBe(false);
+            expect(forwardAuthTrustPosture()).toBe('fail-closed');
+        });
+
+        it('non-strict getClientIp and isForwardedHeaderPeerTrusted follow the hop too, with a list set', async () => {
+            const { getClientIp, isForwardedHeaderPeerTrusted, hop } = await importWithKey(
+                KEY,
+                '10.9.9.9',
+            );
+            const secret = hop.deriveRouterHopSecret(KEY);
+            const ev = hopEvent({ peer: '10.42.0.11', xff: '203.0.113.9', hop: secret });
+            expect(getClientIp(ev)).toBe('203.0.113.9');
+            expect(isForwardedHeaderPeerTrusted(() => '10.42.0.11', ev.request)).toBe(true);
+            expect(isForwardedHeaderPeerTrusted(() => '10.42.0.11')).toBe(false);
+        });
+
+        it('acceptAndStripRouterHop removes the header, and the verdict survives the strip', async () => {
+            const { getClientIpStrict, hop } = await importWithKey(KEY);
+            const secret = hop.deriveRouterHopSecret(KEY);
+            const ev = hopEvent({ peer: '10.42.0.11', xff: '203.0.113.9', hop: secret });
+            expect(hop.routerHopSeen()).toBe(false);
+            expect(hop.acceptAndStripRouterHop(ev.request)).toBe(true);
+            expect(ev.request.headers.get('x-lumastra-router-hop')).toBeNull();
+            expect(getClientIpStrict(ev)).toBe('203.0.113.9');
+            expect(hop.routerHopSeen()).toBe(true);
+        });
+
+        it('acceptAndStripRouterHop strips a forged header and does not authenticate it', async () => {
+            const { getClientIpStrict, hop } = await importWithKey(KEY);
+            const ev = hopEvent({ peer: '10.42.0.11', xff: '6.6.6.6', hop: 'forged' });
+            expect(hop.acceptAndStripRouterHop(ev.request)).toBe(false);
+            expect(ev.request.headers.get('x-lumastra-router-hop')).toBeNull();
+            expect(getClientIpStrict(ev)).toBe('10.42.0.11');
+            expect(hop.routerHopSeen()).toBe(false);
+        });
+
+        it('clientIpProxiesPinned turns true once a hop request was served', async () => {
+            const { clientIpProxiesPinned, hop } = await importWithKey(KEY);
+            expect(clientIpProxiesPinned()).toBe(false);
+            const ev = hopEvent({
+                peer: '10.42.0.11',
+                xff: '1.1.1.1',
+                hop: hop.deriveRouterHopSecret(KEY),
+            });
+            hop.acceptAndStripRouterHop(ev.request);
+            expect(clientIpProxiesPinned()).toBe(true);
+        });
+
+        it('the derivation is HMAC-SHA256(key, "lumastra-router-hop-v1") over the trimmed key, hex', async () => {
+            const { hop } = await importWithKey(KEY);
+            const { createHmac } = await import('node:crypto');
+            const want = createHmac('sha256', Buffer.from(KEY))
+                .update('lumastra-router-hop-v1')
+                .digest('hex');
+            expect(hop.deriveRouterHopSecret(KEY)).toBe(want);
+            expect(hop.deriveRouterHopSecret(`  ${KEY}\n`)).toBe(want);
         });
     });
 });

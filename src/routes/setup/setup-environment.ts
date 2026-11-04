@@ -346,7 +346,7 @@ export function setupProxyState(event: {
 }): SetupProxyState {
     if (!hasForwardingHeaders(event.request.headers)) return 'direct';
     if (forwardAuthTrustPosture() !== 'allowlist') return 'proxy-unpinned';
-    return isForwardedHeaderPeerTrusted(() => event.getClientAddress())
+    return isForwardedHeaderPeerTrusted(() => event.getClientAddress(), event.request)
         ? 'proxy'
         : 'proxy-untrusted';
 }

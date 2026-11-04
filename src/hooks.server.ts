@@ -71,6 +71,7 @@ import { sandboxScriptableResponse } from '$lib/server/middleware/scriptable-res
 import { buildRequestLanguageHint } from './hooks.language.js';
 import { runWithRequestLanguage } from '$lib/server/utils/request-language-context.js';
 import { warnIfProxyTrustImplicit } from '$lib/server/utils/client-ip.js';
+import { acceptAndStripRouterHop } from '$lib/server/utils/router-hop.js';
 import { warnIfTrustedProxyCoversGateway } from '$lib/server/utils/docker-gateway-trust.js';
 import { warnIfMasterKeyFileConflicts } from '$lib/server/crypto/master-key.js';
 import { isAnonymousEntityImagePath } from '$lib/server/utils/entity-image-paths.js';
@@ -1415,11 +1416,20 @@ const shutdownGateHandle = createShutdownGateHandle({
 const preloadLinkHeaderHandle: Handle = async ({ event, resolve }) =>
     stripPagePreloadLinkHeader(await resolve(event));
 
+// Remember whether the Helm router authenticated this hop, then remove its secret header so
+// nothing later (logs, proxied requests, handlers) can see it. client-ip.ts reads the result.
+const routerHopHandle: Handle = ({ event, resolve }) => {
+    acceptAndStripRouterHop(event.request);
+    return resolve(event);
+};
+
 export const handle = sequence(
     ({ event, resolve }) => withRequestPathCallScope(() => resolve(event)),
     // Outermost, so an early answer from any handle or route (413, 401, a CSRF
     // 403) that left the request body unread can't poison a keep-alive socket.
     requestBodyDrainHandle,
+    // Before anything reads the client address; strips the hop secret header.
+    routerHopHandle,
     // Before every handle that can set or clear a cookie: Secure follows the
     // protocol the browser used, so sign-in works over plain HTTP on the LAN.
     cookieTransportHandle,

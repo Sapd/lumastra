@@ -141,6 +141,14 @@ tests:
           - contains:
                 path: 'spec.template.spec.containers[0].env'
                 content: { name: SHUTDOWN_TIMEOUT, value: '45' }
+    - it: worker never sees the router hop (no hop env or init container; client-IP trust is web-only)
+      documentIndex: 1
+      asserts:
+          - notContains:
+                path: 'spec.template.spec.containers[0].env'
+                content: { name: CLIENT_IP_PROXY_IPS }
+                any: true
+          - notExists: { path: 'spec.template.spec.initContainers[?(@.name=="hop-secret")]' }
     - it: worker is exactly one Recreate pod running start-worker.sh, readiness on /api/health/ready
       documentIndex: 1
       asserts:

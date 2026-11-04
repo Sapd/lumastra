@@ -33,7 +33,14 @@ interface Case {
     env?: Record<string, string>;
 }
 
-const ENV_KEYS = ['ORIGIN', 'PROTOCOL_HEADER', 'TRUSTED_PROXY_IPS', 'LUMASTRA_TRUST_ANY_PROXY'];
+const ENV_KEYS = [
+    'ORIGIN',
+    'PROTOCOL_HEADER',
+    'TRUSTED_PROXY_IPS',
+    'CLIENT_IP_PROXY_IPS',
+    'LUMASTRA_MASTER_KEY',
+    'LUMASTRA_TRUST_ANY_PROXY',
+];
 let savedEnv: Record<string, string | undefined>;
 
 beforeEach(() => {
@@ -169,6 +176,39 @@ describe('cookie Secure flag: dropped only when the request shows plain HTTP', (
             headers: { 'x-forwarded-proto': 'https' },
         });
         expect(cookie.options.secure).toBe(true);
+    });
+
+    it('CLIENT_IP_PROXY_IPS: a listed peer reporting http → not Secure, an unlisted peer is ignored', async () => {
+        const listed = await sessionCookie({
+            env: { CLIENT_IP_PROXY_IPS: '10.0.0.5' },
+            peer: '10.0.0.5',
+            headers: { 'x-forwarded-proto': 'http' },
+        });
+        expect(listed.options.secure).toBe(false);
+        const unlisted = await sessionCookie({
+            env: { CLIENT_IP_PROXY_IPS: '10.0.0.5' },
+            peer: '10.0.0.99',
+            headers: { 'x-forwarded-proto': 'http' },
+        });
+        expect(unlisted.options.secure).toBe(true);
+    });
+
+    it('router hop: the matching secret makes X-Forwarded-Proto count, a wrong one does not', async () => {
+        const key = 'c'.repeat(64);
+        const { deriveRouterHopSecret } = await import('$lib/server/utils/router-hop.js');
+        const secret = deriveRouterHopSecret(key);
+        const ok = await sessionCookie({
+            env: { LUMASTRA_MASTER_KEY: key, TRUSTED_PROXY_IPS: '10.0.0.5' },
+            peer: '10.0.0.99',
+            headers: { 'x-forwarded-proto': 'http', 'x-lumastra-router-hop': secret },
+        });
+        expect(ok.options.secure).toBe(false);
+        const bad = await sessionCookie({
+            env: { LUMASTRA_MASTER_KEY: key, TRUSTED_PROXY_IPS: '10.0.0.5' },
+            peer: '10.0.0.99',
+            headers: { 'x-forwarded-proto': 'http', 'x-lumastra-router-hop': 'nope' },
+        });
+        expect(bad.options.secure).toBe(true);
     });
 
     it('trusted proxy given as a CIDR range, IPv6-mapped peer, reporting http → not Secure', async () => {
@@ -356,15 +396,18 @@ describe('cookie Secure flag: dropped only when the request shows plain HTTP', (
         const names = [...chain.slice(0, chain.indexOf(');')).matchAll(/^\s*(\w+),$/gm)].map(
             (m) => m[1],
         );
-        // Only these may run first: none sets a cookie. The shutdown gate must
+        // Only these may run first: none sets a cookie (routerHopHandle only reads and strips a header). The shutdown gate must
         // count/refuse requests before auth runs, and only decorates response headers.
         const before = names.slice(0, names.indexOf('cookieTransportHandle'));
         expect(names).toContain('cookieTransportHandle');
         expect(
             before.every((n) =>
-                ['requestBodyDrainHandle', 'shutdownGateHandle', 'preloadLinkHeaderHandle'].includes(
-                    n,
-                ),
+                [
+                    'routerHopHandle',
+                    'requestBodyDrainHandle',
+                    'shutdownGateHandle',
+                    'preloadLinkHeaderHandle',
+                ].includes(n),
             ),
         ).toBe(true);
     });

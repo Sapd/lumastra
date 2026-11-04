@@ -29,7 +29,11 @@ import {
     detectGatewayTrust,
     readProcNetRoute,
 } from '../utils/docker-gateway-trust.js';
-import { describeWideTrustedProxyRanges, runsOnKubernetes } from '../utils/trusted-proxy-ranges.js';
+import {
+    describeWideTrustedProxyRanges,
+    describeWideClientIpProxyRanges,
+    runsOnKubernetes,
+} from '../utils/trusted-proxy-ranges.js';
 import { config } from '../config.js';
 import { resolveMasterKey } from '../crypto/master-key.js';
 import {
@@ -301,15 +305,26 @@ function checkWideTrustedProxyRanges(
         forwardAuthEnabled: config.FORWARD_AUTH_ENABLED === true,
         kubernetes: runsOnKubernetes(env),
     });
-    if (!report) return [];
-    return [
-        {
+    const issues: Omit<DoctorIssue, 'category'>[] = [];
+    if (report) {
+        issues.push({
             severity: report.severity === 'warn' ? 'warning' : 'info',
             code: 'forward-auth.trusts-wide-range',
             message: report.message,
             remediation: report.remediation,
-        },
-    ];
+        });
+    }
+    // CLIENT_IP_PROXY_IPS is unauthenticated: a wide list is always a warning.
+    const clientReport = describeWideClientIpProxyRanges(env.CLIENT_IP_PROXY_IPS);
+    if (clientReport) {
+        issues.push({
+            severity: 'warning',
+            code: 'client-ip.trusts-wide-range',
+            message: clientReport.message,
+            remediation: clientReport.remediation,
+        });
+    }
+    return issues;
 }
 
 /**

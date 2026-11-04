@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     describeWideTrustedProxyRanges,
+    describeWideClientIpProxyRanges,
     findWideTrustedProxyRanges,
     runsOnKubernetes,
 } from './trusted-proxy-ranges.js';
@@ -162,5 +163,23 @@ describe('runsOnKubernetes', () => {
         expect(runsOnKubernetes({ KUBERNETES_SERVICE_HOST: '10.43.0.1' })).toBe(true);
         expect(runsOnKubernetes({ KUBERNETES_SERVICE_HOST: '' })).toBe(false);
         expect(runsOnKubernetes({})).toBe(false);
+    });
+});
+
+describe('describeWideClientIpProxyRanges', () => {
+    it('null for narrow or empty lists', () => {
+        expect(describeWideClientIpProxyRanges(undefined)).toBeNull();
+        expect(describeWideClientIpProxyRanges('10.0.0.5,10.0.0.0/24')).toBeNull();
+    });
+
+    it('a private pod range is reported (no Kubernetes exception) and says identity is not involved', () => {
+        const r = describeWideClientIpProxyRanges('10.42.0.0/16');
+        expect(r?.message).toContain('10.42.0.0/16');
+        expect(r?.message).toContain('no forward-auth identity trust');
+        expect(r?.remediation).toContain('LUMASTRA_MASTER_KEY');
+    });
+
+    it('IPv6 ranges (matching nothing) are reported too', () => {
+        expect(describeWideClientIpProxyRanges('fd00::/8')?.message).toContain('fd00::/8');
     });
 });

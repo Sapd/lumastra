@@ -36,15 +36,17 @@
  *      outside the proxy fleet. IPv6 CIDR is not supported — list IPv6
  *      proxies as exact addresses.
  *
- *   3. CLIENT_IP_PROXY_IPS env var (client IP ONLY):
- *        CLIENT_IP_PROXY_IPS=10.42.0.0/16
- *      Same list format and the same X-Forwarded-For / X-Real-IP / protocol
- *      handling as TRUSTED_PROXY_IPS, but the listed peers are NEVER trusted
- *      for forward-auth identity headers, never change the forward-auth trust
- *      posture and are not counted as "a configured proxy". The Helm chart sets
- *      it for its router pods, whose addresses are a pod CIDR that must not be
- *      handed identity trust. Peers matching either list are honored for the
- *      client IP.
+ *   3. CLIENT_IP_PROXY_IPS env var (client IP ONLY, UNAUTHENTICATED):
+ *        CLIENT_IP_PROXY_IPS=203.0.113.7
+ *      Same list format and X-Forwarded-For / X-Real-IP / protocol handling as
+ *      TRUSTED_PROXY_IPS, but the listed peers are NEVER trusted for forward-auth
+ *      identity headers and do not change the forward-auth trust posture. A peer
+ *      address proves nothing on a pod network, so keep the list narrow: the
+ *      self-check warns about ranges wider than /24.
+ *
+ *   4. Router hop secret (Helm chart, utils/router-hop.ts): a request that carries
+ *      the matching X-Lumastra-Router-Hop value is honored for the client IP
+ *      whatever its peer address. No configuration beyond LUMASTRA_MASTER_KEY.
  *
  * Default trust when TRUSTED_PROXY_IPS is unset
  * ---------------------------------------------
@@ -64,6 +66,8 @@
 
 import type { RequestEvent } from '@sveltejs/kit';
 import { Logger } from './logger';
+import { isRouterHopAuthenticated, routerHopSeen } from './router-hop';
+import { findWideTrustedProxyRanges } from './trusted-proxy-ranges';
 
 const clientIpLogger = Logger.for('ClientIp');
 
@@ -175,12 +179,15 @@ function hasAnyClientIpProxies(): boolean {
 }
 
 /**
- * Whether the forwarded client IP is pinned to an explicit peer list (either variable), so the
- * strict resolver reads a distinct client address per request. Not an identity statement: use
+ * Whether the strict resolver can read a distinct client address per request without trusting an
+ * unauthenticated wide range: a router hop request was seen (authenticated), or CLIENT_IP_PROXY_IPS
+ * lists only narrow entries (no range wider than /24). Not an identity statement: use
  * `forwardAuthTrustPosture` for that.
  */
 export function clientIpProxiesPinned(): boolean {
-    return hasAnyClientIpProxies();
+    if (routerHopSeen()) return true;
+    if (matcherIsEmpty(CLIENT_IP_PROXIES)) return false;
+    return !findWideTrustedProxyRanges(process.env.CLIENT_IP_PROXY_IPS);
 }
 
 function readForwardedClientIp(headers: Headers): string | null {
@@ -231,7 +238,8 @@ function safeGetPeer(getClientAddress: () => string): string {
  * (F32). This implicit trust applies ONLY to the low-stakes client IP, never
  * to identity headers (see `isForwardAuthPeerTrusted`).
  */
-function shouldHonorForwardedFor(peer: string): boolean {
+function shouldHonorForwardedFor(peer: string, request?: Pick<Request, 'headers'>): boolean {
+    if (isRouterHopAuthenticated(request)) return true;
     if (!hasAnyClientIpProxies()) return true;
     return isClientIpProxy(peer);
 }
@@ -404,8 +412,11 @@ export function warnIfProxyTrustImplicit(): void {
  * otherwise the immediate peer is assumed to be the reverse proxy. Never use
  * this for identity headers; that is `isForwardAuthPeerTrusted`.
  */
-export function isForwardedHeaderPeerTrusted(getClientAddress: () => string): boolean {
-    return shouldHonorForwardedFor(safeGetPeer(getClientAddress));
+export function isForwardedHeaderPeerTrusted(
+    getClientAddress: () => string,
+    request?: Pick<Request, 'headers'>,
+): boolean {
+    return shouldHonorForwardedFor(safeGetPeer(getClientAddress), request);
 }
 
 /**
@@ -413,7 +424,7 @@ export function isForwardedHeaderPeerTrusted(getClientAddress: () => string): bo
  */
 export function getClientIp(event: RequestEvent): string {
     const peer = safeGetPeer(() => event.getClientAddress());
-    if (!shouldHonorForwardedFor(peer)) return peer;
+    if (!shouldHonorForwardedFor(peer, event.request)) return peer;
     return readForwardedClientIp(event.request.headers) ?? peer;
 }
 
@@ -425,7 +436,7 @@ export function getClientIp(event: RequestEvent): string {
  */
 export function getClientIpFromRequest(request: Request, getClientAddress: () => string): string {
     const peer = safeGetPeer(getClientAddress);
-    if (!shouldHonorForwardedFor(peer)) return peer;
+    if (!shouldHonorForwardedFor(peer, request)) return peer;
     return readForwardedClientIp(request.headers) ?? peer;
 }
 
@@ -457,10 +468,12 @@ export function getClientIpStrict(
     event: Pick<RequestEvent, 'request' | 'getClientAddress'>,
 ): string {
     const peer = safeGetPeer(() => event.getClientAddress());
-    // Only honor forwarded headers when a proxy list (TRUSTED_PROXY_IPS or CLIENT_IP_PROXY_IPS)
-    // is explicitly configured.
-    if (!hasAnyClientIpProxies()) return peer;
-    if (!isClientIpProxy(peer)) return peer;
+    // Only honor forwarded headers from the router hop (secret) or when a proxy list
+    // (TRUSTED_PROXY_IPS or CLIENT_IP_PROXY_IPS) is explicitly configured.
+    if (!isRouterHopAuthenticated(event.request)) {
+        if (!hasAnyClientIpProxies()) return peer;
+        if (!isClientIpProxy(peer)) return peer;
+    }
     return readForwardedClientIp(event.request.headers) ?? peer;
 }
 
@@ -484,7 +497,9 @@ export function getClientIpStrictFromRequest(
     getClientAddress: () => string,
 ): string {
     const peer = safeGetPeer(getClientAddress);
-    if (!hasAnyClientIpProxies()) return peer;
-    if (!isClientIpProxy(peer)) return peer;
+    if (!isRouterHopAuthenticated(request)) {
+        if (!hasAnyClientIpProxies()) return peer;
+        if (!isClientIpProxy(peer)) return peer;
+    }
     return readForwardedClientIp(request.headers) ?? peer;
 }

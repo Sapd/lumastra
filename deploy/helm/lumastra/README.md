@@ -102,18 +102,43 @@ Set `router.realIp.fromCIDRs` to the addresses of that edge. The router then see
 it feeds the hash fallback and the app's client IP, which the router passes on as a single-entry
 `X-Forwarded-For`.
 
-**Client address for playback grants.** A playback grant (and a PAT `allowed_ips` list) is pinned to
-the client address that started playback. Behind the router, web's TCP peer is a router pod, so
-web has to read the client from the router's `X-Forwarded-For`. The chart renders
-`CLIENT_IP_PROXY_IPS` (`app.clientIpProxyIps`; default: the private ranges 10/8, 172.16/12,
-192.168/16 and 100.64/10 while the router is on) for that. Without it, each of the router's pods
-would be "the client", and with more than one router pod about half the segment requests would
-fail with `403 ip_mismatch`. `CLIENT_IP_PROXY_IPS` is deliberately **not** `TRUSTED_PROXY_IPS`: the
-listed peers are believed for the client address (and `X-Forwarded-Proto`) only, never for
-forward-auth identity headers, and they do not change the forward-auth trust posture. Narrow it
-to your pod CIDR (`app.clientIpProxyIps: 10.42.0.0/16` on k3s) if you like; `''` turns it off.
-The router replaces `X-Forwarded-For` with the address it resolved, so a client cannot forge it
-through the router; see "Network isolation" for who else can reach web.
+**Client address for playback grants.** A playback grant (and a PAT or service-token `allowed_ips`
+list) is pinned to the client address that started playback. Behind the router, web's TCP peer is
+a router pod, so web has to read the client from the router's `X-Forwarded-For`. A pod address
+proves nothing (any pod that reaches `web:3000` could send that header), so the router
+authenticates itself: it adds `X-Lumastra-Router-Hop`, the HMAC-SHA256 of `LUMASTRA_MASTER_KEY`
+with the label `lumastra-router-hop-v1`. Web believes the forwarded client address of a request
+that carries the matching value (constant-time compare), whatever its peer address, and removes the
+header at once. Without this, each router pod would be "the client", and with more than one router
+pod about half the segment requests would fail with `403 ip_mismatch`.
+
+Nothing to configure: the default Secret from the Quick start already has `LUMASTRA_MASTER_KEY`
+and `secrets.env.LUMASTRA_MASTER_KEY` maps it. A router init container (`hop-secret`, the app
+image) derives the value from it and writes an nginx include into a memory `emptyDir`; the master
+key is visible to that init container only, never to the nginx container, and the derived value
+cannot be turned back into the key. Notes:
+
+- The key must come from the Secret (env). A key generated into `/config/master.key` cannot be read
+  by the router; then the hop stays off and the client address is the TCP peer (grants fail again
+  with several router pods). The chart also skips the init container when `secrets.env` has no
+  `LUMASTRA_MASTER_KEY`, or with `router.hop.enabled: false`.
+- After rotating the master key, restart the router pods (`kubectl rollout restart deploy/<release>-lumastra-router`):
+  the secret is derived when a pod starts.
+- The hop grants **no identity trust**. Forward-auth identity headers stay governed by
+  `auth.forwardAuth.trustedProxyIps` / `TRUSTED_PROXY_IPS` alone.
+- `app.clientIpProxyIps` (`CLIENT_IP_PROXY_IPS`) is a separate, unauthenticated list of peers whose
+  `X-Forwarded-For` is believed (for example your own proxy when `router.enabled: false`). The router
+  does not need it. Never put a pod network there: any pod could then choose its client address
+  (per-IP login rate limits, IP-pinned grants, token IP allowlists). The Security Self-Check warns
+  about ranges wider than /24.
+
+**Ingress requirement.** The router takes the client address from `X-Forwarded-For` when the peer is
+in `router.realIp.fromCIDRs` (default: RFC 1918, `real_ip_recursive on`) and passes it on as a
+single entry. The Ingress, gateway or load balancer in front must therefore **set or append** the
+real peer address, never pass a client-supplied `X-Forwarded-For` through untouched: otherwise an
+external client chooses its own address. Pod and node networks are not always RFC 1918 (IPv6,
+dual-stack, 100.64.0.0/10 CGNAT): set `router.realIp.fromCIDRs` to your ingress controller's pods
+or nodes. With `externalTrafficPolicy: Cluster` the client address is lost to SNAT before nginx sees it.
 
 `router.resolver` must be a DNS server that answers for the cluster domain:
 `kube-dns.kube-system.svc.cluster.local` works on most distributions including k3s, or use its IP.
@@ -252,11 +277,12 @@ router and `metricsFrom`; without it, web itself is the entry point. Metrics pee
 of port 3000, not just `/metrics`. Bundled Valkey accepts app pods and the enabled stream
 proxy. PostgreSQL needs its own isolation policy; this chart does not create one for it.
 
-The chart's `CLIENT_IP_PROXY_IPS` (see "Routing") makes web believe `X-Forwarded-For` for the
-client address from the private ranges, i.e. from any pod. Without these policies, a pod that
-reaches `web:3000` directly can therefore choose the client address of its own requests (it
-could already do that for the app's non-strict client IP). It gets no identity trust from it. With
-`networkPolicy.enabled` only the router and `networkPolicy.metricsFrom` reach web.
+A pod that reaches `web:3000` directly cannot choose its client address: the app believes
+`X-Forwarded-For` only with the router's hop secret (see "Routing"), and the strict client IP (login
+and token rate limits, PAT and service-token IP allowlists, playback grants) stays the real peer
+otherwise. It can still send `X-Forwarded-For` for the app's non-strict client IP (general rate
+limits). With `networkPolicy.enabled` only the router and `networkPolicy.metricsFrom` reach web at
+all.
 
 Do not put a pod CIDR into `TRUSTED_PROXY_IPS`: that list also decides whose forward-auth identity
 headers are believed. Use `auth.forwardAuth.trustedProxyIps` for forward-auth, and avoid trusting a

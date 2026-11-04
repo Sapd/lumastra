@@ -33,7 +33,24 @@ grant + PlaySessionId, so a session stays on the pod that owns its FFmpeg job.
 {{- $upstreams = append $upstreams (printf "%s-%d.%s" (include "lumastra.component" (list $ "web")) $i $headless) -}}
 {{- end }}
 
-{{- $conf := include "lumastra.routerConf" (dict "root" . "r" $r "fa" $fa "strip" $strip "upstreams" $upstreams) }}
+{{- /* Hop secret: the init container needs the master key's Secret reference (secrets.env). */ -}}
+{{- $mk := get (default dict .Values.secrets.env) "LUMASTRA_MASTER_KEY" -}}
+{{- $mkSecret := .Values.secrets.existingSecret -}}
+{{- $mkKey := "" -}}
+{{- if kindIs "string" $mk }}{{ $mkKey = $mk }}{{ else if kindIs "map" $mk }}{{ $mkSecret = default $mkSecret $mk.secret }}{{ $mkKey = default "LUMASTRA_MASTER_KEY" $mk.key }}{{ end -}}
+{{- /* a values file without router.hop (helm upgrade --reuse-values) keeps it on */ -}}
+{{- $hopCfg := default dict $r.hop -}}
+{{- $hopOn := ternary $hopCfg.enabled true (hasKey $hopCfg "enabled") -}}
+{{- $hop := and $hopOn $mkSecret $mkKey -}}
+{{- $hopScript := `const c = require('crypto');
+const fs = require('fs');
+const k = (process.env.LUMASTRA_MASTER_KEY || '').trim();
+const h = k
+    ? c.createHmac('sha256', Buffer.from(k, 'utf8')).update('lumastra-router-hop-v1').digest('hex')
+    : '';
+fs.writeFileSync('/hop/hop.conf', 'map "" $lumastra_hop { default "' + h + '"; }\n', { mode: 0o444 });
+` -}}
+{{- $conf := include "lumastra.routerConf" (dict "root" . "r" $r "fa" $fa "strip" $strip "upstreams" $upstreams "hop" (ternary true false (not (empty $hop)))) }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -43,6 +60,10 @@ metadata:
 data:
   nginx.conf: |
     {{- $conf | nindent 4 }}
+  {{- if $hop }}
+  hop.js: |
+    {{- $hopScript | nindent 4 }}
+  {{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -67,7 +88,7 @@ spec:
         {{- . | nindent 8 }}
         {{- end }}
       annotations:
-        checksum/config: {{ $conf | sha256sum }}
+        checksum/config: {{ printf "%s%s" $conf (ternary $hopScript "" (not (empty $hop))) | sha256sum }}
         {{- with include "lumastra.podAnnotations" (list . $r) }}
         {{- . | nindent 8 }}
         {{- end }}
@@ -83,6 +104,31 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       terminationGracePeriodSeconds: {{ $r.terminationGracePeriodSeconds }}
       {{- include "lumastra.scheduling" (list . $r) | nindent 6 }}
+      {{- if $hop }}
+      initContainers:
+        # Derives the router-hop secret from the master key. Only this container sees the key; nginx
+        # gets the derived value through a memory emptyDir (an nginx `map` include).
+        - name: hop-secret
+          image: {{ include "lumastra.image" (list . .Values.image) }}
+          imagePullPolicy: {{ include "lumastra.pullPolicy" (list .Values.image) }}
+          args: ["node", "/etc/lumastra-router/hop.js"]
+          env:
+            - name: LUMASTRA_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $mkSecret }}
+                  key: {{ $mkKey }}
+                  optional: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            {{- toYaml (default (dict "requests" (dict "cpu" "10m" "memory" "32Mi") "limits" (dict "memory" "128Mi")) $hopCfg.resources) | nindent 12 }}
+          volumeMounts:
+            - { name: config, mountPath: /etc/lumastra-router, readOnly: true }
+            - { name: hop, mountPath: /hop }
+      {{- end }}
       containers:
         - name: nginx
           image: {{ include "lumastra.image" (list . $r.image) }}
@@ -120,12 +166,18 @@ spec:
             - { name: config, mountPath: /etc/lumastra-router, readOnly: true }
             - { name: tmp, mountPath: /tmp }
             - { name: cache, mountPath: /var/cache/nginx }
+            {{- if $hop }}
+            - { name: hop, mountPath: /etc/lumastra-router-hop, readOnly: true }
+            {{- end }}
       volumes:
         - name: config
           configMap:
             name: {{ include "lumastra.component" (list . "router") }}
         - { name: tmp, emptyDir: {} }
         - { name: cache, emptyDir: {} }
+        {{- if $hop }}
+        - { name: hop, emptyDir: { medium: Memory, sizeLimit: 1Mi } }
+        {{- end }}
 {{- end }}
 
 {{- /* auth_request block for a location: dict fa, fallback */ -}}
@@ -155,6 +207,8 @@ proxy_set_header X-Forwarded-For $remote_addr;
 proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-Proto $lumastra_proto;
 proxy_set_header X-Forwarded-Host $http_host;
+# Router-hop secret ($lumastra_hop, empty = header dropped): also overwrites any client-sent copy.
+proxy_set_header X-Lumastra-Router-Hop $lumastra_hop;
 proxy_set_header Upgrade $http_upgrade;
 proxy_set_header Connection $lumastra_connection;
 {{- range .strip }}

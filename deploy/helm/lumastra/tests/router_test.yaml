@@ -353,3 +353,78 @@ tests:
       asserts:
           - matchRegex:
                 { path: 'data["nginx.conf"]', pattern: 'proxy_set_header Host \$http_host;' }
+
+    - it: authenticates the router hop (secret derived in an init container, never seen by nginx)
+      documentIndex: 1
+      asserts:
+          - equal: { path: 'spec.template.spec.initContainers[0].name', value: hop-secret }
+          - equal:
+                {
+                    path: 'spec.template.spec.initContainers[0].args',
+                    value: [node, /etc/lumastra-router/hop.js],
+                }
+          # The app image, the default master-key reference, optional so a missing key degrades.
+          - equal:
+                {
+                    path: 'spec.template.spec.initContainers[0].image',
+                    value: 'ghcr.io/lumastra/lumastra:stable',
+                }
+          - equal:
+                path: 'spec.template.spec.initContainers[0].env'
+                value:
+                    - name: LUMASTRA_MASTER_KEY
+                      valueFrom:
+                          secretKeyRef: { name: lumastra, key: LUMASTRA_MASTER_KEY, optional: true }
+          # nginx mounts only the derived include, read-only, and has no env at all.
+          - notExists: { path: 'spec.template.spec.containers[0].env' }
+          - notExists: { path: 'spec.template.spec.containers[0].envFrom' }
+          - contains:
+                path: 'spec.template.spec.containers[0].volumeMounts'
+                content: { name: hop, mountPath: /etc/lumastra-router-hop, readOnly: true }
+          - equal: { path: 'spec.template.spec.volumes[3].emptyDir.medium', value: Memory }
+    - it: the router config includes the hop secret and sets the header on every proxied location
+      documentIndex: 0
+      asserts:
+          - matchRegex:
+                {
+                    path: 'data["nginx.conf"]',
+                    pattern: 'include /etc/lumastra-router-hop/hop\.conf;',
+                }
+          - matchRegex:
+                {
+                    path: 'data["nginx.conf"]',
+                    pattern: 'proxy_set_header X-Lumastra-Router-Hop \$lumastra_hop;',
+                }
+          - matchRegex: { path: 'data["hop.js"]', pattern: "update\\('lumastra-router-hop-v1'\\)" }
+    - it: the init container reads the Secret named by secrets.env, not a hard-coded one
+      documentIndex: 1
+      set:
+          secrets: { existingSecret: keys, env: { LUMASTRA_MASTER_KEY: mk } }
+      asserts:
+          - equal:
+                path: 'spec.template.spec.initContainers[0].env[0].valueFrom.secretKeyRef'
+                value: { name: keys, key: mk, optional: true }
+    - it: no master key reference = no hop; the header is still blanked so a client cannot send one
+      documentIndex: 0
+      set: { secrets.env.LUMASTRA_MASTER_KEY: null }
+      asserts:
+          - notMatchRegex:
+                { path: 'data["nginx.conf"]', pattern: 'include /etc/lumastra-router-hop' }
+          - matchRegex:
+                { path: 'data["nginx.conf"]', pattern: 'map "" \$lumastra_hop \{ default ""; \}' }
+          - matchRegex:
+                {
+                    path: 'data["nginx.conf"]',
+                    pattern: 'proxy_set_header X-Lumastra-Router-Hop \$lumastra_hop;',
+                }
+          - notExists: { path: 'data["hop.js"]' }
+    - it: router.hop.enabled=false renders no init container
+      documentIndex: 1
+      set: { router.hop.enabled: false }
+      asserts:
+          - notExists: { path: spec.template.spec.initContainers }
+    - it: a values file without router.hop (helm upgrade --reuse-values) keeps the hop on
+      documentIndex: 1
+      set: { router.hop: null }
+      asserts:
+          - equal: { path: 'spec.template.spec.initContainers[0].name', value: hop-secret }

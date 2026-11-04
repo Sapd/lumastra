@@ -36,6 +36,14 @@ authenticate every request and inject {{ .Values.auth.forwardAuth.userHeader }}/
 WARNING: auth.forwardAuth.trustedProxyIps is empty: the app ignores identity headers (fail-closed).
 Set it to the CIDR of the pods that send them ({{ ternary "the router pods = your pod network" "your authenticating proxy" .Values.router.enabled }}).
 {{- end }}
+{{- $hopCfg := default dict .Values.router.hop }}
+{{- $hopOn := ternary $hopCfg.enabled true (hasKey $hopCfg "enabled") }}
+{{- if and .Values.router.enabled (gt (int .Values.router.replicas) 1) (or (not $hopOn) (not (get (default dict .Values.secrets.env) "LUMASTRA_MASTER_KEY"))) }}
+
+WARNING: router.replicas > 1 without the router-hop secret (router.hop.enabled, and secrets.env.LUMASTRA_MASTER_KEY
+pointing at your Secret). Web then sees each router pod as the client: IP-pinned playback grants fail with
+403 ip_mismatch about half the time. Put LUMASTRA_MASTER_KEY in the Secret, or run one router replica.
+{{- end }}
 {{- if and (or (gt (int .Values.web.replicas) 1) (and (gt (int .Values.web.replicas) 0) (gt (int .Values.worker.replicas) 0))) (has "ReadWriteOnce" (default list .Values.persistence.config.accessModes)) }}
 
 NOTE: /config is ReadWriteOnce: every web/worker pod must run on the same node (nodeSelector/affinity).

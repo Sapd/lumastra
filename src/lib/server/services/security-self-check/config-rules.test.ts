@@ -779,6 +779,30 @@ describe('checkProxyWideRange', () => {
         },
     );
 
+    describe('CLIENT_IP_PROXY_IPS (unauthenticated client-IP list)', () => {
+        const savedClient = process.env.CLIENT_IP_PROXY_IPS;
+        afterEach(() => {
+            if (savedClient === undefined) delete process.env.CLIENT_IP_PROXY_IPS;
+            else process.env.CLIENT_IP_PROXY_IPS = savedClient;
+        });
+
+        it('a pod-network range is a warning (never pass, never info on Kubernetes)', () => {
+            process.env.KUBERNETES_SERVICE_HOST = '10.43.0.1';
+            process.env.TRUSTED_PROXY_IPS = '';
+            process.env.CLIENT_IP_PROXY_IPS = '10.42.0.0/16';
+            const f = checkProxyWideRange();
+            expect(f.status).toBe('warn');
+            expect(f.title).toContain('CLIENT_IP_PROXY_IPS');
+            expect(f.detail).toContain('10.42.0.0/16');
+        });
+
+        it('narrow entries pass', () => {
+            process.env.TRUSTED_PROXY_IPS = '';
+            process.env.CLIENT_IP_PROXY_IPS = '10.42.0.11,203.0.113.0/24';
+            expect(checkProxyWideRange().status).toBe('pass');
+        });
+    });
+
     it('a LAN range with forward auth on: warn naming the range and the sign-in risk', () => {
         process.env.TRUSTED_PROXY_IPS = '172.28.0.10,192.168.0.0/16';
         const f = checkProxyWideRange();

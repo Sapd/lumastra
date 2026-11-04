@@ -106,7 +106,10 @@ export function requestScheme(event: TransportEvent): Scheme | null {
     }
     const fromHeaders: Scheme[] = [];
     const forwarded = forwardedSchemes(event.request.headers);
-    if (forwarded.length > 0 && isForwardedHeaderPeerTrusted(event.getClientAddress)) {
+    if (
+        forwarded.length > 0 &&
+        isForwardedHeaderPeerTrusted(event.getClientAddress, event.request)
+    ) {
         fromHeaders.push(...forwarded);
     }
     const fromBrowser = browserScheme(event);

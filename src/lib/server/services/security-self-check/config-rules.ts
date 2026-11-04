@@ -19,6 +19,7 @@ import { config, devFeaturesEnabled, features } from '$lib/server/config';
 import { forwardAuthTrustPosture, clientIpProxiesPinned } from '$lib/server/utils/client-ip';
 import {
     describeWideTrustedProxyRanges,
+    describeWideClientIpProxyRanges,
     MIN_TRUSTED_PROXY_PREFIX_V4,
     runsOnKubernetes,
 } from '$lib/server/utils/trusted-proxy-ranges';
@@ -444,14 +445,28 @@ export function checkProxyWideRange(): SecuritySelfCheckFinding {
         forwardAuthEnabled,
         kubernetes: runsOnKubernetes(),
     });
+    // CLIENT_IP_PROXY_IPS is an unauthenticated list too: a wide one is a warning, never a pass.
+    const clientReport = describeWideClientIpProxyRanges(process.env.CLIENT_IP_PROXY_IPS);
+    if (!report && clientReport) {
+        return finding({
+            id: 'proxy.wide-range',
+            method: 'forward-auth',
+            type: 'config-static',
+            status: 'warn',
+            title: 'CLIENT_IP_PROXY_IPS lists a wide range',
+            detail: clientReport.message,
+            remediation: clientReport.remediation,
+            evidence: 'trusted-proxy-ranges.ts',
+        });
+    }
     if (!report) {
         return finding({
             id: 'proxy.wide-range',
             method: 'forward-auth',
             type: 'config-static',
             status: 'pass',
-            title: 'TRUSTED_PROXY_IPS lists no wide range',
-            detail: `TRUSTED_PROXY_IPS has no IPv4 range wider than /${MIN_TRUSTED_PROXY_PREFIX_V4} and no IPv6 range.`,
+            title: 'TRUSTED_PROXY_IPS and CLIENT_IP_PROXY_IPS list no wide range',
+            detail: `Neither list has any IPv4 range wider than /${MIN_TRUSTED_PROXY_PREFIX_V4} and no IPv6 range.`,
             evidence: 'trusted-proxy-ranges.ts',
         });
     }

@@ -54,21 +54,13 @@ app:
     origin: ''
     # Alternative to `origin` behind a TLS-terminating proxy (adapter-node PROTOCOL_HEADER).
     protocolHeader: ''
-    # CLIENT_IP_PROXY_IPS: peers (IPs / IPv4 CIDRs, comma-separated) whose X-Forwarded-For the app
-    # believes as the CLIENT address. Playback grants and PAT IP allowlists are pinned to that address:
-    # without it every router pod would appear as the client, and with `router.replicas` > 1 about
-    # half the segment requests of a stream fail with 403 ip_mismatch. These peers get NO
-    # forward-auth identity trust and do not count as "a configured proxy" (that stays
-    # auth.forwardAuth.trustedProxyIps / TRUSTED_PROXY_IPS). The router overwrites X-Forwarded-For
-    # with the real client, so only a pod that bypasses the router can forge it.
-    #   null = the private ranges below when `router.enabled` (a pod network is always one of them),
-    #          not rendered without the router
-    #   ''   = never render
-    #   else = exactly this list. Narrow it to your pod CIDR (e.g. 10.42.0.0/16 on k3s) for less
-    #          reach; IPv6-only pod networks need exact addresses.
-    # With networkPolicy.enabled only the router (and networkPolicy.metricsFrom) reach web at all.
-    # Default install (no policy): any pod of the cluster can reach web:3000 and set the client
-    # address of ITS OWN requests. That is already true of the app's non-strict client IP.
+    # CLIENT_IP_PROXY_IPS (advanced, rarely needed): peers whose X-Forwarded-For the app believes as
+    # the CLIENT address with NO proof but their own address, e.g. your own proxy when web is the
+    # entry point (router.enabled=false). Comma-separated string or list. NOT needed for the router:
+    # that authenticates itself (router.hop). Do NOT put a pod CIDR here: any pod reaching web:3000
+    # could then choose its client address (per-IP login/auth rate-limit buckets, IP-pinned playback
+    # grants, PAT and service-token IP allowlists). The peers get no forward-auth identity trust.
+    # null/'' = not rendered. The Security Self-Check warns about ranges wider than /24.
     clientIpProxyIps: null
     timezone: UTC
     logLevel: info
@@ -343,11 +335,30 @@ router:
     proxyTimeoutSeconds: 3600
     # Real client IP when another proxy (ingress/gateway) sits in front: trust X-Forwarded-For
     # from these peers. The IP fallback of the routing key and the app's client IP use it.
+    # SECURITY: the proxy in front must SET or APPEND the real peer address, never pass a
+    # client-supplied X-Forwarded-For through untouched. With real_ip_recursive on, a client XFF that
+    # reaches the router from a listed peer would be taken as the client address. Pod networks are not
+    # always RFC1918 (IPv6, dual-stack, 100.64/10): set fromCIDRs to your ingress controller's pods.
     realIp:
         fromCIDRs: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]
         header: X-Forwarded-For
         recursive: true
     accessLog: true
+    # Router-hop authentication. Playback grants and PAT/service-token IP allowlists are pinned to the
+    # CLIENT address, which web can only learn from the router's X-Forwarded-For (its TCP peer is a
+    # router pod; with several router pods every request would otherwise look like another client and
+    # about half the HLS segments fail with 403 ip_mismatch). A pod address proves nothing, so the router
+    # adds X-Lumastra-Router-Hop: HMAC-SHA256(LUMASTRA_MASTER_KEY, "lumastra-router-hop-v1"). Web believes
+    # the forwarded client address of a request with the matching value, and removes the header.
+    # An init container (the app image) derives it from secrets.env.LUMASTRA_MASTER_KEY and writes an
+    # nginx include into a memory emptyDir; the master key is visible to that init container only, never
+    # to nginx. Rendered only while secrets.env has LUMASTRA_MASTER_KEY (the default). Restart the
+    # router pods after rotating the key. No identity trust is involved.
+    hop:
+        enabled: true
+        resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 128Mi }
     forwardAuth:
         enabled: false
         # auth_request target, full URL, e.g.

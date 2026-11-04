@@ -151,3 +151,25 @@ export function describeWideTrustedProxyRanges(input: {
 export function runsOnKubernetes(env: Record<string, string | undefined> = process.env): boolean {
     return (env.KUBERNETES_SERVICE_HOST ?? '').trim().length > 0;
 }
+
+/**
+ * Operator-facing text for CLIENT_IP_PROXY_IPS (client address only, no identity trust).
+ * The list is NOT authenticated: every address in it can choose the client IP, which keys
+ * per-IP rate limits, IP-bound playback grants and PAT/service-token allowed_ips. A pod
+ * network range is therefore always a warning here, Kubernetes or not. Null when no entry is wide.
+ */
+export function describeWideClientIpProxyRanges(
+    clientIpProxyIps: string | undefined,
+): { message: string; remediation: string } | null {
+    const found = findWideTrustedProxyRanges(clientIpProxyIps);
+    if (!found) return null;
+    const entries = [...found.wide, ...found.unsupported].join(', ');
+    return {
+        message:
+            `CLIENT_IP_PROXY_IPS contains ${entries} (wider than /${MIN_TRUSTED_PROXY_PREFIX_V4}, or IPv6). ` +
+            'Every address in that range can choose the client IP Lumastra sees without any proof, which defeats per-IP rate limits, IP-pinned playback grants and token IP allowlists. ' +
+            'The peers get no forward-auth identity trust.',
+        remediation:
+            'List only the proxy addresses. With the Helm chart, remove app.clientIpProxyIps: the router authenticates itself with a secret header derived from LUMASTRA_MASTER_KEY.',
+    };
+}
