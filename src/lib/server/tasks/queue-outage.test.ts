@@ -10,13 +10,16 @@ vi.mock('../utils/logger.js', () => ({ Logger: { for: () => log } }));
 
 import {
     OUTAGE_QUIET_MS,
+    OUTAGE_REMINDER_MS,
     closeBullmqBounded,
     closeQueueEventsBounded,
     createOutageGate,
     isConnectionLossError,
     logQueueConnectionErrors,
     logTaskConnectionLoss,
+    noteTaskConnectionRecovered,
     resetQueueOutageGateForTests,
+    watchWorkerRecovery,
 } from './queue-outage.js';
 
 describe('createOutageGate', () => {
@@ -49,7 +52,7 @@ describe('createOutageGate', () => {
         }
     });
 
-    it('measures the outage up to the last reconnect, not only to the last error', () => {
+    it('measures the outage up to the first reconnect after the last error', () => {
         vi.useFakeTimers();
         try {
             const onEnd = vi.fn();
@@ -59,13 +62,78 @@ describe('createOutageGate', () => {
             vi.advanceTimersByTime(800);
             gate.recovered();
             vi.advanceTimersByTime(900);
+            // A later reconnect (BullMQ re-opening a blocking connection) is not the outage.
             gate.recovered();
-            vi.advanceTimersByTime(1100);
+            vi.advanceTimersByTime(200);
             expect(onEnd).toHaveBeenCalledTimes(1);
-            expect(onEnd).toHaveBeenCalledWith({ durationMs: 1700, errors: 1 });
+            expect(onEnd).toHaveBeenCalledWith({ durationMs: 800, errors: 1 });
         } finally {
             vi.useRealTimers();
         }
+    });
+
+    it('ends on time while reconnects keep coming after recovery', () => {
+        vi.useFakeTimers();
+        try {
+            const onEnd = vi.fn();
+            const gate = createOutageGate(30_000, onEnd);
+            gate.note();
+            vi.advanceTimersByTime(4000);
+            gate.recovered();
+            // Many Workers and QueueEvents re-open their blocking connections one by one.
+            for (let i = 0; i < 12; i++) {
+                vi.advanceTimersByTime(5000);
+                gate.recovered();
+            }
+            expect(onEnd).toHaveBeenCalledTimes(1);
+            expect(onEnd).toHaveBeenCalledWith({ durationMs: 4000, errors: 1 });
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('counts a reconnect only once it follows the latest error', () => {
+        vi.useFakeTimers();
+        try {
+            const onEnd = vi.fn();
+            const gate = createOutageGate(1000, onEnd);
+            gate.note();
+            vi.advanceTimersByTime(300);
+            gate.recovered();
+            // The server answers LOADING (or another client fails) after that reconnect.
+            vi.advanceTimersByTime(400);
+            gate.note();
+            vi.advanceTimersByTime(500);
+            gate.recovered();
+            vi.advanceTimersByTime(1000);
+            expect(onEnd).toHaveBeenCalledWith({ durationMs: 1200, errors: 2 });
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('runs the length to the last error when no reconnect is reported', () => {
+        vi.useFakeTimers();
+        try {
+            const onEnd = vi.fn();
+            const gate = createOutageGate(1000, onEnd);
+            gate.note();
+            vi.advanceTimersByTime(700);
+            gate.note();
+            vi.advanceTimersByTime(1000);
+            expect(onEnd).toHaveBeenCalledWith({ durationMs: 700, errors: 2 });
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('counts one error object delivered to several listeners once', () => {
+        const gate = createOutageGate(1000);
+        const shared = new Error('getaddrinfo ENOTFOUND valkey');
+        expect(gate.note(0, shared).first).toBe(true);
+        for (let i = 0; i < 20; i++) expect(gate.note(1, shared).first).toBe(false);
+        gate.note(200, new Error('getaddrinfo ENOTFOUND valkey'));
+        expect(gate.note(5000).suppressed).toBe(1);
     });
 
     it('reminds every interval while one outage keeps going, and stops when it ends', () => {
@@ -179,6 +247,67 @@ describe('logTaskConnectionLoss', () => {
         expect(
             logTaskConnectionLoss('task-worker:x', new Error('NOAUTH Authentication required.')),
         ).toBe(false);
+    });
+});
+
+describe('process-wide outage messages', () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+        resetQueueOutageGateForTests();
+        log.warn.mockReset();
+        log.info.mockReset();
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('reports a sub-second Valkey restart in tenths, counting fanned-out errors once', () => {
+        // Shared connection: its error reaches its own listener and every Queue built on it.
+        const queues = Array.from({ length: 20 }, () => new EventEmitter());
+        queues.forEach((q, i) => logQueueConnectionErrors(q, `task-queue-${i}`));
+        for (let attempt = 0; attempt < 4; attempt++) {
+            const err = new Error('getaddrinfo ENOTFOUND lumastra-valkey');
+            logTaskConnectionLoss('shared-queue-connection', err);
+            for (const q of queues) q.emit('error', err);
+            vi.advanceTimersByTime(100);
+        }
+        noteTaskConnectionRecovered();
+        vi.advanceTimersByTime(OUTAGE_QUIET_MS);
+        expect(log.warn).toHaveBeenCalledTimes(1);
+        expect(log.info).toHaveBeenCalledTimes(1);
+        expect(log.info.mock.calls[0][1]).toEqual({ outageSeconds: 0.4, errors: 4 });
+    });
+
+    it('logs the recovery while BullMQ objects keep reconnecting after it', () => {
+        const backend = new EventEmitter();
+        const worker = { getBackend: () => backend };
+        watchWorkerRecovery(worker);
+        logTaskConnectionLoss('task-worker:a', new Error('connect ECONNREFUSED 10.0.0.1:6379'));
+        vi.advanceTimersByTime(2000);
+        logTaskConnectionLoss('task-worker:a', new Error('connect ECONNREFUSED 10.0.0.1:6379'));
+        vi.advanceTimersByTime(1000);
+        backend.emit('ready');
+        for (let i = 0; i < 20; i++) {
+            vi.advanceTimersByTime(4000);
+            backend.emit('ready');
+        }
+        expect(log.info).toHaveBeenCalledTimes(1);
+        expect(log.info.mock.calls[0][1]).toEqual({ outageSeconds: 3, errors: 2 });
+    });
+
+    it('names the source of the latest error in the reminder', () => {
+        for (let t = 0; t <= OUTAGE_REMINDER_MS; t += 10_000) {
+            logTaskConnectionLoss('task-worker:scan', new Error('Connection is closed.'));
+            vi.advanceTimersByTime(10_000);
+        }
+        const reminder = log.warn.mock.calls.find(
+            (c) => c[0] === 'Task Valkey is still unreachable',
+        );
+        expect(reminder?.[1]).toMatchObject({
+            lastErrorScope: 'task-worker:scan',
+            lastError: 'Connection is closed.',
+        });
+        expect(log.info).not.toHaveBeenCalled();
     });
 });
 
