@@ -102,6 +102,19 @@ Set `router.realIp.fromCIDRs` to the addresses of that edge. The router then see
 it feeds the hash fallback and the app's client IP, which the router passes on as a single-entry
 `X-Forwarded-For`.
 
+**Client address for playback grants.** A playback grant (and a PAT `allowed_ips` list) is pinned to
+the client address that started playback. Behind the router, web's TCP peer is a router pod, so
+web has to read the client from the router's `X-Forwarded-For`. The chart renders
+`CLIENT_IP_PROXY_IPS` (`app.clientIpProxyIps`; default: the private ranges 10/8, 172.16/12,
+192.168/16 and 100.64/10 while the router is on) for that. Without it, each of the router's pods
+would be "the client", and with more than one router pod about half the segment requests would
+fail with `403 ip_mismatch`. `CLIENT_IP_PROXY_IPS` is deliberately **not** `TRUSTED_PROXY_IPS`: the
+listed peers are believed for the client address (and `X-Forwarded-Proto`) only, never for
+forward-auth identity headers, and they do not change the forward-auth trust posture. Narrow it
+to your pod CIDR (`app.clientIpProxyIps: 10.42.0.0/16` on k3s) if you like; `''` turns it off.
+The router replaces `X-Forwarded-For` with the address it resolved, so a client cannot forge it
+through the router; see "Network isolation" for who else can reach web.
+
 `router.resolver` must be a DNS server that answers for the cluster domain:
 `kube-dns.kube-system.svc.cluster.local` works on most distributions including k3s, or use its IP.
 
@@ -239,9 +252,15 @@ router and `metricsFrom`; without it, web itself is the entry point. Metrics pee
 of port 3000, not just `/metrics`. Bundled Valkey accepts app pods and the enabled stream
 proxy. PostgreSQL needs its own isolation policy; this chart does not create one for it.
 
-Set `TRUSTED_PROXY_IPS` via `app.env` for native/OIDC deployments, or
-`auth.forwardAuth.trustedProxyIps` for forward-auth, to the actual trusted proxy peers. Avoid
-trusting a whole pod CIDR without isolation. Verify your CNI enforces NetworkPolicy and test
+The chart's `CLIENT_IP_PROXY_IPS` (see "Routing") makes web believe `X-Forwarded-For` for the
+client address from the private ranges, i.e. from any pod. Without these policies, a pod that
+reaches `web:3000` directly can therefore choose the client address of its own requests (it
+could already do that for the app's non-strict client IP). It gets no identity trust from it. With
+`networkPolicy.enabled` only the router and `networkPolicy.metricsFrom` reach web.
+
+Do not put a pod CIDR into `TRUSTED_PROXY_IPS`: that list also decides whose forward-auth identity
+headers are believed. Use `auth.forwardAuth.trustedProxyIps` for forward-auth, and avoid trusting a
+whole pod CIDR without isolation. Verify your CNI enforces NetworkPolicy and test
 both ingress access and rejection from an unrelated pod; node/host-network traffic can have
 CNI-specific behavior. Chart policies leave egress open.
 

@@ -22,6 +22,39 @@ tests:
           # Forward auth is opt-in in the app: off unless auth.forwardAuth.enabled.
           - notExists: { path: data.FORWARD_AUTH_ENABLED }
           - notExists: { path: data.AUTH_OIDC_ENABLED }
+          # Router on (default): web believes the router pods' X-Forwarded-For for the client
+          # address, or each router pod would be "the client" and grants pinned to an IP fail
+          # with 403 ip_mismatch. Never TRUSTED_PROXY_IPS: that would be identity trust too.
+          - equal:
+                path: data.CLIENT_IP_PROXY_IPS
+                value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10
+          - notExists: { path: data.TRUSTED_PROXY_IPS }
+    - it: client-IP peers can be narrowed to the pod CIDR
+      set: { app.clientIpProxyIps: 10.42.0.0/16 }
+      asserts:
+          - equal: { path: data.CLIENT_IP_PROXY_IPS, value: 10.42.0.0/16 }
+          - notExists: { path: data.TRUSTED_PROXY_IPS }
+    - it: client-IP peers are not rendered without the router
+      set: { router.enabled: false }
+      asserts:
+          - notExists: { path: data.CLIENT_IP_PROXY_IPS }
+    - it: an empty app.clientIpProxyIps turns the client-IP peers off
+      set: { app.clientIpProxyIps: '' }
+      asserts:
+          - notExists: { path: data.CLIENT_IP_PROXY_IPS }
+    - it: client-IP peers can be set without the router (a trusted ingress in front of web)
+      set: { router.enabled: false, app.clientIpProxyIps: 10.42.0.0/16 }
+      asserts:
+          - equal: { path: data.CLIENT_IP_PROXY_IPS, value: 10.42.0.0/16 }
+    - it: forward-auth keeps its own list and the client-IP peers never become identity trust
+      set:
+          auth.forwardAuth: { enabled: true, trustedProxyIps: 10.42.3.0/24 }
+          networkPolicy.enabled: true
+      asserts:
+          - equal: { path: data.TRUSTED_PROXY_IPS, value: 10.42.3.0/24 }
+          - equal:
+                path: data.CLIENT_IP_PROXY_IPS
+                value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10
     - it: forward-auth renders the header names and the trusted peers
       set:
           auth.forwardAuth:

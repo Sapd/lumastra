@@ -54,6 +54,22 @@ app:
     origin: ''
     # Alternative to `origin` behind a TLS-terminating proxy (adapter-node PROTOCOL_HEADER).
     protocolHeader: ''
+    # CLIENT_IP_PROXY_IPS: peers (IPs / IPv4 CIDRs, comma-separated) whose X-Forwarded-For the app
+    # believes as the CLIENT address. Playback grants and PAT IP allowlists are pinned to that address:
+    # without it every router pod would appear as the client, and with `router.replicas` > 1 about
+    # half the segment requests of a stream fail with 403 ip_mismatch. These peers get NO
+    # forward-auth identity trust and do not count as "a configured proxy" (that stays
+    # auth.forwardAuth.trustedProxyIps / TRUSTED_PROXY_IPS). The router overwrites X-Forwarded-For
+    # with the real client, so only a pod that bypasses the router can forge it.
+    #   null = the private ranges below when `router.enabled` (a pod network is always one of them),
+    #          not rendered without the router
+    #   ''   = never render
+    #   else = exactly this list. Narrow it to your pod CIDR (e.g. 10.42.0.0/16 on k3s) for less
+    #          reach; IPv6-only pod networks need exact addresses.
+    # With networkPolicy.enabled only the router (and networkPolicy.metricsFrom) reach web at all.
+    # Default install (no policy): any pod of the cluster can reach web:3000 and set the client
+    # address of ITS OWN requests. That is already true of the app's non-strict client IP.
+    clientIpProxyIps: null
     timezone: UTC
     logLevel: info
     # adapter-node request body cap; must be >= MAX_IMAGE_UPLOAD_MB (artwork uploads) and >= 3M

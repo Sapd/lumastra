@@ -59,6 +59,7 @@ vi.mock('$lib/server/config/config.service', () => ({
 vi.mock('$lib/server/utils/client-ip', () => {
     return {
         forwardAuthTrustPosture: vi.fn(() => 'allowlist' as const),
+        clientIpProxiesPinned: vi.fn(() => false),
     };
 });
 
@@ -75,7 +76,7 @@ vi.mock('$lib/server/crypto/master-key.js', () => ({
 }));
 
 import { config, features } from '$lib/server/config';
-import { forwardAuthTrustPosture } from '$lib/server/utils/client-ip';
+import { forwardAuthTrustPosture, clientIpProxiesPinned } from '$lib/server/utils/client-ip';
 import {
     checkOidcAllowInsecure,
     checkDevFeaturesEnabled,
@@ -400,6 +401,16 @@ describe('checkProxyUnpinned', () => {
 
 describe('checkStreamTokenIpPinningIneffective', () => {
     const mockForwardAuthTrustPosture = vi.mocked(forwardAuthTrustPosture);
+
+    afterEach(() => vi.mocked(clientIpProxiesPinned).mockReturnValue(false));
+
+    // The Helm router sets CLIENT_IP_PROXY_IPS: a distinct client IP per request, no identity trust.
+    it('passes when only CLIENT_IP_PROXY_IPS pins the client IP (posture stays fail-closed)', () => {
+        mockConfigValues.STREAM_TOKEN_WILDCARD_IP = false;
+        mockForwardAuthTrustPosture.mockReturnValue('fail-closed');
+        vi.mocked(clientIpProxiesPinned).mockReturnValue(true);
+        expect(checkStreamTokenIpPinningIneffective().status).toBe('pass');
+    });
 
     it('passes when STREAM_TOKEN_WILDCARD_IP is at its default (true), regardless of posture', () => {
         mockConfigValues.STREAM_TOKEN_WILDCARD_IP = true;

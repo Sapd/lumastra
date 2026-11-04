@@ -18,7 +18,7 @@ import {
 } from '$lib/server/config/config.service.js';
 import { openSecret, decrypt, deriveMasterKey } from '$lib/server/crypto/secret-box.js';
 import { resolveMasterKey } from '$lib/server/crypto/master-key.js';
-import { forwardAuthTrustPosture } from '$lib/server/utils/client-ip.js';
+import { forwardAuthTrustPosture, clientIpProxiesPinned } from '$lib/server/utils/client-ip.js';
 import { tokenContext } from '$lib/server/subsonic-compat/auth.js';
 import { credentialContext } from '$lib/server/database/queries/livetv-sources.queries.js';
 import {
@@ -410,7 +410,12 @@ async function checkSingleIpPolicyPosture(sql: postgres.Sql): Promise<SecuritySe
         WHERE require_single_ip = true
     `;
     const count = toCount(rows[0]?.count);
-    return evaluateSingleIpPolicyPosture(count, forwardAuthTrustPosture());
+    // `allowlist` here only means "the strict resolver reads a distinct client IP": a
+    // CLIENT_IP_PROXY_IPS list (Helm router) achieves that without any identity trust.
+    return evaluateSingleIpPolicyPosture(
+        count,
+        clientIpProxiesPinned() ? 'allowlist' : forwardAuthTrustPosture(),
+    );
 }
 
 // ---------------------------------------------------------------------------

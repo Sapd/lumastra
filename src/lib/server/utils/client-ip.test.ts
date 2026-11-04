@@ -33,7 +33,16 @@ function makeEvent(opts: EventOpts): RequestEvent {
     } as unknown as RequestEvent;
 }
 
-async function importClientIp(envValue: string | undefined, trustAny?: string | undefined) {
+async function importClientIp(
+    envValue: string | undefined,
+    trustAny?: string | undefined,
+    clientIpProxies?: string | undefined,
+) {
+    if (clientIpProxies === undefined) {
+        delete process.env.CLIENT_IP_PROXY_IPS;
+    } else {
+        process.env.CLIENT_IP_PROXY_IPS = clientIpProxies;
+    }
     if (envValue === undefined) {
         delete process.env.TRUSTED_PROXY_IPS;
     } else {
@@ -51,12 +60,16 @@ async function importClientIp(envValue: string | undefined, trustAny?: string | 
 describe('client-ip', () => {
     let savedEnv: string | undefined;
     let savedTrustAny: string | undefined;
+    let savedClientIpProxies: string | undefined;
 
     beforeEach(() => {
+        savedClientIpProxies = process.env.CLIENT_IP_PROXY_IPS;
         savedEnv = process.env.TRUSTED_PROXY_IPS;
         savedTrustAny = process.env.LUMASTRA_TRUST_ANY_PROXY;
     });
     afterEach(() => {
+        if (savedClientIpProxies === undefined) delete process.env.CLIENT_IP_PROXY_IPS;
+        else process.env.CLIENT_IP_PROXY_IPS = savedClientIpProxies;
         if (savedEnv === undefined) delete process.env.TRUSTED_PROXY_IPS;
         else process.env.TRUSTED_PROXY_IPS = savedEnv;
         if (savedTrustAny === undefined) delete process.env.LUMASTRA_TRUST_ANY_PROXY;
@@ -570,6 +583,99 @@ describe('client-ip', () => {
             expect(hasForwardedClientIpHeader(new Headers({ 'x-forwarded-for': '   ' }))).toBe(
                 false,
             );
+        });
+    });
+
+    // CLIENT_IP_PROXY_IPS (Helm chart router pods): trusted for the forwarded client IP and
+    // protocol ONLY. Every identity decision must stay exactly as if it were unset.
+    describe('CLIENT_IP_PROXY_IPS (client IP only, never identity)', () => {
+        const POD_NET = '10.0.0.0/8';
+
+        it('getClientIpStrict honors XFF from a listed peer (two router pods, one client)', async () => {
+            const { getClientIpStrict } = await importClientIp(undefined, undefined, POD_NET);
+            const a = getClientIpStrict(makeEvent({ peer: '10.42.0.11', xff: '203.0.113.9' }));
+            const b = getClientIpStrict(makeEvent({ peer: '10.42.1.27', xff: '203.0.113.9' }));
+            expect(a).toBe('203.0.113.9');
+            expect(b).toBe('203.0.113.9');
+        });
+
+        it('getClientIpStrictFromRequest honors XFF from a listed peer', async () => {
+            const { getClientIpStrictFromRequest } = await importClientIp(
+                undefined,
+                undefined,
+                POD_NET,
+            );
+            const request = new Request('http://x/', {
+                headers: { 'x-forwarded-for': '203.0.113.9' },
+            });
+            expect(getClientIpStrictFromRequest(request, () => '10.42.0.11')).toBe('203.0.113.9');
+        });
+
+        it('getClientIpStrict ignores XFF from a peer outside the list', async () => {
+            const { getClientIpStrict } = await importClientIp(undefined, undefined, POD_NET);
+            const ip = getClientIpStrict(makeEvent({ peer: '203.0.113.50', xff: '1.2.3.4' }));
+            expect(ip).toBe('203.0.113.50');
+        });
+
+        it('does not grant forward-auth identity trust', async () => {
+            const { isForwardAuthPeerTrusted, isConfiguredTrustedProxy, forwardAuthTrustPosture } =
+                await importClientIp(undefined, undefined, POD_NET);
+            expect(isForwardAuthPeerTrusted('10.42.0.11')).toBe(false);
+            expect(isConfiguredTrustedProxy('10.42.0.11')).toBe(false);
+            expect(forwardAuthTrustPosture()).toBe('fail-closed');
+        });
+
+        it('does not widen TRUSTED_PROXY_IPS identity trust when both are set', async () => {
+            const { isForwardAuthPeerTrusted, forwardAuthTrustPosture } = await importClientIp(
+                '10.42.0.5',
+                undefined,
+                POD_NET,
+            );
+            expect(isForwardAuthPeerTrusted('10.42.0.5')).toBe(true);
+            expect(isForwardAuthPeerTrusted('10.42.0.11')).toBe(false);
+            expect(forwardAuthTrustPosture()).toBe('allowlist');
+        });
+
+        it('does not combine with LUMASTRA_TRUST_ANY_PROXY into a narrower identity posture', async () => {
+            const { isForwardAuthPeerTrusted, forwardAuthTrustPosture } = await importClientIp(
+                undefined,
+                'true',
+                POD_NET,
+            );
+            expect(forwardAuthTrustPosture()).toBe('trust-any');
+            expect(isForwardAuthPeerTrusted('10.42.0.11')).toBe(true);
+        });
+
+        it('a listed peer is skipped as a hop in a chain, an unlisted one is the client', async () => {
+            const { getClientIpStrict } = await importClientIp(undefined, undefined, POD_NET);
+            const ip = getClientIpStrict(
+                makeEvent({ peer: '10.42.0.11', xff: '1.2.3.4, 10.9.9.9' }),
+            );
+            expect(ip).toBe('1.2.3.4');
+        });
+
+        it('getClientIp (non-strict) stops trusting XFF from peers outside the list', async () => {
+            const { getClientIp } = await importClientIp(undefined, undefined, POD_NET);
+            expect(getClientIp(makeEvent({ peer: '203.0.113.50', xff: '1.2.3.4' }))).toBe(
+                '203.0.113.50',
+            );
+            expect(getClientIp(makeEvent({ peer: '10.42.0.11', xff: '1.2.3.4' }))).toBe('1.2.3.4');
+        });
+
+        it('isForwardedHeaderPeerTrusted follows the list, clientIpProxiesPinned reports it', async () => {
+            const { isForwardedHeaderPeerTrusted, clientIpProxiesPinned } = await importClientIp(
+                undefined,
+                undefined,
+                POD_NET,
+            );
+            expect(clientIpProxiesPinned()).toBe(true);
+            expect(isForwardedHeaderPeerTrusted(() => '10.42.0.11')).toBe(true);
+            expect(isForwardedHeaderPeerTrusted(() => '203.0.113.50')).toBe(false);
+        });
+
+        it('clientIpProxiesPinned is false with neither variable set', async () => {
+            const { clientIpProxiesPinned } = await importClientIp(undefined);
+            expect(clientIpProxiesPinned()).toBe(false);
         });
     });
 });

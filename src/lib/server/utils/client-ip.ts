@@ -36,6 +36,16 @@
  *      outside the proxy fleet. IPv6 CIDR is not supported — list IPv6
  *      proxies as exact addresses.
  *
+ *   3. CLIENT_IP_PROXY_IPS env var (client IP ONLY):
+ *        CLIENT_IP_PROXY_IPS=10.42.0.0/16
+ *      Same list format and the same X-Forwarded-For / X-Real-IP / protocol
+ *      handling as TRUSTED_PROXY_IPS, but the listed peers are NEVER trusted
+ *      for forward-auth identity headers, never change the forward-auth trust
+ *      posture and are not counted as "a configured proxy". The Helm chart sets
+ *      it for its router pods, whose addresses are a pod CIDR that must not be
+ *      handed identity trust. Peers matching either list are honored for the
+ *      client IP.
+ *
  * Default trust when TRUSTED_PROXY_IPS is unset
  * ---------------------------------------------
  * Lumastra is designed to run behind a reverse proxy (Authentik / Caddy /
@@ -115,6 +125,13 @@ const TRUSTED_PROXIES: TrustedProxyMatcher = buildTrustedProxyMatcher(
     process.env.TRUSTED_PROXY_IPS ?? '',
 );
 
+// Peers trusted for the forwarded CLIENT IP / protocol only. Deliberately NOT part of
+// TRUSTED_PROXIES: every identity decision (isForwardAuthPeerTrusted,
+// isConfiguredTrustedProxy, forwardAuthTrustPosture) reads TRUSTED_PROXIES alone.
+const CLIENT_IP_PROXIES: TrustedProxyMatcher = buildTrustedProxyMatcher(
+    process.env.CLIENT_IP_PROXY_IPS ?? '',
+);
+
 // Explicit opt-in to trust forward-auth IDENTITY headers from ANY TCP peer when
 // no TRUSTED_PROXY_IPS allowlist is configured. Without this, identity headers
 // fail CLOSED when unpinned (see isForwardAuthPeerTrusted) — the secure default
@@ -123,20 +140,47 @@ const TRUSTED_PROXIES: TrustedProxyMatcher = buildTrustedProxyMatcher(
 const TRUST_ANY_PROXY =
     (process.env.LUMASTRA_TRUST_ANY_PROXY ?? '').trim().toLowerCase() === 'true';
 
-function isTrustedProxy(peer: string): boolean {
+function matcherHas(matcher: TrustedProxyMatcher, peer: string): boolean {
     const normalized = normalizeIp(peer);
-    if (TRUSTED_PROXIES.exact.has(normalized)) return true;
-    if (TRUSTED_PROXIES.cidr.length === 0) return false;
+    if (matcher.exact.has(normalized)) return true;
+    if (matcher.cidr.length === 0) return false;
     const peerInt = ipv4ToInt(normalized);
     if (peerInt === null) return false;
-    for (const { networkInt, mask } of TRUSTED_PROXIES.cidr) {
+    for (const { networkInt, mask } of matcher.cidr) {
         if ((peerInt & mask) >>> 0 === networkInt) return true;
     }
     return false;
 }
 
+function matcherIsEmpty(matcher: TrustedProxyMatcher): boolean {
+    return matcher.exact.size === 0 && matcher.cidr.length === 0;
+}
+
+/** TRUSTED_PROXY_IPS only: the identity-header (forward-auth) trust list. */
+function isTrustedProxy(peer: string): boolean {
+    return matcherHas(TRUSTED_PROXIES, peer);
+}
+
 function hasAnyTrustedProxies(): boolean {
-    return TRUSTED_PROXIES.exact.size > 0 || TRUSTED_PROXIES.cidr.length > 0;
+    return !matcherIsEmpty(TRUSTED_PROXIES);
+}
+
+/** TRUSTED_PROXY_IPS or CLIENT_IP_PROXY_IPS: who may supply the forwarded client IP. */
+function isClientIpProxy(peer: string): boolean {
+    return matcherHas(TRUSTED_PROXIES, peer) || matcherHas(CLIENT_IP_PROXIES, peer);
+}
+
+function hasAnyClientIpProxies(): boolean {
+    return hasAnyTrustedProxies() || !matcherIsEmpty(CLIENT_IP_PROXIES);
+}
+
+/**
+ * Whether the forwarded client IP is pinned to an explicit peer list (either variable), so the
+ * strict resolver reads a distinct client address per request. Not an identity statement: use
+ * `forwardAuthTrustPosture` for that.
+ */
+export function clientIpProxiesPinned(): boolean {
+    return hasAnyClientIpProxies();
 }
 
 function readForwardedClientIp(headers: Headers): string | null {
@@ -149,7 +193,7 @@ function readForwardedClientIp(headers: Headers): string | null {
         if (entries.length > 0) {
             // Implicit trust (no allowlist) keeps the leftmost entry: it only feeds
             // the low-stakes client IP, and strict callers ignore XFF in that mode.
-            if (!hasAnyTrustedProxies()) return entries[0];
+            if (!hasAnyClientIpProxies()) return entries[0];
             // A proxy that appends (nginx's $proxy_add_x_forwarded_for) passes a
             // client-supplied X-Forwarded-For through, so only the entries the
             // trusted proxies added are believable: the client is the rightmost
@@ -158,7 +202,7 @@ function readForwardedClientIp(headers: Headers): string | null {
             // as the client. When every entry is a listed proxy, keep the one the
             // verified peer appended, never the client-controlled leftmost one.
             for (let i = entries.length - 1; i >= 0; i--) {
-                if (!isTrustedProxy(entries[i])) return entries[i];
+                if (!isClientIpProxy(entries[i])) return entries[i];
             }
             return entries[entries.length - 1];
         }
@@ -188,8 +232,8 @@ function safeGetPeer(getClientAddress: () => string): string {
  * to identity headers (see `isForwardAuthPeerTrusted`).
  */
 function shouldHonorForwardedFor(peer: string): boolean {
-    if (!hasAnyTrustedProxies()) return true;
-    return isTrustedProxy(peer);
+    if (!hasAnyClientIpProxies()) return true;
+    return isClientIpProxy(peer);
 }
 
 /**
@@ -413,9 +457,10 @@ export function getClientIpStrict(
     event: Pick<RequestEvent, 'request' | 'getClientAddress'>,
 ): string {
     const peer = safeGetPeer(() => event.getClientAddress());
-    // Only honor forwarded headers when TRUSTED_PROXY_IPS is explicitly configured.
-    if (!hasAnyTrustedProxies()) return peer;
-    if (!isTrustedProxy(peer)) return peer;
+    // Only honor forwarded headers when a proxy list (TRUSTED_PROXY_IPS or CLIENT_IP_PROXY_IPS)
+    // is explicitly configured.
+    if (!hasAnyClientIpProxies()) return peer;
+    if (!isClientIpProxy(peer)) return peer;
     return readForwardedClientIp(event.request.headers) ?? peer;
 }
 
@@ -439,7 +484,7 @@ export function getClientIpStrictFromRequest(
     getClientAddress: () => string,
 ): string {
     const peer = safeGetPeer(getClientAddress);
-    if (!hasAnyTrustedProxies()) return peer;
-    if (!isTrustedProxy(peer)) return peer;
+    if (!hasAnyClientIpProxies()) return peer;
+    if (!isClientIpProxy(peer)) return peer;
     return readForwardedClientIp(request.headers) ?? peer;
 }

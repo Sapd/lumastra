@@ -16,7 +16,7 @@
  */
 
 import { config, devFeaturesEnabled, features } from '$lib/server/config';
-import { forwardAuthTrustPosture } from '$lib/server/utils/client-ip';
+import { forwardAuthTrustPosture, clientIpProxiesPinned } from '$lib/server/utils/client-ip';
 import {
     describeWideTrustedProxyRanges,
     MIN_TRUSTED_PROXY_PREFIX_V4,
@@ -495,7 +495,8 @@ export function checkProxyWideRange(): SecuritySelfCheckFinding {
 export function checkStreamTokenIpPinningIneffective(): SecuritySelfCheckFinding {
     const wildcardIp = getConfigValue('STREAM_TOKEN_WILDCARD_IP') !== false;
     const posture = forwardAuthTrustPosture();
-    if (wildcardIp || posture === 'allowlist') {
+    // CLIENT_IP_PROXY_IPS (Helm router) pins the client IP without touching the identity posture.
+    if (wildcardIp || posture === 'allowlist' || clientIpProxiesPinned()) {
         return finding({
             id: 'stream-token.ip-pinning-ineffective',
             method: 'forward-auth',
@@ -514,9 +515,9 @@ export function checkStreamTokenIpPinningIneffective(): SecuritySelfCheckFinding
         type: 'config-static',
         status: 'warn',
         title: 'Stream-token IP pinning is enabled but has no proxy allowlist to bind to',
-        detail: `STREAM_TOKEN_WILDCARD_IP=false with forward-auth posture "${posture}" (TRUSTED_PROXY_IPS unset). The strict IP resolver behind stream-token binding falls back to the raw TCP peer when unpinned, so every client behind the same reverse proxy resolves to that ONE address — this setting does not restore per-client binding in that state, it only breaks AirPlay/Chromecast/tvOS handoff (which needs the token to be usable from a different device's IP) for no real per-client security gain.`,
+        detail: `STREAM_TOKEN_WILDCARD_IP=false with forward-auth posture "${posture}" (TRUSTED_PROXY_IPS and CLIENT_IP_PROXY_IPS unset). The strict IP resolver behind stream-token binding falls back to the raw TCP peer when unpinned, so every client behind the same reverse proxy resolves to that ONE address — this setting does not restore per-client binding in that state, it only breaks AirPlay/Chromecast/tvOS handoff (which needs the token to be usable from a different device's IP) for no real per-client security gain.`,
         remediation:
-            'Set TRUSTED_PROXY_IPS to your reverse-proxy IP(s) so the strict resolver can read a distinct client IP per request, or leave STREAM_TOKEN_WILDCARD_IP at its default (true) if you need casting/AirPlay support.',
+            'Set TRUSTED_PROXY_IPS (or CLIENT_IP_PROXY_IPS, which grants no identity trust) to your reverse-proxy IP(s) so the strict resolver can read a distinct client IP per request, or leave STREAM_TOKEN_WILDCARD_IP at its default (true) if you need casting/AirPlay support.',
         evidence: 'client-ip.ts:getClientIpStrict',
     });
 }
