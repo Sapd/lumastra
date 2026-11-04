@@ -7,6 +7,7 @@ import { shouldStartWorkers } from '$lib/server/config.js';
 import { assertValkeyEndpointConfiguration } from '$lib/server/config/valkey-endpoints.js';
 import { loadTaskRegistry } from './registration.js';
 import { Logger } from '$lib/server/utils/logger.js';
+import { isConnectionLossError } from '$lib/server/tasks/queue-outage.js';
 import {
     createInfrastructureProbe,
     missingProbeTargets,
@@ -533,6 +534,40 @@ const GONE_GRACE_MS = 1_500;
 const HARD_EXIT_AFTER_ABANDON_MS = 20_000;
 
 let infrastructureProbe: InfrastructureProbe | undefined;
+/**
+ * The process is terminating (SIGTERM, a startup failure, a lost lease) and will
+ * exit once its cleanup returns. Only then may a teardown step be given up on
+ * because a server is gone, and only then does anything look at the network. A
+ * stop made for any other reason (a repair or retry path, a test) is a verified
+ * stop: it waits for every step and reports every error.
+ */
+let processExiting = false;
+
+export function markTaskProcessExiting(): void {
+    processExiting = true;
+}
+
+/** Test seam. */
+export function __resetTaskProcessExitingForTests(): void {
+    processExiting = false;
+}
+
+/**
+ * True when `err` is only the missing server talking: every leaf of its cause
+ * chain (and of an AggregateError) is a connection-loss error. A genuine failure
+ * (a rejected release, a bug, an UNKNOWN verdict without such a cause) is never
+ * excused, whatever the network says.
+ */
+function isOnlyConnectionLoss(err: unknown, depth = 0): boolean {
+    if (depth > 6) return false;
+    if (err instanceof AggregateError)
+        return err.errors.length > 0 && err.errors.every((e) => isOnlyConnectionLoss(e, depth + 1));
+    if (err instanceof Error && err.cause !== undefined && isConnectionLossError(err.cause))
+        return true;
+    if (err instanceof Error && err.cause !== undefined)
+        return isOnlyConnectionLoss(err.cause, depth + 1);
+    return isConnectionLossError(err);
+}
 let hardExitTimer: ReturnType<typeof setTimeout> | undefined;
 let hardExit: (code: number) => void = (code) => process.exit(code);
 
@@ -617,6 +652,11 @@ async function stop(strict: boolean): Promise<void> {
         } = {},
     ): Promise<boolean> => {
         work.catch(() => undefined);
+        // Not terminating: a verified stop. No probe, no abandoning, no excusing.
+        if (!processExiting) {
+            await work;
+            return true;
+        }
         const needs = options.needs ?? ['postgres', 'task-valkey'];
         const isGone = async (): Promise<boolean> => {
             const verdict = await probe.verdict(needs);
@@ -632,8 +672,9 @@ async function stop(strict: boolean): Promise<void> {
                 }
             }
         } catch (err) {
-            // A real error is only excused by a server that is demonstrably gone now.
-            if (!(await isGone())) throw err;
+            // Only the missing server talking, while the network confirms it is gone now,
+            // is excused. Any other error is a failure of the stop.
+            if (!isOnlyConnectionLoss(err) || !(await isGone())) throw err;
             startupLogger.warn(`${what} failed while the server it needs is gone`, {
                 error: err instanceof Error ? err.message : String(err),
             });

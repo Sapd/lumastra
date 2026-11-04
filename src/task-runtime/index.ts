@@ -19,6 +19,7 @@ import { Logger } from '$lib/server/utils/logger.js';
 import {
     startTaskSubsystem,
     stopTaskSubsystem,
+    markTaskProcessExiting,
     prepareTaskSubsystemUpgrade,
     resumeTaskSubsystemAfterUpgrade,
 } from './lifecycle.js';
@@ -126,6 +127,7 @@ async function main(): Promise<void> {
     let jellyfinStartup: Promise<void> | undefined;
     const lifecycle = createTaskProcessLifecycle({
         drain: () => {
+            markTaskProcessExiting();
             ready = false;
             health?.drain();
         },

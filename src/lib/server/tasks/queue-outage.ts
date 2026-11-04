@@ -136,7 +136,7 @@ const CONNECTION_LOSS_CODES = new Set([
     'ENETUNREACH',
 ]);
 const CONNECTION_LOSS_MESSAGE =
-    /connection is closed|connection closed|socket closed|getaddrinfo|^LOADING\b|^READONLY\b|^MASTERDOWN\b|ECONNREFUSED|ECONNRESET|ETIMEDOUT/i;
+    /connection is closed|connection closed|socket closed|client is closed|Unable to execute requests|getaddrinfo|^LOADING\b|^READONLY\b|^MASTERDOWN\b|ECONNREFUSED|ECONNRESET|ETIMEDOUT/i;
 
 /** True for errors that only say "the server is unreachable or restarting". */
 export function isConnectionLossError(err: unknown): boolean {

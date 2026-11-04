@@ -26,7 +26,7 @@ const state = vi.hoisted(() => ({
     runnerStopHangs: false,
     hardExit: [] as number[],
     schedulerStopHangs: false,
-    orchestratorStop: 'ok' as 'ok' | 'fails' | 'hangs',
+    orchestratorStop: 'ok' as 'ok' | 'fails' | 'hangs' | 'connection-loss',
     pluginPending: undefined as Promise<void> | undefined,
     featurePending: undefined as Promise<void> | undefined,
     subscriberStarts: 0,
@@ -169,6 +169,15 @@ vi.mock('$lib/server/tasks/orchestrator', () => ({
             state.events.push('stop-orchestrator');
             if (state.orchestratorStop === 'hangs') await new Promise<void>(() => {});
             if (state.orchestratorStop === 'fails') throw new Error('leader release unconfirmed');
+            if (state.orchestratorStop === 'connection-loss')
+                throw new AggregateError(
+                    [
+                        new Error('UNKNOWN: release unconfirmed', {
+                            cause: new Error('connect ECONNREFUSED 10.0.0.2:6379'),
+                        }),
+                    ],
+                    'TaskOrchestrator shutdown is incomplete',
+                );
         },
     },
 }));
@@ -316,6 +325,8 @@ describe('dedicated task lifecycle seam', () => {
             const runtime = await import('./lifecycle.js');
             runtime.__setHardExitForTests((code) => state.hardExit.push(code));
             await runtime.startTaskSubsystem({ strict: true });
+            // SIGTERM arrived: the process exits when this cleanup returns.
+            runtime.markTaskProcessExiting();
             return runtime;
         };
         it('stops within a few seconds when the network says the server is gone, and leaves the lease and locks to expire', async () => {
@@ -438,6 +449,39 @@ describe('dedicated task lifecycle seam', () => {
                 'outcome UNKNOWN',
             );
         });
+        it('does not excuse a genuine rejection even when the network says the server is gone', async () => {
+            const runtime = await start();
+            state.orchestratorStop = 'fails';
+            state.verdict = { state: 'gone', evidence: 'error' };
+            // "leader release unconfirmed" is not the missing server talking.
+            await expect(runtime.stopTaskSubsystem({ strict: true })).rejects.toThrow(
+                'outcome UNKNOWN',
+            );
+        });
+        it('excuses a rejection that is only the missing server, once the network confirms it', async () => {
+            const runtime = await start();
+            state.orchestratorStop = 'connection-loss';
+            state.verdict = { state: 'gone', evidence: 'error' };
+            await expect(runtime.stopTaskSubsystem({ strict: true })).resolves.toBeUndefined();
+        });
+        it('does not excuse a connection-loss rejection while the server answers', async () => {
+            const runtime = await start();
+            state.orchestratorStop = 'connection-loss';
+            state.verdict = { state: 'up' };
+            await expect(runtime.stopTaskSubsystem({ strict: true })).rejects.toThrow(
+                'outcome UNKNOWN',
+            );
+        });
+    });
+    it('never looks at the network or gives up on a step unless the process is terminating', async () => {
+        // A verified stop (a repair or retry path, a test): the probe says "gone", the stop waits anyway.
+        state.verdict = { state: 'gone', evidence: 'error' };
+        state.orchestratorStop = 'fails';
+        const runtime = await import('./lifecycle.js');
+        await runtime.startTaskSubsystem({ strict: true });
+        await expect(runtime.stopTaskSubsystem({ strict: true })).rejects.toThrow(
+            'outcome UNKNOWN',
+        );
     });
     it('still reports a failed orchestrator teardown while the infrastructure is reachable', async () => {
         state.orchestratorStop = 'fails';

@@ -26,7 +26,11 @@ vi.mock('$lib/server/utils/logger.js', () => ({
 vi.mock('./health-server.js', () => ({
     startTaskHealthServer: async () => ({ drain: () => {}, close: async () => {} }),
 }));
-vi.mock('./lifecycle.js', () => ({ startTaskSubsystem: vi.fn(), stopTaskSubsystem: vi.fn() }));
+vi.mock('./lifecycle.js', () => ({
+    startTaskSubsystem: vi.fn(),
+    stopTaskSubsystem: vi.fn(),
+    markTaskProcessExiting: vi.fn(),
+}));
 vi.mock('./process-lifecycle.js', async (importOriginal) => {
     const actual = await importOriginal<typeof import('./process-lifecycle.js')>();
     return {
