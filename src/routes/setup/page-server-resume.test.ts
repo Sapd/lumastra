@@ -4,7 +4,7 @@
 /**
  * /setup load for a RESUMED wizard (admin signed in, no library yet — a reload,
  * or the return from an OIDC sign-in). Step 3 must be hydrated from what an
- * earlier pass saved, or Save/Skip re-sends the defaults over those choices.
+ * earlier pass saved, or Save & continue re-sends the defaults over those choices.
  * The client side (seeding + request bodies) is in setup-page.svelte.test.ts.
  */
 

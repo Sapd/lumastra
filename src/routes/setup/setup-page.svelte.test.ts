@@ -268,6 +268,24 @@ describe('/setup — creating the first admin', () => {
 });
 
 describe('/setup — step 3 (resumed admin)', () => {
+    // Skip used to leave the wizard for Admin → Library → Sources while /setup
+    // still resumed at "Step 4 of 5"; the library step was only reachable
+    // through Save & continue.
+    it('Skip for now moves on to the library step without saving anything', async () => {
+        render(SetupPage, { props: { data: pageData({ resume: true }) as never } });
+        expect(screen.getByText('Step 4 of 5')).toBeTruthy();
+
+        await fireEvent.click(screen.getByRole('button', { name: /skip for now/i }));
+
+        expect(
+            await screen.findByRole('heading', { name: /add your first library/i }),
+        ).toBeTruthy();
+        expect(screen.getByText('Step 5 of 5')).toBeTruthy();
+        expect(window.location.assign).not.toHaveBeenCalled();
+        expect(api.apiPost).not.toHaveBeenCalled();
+        expect(api.apiPut).not.toHaveBeenCalled();
+    });
+
     it('names the local host and explains that other nodes have not been checked', async () => {
         api.apiGet.mockImplementation((path: string) =>
             Promise.resolve(
@@ -889,7 +907,7 @@ describe('/setup — a resumed wizard keeps what an earlier pass saved', () => {
     });
 
     // Reloading on step 3/4 (or returning from an OIDC sign-in) restarts at step
-    // 3. Seeded from client defaults, Save/Skip re-sent the Movies preset and
+    // 3. Seeded from client defaults, Save & continue re-sent the Movies preset and
     // default toggles over the operator's earlier choices.
     const SAVED = preferences({
         useCases: ['music'],

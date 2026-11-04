@@ -711,7 +711,7 @@
     // ---- Step 3: use-case selection ----
     // A resumed wizard (reload, or back from an OIDC sign-in) starts from what an
     // earlier pass saved — every step-3 value below is seeded from `data.preferences`
-    // then, so Save/Skip re-sends the operator's choices instead of the defaults.
+    // then, so Save & continue re-sends the operator's choices instead of the defaults.
     // First run keeps the defaults, except fields an env var owns (shown as set).
     function seededFromSaved(field: SetupPreferenceField): boolean {
         return data.resume || data.preferences.envLocked.includes(field);
@@ -1177,10 +1177,8 @@
 
     // Persists everything typed on step 3 (preferences, TMDB key, MDBList/embedding
     // integrations, use-case profile, AI assistant, Discogs/Last.fm secrets).
-    // Shared by finishSetup() (Save & continue → step 4) AND skipToLibrary() (Skip
-    // for now → straight to /admin/library/sources) — skip must NOT silently
-    // discard already-typed keys or the toggles the operator was shown, so both
-    // paths save first.
+    // Called by finishSetup() (Save & continue → step 4); "Skip for now"
+    // (skipPreferences) goes to step 4 without it.
     // Returns false (without persisting anything) when a required-but-missing key
     // guard fires, so the caller can keep the operator on step 3 to fix it.
     // Keep metadata-critical saves on step 3; optional failures also appear
@@ -1415,10 +1413,9 @@
         return !step3SaveError && !embeddingSaveFailed;
     }
 
-    async function finishSetup(): Promise<void> {
-        if (!(await persistStep3())) return;
-        // Advance to the guided "add your first library" step rather than
-        // dropping the operator into the admin library page cold.
+    // Advance to the guided "add your first library" step rather than
+    // dropping the operator into the admin library page cold.
+    function goToLibraryStep(): void {
         // A music-only instance has exactly one sensible media type — preselect
         // it. Video stays an explicit choice (movie vs tv is ambiguous).
         if (!libraryMediaType && wantsMusic && !wantsVideo) libraryMediaType = 'music';
@@ -1426,13 +1423,23 @@
         void loadMountCandidates();
     }
 
-    async function skipToLibrary(): Promise<void> {
-        // Step 3 may hold typed API keys / preferences — persist them (same as
-        // Save & continue) before leaving, so "Skip for now" only skips the
-        // guided library/scan steps, never the operator's already-typed input or
-        // the wizard's safer defaults. Step 4's own "skip" (no library added yet)
-        // has nothing left to persist here — step 3 already ran.
-        if (step === 3 && !(await persistStep3())) return;
+    async function finishSetup(): Promise<void> {
+        if (!(await persistStep3())) return;
+        goToLibraryStep();
+    }
+
+    // "Skip for now" on step 3 skips the optional basics only: nothing is saved
+    // (the server keeps its current config), and the wizard still goes on to
+    // the library step like Save & continue. It used to leave for
+    // /admin/library/sources, so a fresh install never saw the library step.
+    function skipPreferences(): void {
+        step3SaveError = '';
+        goToLibraryStep();
+    }
+
+    // Step 4's "Skip for now" (no library added yet): leave the wizard for the
+    // admin library page.
+    function skipToLibrary(): void {
         window.location.assign(url('/admin/library/sources'));
     }
 
@@ -3956,7 +3963,7 @@
                     <button
                         type="button"
                         class="btn variant-ghost-surface"
-                        onclick={skipToLibrary}
+                        onclick={skipPreferences}
                         disabled={finishing}>
                         {m.setup_btn_skip()}
                     </button>
