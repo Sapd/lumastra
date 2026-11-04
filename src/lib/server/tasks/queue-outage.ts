@@ -189,6 +189,11 @@ export function logQueueConnectionErrors(target: unknown, scope: string): void {
     watchRecovery(target);
 }
 
+/** A raw ioredis connection (the shared queue connection) is usable again. */
+export function noteTaskConnectionRecovered(): void {
+    processGate.recovered();
+}
+
 /**
  * For a BullMQ Worker: only follow its reconnects, so the outage length is real.
  * Its `error` events are handled by the runner, which routes connection-loss
