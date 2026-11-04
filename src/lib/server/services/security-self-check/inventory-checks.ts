@@ -18,7 +18,11 @@ import {
 } from '$lib/server/config/config.service.js';
 import { openSecret, decrypt, deriveMasterKey } from '$lib/server/crypto/secret-box.js';
 import { resolveMasterKey } from '$lib/server/crypto/master-key.js';
-import { forwardAuthTrustPosture, clientIpProxiesPinned } from '$lib/server/utils/client-ip.js';
+import {
+    forwardAuthTrustPosture,
+    clientIpPinState,
+    type ClientIpPinState,
+} from '$lib/server/utils/client-ip.js';
 import { tokenContext } from '$lib/server/subsonic-compat/auth.js';
 import { credentialContext } from '$lib/server/database/queries/livetv-sources.queries.js';
 import {
@@ -366,8 +370,22 @@ export function evaluateUnopenableSecrets(
 export function evaluateSingleIpPolicyPosture(
     rowsWithSingleIp: number,
     posture: ReturnType<typeof forwardAuthTrustPosture>,
+    clientIpPin: ClientIpPinState = 'none',
 ): SecuritySelfCheckFinding {
-    if (rowsWithSingleIp === 0 || posture === 'allowlist') {
+    if (rowsWithSingleIp > 0 && posture !== 'allowlist' && clientIpPin === 'caveat') {
+        return finding({
+            id: 'inventory.single-ip-policy-posture',
+            method: 'forward-auth',
+            type: 'inventory',
+            status: 'warn',
+            title: 'require_single_ip rests on a router X-Forwarded-For any pod can set',
+            detail: `${rowsWithSingleIp} user_stream_policies row(s) set require_single_ip=true. The client IP comes from the Helm router\u2019s X-Forwarded-For, and that router adopts it from a wide range (router.realIp.fromCIDRs wider than /24, with no networkPolicy limiting who reaches the router), so any pod in the cluster can choose it. The control tells clients apart, but a pod in the cluster can choose the address it is counted under.`,
+            remediation:
+                'Enable networkPolicy with networkPolicy.ingressFrom and/or narrow router.realIp.fromCIDRs to your ingress controller pods.',
+            evidence: 'user_stream_policies.require_single_ip; client-ip.ts:clientIpPinState',
+        });
+    }
+    if (rowsWithSingleIp === 0 || posture === 'allowlist' || clientIpPin === 'pinned') {
         return finding({
             id: 'inventory.single-ip-policy-posture',
             method: 'forward-auth',
@@ -410,12 +428,7 @@ async function checkSingleIpPolicyPosture(sql: postgres.Sql): Promise<SecuritySe
         WHERE require_single_ip = true
     `;
     const count = toCount(rows[0]?.count);
-    // `allowlist` here only means "the strict resolver reads a distinct client IP": a
-    // CLIENT_IP_PROXY_IPS list (Helm router) achieves that without any identity trust.
-    return evaluateSingleIpPolicyPosture(
-        count,
-        clientIpProxiesPinned() ? 'allowlist' : forwardAuthTrustPosture(),
-    );
+    return evaluateSingleIpPolicyPosture(count, forwardAuthTrustPosture(), clientIpPinState());
 }
 
 // ---------------------------------------------------------------------------

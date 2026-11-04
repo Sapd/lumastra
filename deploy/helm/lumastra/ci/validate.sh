@@ -25,6 +25,13 @@ for values in "$CHART"/ci/*-values.yaml; do
     if ! cmp -s "$TMP/$name.yaml" "$TMP/$name.again.yaml"; then
         echo "not deterministic: two renders differ"; fail=1
     fi
+    # Every location that proxies to web sets the router-hop header exactly once (the header also
+    # overwrites a client-sent copy, so a missing line would let a client's value through).
+    pass_n=$(grep -c 'proxy_pass http://lumastra_web;' "$TMP/$name.yaml" || true)
+    hop_n=$(grep -c 'proxy_set_header X-Lumastra-Router-Hop \$lumastra_hop;' "$TMP/$name.yaml" || true)
+    if [ "$pass_n" != "$hop_n" ]; then
+        echo "router: $pass_n proxy_pass to web but $hop_n hop header lines"; fail=1
+    fi
     # Barman Cloud's ObjectStore has no published schema in the catalog yet.
     kubeconform -strict -summary -kubernetes-version "$K8S_VERSION" \
         -schema-location default -schema-location "$CRD_CATALOG" \

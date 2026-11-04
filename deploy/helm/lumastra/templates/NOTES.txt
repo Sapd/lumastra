@@ -44,6 +44,14 @@ WARNING: router.replicas > 1 without the router-hop secret (router.hop.enabled, 
 pointing at your Secret). Web then sees each router pod as the client: IP-pinned playback grants fail with
 403 ip_mismatch about half the time. Put LUMASTRA_MASTER_KEY in the Secret, or run one router replica.
 {{- end }}
+{{- if and (include "lumastra.routerHopOn" .) (include "lumastra.routerRealIpWide" .) }}
+
+WARNING: the router adopts X-Forwarded-For from router.realIp.fromCIDRs ({{ join ", " .Values.router.realIp.fromCIDRs }}), a range
+any pod in the cluster may be in, and networkPolicy does not limit who reaches the router. The router-hop secret proves a request came
+THROUGH the router, not that its X-Forwarded-For is honest: any pod can `curl -H 'X-Forwarded-For: <ip>' http://<release>-lumastra-router:8080/`
+and choose the client address the app uses for per-IP login/auth rate limits, IP-pinned playback grants and PAT/service-token IP allowlists.
+Fix: networkPolicy.enabled=true with networkPolicy.ingressFrom (your ingress controller pods), and/or narrow router.realIp.fromCIDRs to them.
+{{- end }}
 {{- if and (or (gt (int .Values.web.replicas) 1) (and (gt (int .Values.web.replicas) 0) (gt (int .Values.worker.replicas) 0))) (has "ReadWriteOnce" (default list .Values.persistence.config.accessModes)) }}
 
 NOTE: /config is ReadWriteOnce: every web/worker pod must run on the same node (nodeSelector/affinity).

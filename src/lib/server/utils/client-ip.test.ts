@@ -812,16 +812,58 @@ describe('client-ip', () => {
             expect(hop.routerHopSeen()).toBe(false);
         });
 
-        it('clientIpProxiesPinned turns true once a hop request was served', async () => {
-            const { clientIpProxiesPinned, hop } = await importWithKey(KEY);
-            expect(clientIpProxiesPinned()).toBe(false);
+        it('pin state: a served hop is a caveat (router trust unknown), never pinned on its own', async () => {
+            delete process.env.LUMASTRA_ROUTER_REALIP_WIDE;
+            const { clientIpPinState, clientIpProxiesPinned, hop } = await importWithKey(KEY);
+            expect(clientIpPinState()).toBe('none');
             const ev = hopEvent({
                 peer: '10.42.0.11',
                 xff: '1.1.1.1',
                 hop: hop.deriveRouterHopSecret(KEY),
             });
             hop.acceptAndStripRouterHop(ev.request);
-            expect(clientIpProxiesPinned()).toBe(true);
+            expect(clientIpPinState()).toBe('caveat');
+            expect(clientIpProxiesPinned()).toBe(false);
+        });
+
+        it('pin state follows LUMASTRA_ROUTER_REALIP_WIDE from the chart, with no request needed', async () => {
+            process.env.LUMASTRA_ROUTER_REALIP_WIDE = 'true';
+            const wide = await importWithKey(KEY);
+            expect(wide.clientIpPinState()).toBe('caveat');
+            process.env.LUMASTRA_ROUTER_REALIP_WIDE = 'false';
+            const narrow = await importWithKey(KEY);
+            expect(narrow.clientIpPinState()).toBe('pinned');
+            expect(narrow.clientIpProxiesPinned()).toBe(true);
+            // Narrow router but no env master key: the hop cannot work, so it is not pinned.
+            const noKey = await importWithKey(undefined);
+            expect(noKey.clientIpPinState()).toBe('none');
+            delete process.env.LUMASTRA_ROUTER_REALIP_WIDE;
+        });
+
+        it('a wide router caveat outranks a narrow CLIENT_IP_PROXY_IPS list', async () => {
+            process.env.LUMASTRA_ROUTER_REALIP_WIDE = 'true';
+            delete process.env.TRUSTED_PROXY_IPS;
+            process.env.CLIENT_IP_PROXY_IPS = '10.42.0.11';
+            vi.resetModules();
+            const { clientIpPinState } = await import('./client-ip');
+            expect(clientIpPinState()).toBe('caveat');
+            delete process.env.LUMASTRA_ROUTER_REALIP_WIDE;
+        });
+
+        it('downstream code never sees the secret: after the strip the header reads null', async () => {
+            const { hop } = await importWithKey(KEY);
+            const ev = hopEvent({
+                peer: '10.42.0.11',
+                xff: '1.1.1.1',
+                hop: hop.deriveRouterHopSecret(KEY),
+            });
+            expect(ev.request.headers.get('x-lumastra-router-hop')).not.toBeNull();
+            hop.acceptAndStripRouterHop(ev.request);
+            expect(ev.request.headers.get('x-lumastra-router-hop')).toBeNull();
+            expect([...ev.request.headers.keys()]).not.toContain('x-lumastra-router-hop');
+            // Idempotent, and a second pass keeps the verdict.
+            expect(hop.acceptAndStripRouterHop(ev.request)).toBe(true);
+            expect(hop.isRouterHopAuthenticated(ev.request)).toBe(true);
         });
 
         it('the derivation is HMAC-SHA256(key, "lumastra-router-hop-v1") over the trimmed key, hex', async () => {

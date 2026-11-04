@@ -428,3 +428,54 @@ tests:
       set: { router.hop: null }
       asserts:
           - equal: { path: 'spec.template.spec.initContainers[0].name', value: hop-secret }
+
+    - it: with forward-auth, bypass, passthrough and extra passthrough paths, every proxy_pass block carries exactly one hop header
+      documentIndex: 0
+      set:
+          auth.forwardAuth: { enabled: true, trustedProxyIps: 10.42.0.0/16 }
+          networkPolicy.enabled: true
+          router.forwardAuth:
+              enabled: true
+              url: https://auth.example.com/outpost.goauthentik.io/auth/nginx
+              apiV1Passthrough: true
+              extraPassthroughPaths: [/api/playback/]
+              outpost: { enabled: true, origin: 'https://auth.example.com' }
+      asserts:
+          # Each location that proxies to web (/j/, /api/v1/, /api/playback/, /oauth/links/, /, ...) has
+          # the header inside its own block; none has it twice. ci/validate.sh also checks the counts.
+          - matchRegex:
+                {
+                    path: 'data["nginx.conf"]',
+                    pattern: 'location \^~ /j/ \{[^}]*X-Lumastra-Router-Hop \$lumastra_hop;[^}]*proxy_pass http://lumastra_web;',
+                }
+          - matchRegex:
+                {
+                    path: 'data["nginx.conf"]',
+                    pattern: 'location \^~ /api/v1/ \{[^}]*X-Lumastra-Router-Hop \$lumastra_hop;[^}]*proxy_pass http://lumastra_web;',
+                }
+          - matchRegex:
+                {
+                    path: 'data["nginx.conf"]',
+                    pattern: 'location \^~ /api/playback/ \{[^}]*X-Lumastra-Router-Hop \$lumastra_hop;[^}]*proxy_pass http://lumastra_web;',
+                }
+          - matchRegex:
+                {
+                    path: 'data["nginx.conf"]',
+                    pattern: 'location @lumastra_noauth \{[^}]*X-Lumastra-Router-Hop \$lumastra_hop;[^}]*proxy_pass http://lumastra_web;',
+                }
+          - matchRegex:
+                {
+                    path: 'data["nginx.conf"]',
+                    pattern: 'location / \{[^}]*X-Lumastra-Router-Hop \$lumastra_hop;[^}]*proxy_pass http://lumastra_web;',
+                }
+          - notMatchRegex:
+                {
+                    path: 'data["nginx.conf"]',
+                    pattern: 'X-Lumastra-Router-Hop[^}]*X-Lumastra-Router-Hop',
+                }
+          # The auth subrequest and the outpost never get the hop (they do not go to web).
+          - notMatchRegex:
+                {
+                    path: 'data["nginx.conf"]',
+                    pattern: 'location = /__lumastra_auth \{[^}]*X-Lumastra-Router-Hop',
+                }

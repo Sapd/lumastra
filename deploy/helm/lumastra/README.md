@@ -132,6 +132,22 @@ cannot be turned back into the key. Notes:
   (per-IP login rate limits, IP-pinned grants, token IP allowlists). The Security Self-Check warns
   about ranges wider than /24.
 
+**What the hop does not prove.** The hop proves a request came _through the router_, not that the
+router's `X-Forwarded-For` is honest. The router takes the client address from its own peer's
+`X-Forwarded-For` when that peer is in `router.realIp.fromCIDRs` (default: all of RFC 1918, with
+`real_ip_recursive on`). Any pod that can reach the router can therefore pick the client address the
+app uses for per-IP login and auth rate-limit buckets, IP-pinned playback grants and
+PAT/service-token IP allowlists (a stolen token then passes `allowed_ips`). Recommended:
+`networkPolicy.enabled: true` with `networkPolicy.ingressFrom` set to your ingress controller pods,
+and/or `router.realIp.fromCIDRs` narrowed to those pods (a range of /24 or narrower, or exact
+addresses). The chart warns while neither is done.
+
+The derived value is a plain HMAC of the master key and travels in cleartext inside the cluster. With
+a low-entropy passphrase master key, someone who sniffs it can brute-force the key offline. Use
+`openssl rand -hex 32` (the Quick start does). A key the app reads from `/config/master.key` is not
+visible to the router: the router then sends no hop, so the app ignores its `X-Forwarded-For` (fails
+closed). Router pods read the key when they start: after rotating it, restart them.
+
 **Ingress requirement.** The router takes the client address from `X-Forwarded-For` when the peer is
 in `router.realIp.fromCIDRs` (default: RFC 1918, `real_ip_recursive on`) and passes it on as a
 single entry. The Ingress, gateway or load balancer in front must therefore **set or append** the
@@ -277,12 +293,19 @@ router and `metricsFrom`; without it, web itself is the entry point. Metrics pee
 of port 3000, not just `/metrics`. Bundled Valkey accepts app pods and the enabled stream
 proxy. PostgreSQL needs its own isolation policy; this chart does not create one for it.
 
-A pod that reaches `web:3000` directly cannot choose its client address: the app believes
-`X-Forwarded-For` only with the router's hop secret (see "Routing"), and the strict client IP (login
-and token rate limits, PAT and service-token IP allowlists, playback grants) stays the real peer
-otherwise. It can still send `X-Forwarded-For` for the app's non-strict client IP (general rate
-limits). With `networkPolicy.enabled` only the router and `networkPolicy.metricsFrom` reach web at
-all.
+A pod that reaches `web:3000` **directly** cannot choose its strict client address: without the
+router's hop secret the app ignores its `X-Forwarded-For` (login and token rate limits, PAT and
+service-token IP allowlists and playback grants use the real peer). It can still send
+`X-Forwarded-For` for the app's non-strict client IP (general rate limits). **That does not make
+pods safe through the router**: a pod that reaches the _router_ (`<release>-lumastra-router:8080`)
+can send `X-Forwarded-For` and, with the default `router.realIp.fromCIDRs` (all of RFC 1918), the
+router adopts it and forwards it with a valid hop secret. Close that with `networkPolicy.enabled`
+and `networkPolicy.ingressFrom` (only your ingress controller reaches the router) and/or by
+narrowing `router.realIp.fromCIDRs` to the ingress controller's pods. `helm install` prints a
+warning, and the app's Security Self-Check reports the client address as caveated, while the router
+trusts a range wider than /24 that any pod can reach (the app learns this from
+`LUMASTRA_ROUTER_REALIP_WIDE`, which the chart renders). With `networkPolicy.enabled` only the
+router and `networkPolicy.metricsFrom` reach web at all.
 
 Do not put a pod CIDR into `TRUSTED_PROXY_IPS`: that list also decides whose forward-auth identity
 headers are believed. Use `auth.forwardAuth.trustedProxyIps` for forward-auth, and avoid trusting a

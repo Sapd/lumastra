@@ -14,13 +14,29 @@
  * The secret is HMAC-SHA256(key = LUMASTRA_MASTER_KEY, message = "lumastra-router-hop-v1"), hex.
  * The router's init container computes the same value (chart: templates/router.yaml, hop.js), so
  * a default install needs no extra Secret key and the master key never reaches the nginx
- * container. Only the ENV master key counts: a key generated into /config/master.key cannot be
- * read by the router, so the hop stays off (client address = TCP peer, the strict default).
+ * container. Only an ENV master key reaches the router. master-key.ts back-fills
+ * process.env.LUMASTRA_MASTER_KEY from a key FILE, so the app may hold a derived value even
+ * when the router cannot: that still fails closed, because the router then sends no header (an
+ * empty key renders an empty map value, which nginx drops), nothing matches, and the client
+ * address stays the TCP peer, the strict default. (A router whose key differs from the app's
+ * fails the same way.)
+ *
+ * WHAT THE HOP PROVES: the request came through the router. It does NOT prove the router's
+ * X-Forwarded-For is honest: the router takes it from its own peer when that peer is in
+ * router.realIp.fromCIDRs (default: all of RFC 1918), so a pod that can reach the router can
+ * make it forward any address with a valid hop. The chart tells the app whether that range is
+ * wide (LUMASTRA_ROUTER_REALIP_WIDE); the self-checks then report the client IP as caveated.
+ * Narrow router.realIp.fromCIDRs to the ingress pods and/or enable networkPolicy.ingressFrom.
+ *
+ * The derived value is a plain HMAC of the key: with a low-entropy passphrase key, someone who
+ * sniffs it (it travels in cleartext inside the cluster) can brute-force the key offline. Use
+ * a 64-hex key (`openssl rand -hex 32`).
  *
  * This grants no identity trust: forward-auth identity headers are decided by TRUSTED_PROXY_IPS
  * alone (client-ip.ts isForwardAuthPeerTrusted).
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 
 export const ROUTER_HOP_HEADER = 'x-lumastra-router-hop';
@@ -46,6 +62,16 @@ function expectedDigest(): Buffer | null {
     return cachedDigest;
 }
 
+// The verdict is carried by the request's async context, NOT by the Request object: between the
+// hooks handle and an endpoint the Request is rebuilt (Paraglide's middleware hands the chain a
+// cloned Request, FORCE_LOCALE builds a new one), and the clone has neither the mark nor the
+// (already stripped) header. A nested handle run for an internal sub-request (event.fetch) starts
+// its own scope, so a sub-request never inherits the outer verdict: it resolves from its own
+// headers, consistently at mint and at check time.
+interface HopScope {
+    authenticated: boolean;
+}
+const scope = new AsyncLocalStorage<HopScope>();
 const authenticated = new WeakSet<object>();
 let hopSeen = false;
 
@@ -63,6 +89,8 @@ function headerMatches(headers: Headers): boolean {
  * before or after `acceptAndStripRouterHop`.
  */
 export function isRouterHopAuthenticated(request: Pick<Request, 'headers'> | undefined): boolean {
+    const inScope = scope.getStore();
+    if (inScope) return inScope.authenticated;
     if (!request) return false;
     if (authenticated.has(request)) return true;
     return headerMatches(request.headers);
@@ -86,7 +114,33 @@ export function acceptAndStripRouterHop(request: Request): boolean {
     return ok;
 }
 
+/**
+ * Run `fn` (the rest of the handle chain) in a scope that remembers whether the hop secret matched,
+ * after stripping the header. Every client-IP reader consults the scope first, so the verdict
+ * survives a rebuilt Request. Outside a scope (tests, background work) readers fall back to the
+ * Request itself.
+ */
+export function runWithRouterHop<T>(request: Request, fn: () => T): T {
+    const ok = acceptAndStripRouterHop(request);
+    return scope.run({ authenticated: ok }, fn);
+}
+
 /** True once a request with a valid hop secret was served: the router really authenticates. */
 export function routerHopSeen(): boolean {
     return hopSeen;
+}
+
+/**
+ * What the chart says about the router's X-Forwarded-For source (LUMASTRA_ROUTER_REALIP_WIDE,
+ * rendered only while the hop is on):
+ * - `wide`    — the router adopts X-Forwarded-For from a range wider than /24 that any in-cluster
+ *               pod may be in (and no NetworkPolicy limits who reaches the router),
+ * - `narrow`  — it does not,
+ * - `unknown` — not set (not the Helm chart, or an older chart).
+ */
+export function routerRealIpExposure(): 'wide' | 'narrow' | 'unknown' {
+    const v = (process.env.LUMASTRA_ROUTER_REALIP_WIDE ?? '').trim().toLowerCase();
+    if (v === 'true') return 'wide';
+    if (v === 'false') return 'narrow';
+    return 'unknown';
 }

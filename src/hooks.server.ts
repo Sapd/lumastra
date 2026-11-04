@@ -71,7 +71,7 @@ import { sandboxScriptableResponse } from '$lib/server/middleware/scriptable-res
 import { buildRequestLanguageHint } from './hooks.language.js';
 import { runWithRequestLanguage } from '$lib/server/utils/request-language-context.js';
 import { warnIfProxyTrustImplicit } from '$lib/server/utils/client-ip.js';
-import { acceptAndStripRouterHop } from '$lib/server/utils/router-hop.js';
+import { runWithRouterHop } from '$lib/server/utils/router-hop.js';
 import { warnIfTrustedProxyCoversGateway } from '$lib/server/utils/docker-gateway-trust.js';
 import { warnIfMasterKeyFileConflicts } from '$lib/server/crypto/master-key.js';
 import { isAnonymousEntityImagePath } from '$lib/server/utils/entity-image-paths.js';
@@ -1416,12 +1416,11 @@ const shutdownGateHandle = createShutdownGateHandle({
 const preloadLinkHeaderHandle: Handle = async ({ event, resolve }) =>
     stripPagePreloadLinkHeader(await resolve(event));
 
-// Remember whether the Helm router authenticated this hop, then remove its secret header so
+// Remember whether the Helm router authenticated this hop (in the request's async context, so a
+// rebuilt Request, e.g. Paraglide's clone, keeps the verdict), then remove its secret header so
 // nothing later (logs, proxied requests, handlers) can see it. client-ip.ts reads the result.
-const routerHopHandle: Handle = ({ event, resolve }) => {
-    acceptAndStripRouterHop(event.request);
-    return resolve(event);
-};
+const routerHopHandle: Handle = ({ event, resolve }) =>
+    runWithRouterHop(event.request, () => resolve(event));
 
 export const handle = sequence(
     ({ event, resolve }) => withRequestPathCallScope(() => resolve(event)),

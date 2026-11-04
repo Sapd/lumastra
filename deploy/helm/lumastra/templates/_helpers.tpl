@@ -518,3 +518,38 @@ radarr: [RADARRURL, "", RADARRAPIKEY]
 {{- end }}
 {{- end }}
 {{- end -}}
+
+{{- /*
+Router-hop active: the router renders the hop-secret init container (router.hop.enabled, default on,
+and secrets.env has LUMASTRA_MASTER_KEY). Returns "true" or "".
+*/ -}}
+{{- define "lumastra.routerHopOn" -}}
+{{- $r := .Values.router -}}
+{{- $hopCfg := default dict $r.hop -}}
+{{- $hopOn := ternary $hopCfg.enabled true (hasKey $hopCfg "enabled") -}}
+{{- $mk := get (default dict .Values.secrets.env) "LUMASTRA_MASTER_KEY" -}}
+{{- $mkSecret := .Values.secrets.existingSecret -}}
+{{- $mkKey := "" -}}
+{{- if kindIs "string" $mk }}{{ $mkKey = $mk }}{{ else if kindIs "map" $mk }}{{ $mkSecret = default $mkSecret $mk.secret }}{{ $mkKey = default "LUMASTRA_MASTER_KEY" $mk.key }}{{ end -}}
+{{- if and $r.enabled $hopOn $mkSecret $mkKey }}true{{ end -}}
+{{- end -}}
+
+{{- /*
+Whether the router adopts X-Forwarded-For from a range any in-cluster pod may be in: a
+router.realIp.fromCIDRs entry wider than /24 (IPv6: wider than /64), AND no NetworkPolicy keeps
+other pods away from the router (networkPolicy.enabled with a non-empty ingressFrom).
+Returns "true" or "".
+*/ -}}
+{{- define "lumastra.routerRealIpWide" -}}
+{{- $r := .Values.router -}}
+{{- $wide := false -}}
+{{- range (default list $r.realIp.fromCIDRs) }}
+{{- $parts := splitList "/" (toString .) }}
+{{- if eq (len $parts) 2 }}
+{{- $bits := int (index $parts 1) }}
+{{- if contains ":" (index $parts 0) }}{{ if lt $bits 64 }}{{ $wide = true }}{{ end }}{{ else }}{{ if lt $bits 24 }}{{ $wide = true }}{{ end }}{{ end }}
+{{- end }}
+{{- end }}
+{{- $guarded := and .Values.networkPolicy.enabled .Values.networkPolicy.ingressFrom -}}
+{{- if and $wide (not $guarded) }}true{{ end -}}
+{{- end -}}

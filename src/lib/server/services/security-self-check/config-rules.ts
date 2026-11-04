@@ -16,7 +16,8 @@
  */
 
 import { config, devFeaturesEnabled, features } from '$lib/server/config';
-import { forwardAuthTrustPosture, clientIpProxiesPinned } from '$lib/server/utils/client-ip';
+import { forwardAuthTrustPosture, clientIpPinState } from '$lib/server/utils/client-ip';
+import { routerRealIpExposure } from '$lib/server/utils/router-hop';
 import {
     describeWideTrustedProxyRanges,
     describeWideClientIpProxyRanges,
@@ -445,28 +446,61 @@ export function checkProxyWideRange(): SecuritySelfCheckFinding {
         forwardAuthEnabled,
         kubernetes: runsOnKubernetes(),
     });
-    // CLIENT_IP_PROXY_IPS is an unauthenticated list too: a wide one is a warning, never a pass.
+    // CLIENT_IP_PROXY_IPS is an unauthenticated list too: a wide one is a warning, never a pass,
+    // and it must not be hidden by a (milder) report for TRUSTED_PROXY_IPS.
     const clientReport = describeWideClientIpProxyRanges(process.env.CLIENT_IP_PROXY_IPS);
-    if (!report && clientReport) {
+    // The Helm router adopts X-Forwarded-For from a wide range: any pod that reaches it picks the
+    // client address the app then believes (hop-authenticated).
+    const routerWide = routerRealIpExposure() === 'wide';
+
+    const warnings: { title: string; detail: string; remediation: string }[] = [];
+    if (report?.severity === 'warn') {
+        warnings.push({
+            title: forwardAuthEnabled
+                ? 'TRUSTED_PROXY_IPS lists a wide range while forward auth is on'
+                : 'TRUSTED_PROXY_IPS lists a wide range',
+            detail: report.message,
+            remediation: report.remediation,
+        });
+    }
+    if (clientReport) {
+        warnings.push({
+            title: 'CLIENT_IP_PROXY_IPS lists a wide range',
+            detail: clientReport.message,
+            remediation: clientReport.remediation,
+        });
+    }
+    if (routerWide) {
+        warnings.push({
+            title: 'The router adopts X-Forwarded-For from a wide range',
+            detail: 'router.realIp.fromCIDRs is wider than /24 and no NetworkPolicy limits who reaches the router, so any pod in the cluster can send the router an X-Forwarded-For; the router forwards it with a valid router-hop secret and the app believes it as the client address. That address keys per-IP login and auth rate limits, IP-pinned playback grants and PAT/service-token IP allowlists.',
+            remediation:
+                'Enable networkPolicy with networkPolicy.ingressFrom (your ingress controller pods) and/or narrow router.realIp.fromCIDRs to those pods.',
+        });
+    }
+    if (warnings.length > 0) {
         return finding({
             id: 'proxy.wide-range',
             method: 'forward-auth',
             type: 'config-static',
             status: 'warn',
-            title: 'CLIENT_IP_PROXY_IPS lists a wide range',
-            detail: clientReport.message,
-            remediation: clientReport.remediation,
-            evidence: 'trusted-proxy-ranges.ts',
+            title:
+                warnings.length === 1 ? warnings[0].title : warnings.map((w) => w.title).join('; '),
+            detail: warnings.map((w) => w.detail).join(' '),
+            remediation: warnings.map((w) => w.remediation).join(' '),
+            evidence: 'trusted-proxy-ranges.ts; router-hop.ts',
         });
     }
-    if (!report) {
+    if (report) {
+        // Only the Kubernetes pod-CIDR info (TRUSTED_PROXY_IPS behind a NetworkPolicy) is left.
         return finding({
             id: 'proxy.wide-range',
             method: 'forward-auth',
             type: 'config-static',
-            status: 'pass',
-            title: 'TRUSTED_PROXY_IPS and CLIENT_IP_PROXY_IPS list no wide range',
-            detail: `Neither list has any IPv4 range wider than /${MIN_TRUSTED_PROXY_PREFIX_V4} and no IPv6 range.`,
+            status: report.severity,
+            title: 'TRUSTED_PROXY_IPS lists a wide range (Kubernetes)',
+            detail: report.message,
+            remediation: report.remediation,
             evidence: 'trusted-proxy-ranges.ts',
         });
     }
@@ -474,15 +508,9 @@ export function checkProxyWideRange(): SecuritySelfCheckFinding {
         id: 'proxy.wide-range',
         method: 'forward-auth',
         type: 'config-static',
-        status: report.severity,
-        title:
-            report.severity === 'info'
-                ? 'TRUSTED_PROXY_IPS lists a wide range (Kubernetes)'
-                : forwardAuthEnabled
-                  ? 'TRUSTED_PROXY_IPS lists a wide range while forward auth is on'
-                  : 'TRUSTED_PROXY_IPS lists a wide range',
-        detail: report.message,
-        remediation: report.remediation,
+        status: 'pass',
+        title: 'TRUSTED_PROXY_IPS and CLIENT_IP_PROXY_IPS list no wide range',
+        detail: `Neither list has any IPv4 range wider than /${MIN_TRUSTED_PROXY_PREFIX_V4} and no IPv6 range, and the router does not adopt X-Forwarded-For from a wide range.`,
         evidence: 'trusted-proxy-ranges.ts',
     });
 }
@@ -510,8 +538,22 @@ export function checkProxyWideRange(): SecuritySelfCheckFinding {
 export function checkStreamTokenIpPinningIneffective(): SecuritySelfCheckFinding {
     const wildcardIp = getConfigValue('STREAM_TOKEN_WILDCARD_IP') !== false;
     const posture = forwardAuthTrustPosture();
-    // CLIENT_IP_PROXY_IPS (Helm router) pins the client IP without touching the identity posture.
-    if (wildcardIp || posture === 'allowlist' || clientIpProxiesPinned()) {
+    // CLIENT_IP_PROXY_IPS / the Helm router hop pin the client IP without touching the identity posture.
+    const pin = clientIpPinState();
+    if (!wildcardIp && posture !== 'allowlist' && pin === 'caveat') {
+        return finding({
+            id: 'stream-token.ip-pinning-ineffective',
+            method: 'forward-auth',
+            type: 'config-static',
+            status: 'warn',
+            title: 'Stream-token IP pinning rests on a router X-Forwarded-For any pod can set',
+            detail: 'STREAM_TOKEN_WILDCARD_IP=false. The client IP comes from the Helm router\u2019s X-Forwarded-For, and that router adopts it from a wide range (router.realIp.fromCIDRs wider than /24, with no networkPolicy limiting who reaches the router), so any pod in the cluster can choose it. Pinning still tells clients apart, but a pod in the cluster can pick the address it is pinned to.',
+            remediation:
+                'Enable networkPolicy with networkPolicy.ingressFrom and/or narrow router.realIp.fromCIDRs to your ingress controller pods.',
+            evidence: 'client-ip.ts:clientIpPinState; router-hop.ts',
+        });
+    }
+    if (wildcardIp || posture === 'allowlist' || pin === 'pinned') {
         return finding({
             id: 'stream-token.ip-pinning-ineffective',
             method: 'forward-auth',

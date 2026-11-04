@@ -152,6 +152,19 @@ describe('evaluateSingleIpPolicyPosture', () => {
         expect(result.status).toBe('pass');
     });
 
+    it('passes when the client IP is pinned by a narrow router trust or list (fail-closed identity posture)', () => {
+        expect(evaluateSingleIpPolicyPosture(2, 'fail-closed', 'pinned').status).toBe('pass');
+    });
+
+    it('warns, caveated, when the client IP comes from a router that trusts a wide range', () => {
+        const result = evaluateSingleIpPolicyPosture(2, 'fail-closed', 'caveat');
+        expect(result.status).toBe('warn');
+        expect(result.detail).toContain('any pod in the cluster can choose it');
+        expect(result.remediation).toContain('router.realIp.fromCIDRs');
+        expect(evaluateSingleIpPolicyPosture(0, 'fail-closed', 'caveat').status).toBe('pass');
+        expect(evaluateSingleIpPolicyPosture(2, 'allowlist', 'caveat').status).toBe('pass');
+    });
+
     it('warns when rows exist and the proxy posture is fail-closed (unpinned)', () => {
         // Unpinned: getClientIpStrictFromRequest ignores XFF and falls back to
         // the raw TCP peer, so every client behind the same reverse proxy

@@ -66,7 +66,12 @@
 
 import type { RequestEvent } from '@sveltejs/kit';
 import { Logger } from './logger';
-import { isRouterHopAuthenticated, routerHopSeen } from './router-hop';
+import {
+    deriveRouterHopSecret,
+    isRouterHopAuthenticated,
+    routerHopSeen,
+    routerRealIpExposure,
+} from './router-hop';
 import { findWideTrustedProxyRanges } from './trusted-proxy-ranges';
 
 const clientIpLogger = Logger.for('ClientIp');
@@ -179,15 +184,39 @@ function hasAnyClientIpProxies(): boolean {
 }
 
 /**
- * Whether the strict resolver can read a distinct client address per request without trusting an
- * unauthenticated wide range: a router hop request was seen (authenticated), or CLIENT_IP_PROXY_IPS
- * lists only narrow entries (no range wider than /24). Not an identity statement: use
- * `forwardAuthTrustPosture` for that.
+ * How far the strict client address can be believed (self-checks):
+ * - `pinned`  — it comes from an explicit narrow CLIENT_IP_PROXY_IPS list, or from the router hop
+ *               with a router that only adopts X-Forwarded-For from a narrow range
+ *               (LUMASTRA_ROUTER_REALIP_WIDE=false; no request needed to know),
+ * - `caveat`  — it comes from the router's X-Forwarded-For and that router trusts a wide range
+ *               (or the chart did not say, but a hop request was served): any in-cluster pod that
+ *               reaches the router can choose it,
+ * - `none`    — the strict client IP is the TCP peer.
+ * Not an identity statement: use `forwardAuthTrustPosture` for that.
  */
+export type ClientIpPinState = 'pinned' | 'caveat' | 'none';
+
+export function clientIpPinState(): ClientIpPinState {
+    const exposure = routerRealIpExposure();
+    if (exposure === 'wide') return 'caveat';
+    if (
+        exposure === 'narrow' &&
+        deriveRouterHopSecret(process.env.LUMASTRA_MASTER_KEY).length > 0
+    ) {
+        return 'pinned';
+    }
+    if (
+        !matcherIsEmpty(CLIENT_IP_PROXIES) &&
+        !findWideTrustedProxyRanges(process.env.CLIENT_IP_PROXY_IPS)
+    ) {
+        return 'pinned';
+    }
+    return routerHopSeen() ? 'caveat' : 'none';
+}
+
+/** `clientIpPinState() === 'pinned'`: the strict resolver reads a distinct, hard-to-forge client address. */
 export function clientIpProxiesPinned(): boolean {
-    if (routerHopSeen()) return true;
-    if (matcherIsEmpty(CLIENT_IP_PROXIES)) return false;
-    return !findWideTrustedProxyRanges(process.env.CLIENT_IP_PROXY_IPS);
+    return clientIpPinState() === 'pinned';
 }
 
 function readForwardedClientIp(headers: Headers): string | null {

@@ -335,6 +335,8 @@ router:
     proxyTimeoutSeconds: 3600
     # Real client IP when another proxy (ingress/gateway) sits in front: trust X-Forwarded-For
     # from these peers. The IP fallback of the routing key and the app's client IP use it.
+    # SECURITY: any pod that can reach the router can send it an X-Forwarded-For and, if its address is in
+    # these ranges, choose its client address: narrow this to the ingress pods and/or use networkPolicy.
     # SECURITY: the proxy in front must SET or APPEND the real peer address, never pass a
     # client-supplied X-Forwarded-For through untouched. With real_ip_recursive on, a client XFF that
     # reaches the router from a listed peer would be taken as the client address. Pod networks are not

@@ -39,6 +39,44 @@ tests:
       set: { app.clientIpProxyIps: '' }
       asserts:
           - notExists: { path: data.CLIENT_IP_PROXY_IPS }
+    - it: tells the app the router adopts X-Forwarded-For from a wide range (default RFC 1918, no policy)
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
+    - it: narrow router.realIp.fromCIDRs (/24 or exact addresses) is not wide
+      set: { router.realIp.fromCIDRs: [10.42.0.0/24, 10.42.1.7] }
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'false' }
+    - it: a /23 is wide
+      set: { router.realIp.fromCIDRs: [10.42.0.0/23] }
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
+    - it: an IPv6 range wider than /64 is wide, a /64 is not
+      set: { router.realIp.fromCIDRs: ['fd00::/48'] }
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
+    - it: an IPv6 /64 is not wide
+      set: { router.realIp.fromCIDRs: ['fd00:1::/64'] }
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'false' }
+    - it: a wide range behind a NetworkPolicy with ingressFrom is not wide
+      set:
+          networkPolicy.enabled: true
+          networkPolicy.ingressFrom:
+              - podSelector: { matchLabels: { app.kubernetes.io/name: traefik } }
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'false' }
+    - it: networkPolicy.enabled with an EMPTY ingressFrom keeps the router open, so still wide
+      set: { networkPolicy.enabled: true }
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
+    - it: no router, or no hop, renders no exposure flag
+      set: { router.enabled: false }
+      asserts:
+          - notExists: { path: data.LUMASTRA_ROUTER_REALIP_WIDE }
+    - it: router.hop.enabled=false renders no exposure flag
+      set: { router.hop.enabled: false }
+      asserts:
+          - notExists: { path: data.LUMASTRA_ROUTER_REALIP_WIDE }
     - it: forward-auth keeps its own list; nothing client-IP related becomes identity trust
       set:
           auth.forwardAuth: { enabled: true, trustedProxyIps: 10.42.3.0/24 }

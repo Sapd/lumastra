@@ -59,7 +59,7 @@ vi.mock('$lib/server/config/config.service', () => ({
 vi.mock('$lib/server/utils/client-ip', () => {
     return {
         forwardAuthTrustPosture: vi.fn(() => 'allowlist' as const),
-        clientIpProxiesPinned: vi.fn(() => false),
+        clientIpPinState: vi.fn(() => 'none' as 'none' | 'pinned' | 'caveat'),
     };
 });
 
@@ -76,7 +76,7 @@ vi.mock('$lib/server/crypto/master-key.js', () => ({
 }));
 
 import { config, features } from '$lib/server/config';
-import { forwardAuthTrustPosture, clientIpProxiesPinned } from '$lib/server/utils/client-ip';
+import { forwardAuthTrustPosture, clientIpPinState } from '$lib/server/utils/client-ip';
 import {
     checkOidcAllowInsecure,
     checkDevFeaturesEnabled,
@@ -402,13 +402,32 @@ describe('checkProxyUnpinned', () => {
 describe('checkStreamTokenIpPinningIneffective', () => {
     const mockForwardAuthTrustPosture = vi.mocked(forwardAuthTrustPosture);
 
-    afterEach(() => vi.mocked(clientIpProxiesPinned).mockReturnValue(false));
+    afterEach(() => vi.mocked(clientIpPinState).mockReturnValue('none'));
 
     // The Helm router sets CLIENT_IP_PROXY_IPS: a distinct client IP per request, no identity trust.
     it('passes when only CLIENT_IP_PROXY_IPS pins the client IP (posture stays fail-closed)', () => {
         mockConfigValues.STREAM_TOKEN_WILDCARD_IP = false;
         mockForwardAuthTrustPosture.mockReturnValue('fail-closed');
-        vi.mocked(clientIpProxiesPinned).mockReturnValue(true);
+        vi.mocked(clientIpPinState).mockReturnValue('pinned');
+        expect(checkStreamTokenIpPinningIneffective().status).toBe('pass');
+    });
+
+    it('warns (caveated) when the client IP comes from a router that trusts a wide X-Forwarded-For range', () => {
+        mockConfigValues.STREAM_TOKEN_WILDCARD_IP = false;
+        mockForwardAuthTrustPosture.mockReturnValue('fail-closed');
+        vi.mocked(clientIpPinState).mockReturnValue('caveat');
+        const f = checkStreamTokenIpPinningIneffective();
+        expect(f.status).toBe('warn');
+        expect(f.detail).toContain('any pod in the cluster can choose it');
+        expect(f.remediation).toContain('router.realIp.fromCIDRs');
+    });
+
+    it('a caveat does not matter at the default wildcard IP, nor with TRUSTED_PROXY_IPS pinned', () => {
+        vi.mocked(clientIpPinState).mockReturnValue('caveat');
+        mockConfigValues.STREAM_TOKEN_WILDCARD_IP = true;
+        expect(checkStreamTokenIpPinningIneffective().status).toBe('pass');
+        mockConfigValues.STREAM_TOKEN_WILDCARD_IP = false;
+        mockForwardAuthTrustPosture.mockReturnValue('allowlist');
         expect(checkStreamTokenIpPinningIneffective().status).toBe('pass');
     });
 
@@ -778,6 +797,52 @@ describe('checkProxyWideRange', () => {
             expect(checkProxyWideRange().status).toBe('pass');
         },
     );
+
+    describe('precedence and the router exposure flag', () => {
+        const savedFlag = process.env.LUMASTRA_ROUTER_REALIP_WIDE;
+        const savedClient = process.env.CLIENT_IP_PROXY_IPS;
+        afterEach(() => {
+            if (savedFlag === undefined) delete process.env.LUMASTRA_ROUTER_REALIP_WIDE;
+            else process.env.LUMASTRA_ROUTER_REALIP_WIDE = savedFlag;
+            if (savedClient === undefined) delete process.env.CLIENT_IP_PROXY_IPS;
+            else process.env.CLIENT_IP_PROXY_IPS = savedClient;
+        });
+
+        it('a wide CLIENT_IP_PROXY_IPS is not hidden by the Kubernetes info for TRUSTED_PROXY_IPS', () => {
+            process.env.KUBERNETES_SERVICE_HOST = '10.43.0.1';
+            process.env.TRUSTED_PROXY_IPS = '10.42.0.0/16';
+            process.env.CLIENT_IP_PROXY_IPS = '10.42.0.0/16';
+            const f = checkProxyWideRange();
+            expect(f.status).toBe('warn');
+            expect(f.detail).toContain('CLIENT_IP_PROXY_IPS');
+        });
+
+        it('two warnings are reported together', () => {
+            process.env.TRUSTED_PROXY_IPS = '192.168.0.0/16';
+            process.env.CLIENT_IP_PROXY_IPS = '10.0.0.0/8';
+            const f = checkProxyWideRange();
+            expect(f.status).toBe('warn');
+            expect(f.detail).toContain('TRUSTED_PROXY_IPS');
+            expect(f.detail).toContain('CLIENT_IP_PROXY_IPS');
+        });
+
+        it('LUMASTRA_ROUTER_REALIP_WIDE=true: warn, saying any pod can pick the client address', () => {
+            process.env.TRUSTED_PROXY_IPS = '';
+            delete process.env.CLIENT_IP_PROXY_IPS;
+            process.env.LUMASTRA_ROUTER_REALIP_WIDE = 'true';
+            const f = checkProxyWideRange();
+            expect(f.status).toBe('warn');
+            expect(f.detail).toContain('any pod in the cluster can send the router');
+            expect(f.remediation).toContain('networkPolicy.ingressFrom');
+        });
+
+        it('LUMASTRA_ROUTER_REALIP_WIDE=false passes', () => {
+            process.env.TRUSTED_PROXY_IPS = '';
+            delete process.env.CLIENT_IP_PROXY_IPS;
+            process.env.LUMASTRA_ROUTER_REALIP_WIDE = 'false';
+            expect(checkProxyWideRange().status).toBe('pass');
+        });
+    });
 
     describe('CLIENT_IP_PROXY_IPS (unauthenticated client-IP list)', () => {
         const savedClient = process.env.CLIENT_IP_PROXY_IPS;
