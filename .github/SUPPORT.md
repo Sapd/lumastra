@@ -25,7 +25,7 @@ Please read this before asking, so your question lands in the right place.
   reference to include.
 - **Feature ideas:** the [Features](https://github.com/Sapd/lumastra/discussions/categories/features)
   category in Discussions. Issues aren't for feature requests.
-- **Security problems:** report them privately, never in public. See [SECURITY.md](SECURITY.md).
+- **Security problems:** report them privately, never in public. See [SECURITY.md](https://github.com/Sapd/lumastra/blob/main/.github/SECURITY.md).
 
 ## What to expect
 
@@ -40,4 +40,4 @@ Lumastra is for media you own or are licensed to use. Anything that points to pi
 content, such as indexers, release names in filenames or logs, or unlicensed IPTV lists,
 isn't discussed here. Such posts are closed without an answer. Redact filenames and paths
 before posting logs. The full rules are in the
-[Code of Conduct](CODE_OF_CONDUCT.md#content-rules).
+[Code of Conduct](https://github.com/Sapd/lumastra/blob/main/.github/CODE_OF_CONDUCT.md#content-rules).

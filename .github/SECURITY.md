@@ -48,7 +48,7 @@ Announcements discussion category.
 
 Lumastra is self-hosted. Most deployments place the app behind a reverse proxy that
 provides **forward authentication** (Authentik, Authelia, etc.); see
-[`README.md`](../README.md) and the
+[`README.md`](https://github.com/Sapd/lumastra/blob/main/README.md) and the
 [authentication guide](https://lumastra.org/guides/authentication/) for the trust model
 (including `FORWARD_AUTH_ENABLED` and `TRUSTED_PROXY_IPS`). Reports about authentication bypass, identity
 header trust, token handling, SSRF, injection, or data exposure are especially welcome.

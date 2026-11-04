@@ -3,7 +3,7 @@
 Lumastra itself is developed with heavy AI assistance, so this project will never tell you
 not to use AI. This document defines what "using AI well" means here. The rules exist to
 keep review load sane and the legal footing of the project (dual licensing under a CLA)
-intact. It complements [CONTRIBUTING.md](./CONTRIBUTING.md); everything there applies
+intact. It complements [CONTRIBUTING.md](https://github.com/Sapd/lumastra/blob/main/.github/CONTRIBUTING.md); everything there applies
 unchanged.
 
 ## The one rule everything else follows from
@@ -43,7 +43,7 @@ to look at it, and if you can, also run `/bmad-review`, the multi-lens review sk
 [BMad Method](https://github.com/bmad-code-org/BMAD-METHOD) (adversarial, edge-case and
 verification-gap lenses). Install it in your checkout with `npx bmad-method install`, then run
 `/bmad-review` on your diff; never commit `_bmad/`, `_bmad-output/` or your tool's skill folder.
-[AGENTS.md](../AGENTS.md#before-you-open-a-pull-request) has the full pre-PR checklist. Findings
+[AGENTS.md](https://github.com/Sapd/lumastra/blob/main/AGENTS.md#before-you-open-a-pull-request) has the full pre-PR checklist. Findings
 you fix before the PR are findings nobody has to discuss in review.
 
 ## What gets a PR or issue closed
@@ -94,7 +94,7 @@ generation in review is treated like any other misrepresentation: the PR is clos
 
 ## Larger changes
 
-The size rule in [CONTRIBUTING.md](./CONTRIBUTING.md) applies with extra force here.
+The size rule in [CONTRIBUTING.md](https://github.com/Sapd/lumastra/blob/main/.github/CONTRIBUTING.md) applies with extra force here.
 Generating a large change is cheap; understanding one is not. Features, large changes and
 changes in complicated areas (authentication and access control, playback and transcoding,
 the task system, database migrations, the license boundary) need real software development
@@ -105,7 +105,7 @@ If most of a large PR was generated, expect the review to probe that closely.
 
 ## Provenance and the CLA
 
-By signing the [CLA](./CLA.md) you take responsibility for the contribution as its author,
+By signing the [CLA](https://github.com/Sapd/lumastra/blob/main/.github/CLA.md) you take responsibility for the contribution as its author,
 including the parts an AI tool produced under your direction (CLA §5), and you warrant that
 you have the right to submit it and that any third-party material is identified and licensed
 compatibly. That applies regardless of tooling:
@@ -117,7 +117,7 @@ compatibly. That applies regardless of tooling:
 - Don't submit code you obtained by prompting a model with someone else's proprietary or
   incompatibly-licensed source.
 - Be aware this project has a strict license boundary (AGPL core vs. source-available
-  tiers, see [LICENSING.md](../LICENSING.md)). CI enforces it mechanically; if your AI
+  tiers, see [LICENSING.md](https://github.com/Sapd/lumastra/blob/main/LICENSING.md)). CI enforces it mechanically; if your AI
   tooling moves or generates code across `proprietary/` / `enterprise/` paths, the gates
   will fail the PR.
 

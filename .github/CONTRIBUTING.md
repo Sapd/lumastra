@@ -3,7 +3,7 @@
 Thanks for your interest in contributing! This guide covers how to set up a development
 environment, run the tests, follow the project's code style, and submit changes.
 
-By participating you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
+By participating you agree to abide by our [Code of Conduct](https://github.com/Sapd/lumastra/blob/main/.github/CODE_OF_CONDUCT.md).
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ By participating you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md)
 - A CPU with x86-64-v2 support (SSE4.2, POPCNT), required by the `sharp` image library
 
 The quickest way to get the supporting services is Docker; see the Docker Compose example in
-[`README.md`](../README.md).
+[`README.md`](https://github.com/Sapd/lumastra/blob/main/README.md).
 
 ## Getting started
 
@@ -33,7 +33,7 @@ For local development without a reverse proxy in front of the app: under `npm ru
 request without forward-auth headers is signed in as `DEFAULT_USER` (default `admin`) with
 admin rights. Set `LUMASTRA_DEV_NO_DEFAULT_USER=true` to sign in normally instead. See
 [the configuration guide](https://lumastra.org/guides/configuration/) for the full
-configuration reference, and [`docs/dev/QUICK-START.md`](../docs/dev/QUICK-START.md) for more
+configuration reference, and [`docs/dev/QUICK-START.md`](https://github.com/Sapd/lumastra/blob/main/docs/dev/QUICK-START.md) for more
 development commands.
 
 ## Running tests
@@ -53,7 +53,7 @@ npm run test:e2e:api      # API tests only
 ```
 
 Integration tests live next to the code they cover as `*.integration.test.ts` and run
-against a real database. See [`docs/dev/QUICK-START.md`](../docs/dev/QUICK-START.md) for details
+against a real database. See [`docs/dev/QUICK-START.md`](https://github.com/Sapd/lumastra/blob/main/docs/dev/QUICK-START.md) for details
 on configuring `TEST_DATABASE_URL`, and for which checks must be green before a PR (lint,
 typecheck and the unit suite; CI runs the integration and end-to-end tiers as well).
 
@@ -63,7 +63,7 @@ typecheck and the unit suite; CI runs the integration and end-to-end tiers as we
   Run `npm run format`. Prettier also runs automatically on commit.
 - **Linting:** ESLint with a **zero-warnings policy** (`--max-warnings=0`).
   Run `npm run lint` (or `npm run lint -- --fix`). Document any rule exception in
-  [`docs/dev/eslint-exceptions.md`](../docs/dev/eslint-exceptions.md).
+  [`docs/dev/eslint-exceptions.md`](https://github.com/Sapd/lumastra/blob/main/docs/dev/eslint-exceptions.md).
 - **Type checking:** two commands, and you need both, since they cover different files.
   `npm run typecheck` (tsgo) covers `.ts`; `npm run check:svelte-types` covers `.svelte`.
   `npm run check` is a fast structural pass only. It does **not** type-check components,
@@ -73,8 +73,8 @@ typecheck and the unit suite; CI runs the integration and end-to-end tiers as we
   docs for component work.
 - **Conventions:** many directories contain a `CLAUDE.md` with module-specific guidance. Read
   it before changing code in that area. The big-picture rules live in
-  [`AGENTS.md`](../AGENTS.md) and
-  [`docs/dev/DEVELOPER-GUIDE.md`](../docs/dev/DEVELOPER-GUIDE.md).
+  [`AGENTS.md`](https://github.com/Sapd/lumastra/blob/main/AGENTS.md) and
+  [`docs/dev/DEVELOPER-GUIDE.md`](https://github.com/Sapd/lumastra/blob/main/docs/dev/DEVELOPER-GUIDE.md).
 
 Before opening a PR, please run:
 
@@ -112,7 +112,7 @@ review, and "the tool wrote it that way" is not an answer. If you are early in y
 development journey, start with the smaller category. Those PRs are just as valued, and
 they build the track record.
 
-**AI assistance is fine, disclosed.** See [AI-assisted contributions](#ai-assisted-contributions) below. Two rules have no exceptions: every change, AI-assisted or not, must be tested end to end on a running instance, and every PR gets an AI code review before merge (see [CONTRIBUTING-AI.md](./CONTRIBUTING-AI.md)). "Vibe-coded" PRs, meaning not fully tested, or code the author can't explain, are not accepted. Opening PRs just for the sake of it, or submitting someone else's code, translations or other work as your own, gets you banned without warning.
+**AI assistance is fine, disclosed.** See [AI-assisted contributions](#ai-assisted-contributions) below. Two rules have no exceptions: every change, AI-assisted or not, must be tested end to end on a running instance, and every PR gets an AI code review before merge (see [CONTRIBUTING-AI.md](https://github.com/Sapd/lumastra/blob/main/.github/CONTRIBUTING-AI.md)). "Vibe-coded" PRs, meaning not fully tested, or code the author can't explain, are not accepted. Opening PRs just for the sake of it, or submitting someone else's code, translations or other work as your own, gets you banned without warning.
 
 ## Translations
 
@@ -166,8 +166,8 @@ to use AI. It asks three things instead:
 
 Provenance still applies: if a model reproduces recognisable third-party code, treat it
 the same way as code you copied by hand: check the license, attribute it, or leave it out. The
-[CLA](CLA.md) you sign warrants the contribution is yours to give. The full policy, including
-guidance for autonomous agents, is in [`CONTRIBUTING-AI.md`](CONTRIBUTING-AI.md).
+[CLA](https://github.com/Sapd/lumastra/blob/main/.github/CLA.md) you sign warrants the contribution is yours to give. The full policy, including
+guidance for autonomous agents, is in [`CONTRIBUTING-AI.md`](https://github.com/Sapd/lumastra/blob/main/.github/CONTRIBUTING-AI.md).
 
 ## Reporting bugs
 
@@ -184,11 +184,11 @@ Use the issue forms; they ask for what a maintainer needs on the first pass:
   docs live in [Sapd/lumastra-docs](https://github.com/Sapd/lumastra-docs): open issues and
   pull requests for them there.
 
-Every space here has one hard content rule: **nothing that references pirated content**, not even indirectly, so no release-group tags, indexers, or revealing filenames in logs. Redact before posting; see the [content rules](CODE_OF_CONDUCT.md#content-rules).
+Every space here has one hard content rule: **nothing that references pirated content**, not even indirectly, so no release-group tags, indexers, or revealing filenames in logs. Redact before posting; see the [content rules](https://github.com/Sapd/lumastra/blob/main/.github/CODE_OF_CONDUCT.md#content-rules).
 
 Search existing issues and discussions first, and report only what you reproduced yourself.
 AI-generated reports without a human reproduction are closed (see
-[`CONTRIBUTING-AI.md`](CONTRIBUTING-AI.md)).
+[`CONTRIBUTING-AI.md`](https://github.com/Sapd/lumastra/blob/main/.github/CONTRIBUTING-AI.md)).
 
 ## Requesting features
 
@@ -204,18 +204,18 @@ add your use case as a comment. Upvotes are the signal we use to prioritise; sor
 Features category by **Top** shows the most-wanted requests.
 
 For **security vulnerabilities**, do **not** open a public issue. Follow
-[`SECURITY.md`](SECURITY.md).
+[`SECURITY.md`](https://github.com/Sapd/lumastra/blob/main/.github/SECURITY.md).
 
 ## Licensing of contributions
 
-Lumastra is **open core** (see [`LICENSING.md`](../LICENSING.md)):
+Lumastra is **open core** (see [`LICENSING.md`](https://github.com/Sapd/lumastra/blob/main/LICENSING.md)):
 
 - Most of the codebase is **AGPL-3.0-only**.
 - A few clearly-marked trees are **proprietary and source-available**. The authoritative list of
-  paths is in [`LICENSING.md` §3](../LICENSING.md). Contributions to those trees are covered by the
+  paths is in [`LICENSING.md` §3](https://github.com/Sapd/lumastra/blob/main/LICENSING.md). Contributions to those trees are covered by the
   same CLA and, once merged, are distributed under the proprietary license.
 
-Contributions are accepted under the project's [Contributor License Agreement (CLA)](CLA.md).
+Contributions are accepted under the project's [Contributor License Agreement (CLA)](https://github.com/Sapd/lumastra/blob/main/.github/CLA.md).
 You keep copyright in your work, but grant the rights needed to license it under the AGPL and,
 alongside it, a commercial license, so the project's **single licensing authority** (and the
 open-core dual-licensing model) is preserved. This is a common setup: Kubernetes, the Apache
