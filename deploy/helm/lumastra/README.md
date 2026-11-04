@@ -49,6 +49,8 @@ helm install lumastra deploy/helm/lumastra -n lumastra \
 class for `/config`, the transcode volume and the plugins volume, because web and worker pods on
 different nodes mount them at the same time. Without one, pin every pod
 to one node and set `accessModes: [ReadWriteOnce]` on those volumes. See "Storage" below.
+A stock single-node k3s (`local-path` storage) is this case: start from
+`ci/single-node-values.yaml`.
 Admin uploads stage their parts inside the library folder, so they work across pods as long as
 the libraries are mounted on every pod. If you set `UPLOAD_STAGING_DIR`, it must be a volume every
 pod mounts at the same path (System health warns when an upload's parts are not visible).
