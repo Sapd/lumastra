@@ -204,17 +204,34 @@ export function createShutdownGateHandle(options: {
     };
 }
 
+/** The servers a shutdown step can wait for. The cache Valkey is optional and never decides. */
+export type ShutdownDependency = 'postgres' | 'task-valkey' | 'cache-valkey';
+
 export interface ShutdownStep {
     name: string;
     run: () => Promise<unknown> | unknown;
     /**
-     * How long the step runs before shutdown asks whether the server it needs is
+     * Which servers the step needs (default PostgreSQL and the task Valkey). Only
+     * one of THESE being gone can make shutdown give up on the step: the cache
+     * Valkey stopping on its own says nothing about a database flush.
+     */
+    needs?: ShutdownDependency[];
+    /**
+     * How long the step runs before shutdown asks whether a server it needs is
      * gone (default {@link DEFAULT_STEP_TIMEOUT_MS}). A step that is merely slow is
-     * never cut short: it is only abandoned when the dependency is confirmed gone.
+     * never cut short for that: it is only abandoned when the server is confirmed gone.
      */
     timeoutMs?: number;
-    /** Keep `timeoutMs` as the budget even after a dependency was found gone (pool closure). */
+    /**
+     * Hard limit for the step itself (default {@link DEFAULT_STEP_MAX_MS}), for a step
+     * stuck on its own bug with every server answering. It is also capped so the pool
+     * closures keep their reserve of the cleanup deadline. Pools are not capped.
+     */
+    maxMs?: number;
+    /** Keep `timeoutMs` as the budget even after a server was found gone (pool closure). */
     keepBudgetWhenGone?: boolean;
+    /** The step bounds itself against the cleanup deadline (it reserves the pools' share); no cap here. */
+    selfBounded?: boolean;
 }
 
 /**
@@ -224,8 +241,13 @@ export interface ShutdownStep {
  * this long a running step triggers the "is the server gone?" question.
  */
 export const DEFAULT_STEP_TIMEOUT_MS = 3_000;
-/** Budget of every later step once a dependency is confirmed gone. */
+/** Check interval for a step that needs a server which was gone a moment ago. */
 export const GONE_STEP_TIMEOUT_MS = 800;
+/** Longest any one step may run while its servers answer. */
+export const DEFAULT_STEP_MAX_MS = 10_000;
+/** Part of the cleanup deadline kept back for the pool closures. */
+export const POOL_RESERVE_MS = 6_000;
+const DEFAULT_NEEDS: ShutdownDependency[] = ['postgres', 'task-valkey'];
 
 export interface ShutdownLogger {
     info: (message: string, context?: Record<string, unknown>) => void;
@@ -251,11 +273,12 @@ export interface WebShutdownOptions {
     /** Exit(1) when cleanup hangs this long after the drain. Default 25 s. */
     cleanupDeadlineMs?: number;
     /**
-     * True when a server the steps depend on is confirmed gone (the network
-     * refused the connection), not merely slow. Without it no step is ever
-     * abandoned; the cleanup deadline is the only limit.
+     * Which of the named servers are confirmed gone right now (the network refused
+     * the connection), not merely slow. Asked again at every check, never remembered.
+     * Without it no step is abandoned for a gone server; `maxMs` and the cleanup
+     * deadline are the only limits.
      */
-    isDependencyGone?: () => Promise<boolean>;
+    goneDependencies?: (needs: ShutdownDependency[]) => Promise<ShutdownDependency[]>;
 }
 
 /** Returns the signal handler. Repeated signals share the first shutdown. */
@@ -299,55 +322,83 @@ export function createWebShutdown(options: WebShutdownOptions): (signal: string)
         }
 
         phase = 'closing';
-        const cleanupDeadlineAt = Date.now() + (options.cleanupDeadlineMs ?? 25_000);
+        const cleanupMs = options.cleanupDeadlineMs ?? 25_000;
+        const cleanupDeadlineAt = Date.now() + cleanupMs;
         const deadline = setTimeout(() => {
             log.error(
                 'Shutdown: cleanup deadline exceeded; exiting with cleanup incomplete',
                 new Error('web shutdown deadline exceeded'),
             );
             options.exit(1);
-        }, options.cleanupDeadlineMs ?? 25_000);
+        }, cleanupMs);
 
         let failed = false;
-        let gone = false;
+        // Servers found gone at a check, remembered only to shorten the next check of a
+        // step that needs them. Every timeout asks again, so a server that came back,
+        // or one that never was gone, stops counting at once.
+        const recentlyGone = new Set<ShutdownDependency>();
+        const poolReserveMs = Math.min(POOL_RESERVE_MS, cleanupMs / 3);
         for (const step of [
             ...options.services,
-            { name: 'external request stats', run: flushRequestPathCalls },
+            { name: 'external request stats', selfBounded: true, run: flushRequestPathCalls },
             {
                 name: 'provider call counters',
+                selfBounded: true,
                 // Reserve at least half the remaining cleanup budget for pool shutdown.
                 run: () => flushProviderCallsForShutdown((cleanupDeadlineAt - Date.now()) / 2),
             },
             ...options.pools,
-        ]) {
-            const stepTimeoutMs =
-                gone && !step.keepBudgetWhenGone
-                    ? Math.min(GONE_STEP_TIMEOUT_MS, step.timeoutMs ?? GONE_STEP_TIMEOUT_MS)
-                    : (step.timeoutMs ?? DEFAULT_STEP_TIMEOUT_MS);
+        ] as ShutdownStep[]) {
+            const needs = step.needs ?? DEFAULT_NEEDS;
+            const isPool = options.pools.includes(step) || step.selfBounded === true;
+            const remainingMs = cleanupDeadlineAt - Date.now();
+            const capMs = Math.max(
+                0,
+                isPool
+                    ? remainingMs
+                    : Math.min(step.maxMs ?? DEFAULT_STEP_MAX_MS, remainingMs - poolReserveMs),
+            );
+            const capAt = Date.now() + capMs;
             let stepTimer: ReturnType<typeof setTimeout> | undefined;
             try {
                 const running = Promise.resolve().then(() => step.run());
                 // An abandoned step may still reject later; that must stay silent.
                 running.catch(() => undefined);
                 for (;;) {
+                    const checkMs = Math.min(
+                        needs.some((n) => recentlyGone.has(n)) && !step.keepBudgetWhenGone
+                            ? Math.min(GONE_STEP_TIMEOUT_MS, step.timeoutMs ?? GONE_STEP_TIMEOUT_MS)
+                            : (step.timeoutMs ?? DEFAULT_STEP_TIMEOUT_MS),
+                        Math.max(0, capAt - Date.now()),
+                    );
                     const outcome = await Promise.race([
                         running.then(() => 'done' as const),
                         new Promise<'timeout'>((resolve) => {
-                            stepTimer = setTimeout(() => resolve('timeout'), stepTimeoutMs);
+                            stepTimer = setTimeout(() => resolve('timeout'), checkMs);
                         }),
                     ]);
                     clearTimeout(stepTimer);
                     if (outcome === 'done') break;
                     // Slow is not gone. Later steps are ordered after this one (flushes
-                    // before pools), so only a dependency the network reports as gone
-                    // lets shutdown move on while it still runs.
-                    if (!gone && !(await options.isDependencyGone?.().catch(() => false))) continue;
-                    gone = true;
-                    failed = true;
-                    log.warn(
-                        `Shutdown: ${step.name} still running after ${stepTimeoutMs} ms with its server gone; moving on`,
-                    );
-                    break;
+                    // before pools), so shutdown moves on while it still runs only when a
+                    // server it needs is confirmed gone, or the step outlived its own limit.
+                    const gone = (await options.goneDependencies?.(needs).catch(() => [])) ?? [];
+                    for (const n of needs) recentlyGone.delete(n);
+                    if (gone.length > 0) {
+                        for (const n of gone) recentlyGone.add(n);
+                        failed = true;
+                        log.warn(
+                            `Shutdown: ${step.name} still running with ${gone.join(', ')} gone; moving on`,
+                        );
+                        break;
+                    }
+                    if (Date.now() >= capAt) {
+                        failed = true;
+                        log.warn(
+                            `Shutdown: ${step.name} still running after ${capMs} ms with its servers answering; moving on`,
+                        );
+                        break;
+                    }
                 }
             } catch (error) {
                 failed = true;

@@ -881,6 +881,24 @@ export class TaskRunner {
         }
     }
 
+    /**
+     * A job in its first phase (resolving the task, waiting on gates, claiming) has
+     * no abort controller and no heartbeat yet, but is executing: abort it as a
+     * shutdown interruption, the way the owned runs are, so it unwinds instead of
+     * running on while the Worker closes. The abort reaches it as soon as it creates
+     * its controller. Workers keep fetching until their close() starts, so this runs
+     * again right before the Workers close and each time their close is held up.
+     * A run already being cancelled (its controller aborted) stays a cancel.
+     */
+    private interruptFirstPhaseJobs(): void {
+        for (const runId of [...this.executingRunIds]) {
+            if (this.heartbeats.has(runId)) continue;
+            if (this.abortControllers.get(runId)?.signal.aborted) continue;
+            if (!this.requestedExecutionCancels.has(runId)) this.shutdownInterrupted.add(runId);
+            this.cancelExecution(runId);
+        }
+    }
+
     /** A job is running in this process (from its first phase on). */
     hasExecutingJobs(): boolean {
         return this.executingJobs > 0 || this.executingRunIds.size > 0;
@@ -1300,16 +1318,7 @@ export class TaskRunner {
         // in flight must publish its worker before teardown snapshots the maps.
         await Promise.all([...this.workerSetups]);
 
-        // A job in its first phase (resolving the task, waiting on gates, claiming)
-        // has no abort controller and no heartbeat yet, but is executing: abort it
-        // as a shutdown interruption, the way the owned runs below are, so it
-        // unwinds instead of running on while the Worker closes. The abort reaches
-        // it as soon as it creates its controller.
-        for (const runId of [...this.executingRunIds]) {
-            if (this.heartbeats.has(runId)) continue;
-            if (!this.requestedExecutionCancels.has(runId)) this.shutdownInterrupted.add(runId);
-            this.cancelExecution(runId);
-        }
+        this.interruptFirstPhaseJobs();
 
         // Fast-recovery release on graceful shutdown (e.g. a redeploy SIGTERM):
         // proactively relinquish every run THIS instance owns so the next worker
@@ -1384,12 +1393,16 @@ export class TaskRunner {
             this.executingRunIds.size > 0 ||
             this.abortControllers.size > 0 ||
             this.heartbeats.size > 0;
+        // A job fetched since the first sweep (the owned-run release above awaits Valkey
+        // while Workers still pull) is interrupted before the Workers close.
+        this.interruptFirstPhaseJobs();
         const closeWorker = (worker: WorkerLike): Promise<unknown> =>
-            closeBullmqBounded(worker, WORKER_CLOSE_TIMEOUT_MS, () => !jobsInFlight()).then(
-                (settled) => {
-                    if (!settled) workersForcedClosed++;
-                },
-            );
+            closeBullmqBounded(worker, WORKER_CLOSE_TIMEOUT_MS, () => {
+                this.interruptFirstPhaseJobs();
+                return !jobsInFlight();
+            }).then((settled) => {
+                if (!settled) workersForcedClosed++;
+            });
         await Promise.all([
             ...[...this.classes].map(async ([key, rt]) => {
                 try {

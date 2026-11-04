@@ -5,6 +5,7 @@ import net from 'node:net';
 import { describe, expect, it } from 'vitest';
 import {
     createInfrastructureProbe,
+    missingProbeTargets,
     probeTargetsFromEnvironment,
     type ProbeAttempt,
     type ProbeTarget,
@@ -25,7 +26,7 @@ describe('createInfrastructureProbe', () => {
         expect((await probe.verdict()).state).toBe('up');
     });
 
-    it.each(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'EHOSTUNREACH', 'ECONNRESET'])(
+    it.each(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'EHOSTUNREACH'])(
         'says gone at once on %s',
         async (code) => {
             const probe = createInfrastructureProbe({
@@ -45,6 +46,32 @@ describe('createInfrastructureProbe', () => {
         expect((await probe.verdict()).state).toBe('up');
         // The silent streak starts over after an answer.
         expect((await probe.verdict()).state).toBe('unknown');
+    });
+
+    it('needs a reset twice: a proxy under load resets too', async () => {
+        const probe = createInfrastructureProbe({
+            targets: [target],
+            connect: scripted({ ok: false, code: 'ECONNRESET' }, { ok: false, code: 'ECONNRESET' }),
+        });
+        expect((await probe.verdict()).state).toBe('unknown');
+        expect(await probe.verdict()).toMatchObject({ state: 'gone', evidence: 'silence' });
+    });
+
+    it('judges only the servers it is asked about', async () => {
+        const probe = createInfrastructureProbe({
+            targets: [
+                { name: 'postgres', host: 'pg', port: 5432 },
+                { name: 'task-valkey', host: 'valkey', port: 6379 },
+            ],
+            connect: async (t) =>
+                t.name === 'task-valkey' ? { ok: false, code: 'ECONNREFUSED' } : { ok: true },
+        });
+        expect((await probe.verdict(['postgres'])).state).toBe('up');
+        expect(await probe.verdict(['task-valkey'])).toMatchObject({
+            state: 'gone',
+            target: 'task-valkey',
+        });
+        expect(await probe.verdict()).toMatchObject({ state: 'gone', target: 'task-valkey' });
     });
 
     it('calls the server gone after two silent connects in a row', async () => {
@@ -69,7 +96,7 @@ describe('createInfrastructureProbe', () => {
         await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
         const port = (server.address() as net.AddressInfo).port;
         const probe = createInfrastructureProbe({
-            targets: [{ name: 'local', host: '127.0.0.1', port }],
+            targets: [{ name: 'postgres', host: '127.0.0.1', port }],
         });
         expect((await probe.verdict()).state).toBe('up');
         await new Promise<void>((resolve) => server.close(() => resolve()));
@@ -95,5 +122,18 @@ describe('probeTargetsFromEnvironment', () => {
         expect(probeTargetsFromEnvironment({ DATABASE_URL: 'not a url' }, { cache: true })).toEqual(
             [],
         );
+    });
+});
+
+describe('missingProbeTargets', () => {
+    it('names the servers no target could be derived for', () => {
+        const targets = probeTargetsFromEnvironment(
+            { DATABASE_URL: 'postgresql://u@/lumastra?host=/var/run/postgresql' },
+            { cache: false },
+        );
+        expect(missingProbeTargets(targets, ['postgres', 'task-valkey'])).toEqual([
+            'postgres',
+            'task-valkey',
+        ]);
     });
 });

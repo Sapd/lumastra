@@ -9,8 +9,10 @@ import { loadTaskRegistry } from './registration.js';
 import { Logger } from '$lib/server/utils/logger.js';
 import {
     createInfrastructureProbe,
+    missingProbeTargets,
     probeTargetsFromEnvironment,
     type InfrastructureProbe,
+    type ProbeDependency,
 } from '$lib/server/lifecycle/infrastructure-probe.js';
 import type { Scheduler } from '$lib/server/tasks/scheduler.js';
 
@@ -542,10 +544,18 @@ export function __setHardExitForTests(exit: ((code: number) => void) | undefined
 }
 
 function getInfrastructureProbe(): InfrastructureProbe {
-    infrastructureProbe ??= createInfrastructureProbe({
+    if (!infrastructureProbe) {
         // The cache Valkey is optional for the worker and never decides this.
-        targets: probeTargetsFromEnvironment(process.env, { cache: false }),
-    });
+        const targets = probeTargetsFromEnvironment(process.env, { cache: false });
+        const missing = missingProbeTargets(targets, ['postgres', 'task-valkey']);
+        if (missing.length > 0)
+            startupLogger.info(
+                'Shutdown cannot tell a stopped server from a slow one: no host and port could be read for ' +
+                    missing.join(' and ') +
+                    ' from DATABASE_URL / TASK_CACHE_URL (unix socket or several hosts?). Teardown steps then wait up to the shutdown deadline.',
+            );
+        infrastructureProbe = createInfrastructureProbe({ targets });
+    }
     return infrastructureProbe;
 }
 
@@ -593,16 +603,23 @@ async function stop(strict: boolean): Promise<void> {
      *
      * `requireConnectionError`: the step has work in flight (a running job). It is
      * only given up on when the network refused the connection, not after silence.
+     * `needs`: the servers this step talks to (default PostgreSQL and the task
+     * Valkey). Only one of THEM being gone counts: a Postgres-only release is not
+     * given up on because only Valkey stopped, and the other way round.
      * Resolves `true` when the step finished, `false` when it was abandoned.
      */
     const waitForStep = async (
         work: Promise<unknown>,
         what: string,
-        options: { requireConnectionError?: () => boolean } = {},
+        options: {
+            requireConnectionError?: () => boolean;
+            needs?: ProbeDependency[];
+        } = {},
     ): Promise<boolean> => {
         work.catch(() => undefined);
+        const needs = options.needs ?? ['postgres', 'task-valkey'];
         const isGone = async (): Promise<boolean> => {
-            const verdict = await probe.verdict();
+            const verdict = await probe.verdict(needs);
             if (verdict.state !== 'gone') return false;
             return !(options.requireConnectionError?.() && verdict.evidence !== 'error');
         };
@@ -650,6 +667,7 @@ async function stop(strict: boolean): Promise<void> {
         await waitForStep(
             fileScannerMediaSource.stopWatching!(buildPluginContext('file-scanner')),
             'File scanner watcher stop',
+            { needs: ['task-valkey'] },
         );
         watcherStopped = true;
     } catch (err) {
@@ -725,7 +743,11 @@ async function stop(strict: boolean): Promise<void> {
     } else if (workerLeaseRequested && (!strict || failures.length === 0)) {
         try {
             const { releaseWorkerLease } = await import('./worker-lease.js');
-            if (await waitForStep(releaseWorkerLease(), 'Worker singleton lease release'))
+            if (
+                await waitForStep(releaseWorkerLease(), 'Worker singleton lease release', {
+                    needs: ['postgres'],
+                })
+            )
                 workerLeaseRequested = false;
         } catch (err) {
             // Not a cleanup failure: everything the lease guards has stopped by

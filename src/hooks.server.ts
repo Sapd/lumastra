@@ -63,6 +63,7 @@ import {
 } from '$lib/server/lifecycle/web-shutdown.js';
 import {
     createInfrastructureProbe,
+    missingProbeTargets,
     probeTargetsFromEnvironment,
 } from '$lib/server/lifecycle/infrastructure-probe.js';
 import { immutableAssetFallbackHandle } from '$lib/server/middleware/immutable-asset-fallback.js';
@@ -1971,11 +1972,30 @@ if (!building) {
 // Order and rationale: $lib/server/lifecycle/web-shutdown.ts.
 // "Is a server the shutdown steps depend on gone?": answered by the network, around
 // every pool and client of this process (see lifecycle/infrastructure-probe.ts).
-const shutdownInfrastructureProbe = createInfrastructureProbe({
-    targets: probeTargetsFromEnvironment(process.env, { cache: true }),
-});
+// The cache Valkey is optional and no step's fate depends on it: it is not probed.
+const shutdownProbeTargets = probeTargetsFromEnvironment(process.env, { cache: false });
+const shutdownInfrastructureProbe = createInfrastructureProbe({ targets: shutdownProbeTargets });
+const missingShutdownTargets = missingProbeTargets(shutdownProbeTargets, [
+    'postgres',
+    'task-valkey',
+]);
+if (missingShutdownTargets.length > 0) {
+    serverLogger.info(
+        'Shutdown cannot tell a stopped server from a slow one: no host and port could be read for ' +
+            missingShutdownTargets.join(' and ') +
+            ' from DATABASE_URL / TASK_CACHE_URL (unix socket or several hosts?). Steps then wait up to their limits.',
+    );
+}
 const gracefulShutdown = createWebShutdown({
-    isDependencyGone: async () => (await shutdownInfrastructureProbe.verdict()).state === 'gone',
+    goneDependencies: async (needs) => {
+        // One server at a time: a gone cache says nothing about the database.
+        const gone: typeof needs = [];
+        for (const need of needs) {
+            if ((await shutdownInfrastructureProbe.verdict([need])).state === 'gone')
+                gone.push(need);
+        }
+        return gone;
+    },
     // adapter-node (registered after this module loads) closes its HTTP server
     // on the same signal and emits this event once every connection closed.
     // vite dev has no adapter: only the in-flight request count is waited for.
@@ -2046,6 +2066,7 @@ const gracefulShutdown = createWebShutdown({
         {
             // Stops active FFmpeg jobs; must happen before advisory lock release.
             name: 'FFmpeg transcode service',
+            needs: ['postgres'],
             timeoutMs: 8_000,
             run: async () => {
                 const { shutdownFFmpegTranscodeService } =
@@ -2056,6 +2077,7 @@ const gracefulShutdown = createWebShutdown({
         {
             // Stops the flush interval and drains pendingEvents before the pool closes.
             name: 'playback telemetry',
+            needs: ['postgres'],
             // Its own shutdown waits up to 5 s for in-flight writes, then flushes.
             timeoutMs: 8_000,
             run: async () => {
@@ -2066,13 +2088,14 @@ const gracefulShutdown = createWebShutdown({
         },
         {
             name: 'PAT usage',
+            needs: ['postgres'],
             run: async () => {
                 const { flushPatUsage } = await import('$lib/server/oauth/pat.service.js');
                 await flushPatUsage();
             },
         },
         // After all persistence work.
-        { name: 'advisory locks', run: () => releaseAllAdvisoryLocks() },
+        { name: 'advisory locks', needs: ['postgres'], run: () => releaseAllAdvisoryLocks() },
         {
             name: 'subtitle cache service',
             run: async () => {
@@ -2085,6 +2108,7 @@ const gracefulShutdown = createWebShutdown({
     pools: [
         {
             name: 'Valkey subscriptions',
+            needs: ['task-valkey'],
             run: async () => {
                 const { closeAllSubscriptions } = await import('$lib/server/cache/valkey.js');
                 await closeAllSubscriptions();
@@ -2092,6 +2116,7 @@ const gracefulShutdown = createWebShutdown({
         },
         {
             name: 'Valkey clients',
+            needs: ['task-valkey'],
             run: async () => {
                 const { disconnectValkey } = await import('$lib/server/cache/valkey.js');
                 await disconnectValkey();
@@ -2099,6 +2124,7 @@ const gracefulShutdown = createWebShutdown({
         },
         {
             name: 'database pools',
+            needs: ['postgres'],
             // closeDb force-closes a pool after 3 s: never cut it off before that.
             timeoutMs: 5_000,
             keepBudgetWhenGone: true,
@@ -2109,6 +2135,7 @@ const gracefulShutdown = createWebShutdown({
         },
         {
             name: 'undici agent',
+            needs: [],
             run: async () => {
                 const { cleanupUndiciAgent } = await import('$lib/server/runtime-optimizations.js');
                 await cleanupUndiciAgent();

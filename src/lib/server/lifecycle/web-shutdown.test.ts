@@ -52,7 +52,7 @@ async function serve(
         drainTimeoutMs?: number;
         services?: WebShutdownOptions['services'];
         pools?: WebShutdownOptions['pools'];
-        isDependencyGone?: WebShutdownOptions['isDependencyGone'];
+        goneDependencies?: WebShutdownOptions['goneDependencies'];
     },
 ): Promise<Harness> {
     const order: string[] = [];
@@ -100,7 +100,7 @@ async function serve(
             { name: 'valkey', run: () => order.push('valkey closed') },
             { name: 'db', run: () => order.push('db closed') },
         ],
-        isDependencyGone: opts.isDependencyGone,
+        goneDependencies: opts.goneDependencies,
         exit: (code) => {
             order.push(`exit ${code}`);
             exit(code);
@@ -418,17 +418,15 @@ describe('web shutdown sequence (no adapter close: vite dev, a straggler connect
 });
 
 describe('web shutdown step bounds', () => {
+    const hang = (): Promise<never> => new Promise(() => undefined);
+
     it('abandons steps that wait for a server confirmed gone, still closes the pools, exits 0', async () => {
         const h = await serve(async () => new Response('ok'), {
             adapter: false,
-            isDependencyGone: async () => true,
+            goneDependencies: async (needs) => needs,
             services: [
-                { name: 'hung db flush', timeoutMs: 100, run: () => new Promise(() => undefined) },
-                {
-                    name: 'second hung step',
-                    timeoutMs: 100,
-                    run: () => new Promise(() => undefined),
-                },
+                { name: 'hung db flush', timeoutMs: 100, run: hang },
+                { name: 'second hung step', timeoutMs: 100, run: hang },
                 { name: 'quick', run: () => h.order.push('quick ran') },
             ],
         });
@@ -440,10 +438,10 @@ describe('web shutdown step bounds', () => {
     });
 
     it('never cuts a slow step short while its server answers, and keeps the documented order', async () => {
-        const probe = vi.fn(async () => false);
+        const probe = vi.fn(async () => []);
         const h = await serve(async () => new Response('ok'), {
             adapter: false,
-            isDependencyGone: probe,
+            goneDependencies: probe,
             services: [
                 {
                     name: 'slow but healthy flush',
@@ -469,13 +467,118 @@ describe('web shutdown step bounds', () => {
         expect(probe).toHaveBeenCalled();
     });
 
+    it('does not abandon a database flush because only the cache Valkey stopped', async () => {
+        const asked: string[][] = [];
+        const h = await serve(async () => new Response('ok'), {
+            adapter: false,
+            // Only the cache is gone; steps that name it are the only ones it can affect.
+            goneDependencies: async (needs) => {
+                asked.push(needs);
+                return needs.filter((n) => n === 'cache-valkey');
+            },
+            services: [
+                {
+                    name: 'slow database flush',
+                    timeoutMs: 50,
+                    run: async () => {
+                        await tick(300);
+                        h.order.push('db flush finished');
+                    },
+                },
+                {
+                    name: 'second database flush',
+                    timeoutMs: 50,
+                    run: async () => {
+                        await tick(300);
+                        h.order.push('second flush finished');
+                    },
+                },
+            ],
+        });
+        void h.signal();
+        await expect(h.exited).resolves.toBe(0);
+        expect(h.order).toEqual([
+            'db flush finished',
+            'second flush finished',
+            'valkey closed',
+            'db closed',
+            'exit 0',
+        ]);
+        expect(asked.length).toBeGreaterThan(0);
+        expect(asked.flat()).not.toContain('cache-valkey');
+    });
+
+    it('judges each step by the servers it needs, and asks again at every check', async () => {
+        let valkeyGone = true;
+        const h = await serve(async () => new Response('ok'), {
+            adapter: false,
+            goneDependencies: async (needs) =>
+                valkeyGone ? needs.filter((n) => n === 'task-valkey') : [],
+            services: [
+                { name: 'valkey step', needs: ['task-valkey'], timeoutMs: 50, run: hang },
+                {
+                    name: 'database step',
+                    needs: ['postgres'],
+                    timeoutMs: 50,
+                    run: async () => {
+                        await tick(250);
+                        h.order.push('database step finished');
+                    },
+                },
+                {
+                    name: 'valkey step again',
+                    needs: ['task-valkey'],
+                    timeoutMs: 50,
+                    run: async () => {
+                        // Valkey is back by now: this step is waited for.
+                        valkeyGone = false;
+                        await tick(250);
+                        h.order.push('valkey step finished');
+                    },
+                },
+            ],
+        });
+        void h.signal();
+        await expect(h.exited).resolves.toBe(0);
+        expect(h.order).toEqual([
+            'database step finished',
+            'valkey step finished',
+            'valkey closed',
+            'db closed',
+            'exit 0',
+        ]);
+    });
+
+    it('abandons a step stuck on its own bug after its own limit while every server answers', async () => {
+        const h = await serve(async () => new Response('ok'), {
+            adapter: false,
+            goneDependencies: async () => [],
+            services: [{ name: 'stuck step', timeoutMs: 50, maxMs: 200, run: hang }],
+        });
+        const startedAt = Date.now();
+        void h.signal();
+        await expect(h.exited).resolves.toBe(0);
+        expect(Date.now() - startedAt).toBeLessThan(1_500);
+        expect(h.order).toEqual(['valkey closed', 'db closed', 'exit 0']);
+    });
+
+    it('keeps part of the cleanup deadline for the pools however long a step is allowed to run', async () => {
+        // The harness deadline is 2 s: a step allowed 60 s must still leave the pools their share.
+        const h = await serve(async () => new Response('ok'), {
+            adapter: false,
+            goneDependencies: async () => [],
+            services: [{ name: 'stuck step', timeoutMs: 50, maxMs: 60_000, run: hang }],
+        });
+        void h.signal();
+        await expect(h.exited).resolves.toBe(0);
+        expect(h.order).toEqual(['valkey closed', 'db closed', 'exit 0']);
+    });
+
     it('does not shorten a pool closure that needs its own time after another server went away', async () => {
         const h = await serve(async () => new Response('ok'), {
             adapter: false,
-            isDependencyGone: async () => true,
-            services: [
-                { name: 'hung flush', timeoutMs: 50, run: () => new Promise(() => undefined) },
-            ],
+            goneDependencies: async (needs) => needs,
+            services: [{ name: 'hung flush', timeoutMs: 50, run: hang }],
             pools: [
                 {
                     name: 'db',
@@ -499,7 +602,7 @@ describe('web shutdown step bounds', () => {
         try {
             const h = await serve(async () => new Response('ok'), {
                 adapter: false,
-                isDependencyGone: async () => true,
+                goneDependencies: async (needs) => needs,
                 services: [
                     {
                         name: 'rejects late',

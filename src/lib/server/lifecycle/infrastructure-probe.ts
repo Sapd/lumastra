@@ -13,15 +13,20 @@
  * So the probe goes around every pool and client the application owns: a plain
  * TCP connect to the configured host and port. It calls a server gone only on
  * evidence from the network (connection refused, name not resolvable, host or
- * network unreachable, reset) or after two connects in a row that got no answer
- * at all. One late answer, which a blocked event loop also produces, is
- * "unknown", and unknown counts as alive.
+ * network unreachable) or after two connects in a row that got no answer or were
+ * reset (a proxy under load resets too). One late answer, which a blocked event
+ * loop also produces, is "unknown", and unknown counts as alive.
+ *
+ * The verdict is per dependency: a caller names the servers its step needs and a
+ * different server being gone says nothing about them.
  */
 
 import net from 'node:net';
 
+export type ProbeDependency = 'postgres' | 'task-valkey' | 'cache-valkey';
+
 export interface ProbeTarget {
-    name: string;
+    name: ProbeDependency;
     host: string;
     port: number;
 }
@@ -38,7 +43,6 @@ export interface ProbeVerdict {
 /** Errors that say the server (or its name, or the route to it) is not there. */
 const GONE_CODES = new Set([
     'ECONNREFUSED',
-    'ECONNRESET',
     'ENOTFOUND',
     'EAI_AGAIN',
     'EHOSTUNREACH',
@@ -46,6 +50,9 @@ const GONE_CODES = new Set([
     'EHOSTDOWN',
     'ENETDOWN',
 ]);
+
+/** A reset can come from a proxy under load: like silence, it must repeat to count. */
+const REPEATED_CODES = new Set(['ECONNRESET']);
 
 /** Consecutive silent connects after which a server counts as gone. */
 const SILENT_ATTEMPTS_FOR_GONE = 2;
@@ -70,7 +77,8 @@ function tcpConnect(target: ProbeTarget, timeoutMs: number): Promise<ProbeAttemp
 }
 
 export interface InfrastructureProbe {
-    verdict(): Promise<ProbeVerdict>;
+    /** Gone when any of the named servers (default: all targets) is gone. */
+    verdict(only?: readonly ProbeDependency[]): Promise<ProbeVerdict>;
 }
 
 export function createInfrastructureProbe(options: {
@@ -83,9 +91,12 @@ export function createInfrastructureProbe(options: {
     const connect = options.connect ?? tcpConnect;
     const silent = new Map<string, number>();
     return {
-        async verdict(): Promise<ProbeVerdict> {
+        async verdict(only?: readonly ProbeDependency[]): Promise<ProbeVerdict> {
+            const wanted = options.targets.filter(
+                (target) => !only || only.length === 0 || only.includes(target.name),
+            );
             const results = await Promise.all(
-                options.targets.map(async (target) => ({
+                wanted.map(async (target) => ({
                     target,
                     attempt: await connect(target, timeoutMs).catch((): ProbeAttempt => ({
                         timeout: true,
@@ -94,7 +105,8 @@ export function createInfrastructureProbe(options: {
             );
             let verdict: ProbeVerdict = { state: 'up' };
             for (const { target, attempt } of results) {
-                if ('timeout' in attempt) {
+                const repeated = 'code' in attempt && REPEATED_CODES.has(attempt.code);
+                if ('timeout' in attempt || repeated) {
                     const count = (silent.get(target.name) ?? 0) + 1;
                     silent.set(target.name, count);
                     if (count >= SILENT_ATTEMPTS_FOR_GONE) {
@@ -114,7 +126,11 @@ export function createInfrastructureProbe(options: {
     };
 }
 
-function targetFromUrl(name: string, raw: string | undefined, defaultPort: number): ProbeTarget[] {
+function targetFromUrl(
+    name: ProbeDependency,
+    raw: string | undefined,
+    defaultPort: number,
+): ProbeTarget[] {
     if (!raw) return [];
     try {
         const url = new URL(raw);
@@ -136,4 +152,16 @@ export function probeTargetsFromEnvironment(
         ...targetFromUrl('task-valkey', env.TASK_CACHE_URL, 6379),
         ...(include.cache ? targetFromUrl('cache-valkey', env.CACHE_URL, 6379) : []),
     ];
+}
+
+/**
+ * The servers a process depends on that no target could be derived for (a unix
+ * socket, several hosts, no URL). For these the fast path is off and a stop waits
+ * as long as the work takes; callers log this once so operators know.
+ */
+export function missingProbeTargets(
+    targets: readonly ProbeTarget[],
+    required: readonly ProbeDependency[],
+): ProbeDependency[] {
+    return required.filter((name) => !targets.some((target) => target.name === name));
 }

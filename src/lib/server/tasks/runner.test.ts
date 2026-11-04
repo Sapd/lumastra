@@ -5218,3 +5218,71 @@ describe('TaskRunner.stop — Worker close with and without a job in flight', ()
         expect(stopped).toBe(true);
     });
 });
+
+describe('TaskRunner.stop — a job fetched after the stop began', () => {
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.clearAllMocks();
+    });
+
+    it('interrupts it when the Worker close is held up, and does not force the close', async () => {
+        vi.useFakeTimers();
+        let releaseClaim: (v: { ok: boolean }) => void = () => {};
+        const { runner, stateMachine, fakeWorker, callProcessor } = await bootRunner({
+            tasks: [{ id: 'late-task', execute: vi.fn(async () => ({ success: true })) }],
+        });
+        stateMachine.claimRun.mockImplementationOnce(
+            () => new Promise((resolve) => (releaseClaim = resolve)),
+        );
+        let finishClose: () => void = () => {};
+        fakeWorker.close = () =>
+            new Promise<void>((resolve) => {
+                finishClose = resolve;
+            });
+        let stopped = false;
+        const stopping = runner.stop().then(() => {
+            stopped = true;
+        });
+        await vi.advanceTimersByTimeAsync(100);
+        // The Worker was still pulling when the stop began: this job arrives after the sweeps.
+        const job = callProcessor(makeJob({ name: 'late-task', runId: 'late-run' }));
+        job.catch(() => undefined);
+        await vi.advanceTimersByTimeAsync(30_000);
+        const internals = runner as unknown as {
+            requestedExecutionCancels: Set<string>;
+            shutdownInterrupted: Set<string>;
+        };
+        expect(internals.requestedExecutionCancels.has('late-run')).toBe(true);
+        expect(internals.shutdownInterrupted.has('late-run')).toBe(true);
+        expect(stopped).toBe(false);
+
+        releaseClaim({ ok: false });
+        await vi.advanceTimersByTimeAsync(10);
+        finishClose();
+        await vi.advanceTimersByTimeAsync(10);
+        await stopping;
+        expect(stopped).toBe(true);
+    });
+
+    it('leaves a run that is already being cancelled a cancel', async () => {
+        vi.useFakeTimers();
+        const { runner } = await bootRunner({
+            tasks: [{ id: 'cancel-task', execute: vi.fn(async () => ({ success: true })) }],
+        });
+        const internals = runner as unknown as {
+            executingRunIds: Set<string>;
+            abortControllers: Map<string, AbortController>;
+            shutdownInterrupted: Set<string>;
+            interruptFirstPhaseJobs(): void;
+        };
+        const controller = new AbortController();
+        controller.abort();
+        internals.executingRunIds.add('cancelled-run');
+        internals.abortControllers.set('cancelled-run', controller);
+        internals.interruptFirstPhaseJobs();
+        expect(internals.shutdownInterrupted.has('cancelled-run')).toBe(false);
+        internals.executingRunIds.delete('cancelled-run');
+        internals.abortControllers.delete('cancelled-run');
+        await runner.stop();
+    });
+});

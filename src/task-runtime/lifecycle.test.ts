@@ -21,6 +21,8 @@ const state = vi.hoisted(() => ({
         evidence?: 'error' | 'silence';
     },
     jobsRunning: false,
+    goneDependencies: undefined as string[] | undefined,
+    leaseReleaseHangs: false,
     runnerStopHangs: false,
     hardExit: [] as number[],
     schedulerStopHangs: false,
@@ -38,7 +40,13 @@ const state = vi.hoisted(() => ({
 // W1's startup guard (managed authority must stay off) reads PostgreSQL.
 // The real probe opens TCP connections to the configured hosts.
 vi.mock('$lib/server/lifecycle/infrastructure-probe.js', () => ({
-    createInfrastructureProbe: () => ({ verdict: async () => state.verdict }),
+    createInfrastructureProbe: () => ({
+        verdict: async (only?: string[]) =>
+            state.goneDependencies && only && !only.some((n) => state.goneDependencies!.includes(n))
+                ? { state: 'up' }
+                : state.verdict,
+    }),
+    missingProbeTargets: () => [],
     probeTargetsFromEnvironment: () => [],
 }));
 vi.mock('./authority/store.js', () => ({ assertTaskAuthorityUnmanaged: async () => {} }));
@@ -54,6 +62,7 @@ vi.mock('./worker-lease.js', () => ({
     },
     releaseWorkerLease: async (): Promise<void> => {
         state.events.push('release-lease');
+        if (state.leaseReleaseHangs) await new Promise<void>(() => {});
         if (state.failLeaseRelease) throw new Error('the database system is shutting down');
     },
 }));
@@ -221,6 +230,8 @@ beforeEach(() => {
     state.failSchedulerStop = false;
     state.verdict = { state: 'up' };
     state.jobsRunning = false;
+    state.goneDependencies = undefined;
+    state.leaseReleaseHangs = false;
     state.runnerStopHangs = false;
     state.hardExit = [];
     state.schedulerStopHangs = false;
@@ -393,6 +404,30 @@ describe('dedicated task lifecycle seam', () => {
             await vi.advanceTimersByTimeAsync(10_000);
             await rejected;
             expect(state.events).not.toContain('release-lease');
+        });
+        it('does not give up on a Postgres lease release because only Valkey is gone', async () => {
+            const runtime = await start();
+            state.leaseReleaseHangs = true;
+            state.verdict = { state: 'gone', evidence: 'error' };
+            state.goneDependencies = ['task-valkey'];
+            let settled = false;
+            const stopping = runtime.stopTaskSubsystem({ strict: true }).finally(() => {
+                settled = true;
+            });
+            await vi.advanceTimersByTimeAsync(30_000);
+            // The lease release is waited for, as its server answers.
+            expect(settled).toBe(false);
+            expect(state.hardExit).toEqual([]);
+            void stopping.catch(() => undefined);
+        });
+        it('gives up on a Valkey step because Valkey is gone, whatever Postgres does', async () => {
+            const runtime = await start();
+            state.orchestratorStop = 'hangs';
+            state.verdict = { state: 'gone', evidence: 'error' };
+            state.goneDependencies = ['task-valkey'];
+            const stopping = runtime.stopTaskSubsystem({ strict: true });
+            await vi.advanceTimersByTimeAsync(10_000);
+            await expect(stopping).resolves.toBeUndefined();
         });
         it('does not swallow a genuine error because the server was gone a moment ago', async () => {
             const runtime = await start();
