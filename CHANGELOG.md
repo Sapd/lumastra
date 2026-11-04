@@ -16,6 +16,30 @@ health → Cluster also warns when the running proxy is behind.
 The iPhone, iPad and Apple TV apps have their own version numbers. Their notes are on
 [lumastra.org/about/changelog/](https://lumastra.org/about/changelog/).
 
+## 0.1.3 - 2026-11-05
+
+Live TV proxy: no update needed.
+
+### Fixed
+
+- Helm chart: with more than one router pod (two by default), video often didn't start and
+  media requests failed with `403 ip_mismatch`, because the app saw each router pod's address
+  as the client. The router now proves itself to the web pods with a value derived from
+  `LUMASTRA_MASTER_KEY`, and the app takes the client address from the router only on those
+  requests. It gives no login trust. Nothing to configure if the key is in the Secret, as in
+  the quick start. Restart the router pods after rotating the key.
+- Setup wizard: "Skip for now" on the basics step goes on to the library step instead of
+  leaving the wizard.
+- After a Valkey restart, the recovery message counts the connections that failed instead of
+  every reconnect attempt (a worker reported hundreds of errors for a sub-second restart).
+- `npm run doctor` no longer names an embedding provider when no embedding key is set.
+
+### Changed
+
+- Helm chart: `helm install` warns when any pod in the cluster could set its client address
+  through the router (the router trusts `X-Forwarded-For` from the whole private range and no
+  NetworkPolicy limits who reaches it). The security self-check reports the same.
+
 ## 0.1.2 - 2026-11-04
 
 Live TV proxy: no update needed.
