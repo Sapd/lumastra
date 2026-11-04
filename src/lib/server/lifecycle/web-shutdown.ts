@@ -207,19 +207,25 @@ export function createShutdownGateHandle(options: {
 export interface ShutdownStep {
     name: string;
     run: () => Promise<unknown> | unknown;
-    /** Longest this step may take before shutdown moves on (default {@link DEFAULT_STEP_TIMEOUT_MS}). */
+    /**
+     * How long the step runs before shutdown asks whether the server it needs is
+     * gone (default {@link DEFAULT_STEP_TIMEOUT_MS}). A step that is merely slow is
+     * never cut short: it is only abandoned when the dependency is confirmed gone.
+     */
     timeoutMs?: number;
+    /** Keep `timeoutMs` as the budget even after a dependency was found gone (pool closure). */
+    keepBudgetWhenGone?: boolean;
 }
 
 /**
- * A step that is still running after this long is abandoned. Every step talks to
- * PostgreSQL or Valkey, and a `docker compose restart` stops those together with
- * the web container: one step then waits for a server that is gone, and the
- * whole shutdown sat there until Docker's SIGKILL (exit 137).
+ * Every step talks to PostgreSQL or Valkey, and a `docker compose restart` stops
+ * those together with the web container: a step then waits for a server that is
+ * gone, and the whole shutdown sat there until Docker's SIGKILL (exit 137). After
+ * this long a running step triggers the "is the server gone?" question.
  */
 export const DEFAULT_STEP_TIMEOUT_MS = 3_000;
-/** Budget of every step after one was abandoned: its dependency is known to be gone. */
-export const DEGRADED_STEP_TIMEOUT_MS = 800;
+/** Budget of every later step once a dependency is confirmed gone. */
+export const GONE_STEP_TIMEOUT_MS = 800;
 
 export interface ShutdownLogger {
     info: (message: string, context?: Record<string, unknown>) => void;
@@ -244,6 +250,12 @@ export interface WebShutdownOptions {
     log: ShutdownLogger;
     /** Exit(1) when cleanup hangs this long after the drain. Default 25 s. */
     cleanupDeadlineMs?: number;
+    /**
+     * True when a server the steps depend on is confirmed gone (the network
+     * refused the connection), not merely slow. Without it no step is ever
+     * abandoned; the cleanup deadline is the only limit.
+     */
+    isDependencyGone?: () => Promise<boolean>;
 }
 
 /** Returns the signal handler. Repeated signals share the first shutdown. */
@@ -297,7 +309,7 @@ export function createWebShutdown(options: WebShutdownOptions): (signal: string)
         }, options.cleanupDeadlineMs ?? 25_000);
 
         let failed = false;
-        let degraded = false;
+        let gone = false;
         for (const step of [
             ...options.services,
             { name: 'external request stats', run: flushRequestPathCalls },
@@ -308,26 +320,34 @@ export function createWebShutdown(options: WebShutdownOptions): (signal: string)
             },
             ...options.pools,
         ]) {
-            const stepTimeoutMs = degraded
-                ? Math.min(DEGRADED_STEP_TIMEOUT_MS, step.timeoutMs ?? DEGRADED_STEP_TIMEOUT_MS)
-                : (step.timeoutMs ?? DEFAULT_STEP_TIMEOUT_MS);
+            const stepTimeoutMs =
+                gone && !step.keepBudgetWhenGone
+                    ? Math.min(GONE_STEP_TIMEOUT_MS, step.timeoutMs ?? GONE_STEP_TIMEOUT_MS)
+                    : (step.timeoutMs ?? DEFAULT_STEP_TIMEOUT_MS);
             let stepTimer: ReturnType<typeof setTimeout> | undefined;
             try {
                 const running = Promise.resolve().then(() => step.run());
                 // An abandoned step may still reject later; that must stay silent.
                 running.catch(() => undefined);
-                const outcome = await Promise.race([
-                    running.then(() => 'done' as const),
-                    new Promise<'timeout'>((resolve) => {
-                        stepTimer = setTimeout(() => resolve('timeout'), stepTimeoutMs);
-                    }),
-                ]);
-                if (outcome === 'timeout') {
+                for (;;) {
+                    const outcome = await Promise.race([
+                        running.then(() => 'done' as const),
+                        new Promise<'timeout'>((resolve) => {
+                            stepTimer = setTimeout(() => resolve('timeout'), stepTimeoutMs);
+                        }),
+                    ]);
+                    clearTimeout(stepTimer);
+                    if (outcome === 'done') break;
+                    // Slow is not gone. Later steps are ordered after this one (flushes
+                    // before pools), so only a dependency the network reports as gone
+                    // lets shutdown move on while it still runs.
+                    if (!gone && !(await options.isDependencyGone?.().catch(() => false))) continue;
+                    gone = true;
                     failed = true;
-                    degraded = true;
                     log.warn(
-                        `Shutdown: ${step.name} still running after ${stepTimeoutMs} ms; moving on`,
+                        `Shutdown: ${step.name} still running after ${stepTimeoutMs} ms with its server gone; moving on`,
                     );
+                    break;
                 }
             } catch (error) {
                 failed = true;

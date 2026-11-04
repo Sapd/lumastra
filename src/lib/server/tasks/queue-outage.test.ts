@@ -68,6 +68,29 @@ describe('createOutageGate', () => {
         }
     });
 
+    it('reminds every interval while one outage keeps going, and stops when it ends', () => {
+        vi.useFakeTimers();
+        try {
+            const onOngoing = vi.fn();
+            const onEnd = vi.fn();
+            const gate = createOutageGate(30_000, onEnd, { everyMs: 60_000, onOngoing });
+            gate.note();
+            // Errors keep arriving, as BullMQ's retries do.
+            for (let t = 0; t < 190_000; t += 10_000) {
+                vi.advanceTimersByTime(10_000);
+                gate.note();
+            }
+            expect(onOngoing).toHaveBeenCalledTimes(3);
+            expect(onOngoing.mock.calls[2][0].durationMs).toBeGreaterThanOrEqual(180_000);
+            vi.advanceTimersByTime(40_000);
+            expect(onEnd).toHaveBeenCalledTimes(1);
+            vi.advanceTimersByTime(300_000);
+            expect(onOngoing).toHaveBeenCalledTimes(3);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it('ignores a reconnect when no outage is running', () => {
         const gate = createOutageGate(1000);
         gate.recovered(50_000);

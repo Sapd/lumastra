@@ -16,7 +16,13 @@ const state = vi.hoisted(() => ({
     failRunnerStop: false,
     failLeaseRelease: false,
     failSchedulerStop: false,
-    dbReachable: true,
+    verdict: { state: 'up' } as {
+        state: 'up' | 'gone' | 'unknown';
+        evidence?: 'error' | 'silence';
+    },
+    jobsRunning: false,
+    runnerStopHangs: false,
+    hardExit: [] as number[],
     schedulerStopHangs: false,
     orchestratorStop: 'ok' as 'ok' | 'fails' | 'hangs',
     pluginPending: undefined as Promise<void> | undefined,
@@ -30,6 +36,11 @@ const state = vi.hoisted(() => ({
     leaseLost: undefined as ((reason: string) => void) | undefined,
 }));
 // W1's startup guard (managed authority must stay off) reads PostgreSQL.
+// The real probe opens TCP connections to the configured hosts.
+vi.mock('$lib/server/lifecycle/infrastructure-probe.js', () => ({
+    createInfrastructureProbe: () => ({ verdict: async () => state.verdict }),
+    probeTargetsFromEnvironment: () => [],
+}));
 vi.mock('./authority/store.js', () => ({ assertTaskAuthorityUnmanaged: async () => {} }));
 vi.mock('./worker-lease.js', () => ({
     acquireWorkerLease: async (options: {
@@ -128,10 +139,7 @@ vi.mock('$lib/server/services/cluster-heartbeat.service.js', () => ({
         },
     },
 }));
-vi.mock('$lib/server/database/connection', () => ({
-    getDb: () => null,
-    getTaskDb: () => (state.dbReachable ? async () => [{}] : null),
-}));
+vi.mock('$lib/server/database/connection', () => ({ getDb: () => null }));
 vi.mock('$lib/server/database/queries/event-outbox.queries', () => ({
     syncEventOutboxFlag: vi.fn(),
 }));
@@ -165,9 +173,11 @@ vi.mock('$lib/server/tasks/runner', () => ({
             },
         };
     },
+    taskRunnerHasExecutingJobs: () => state.jobsRunning,
     stopTaskRunner: async (options: { strict?: boolean } = {}) => {
         state.runnerStopModes.push(options.strict ?? false);
         state.events.push('stop-runner');
+        if (state.runnerStopHangs) await new Promise<void>(() => {});
         if (state.failRunnerStop) throw new Error('runner stop failed');
     },
 }));
@@ -209,7 +219,10 @@ beforeEach(() => {
     state.failRunnerStop = false;
     state.failLeaseRelease = false;
     state.failSchedulerStop = false;
-    state.dbReachable = true;
+    state.verdict = { state: 'up' };
+    state.jobsRunning = false;
+    state.runnerStopHangs = false;
+    state.hardExit = [];
     state.schedulerStopHangs = false;
     state.orchestratorStop = 'ok';
     state.pluginPending = undefined;
@@ -287,41 +300,109 @@ describe('dedicated task lifecycle seam', () => {
         await expect(runtime.stopTaskSubsystem({ strict: true })).resolves.toBeUndefined();
         expect(state.events.at(-1)).toBe('release-lease');
     });
-    it('stops within a few seconds when Valkey is already gone, however its releases hang', async () => {
-        // Full `docker compose restart`: the leader-lock releases and loop ticks wait on a
-        // Valkey that stopped with us. Their locks expire on their own.
-        const runtime = await import('./lifecycle.js');
-        await runtime.startTaskSubsystem({ strict: true });
-        state.coordinationHealthy = false;
-        state.orchestratorStop = 'hangs';
-        const stopping = runtime.stopTaskSubsystem({ strict: true });
-        await vi.advanceTimersByTimeAsync(10_000);
-        await expect(stopping).resolves.toBeUndefined();
-        expect(state.events.at(-1)).toBe('release-lease');
-    });
-    it('does not wait for an in-flight scheduler tick that waits for a Valkey that is gone', async () => {
-        const runtime = await import('./lifecycle.js');
-        await runtime.startTaskSubsystem({ strict: true });
-        state.coordinationHealthy = false;
-        state.schedulerStopHangs = true;
-        const stopping = runtime.stopTaskSubsystem({ strict: true });
-        await vi.advanceTimersByTimeAsync(10_000);
-        await expect(stopping).resolves.toBeUndefined();
-        expect(state.events).toContain('stop-runner');
-        expect(state.events.at(-1)).toBe('release-lease');
-    });
-    it('still waits for a hung scheduler stop while the infrastructure answers', async () => {
-        const runtime = await import('./lifecycle.js');
-        await runtime.startTaskSubsystem({ strict: true });
-        state.schedulerStopHangs = true;
-        let settled = false;
-        const stopping = runtime.stopTaskSubsystem({ strict: true }).finally(() => {
-            settled = true;
+    describe('when PostgreSQL or Valkey vanish during the stop', () => {
+        const start = async () => {
+            const runtime = await import('./lifecycle.js');
+            runtime.__setHardExitForTests((code) => state.hardExit.push(code));
+            await runtime.startTaskSubsystem({ strict: true });
+            return runtime;
+        };
+        it('stops within a few seconds when the network says the server is gone, and leaves the lease and locks to expire', async () => {
+            // Full `docker compose restart`: the leader-lock releases and loop ticks wait on a
+            // Valkey that stopped with us. Their locks expire on their own.
+            const runtime = await start();
+            state.verdict = { state: 'gone', evidence: 'error' };
+            state.orchestratorStop = 'hangs';
+            const stopping = runtime.stopTaskSubsystem({ strict: true });
+            await vi.advanceTimersByTimeAsync(10_000);
+            await expect(stopping).resolves.toBeUndefined();
+            expect(state.events).toContain('stop-orchestrator');
+            // An abandoned step means nobody knows what is still held: nothing is released.
+            expect(state.events).not.toContain('release-lease');
         });
-        await vi.advanceTimersByTimeAsync(30_000);
-        expect(settled).toBe(false);
-        expect(state.events).not.toContain('stop-runner');
-        void stopping.catch(() => undefined);
+        it('does not wait for an in-flight scheduler tick that waits for a Valkey that is gone', async () => {
+            const runtime = await start();
+            state.verdict = { state: 'gone', evidence: 'error' };
+            state.schedulerStopHangs = true;
+            const stopping = runtime.stopTaskSubsystem({ strict: true });
+            await vi.advanceTimersByTimeAsync(10_000);
+            await expect(stopping).resolves.toBeUndefined();
+            expect(state.events).toContain('stop-runner');
+        });
+        it('exits before the lease expires when an abandoned teardown is still running', async () => {
+            const runtime = await start();
+            state.verdict = { state: 'gone', evidence: 'error' };
+            state.orchestratorStop = 'hangs';
+            void runtime.stopTaskSubsystem({ strict: true });
+            await vi.advanceTimersByTimeAsync(10_000);
+            expect(state.hardExit).toEqual([]);
+            await vi.advanceTimersByTimeAsync(15_000);
+            expect(state.hardExit).toEqual([1]);
+        });
+        it.each(['up', 'unknown'] as const)(
+            'keeps waiting for a slow orchestrator stop when the probe says %s (busy pool, blocked loop)',
+            async (probeState) => {
+                const runtime = await start();
+                state.verdict = { state: probeState };
+                state.orchestratorStop = 'hangs';
+                let settled = false;
+                const stopping = runtime.stopTaskSubsystem({ strict: true }).finally(() => {
+                    settled = true;
+                });
+                await vi.advanceTimersByTimeAsync(40_000);
+                expect(settled).toBe(false);
+                // The lease is released only after the teardown it guards finished.
+                expect(state.events).not.toContain('release-lease');
+                expect(state.hardExit).toEqual([]);
+                void stopping.catch(() => undefined);
+            },
+        );
+        it('still waits for a hung scheduler stop while the infrastructure answers', async () => {
+            const runtime = await start();
+            state.schedulerStopHangs = true;
+            let settled = false;
+            const stopping = runtime.stopTaskSubsystem({ strict: true }).finally(() => {
+                settled = true;
+            });
+            await vi.advanceTimersByTimeAsync(30_000);
+            expect(settled).toBe(false);
+            expect(state.events).not.toContain('stop-runner');
+            void stopping.catch(() => undefined);
+        });
+        it('does not give up on a runner stop with jobs running after mere silence', async () => {
+            const runtime = await start();
+            state.jobsRunning = true;
+            state.runnerStopHangs = true;
+            state.verdict = { state: 'gone', evidence: 'silence' };
+            let settled = false;
+            const stopping = runtime.stopTaskSubsystem({ strict: true }).finally(() => {
+                settled = true;
+            });
+            await vi.advanceTimersByTimeAsync(30_000);
+            expect(settled).toBe(false);
+            expect(state.events).not.toContain('release-lease');
+            void stopping.catch(() => undefined);
+        });
+        it('gives up on a runner stop with jobs running only on a refused connection, and reports it as unknown', async () => {
+            const runtime = await start();
+            state.jobsRunning = true;
+            state.runnerStopHangs = true;
+            state.verdict = { state: 'gone', evidence: 'error' };
+            const stopping = runtime.stopTaskSubsystem({ strict: true });
+            const rejected = expect(stopping).rejects.toThrow('outcome UNKNOWN');
+            await vi.advanceTimersByTimeAsync(10_000);
+            await rejected;
+            expect(state.events).not.toContain('release-lease');
+        });
+        it('does not swallow a genuine error because the server was gone a moment ago', async () => {
+            const runtime = await start();
+            state.orchestratorStop = 'fails';
+            // The server is up when the error arrives.
+            state.verdict = { state: 'up' };
+            await expect(runtime.stopTaskSubsystem({ strict: true })).rejects.toThrow(
+                'outcome UNKNOWN',
+            );
+        });
     });
     it('still reports a failed orchestrator teardown while the infrastructure is reachable', async () => {
         state.orchestratorStop = 'fails';

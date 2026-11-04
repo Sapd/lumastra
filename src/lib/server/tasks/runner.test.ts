@@ -582,9 +582,9 @@ describe('TaskRunner.processJob — exclusiveWith mutex release', () => {
             ([opts]) => opts.from === 'active' && opts.to === 'failed',
         );
         expect(failedTransition).toBe(false);
-        expect(
-            stateMachine.transitionRun.mock.calls.some(([opts]) => opts.to === 'pending'),
-        ).toBe(true);
+        expect(stateMachine.transitionRun.mock.calls.some(([opts]) => opts.to === 'pending')).toBe(
+            true,
+        );
         expect(releasesFor(key, 'run_excl_retry')).toHaveLength(0);
         await runner.stop();
     });
@@ -965,7 +965,9 @@ describe('TaskRunner.processJob — error paths', () => {
         });
         stateMachine.claimRun.mockRejectedValueOnce(new Error('Connection is closed'));
         try {
-            await expect(callProcessor(makeJob({ name: 'basic-task', runId: 'claim-disconnected' }))).rejects.toThrow('Connection is closed');
+            await expect(
+                callProcessor(makeJob({ name: 'basic-task', runId: 'claim-disconnected' })),
+            ).rejects.toThrow('Connection is closed');
             const resources = runner as unknown as {
                 runReleases: Map<string, unknown>;
                 abortControllers: Map<string, unknown>;
@@ -974,7 +976,9 @@ describe('TaskRunner.processJob — error paths', () => {
             expect(resources.runReleases.size).toBe(0);
             expect(resources.abortControllers.size).toBe(0);
             expect(resources.cancelUnsubs.size).toBe(0);
-        } finally { await runner.stop(); }
+        } finally {
+            await runner.stop();
+        }
     });
 
     it('rethrows TaskError(transient) when claimRun fails', async () => {
@@ -2006,7 +2010,8 @@ describe('TaskRunner.processJob — retry reseed', () => {
         await callProcessor(makeJob({ name: 'basic-task', runId: 'run_retry', attemptsMade: 1 }));
 
         expect(stateMachine.reseedForRetry).toHaveBeenCalledWith('run_retry', {
-            lockKey: 'bull:task:io:job_run_retry:lock', token: 'token',
+            lockKey: 'bull:task:io:job_run_retry:lock',
+            token: 'token',
         });
         await runner.stop();
     });
@@ -4732,10 +4737,19 @@ describe('TaskRunner stalled redelivery safety', () => {
     });
     it('preserves the existing resume refusal for a stalled delivery of a reclaimed run', async () => {
         const fake = makeFakeSql();
-        fake.responses.set('SELECT state, result, error', [{ state: 'failed', result: null, error: { message: 'orphaned_at_recovery: resumed as run_next' } }]);
+        fake.responses.set('SELECT state, result, error', [
+            {
+                state: 'failed',
+                result: null,
+                error: { message: 'orphaned_at_recovery: resumed as run_next' },
+            },
+        ]);
         fake.responses.set('SELECT id FROM task_history', [{ id: 'run_resumed' }]);
         const execute = vi.fn(async () => ({ success: true }));
-        const { runner, callProcessor, stateMachine } = await bootRunner({ tasks: [{ execute }], sql: fake.sql });
+        const { runner, callProcessor, stateMachine } = await bootRunner({
+            tasks: [{ execute }],
+            sql: fake.sql,
+        });
         try {
             const job = makeJob({ name: 'basic-task', runId: 'run_resumed' }) as RunnerJob;
             job.attemptsStarted = 2;
@@ -4743,7 +4757,9 @@ describe('TaskRunner stalled redelivery safety', () => {
             await expect(callProcessor(job)).resolves.toMatchObject({ redeliveryRefused: true });
             expect(execute).not.toHaveBeenCalled();
             expect(stateMachine.claimRun).not.toHaveBeenCalled();
-        } finally { await runner.stop(); }
+        } finally {
+            await runner.stop();
+        }
     });
 
     it('acknowledges an already-completed delivery without executing again', async () => {
@@ -4968,7 +4984,6 @@ it('does not execute after an identity mutex has passed to a successor', async (
     }
 });
 
-
 describe('pre-execution identity cleanup and ownership diagnostics', () => {
     afterEach(() => vi.restoreAllMocks());
 
@@ -5134,5 +5149,72 @@ describe('cancel flow identity release', () => {
         } finally {
             await runner.stop();
         }
+    });
+});
+
+describe('TaskRunner.stop — Worker close with and without a job in flight', () => {
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.clearAllMocks();
+    });
+
+    it('gives up on an idle Worker whose close never returns (Valkey gone), after a short bound', async () => {
+        vi.useFakeTimers();
+        const { runner, fakeWorker } = await bootRunner({
+            tasks: [{ id: 'idle-task', execute: vi.fn(async () => ({ success: true })) }],
+        });
+        fakeWorker.close = () => new Promise<void>(() => {});
+        const stopping = runner.stop();
+        await vi.advanceTimersByTimeAsync(2_500);
+        await expect(stopping).resolves.toBeUndefined();
+    });
+
+    it('does not force-close a Worker while a job is still in its first phase, and aborts that job', async () => {
+        vi.useFakeTimers();
+        let releaseClaim: (v: { ok: boolean }) => void = () => {};
+        const execute = vi.fn(async () => ({ success: true }));
+        const { runner, stateMachine, fakeWorker, callProcessor } = await bootRunner({
+            tasks: [{ id: 'early-task', execute }],
+        });
+        // The job is claimed late: no abort controller and no heartbeat exist yet.
+        stateMachine.claimRun.mockImplementationOnce(
+            () => new Promise((resolve) => (releaseClaim = resolve)),
+        );
+        let closed = false;
+        let finishClose: () => void = () => {};
+        fakeWorker.close = () =>
+            new Promise<void>((resolve) => {
+                finishClose = () => {
+                    closed = true;
+                    resolve();
+                };
+            });
+        const job = callProcessor(makeJob({ name: 'early-task', runId: 'early-run' }));
+        job.catch(() => undefined);
+        await vi.advanceTimersByTimeAsync(10);
+        expect(runner.hasExecutingJobs()).toBe(true);
+
+        let stopped = false;
+        const stopping = runner.stop().then(() => {
+            stopped = true;
+        });
+        // Far beyond the 2 s bound for an idle Worker: the job is still running.
+        await vi.advanceTimersByTimeAsync(30_000);
+        expect(stopped).toBe(false);
+        expect(closed).toBe(false);
+        // The run is marked as interrupted by the shutdown and asked to stop.
+        const internals = runner as unknown as {
+            requestedExecutionCancels: Set<string>;
+            shutdownInterrupted: Set<string>;
+        };
+        expect(internals.requestedExecutionCancels.has('early-run')).toBe(true);
+        expect(internals.shutdownInterrupted.has('early-run')).toBe(true);
+
+        releaseClaim({ ok: false });
+        await vi.advanceTimersByTimeAsync(10);
+        finishClose();
+        await vi.advanceTimersByTimeAsync(10);
+        await stopping;
+        expect(stopped).toBe(true);
     });
 });

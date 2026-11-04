@@ -47,7 +47,13 @@ afterEach(async () => {
 
 async function serve(
     route: Route,
-    opts: { adapter: boolean; drainTimeoutMs?: number; services?: WebShutdownOptions['services'] },
+    opts: {
+        adapter: boolean;
+        drainTimeoutMs?: number;
+        services?: WebShutdownOptions['services'];
+        pools?: WebShutdownOptions['pools'];
+        isDependencyGone?: WebShutdownOptions['isDependencyGone'];
+    },
 ): Promise<Harness> {
     const order: string[] = [];
     const bus = new EventEmitter();
@@ -90,10 +96,11 @@ async function serve(
             : undefined,
         drainTimeoutMs: opts.drainTimeoutMs ?? 5_000,
         services: opts.services ?? [{ name: 'transcode', run: () => order.push('services') }],
-        pools: [
+        pools: opts.pools ?? [
             { name: 'valkey', run: () => order.push('valkey closed') },
             { name: 'db', run: () => order.push('db closed') },
         ],
+        isDependencyGone: opts.isDependencyGone,
         exit: (code) => {
             order.push(`exit ${code}`);
             exit(code);
@@ -411,9 +418,10 @@ describe('web shutdown sequence (no adapter close: vite dev, a straggler connect
 });
 
 describe('web shutdown step bounds', () => {
-    it('abandons steps that wait for a server that is gone and still closes the pools, exiting 0', async () => {
+    it('abandons steps that wait for a server confirmed gone, still closes the pools, exits 0', async () => {
         const h = await serve(async () => new Response('ok'), {
             adapter: false,
+            isDependencyGone: async () => true,
             services: [
                 { name: 'hung db flush', timeoutMs: 100, run: () => new Promise(() => undefined) },
                 {
@@ -431,12 +439,67 @@ describe('web shutdown step bounds', () => {
         expect(h.order).toEqual(['quick ran', 'valkey closed', 'db closed', 'exit 0']);
     });
 
+    it('never cuts a slow step short while its server answers, and keeps the documented order', async () => {
+        const probe = vi.fn(async () => false);
+        const h = await serve(async () => new Response('ok'), {
+            adapter: false,
+            isDependencyGone: probe,
+            services: [
+                {
+                    name: 'slow but healthy flush',
+                    timeoutMs: 50,
+                    run: async () => {
+                        await tick(400);
+                        h.order.push('flush finished');
+                    },
+                },
+                { name: 'later flush', timeoutMs: 50, run: () => h.order.push('later flush') },
+            ],
+        });
+        void h.signal();
+        await expect(h.exited).resolves.toBe(0);
+        // The pools close after every flush finished, not while one still runs.
+        expect(h.order).toEqual([
+            'flush finished',
+            'later flush',
+            'valkey closed',
+            'db closed',
+            'exit 0',
+        ]);
+        expect(probe).toHaveBeenCalled();
+    });
+
+    it('does not shorten a pool closure that needs its own time after another server went away', async () => {
+        const h = await serve(async () => new Response('ok'), {
+            adapter: false,
+            isDependencyGone: async () => true,
+            services: [
+                { name: 'hung flush', timeoutMs: 50, run: () => new Promise(() => undefined) },
+            ],
+            pools: [
+                {
+                    name: 'db',
+                    timeoutMs: 1_000,
+                    keepBudgetWhenGone: true,
+                    run: async () => {
+                        await tick(300);
+                        h.order.push('db drained');
+                    },
+                },
+            ],
+        });
+        void h.signal();
+        await expect(h.exited).resolves.toBe(0);
+        expect(h.order).toEqual(['db drained', 'exit 0']);
+    });
+
     it('stays silent when an abandoned step rejects later', async () => {
         const unhandled = vi.fn();
         process.on('unhandledRejection', unhandled);
         try {
             const h = await serve(async () => new Response('ok'), {
                 adapter: false,
+                isDependencyGone: async () => true,
                 services: [
                     {
                         name: 'rejects late',

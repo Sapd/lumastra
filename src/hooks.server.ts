@@ -61,6 +61,10 @@ import {
     createWebShutdown,
     drainTimeoutMsFromEnv,
 } from '$lib/server/lifecycle/web-shutdown.js';
+import {
+    createInfrastructureProbe,
+    probeTargetsFromEnvironment,
+} from '$lib/server/lifecycle/infrastructure-probe.js';
 import { immutableAssetFallbackHandle } from '$lib/server/middleware/immutable-asset-fallback.js';
 import { sandboxScriptableResponse } from '$lib/server/middleware/scriptable-response-sandbox.js';
 import { buildRequestLanguageHint } from './hooks.language.js';
@@ -1965,7 +1969,13 @@ if (!building) {
 
 // Graceful shutdown: drain HTTP first, then stop services, close pools last.
 // Order and rationale: $lib/server/lifecycle/web-shutdown.ts.
+// "Is a server the shutdown steps depend on gone?": answered by the network, around
+// every pool and client of this process (see lifecycle/infrastructure-probe.ts).
+const shutdownInfrastructureProbe = createInfrastructureProbe({
+    targets: probeTargetsFromEnvironment(process.env, { cache: true }),
+});
 const gracefulShutdown = createWebShutdown({
+    isDependencyGone: async () => (await shutdownInfrastructureProbe.verdict()).state === 'gone',
     // adapter-node (registered after this module loads) closes its HTTP server
     // on the same signal and emits this event once every connection closed.
     // vite dev has no adapter: only the in-flight request count is waited for.
@@ -2046,6 +2056,8 @@ const gracefulShutdown = createWebShutdown({
         {
             // Stops the flush interval and drains pendingEvents before the pool closes.
             name: 'playback telemetry',
+            // Its own shutdown waits up to 5 s for in-flight writes, then flushes.
+            timeoutMs: 8_000,
             run: async () => {
                 const { playbackTelemetryService } =
                     await import('$lib/server/services/playback-telemetry.service.js');
@@ -2087,6 +2099,9 @@ const gracefulShutdown = createWebShutdown({
         },
         {
             name: 'database pools',
+            // closeDb force-closes a pool after 3 s: never cut it off before that.
+            timeoutMs: 5_000,
+            keepBudgetWhenGone: true,
             run: async () => {
                 const { closeDb } = await import('$lib/server/database/connection.js');
                 await closeDb();

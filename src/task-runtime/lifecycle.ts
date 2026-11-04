@@ -7,6 +7,11 @@ import { shouldStartWorkers } from '$lib/server/config.js';
 import { assertValkeyEndpointConfiguration } from '$lib/server/config/valkey-endpoints.js';
 import { loadTaskRegistry } from './registration.js';
 import { Logger } from '$lib/server/utils/logger.js';
+import {
+    createInfrastructureProbe,
+    probeTargetsFromEnvironment,
+    type InfrastructureProbe,
+} from '$lib/server/lifecycle/infrastructure-probe.js';
 import type { Scheduler } from '$lib/server/tasks/scheduler.js';
 
 const startupLogger = Logger.for('TaskRuntime');
@@ -511,52 +516,49 @@ export function stopTaskSubsystem(options: { strict?: boolean } = {}): Promise<v
     return shutdown;
 }
 
-/** How long a stop waits for PostgreSQL and the task Valkey to answer before calling them gone. */
-const INFRASTRUCTURE_PROBE_MS = 1_000;
 /**
- * How long the orchestrator teardown and the lease release may take once
- * PostgreSQL or the task Valkey are known to be gone. Every one of their waits
- * (leader-lock release, in-flight loop ticks, final flush) is a request to the
- * server that is not there; each took its own timeout, one class after the other,
- * and a `docker compose restart` ran the worker into the 60 s deadline.
+ * How often a teardown step that is still running asks whether the server it may
+ * be waiting for is gone. The question is a plain TCP connect, independent of the
+ * application's pools and clients.
  */
-const UNREACHABLE_TEARDOWN_BUDGET_MS = 3_000;
+const INFRASTRUCTURE_WATCH_MS = 750;
+/** Time a step gets to finish on its own after the server was found gone. */
+const GONE_GRACE_MS = 1_500;
+/**
+ * After a step was abandoned the process must be gone before the worker lease
+ * (30 s) expires, or a successor could take over beside whatever still runs here.
+ */
+const HARD_EXIT_AFTER_ABANDON_MS = 20_000;
 
-/** True when PostgreSQL or the task Valkey does not answer a trivial request. */
-async function taskInfrastructureUnreachable(): Promise<boolean> {
-    const withinProbe = async (probe: () => Promise<unknown>): Promise<boolean> => {
-        let timer: ReturnType<typeof setTimeout> | undefined;
-        try {
-            const running = probe().then(() => true);
-            running.catch(() => undefined);
-            return await Promise.race([
-                running,
-                new Promise<boolean>((resolve) => {
-                    timer = setTimeout(() => resolve(false), INFRASTRUCTURE_PROBE_MS);
-                }),
-            ]);
-        } catch {
-            return false;
-        } finally {
-            clearTimeout(timer);
-        }
-    };
-    try {
-        const { isCoordinationValkeyHealthy } = await import('$lib/server/cache/valkey.js');
-        const { getTaskDb } = await import('$lib/server/database/connection.js');
-        const [valkeyUp, databaseUp] = await Promise.all([
-            isCoordinationValkeyHealthy(INFRASTRUCTURE_PROBE_MS),
-            withinProbe(async () => {
-                const sql = getTaskDb();
-                if (!sql) throw new Error('no database pool');
-                await sql`SELECT 1`;
-            }),
-        ]);
-        return !valkeyUp || !databaseUp;
-    } catch {
-        // Could not even ask: stay strict rather than hide a failure.
-        return false;
-    }
+let infrastructureProbe: InfrastructureProbe | undefined;
+let hardExitTimer: ReturnType<typeof setTimeout> | undefined;
+let hardExit: (code: number) => void = (code) => process.exit(code);
+
+/** Test seam. */
+export function __setHardExitForTests(exit: ((code: number) => void) | undefined): void {
+    hardExit = exit ?? ((code) => process.exit(code));
+    if (hardExitTimer) clearTimeout(hardExitTimer);
+    hardExitTimer = undefined;
+}
+
+function getInfrastructureProbe(): InfrastructureProbe {
+    infrastructureProbe ??= createInfrastructureProbe({
+        // The cache Valkey is optional for the worker and never decides this.
+        targets: probeTargetsFromEnvironment(process.env, { cache: false }),
+    });
+    return infrastructureProbe;
+}
+
+function armHardExit(): void {
+    if (hardExitTimer) return;
+    hardExitTimer = setTimeout(() => {
+        startupLogger.error(
+            'Task runtime shutdown still running after a step was abandoned; exiting before the worker lease expires',
+            new Error('abandoned teardown outlived its limit'),
+        );
+        hardExit(1);
+    }, HARD_EXIT_AFTER_ABANDON_MS);
+    hardExitTimer.unref?.();
 }
 
 /** Wait for `work`, but at most `budgetMs`; `work` keeps running in the background. */
@@ -575,53 +577,64 @@ async function settledWithin(work: Promise<unknown>, budgetMs: number): Promise<
     }
 }
 
-/** How often a long teardown asks again whether PostgreSQL and Valkey are still there. */
-const INFRASTRUCTURE_WATCH_MS = 3_000;
-
-/**
- * Wait for `work` as long as it takes, unless PostgreSQL or the task Valkey
- * vanish meanwhile (they stop together with the worker on a compose restart, and
- * can go while a teardown is already under way). Rejects when `work` rejects.
- */
-async function settledUnlessInfrastructureGone(work: Promise<unknown>): Promise<boolean> {
-    for (;;) {
-        if (await settledWithin(work, INFRASTRUCTURE_WATCH_MS)) return true;
-        if (await taskInfrastructureUnreachable()) return false;
-    }
-}
-
 async function stop(strict: boolean): Promise<void> {
     const failures: unknown[] = [];
     let watcherStopped = false;
-    // Asked now and answered while the consumers drain: a gone server shows up
-    // within a second, and nothing below should wait for it to find out later.
-    const infrastructureProbe = taskInfrastructureUnreachable();
-    let infrastructureVanished = false;
+    /** Steps given up on because the server they wait for is gone. */
+    const abandoned: string[] = [];
+    const probe = getInfrastructureProbe();
+
     /**
-     * Wait for one teardown step. While PostgreSQL and the task Valkey answer it
-     * gets all the time it needs; once they are gone (or vanish meanwhile) the
-     * step is abandoned after a short budget, and its error is no failure: it can
-     * only be the missing server, and every lock it would release expires.
+     * Wait for one teardown step as long as it takes, except when PostgreSQL or
+     * the task Valkey are gone (they stop together with the worker on a compose
+     * restart): then the step gets a short grace and is abandoned, because every
+     * lock it would release expires on its own. "Gone" is decided by the network
+     * (see infrastructure-probe.ts), never by the step being slow.
+     *
+     * `requireConnectionError`: the step has work in flight (a running job). It is
+     * only given up on when the network refused the connection, not after silence.
+     * Resolves `true` when the step finished, `false` when it was abandoned.
      */
-    const waitForStep = async (work: Promise<unknown>, what: string): Promise<void> => {
+    const waitForStep = async (
+        work: Promise<unknown>,
+        what: string,
+        options: { requireConnectionError?: () => boolean } = {},
+    ): Promise<boolean> => {
         work.catch(() => undefined);
+        const isGone = async (): Promise<boolean> => {
+            const verdict = await probe.verdict();
+            if (verdict.state !== 'gone') return false;
+            return !(options.requireConnectionError?.() && verdict.evidence !== 'error');
+        };
         try {
-            const gone = infrastructureVanished || (await infrastructureProbe);
-            const settled = gone
-                ? await settledWithin(
-                      work,
-                      infrastructureVanished
-                          ? UNREACHABLE_TEARDOWN_BUDGET_MS / 2
-                          : UNREACHABLE_TEARDOWN_BUDGET_MS,
-                  )
-                : await settledUnlessInfrastructureGone(work);
-            if (settled) return;
+            for (;;) {
+                if (await settledWithin(work, INFRASTRUCTURE_WATCH_MS)) return true;
+                if (await isGone()) {
+                    if (await settledWithin(work, GONE_GRACE_MS)) return true;
+                    break;
+                }
+            }
         } catch (err) {
-            if (!infrastructureVanished && !(await infrastructureProbe)) throw err;
+            // A real error is only excused by a server that is demonstrably gone now.
+            if (!(await isGone())) throw err;
+            startupLogger.warn(`${what} failed while the server it needs is gone`, {
+                error: err instanceof Error ? err.message : String(err),
+            });
         }
-        infrastructureVanished = true;
+        abandoned.push(what);
+        armHardExit();
         startupLogger.warn(`${what} abandoned: it waits for a server that is gone`);
+        return false;
     };
+    const jobsRunning = async (): Promise<boolean> => {
+        try {
+            const { taskRunnerHasExecutingJobs } = await import('$lib/server/tasks/runner');
+            return taskRunnerHasExecutingJobs();
+        } catch {
+            return false;
+        }
+    };
+
     // A signal during initialization must not leave late-starting consumers alive.
     await startup?.catch(() => undefined);
     if (watcherEnsureTimer) clearInterval(watcherEnsureTimer);
@@ -651,9 +664,10 @@ async function stop(strict: boolean): Promise<void> {
     // don't need to coordinate with the new boot path here.
     if (taskScheduler) {
         try {
-            await waitForStep(taskScheduler.stop(), 'TaskScheduler stop');
-            startupLogger.info('TaskScheduler stopped');
-            taskScheduler = null;
+            if (await waitForStep(taskScheduler.stop(), 'TaskScheduler stop')) {
+                startupLogger.info('TaskScheduler stopped');
+                taskScheduler = null;
+            }
         } catch (err) {
             failures.push(err);
             startupLogger.warn('Failed to stop TaskScheduler cleanly', {
@@ -665,8 +679,13 @@ async function stop(strict: boolean): Promise<void> {
     // Stop the TaskRunner (consumer side of the new task system).
     try {
         const { stopTaskRunner } = await import('$lib/server/tasks/runner');
-        await waitForStep(stopTaskRunner({ strict }), 'TaskRunner stop');
-        startupLogger.info('TaskRunner stopped');
+        const withJobs = await jobsRunning();
+        const stopped = await waitForStep(stopTaskRunner({ strict }), 'TaskRunner stop', {
+            requireConnectionError: () => withJobs,
+        });
+        if (stopped) startupLogger.info('TaskRunner stopped');
+        // Jobs may still run here: this is not a clean stop however gone the server is.
+        else if (withJobs) failures.push(new Error('TaskRunner stop abandoned with jobs running'));
     } catch (err) {
         failures.push(err);
         startupLogger.warn('Failed to stop TaskRunner cleanly', {
@@ -678,61 +697,36 @@ async function stop(strict: boolean): Promise<void> {
     // Keep its real orchestrator dependency alive until a retry accepts that
     // obligation. Stopping the facade is terminal and would make repair retries
     // impossible. Tolerant shutdown remains best-effort.
-    // Everything above stopped cleanly but PostgreSQL or Valkey are gone (they stop
-    // with this process on a `docker compose restart`): what is left is releasing
-    // locks and the lease on servers that cannot answer. All of them expire on
-    // their own TTL, so do not wait for each in turn.
-    // The early probe may have run while the server was still up: ask again.
-    let infrastructureGone =
-        failures.length === 0 &&
-        (infrastructureVanished ||
-            (await infrastructureProbe) ||
-            (await taskInfrastructureUnreachable()));
-    if (infrastructureGone)
-        startupLogger.warn(
-            'PostgreSQL or the task Valkey is unreachable; locks and the lease expire on their own',
-        );
     if (watcherStopped || !strict) {
         try {
             const { orchestrator } = await import('$lib/server/tasks/orchestrator');
-            const stopping = orchestrator.stop({ strict });
-            const stopped = infrastructureGone
-                ? await settledWithin(stopping, UNREACHABLE_TEARDOWN_BUDGET_MS)
-                : await settledUnlessInfrastructureGone(stopping);
-            if (stopped) {
+            if (await waitForStep(orchestrator.stop({ strict }), 'TaskOrchestrator stop'))
                 startupLogger.info('TaskOrchestrator stopped');
-            } else {
-                // Only a failure-free teardown reaches this point with a gone server.
-                infrastructureGone = failures.length === 0;
-                startupLogger.warn(
-                    'TaskOrchestrator stop abandoned: its releases wait for a server that is gone',
-                );
-            }
         } catch (err) {
-            if (infrastructureGone) {
-                startupLogger.warn('TaskOrchestrator stop incomplete: infrastructure unreachable', {
-                    error: err instanceof Error ? err.message : String(err),
-                });
-            } else {
-                failures.push(err);
-                startupLogger.warn('Failed to stop TaskOrchestrator cleanly', {
-                    error: err instanceof Error ? err.message : String(err),
-                });
-            }
+            failures.push(err);
+            startupLogger.warn('Failed to stop TaskOrchestrator cleanly', {
+                error: err instanceof Error ? err.message : String(err),
+            });
         }
     }
     // The singleton lease goes last, once everything it guards has stopped. If
     // a strict cleanup step failed, consumers may still be alive: keep renewing
     // so no successor starts beside them (a retry, or process exit and the
     // lease's expiry, ends it). Tolerant shutdown releases regardless.
-    if (workerLeaseRequested && (!strict || failures.length === 0)) {
+    //
+    // The same goes for a step that was abandoned: what it left behind is only
+    // known to be harmless once its lock or the lease expired, so neither is
+    // released here. Nothing can release them anyway, the server is gone.
+    if (abandoned.length > 0) {
+        startupLogger.warn(
+            'Worker singleton lease and leader locks left to expire: a teardown step was abandoned',
+            { steps: abandoned },
+        );
+    } else if (workerLeaseRequested && (!strict || failures.length === 0)) {
         try {
             const { releaseWorkerLease } = await import('./worker-lease.js');
-            const releasing = releaseWorkerLease();
-            if (infrastructureGone)
-                await settledWithin(releasing, UNREACHABLE_TEARDOWN_BUDGET_MS / 2);
-            else await settledUnlessInfrastructureGone(releasing);
-            workerLeaseRequested = false;
+            if (await waitForStep(releaseWorkerLease(), 'Worker singleton lease release'))
+                workerLeaseRequested = false;
         } catch (err) {
             // Not a cleanup failure: everything the lease guards has stopped by
             // now, so an unreleased lease only delays a successor until it

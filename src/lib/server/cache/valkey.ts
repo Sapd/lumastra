@@ -20,42 +20,57 @@ import {
 
 const baseLogger = Logger.for('Cache');
 
-/** One failed-request warning per window while Valkey is down; the rest go to debug. */
-const OUTAGE_WARN_WINDOW_MS = 30_000;
-const OUTAGE_ERROR_PATTERN =
-    /timed out|timeout|client is closed|connection (is )?(closed|lost|refused|reset)|ECONN|ENOTFOUND|EAI_AGAIN|getaddrinfo|Unable to execute requests|Reached maximum inflight/i;
-let lastOutageWarnAt = Number.NEGATIVE_INFINITY;
-let outageWarnsSuppressed = 0;
-
 /**
- * Every cache operation logs its own warning when the server cannot be reached,
- * so one Valkey restart produced dozens of lines per process (publishes, key
- * writes, lock releases). Warnings caused by an unreachable server are limited to
- * one per window, carrying the number it stands for; other failures log as before.
+ * One warning per message per window while Valkey cannot be reached. Every cache
+ * operation logs its own warning, so one Valkey restart produced dozens of lines
+ * per process (publishes, key writes, lock releases). Only errors that say the
+ * server is not there count: refused, reset or unresolvable connections, a
+ * closed client. A timeout does not (an overloaded server times out too, and
+ * that is worth every line). Any other failure logs as before.
  */
+const OUTAGE_WARN_WINDOW_MS = 30_000;
+const MAX_TRACKED_WARNINGS = 200;
+const OUTAGE_ERROR_PATTERN =
+    /ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|EPIPE|EHOSTUNREACH|ENETUNREACH|connection (is )?(closed|lost|refused|reset)|client is closed|Unable to execute requests/i;
+const outageWarnings = new Map<string, { lastAt: number; suppressed: number }>();
+
+/** The message of the failure behind a warning: an Error argument or an `error`/`err` field. */
+function warningCause(data: object | Error | undefined, error: Error | undefined): string {
+    if (error) return error.message ?? '';
+    if (data instanceof Error) return data.message ?? '';
+    const fields = data as { error?: unknown; err?: unknown } | undefined;
+    const field = fields?.error ?? fields?.err;
+    return typeof field === 'string' ? field : field instanceof Error ? field.message : '';
+}
+
 const logger = Object.create(baseLogger) as typeof baseLogger;
 logger.warn = (message: string, data?: object | Error, error?: Error): void => {
-    const cause = error ?? (data instanceof Error ? data : undefined);
-    if (cause && OUTAGE_ERROR_PATTERN.test(cause.message ?? '')) {
-        const now = Date.now();
-        if (now - lastOutageWarnAt < OUTAGE_WARN_WINDOW_MS) {
-            outageWarnsSuppressed++;
-            baseLogger.debug(message, data instanceof Error ? undefined : data);
-            return;
-        }
-        lastOutageWarnAt = now;
-        const suppressed = outageWarnsSuppressed;
-        outageWarnsSuppressed = 0;
-        const context = data instanceof Error ? {} : (data ?? {});
-        baseLogger.warn(
-            message,
-            suppressed > 0 ? { ...context, suppressedSinceLastWarning: suppressed } : data,
-            error,
-        );
+    if (!OUTAGE_ERROR_PATTERN.test(warningCause(data, error))) {
+        baseLogger.warn(message, data, error);
         return;
     }
-    baseLogger.warn(message, data, error);
+    const now = Date.now();
+    const seen = outageWarnings.get(message);
+    if (seen && now - seen.lastAt < OUTAGE_WARN_WINDOW_MS) {
+        seen.suppressed++;
+        baseLogger.debug(message, data instanceof Error ? undefined : data);
+        return;
+    }
+    if (!seen && outageWarnings.size >= MAX_TRACKED_WARNINGS) outageWarnings.clear();
+    const suppressed = seen?.suppressed ?? 0;
+    outageWarnings.set(message, { lastAt: now, suppressed: 0 });
+    const context = data instanceof Error ? {} : (data ?? {});
+    baseLogger.warn(
+        message,
+        suppressed > 0 ? { ...context, suppressedSinceLastWarning: suppressed } : data,
+        error,
+    );
 };
+
+/** Test seam for the outage warning gate. */
+export function __warnForTests(message: string, data?: object | Error, error?: Error): void {
+    logger.warn(message, data, error);
+}
 
 /**
  * GLIDE's Rust core logs to stdout at WARN by default. At that level the only
@@ -677,6 +692,12 @@ async function connectCoordClient(): Promise<boolean> {
     }
 }
 
+/**
+ * Terminal: set once, when the process is about to exit, and never cleared. It
+ * downgrades the lock-release/acquire errors (and silences the native client
+ * logs) for the rest of the process lifetime, so it must never be called for
+ * anything but shutdown.
+ */
 let shuttingDown = false;
 
 /**
@@ -686,6 +707,7 @@ let shuttingDown = false;
  * information at that point and showed up as errors in every full-stack restart.
  */
 export function silenceGlideLoggerForShutdown(): void {
+    // Terminal, see `shuttingDown`: not for a reconnect, a test or a restart of a subsystem.
     shuttingDown = true;
     try {
         GlideLogger.setLoggerConfig('off');

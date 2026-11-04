@@ -261,7 +261,8 @@ services:
             # For offline use, mount vetted weights below and point SONIC_MODEL_FP at the file.
             # SONIC_MODEL_FP: '/models/clap-2023.pth'
         volumes:
-            # Match the web/worker container path; media must be readable by uid/gid 1000.
+            # Uncomment when you enable the sonic profile: the SAME host path and container path as
+            # the web and worker media mounts. Media must be readable by uid/gid 1000.
             # - /path/to/media:/data/media:ro
             # Persist downloaded model weights across container updates.
             - sonic-model-cache:/app/.cache/huggingface

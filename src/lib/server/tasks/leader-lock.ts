@@ -11,6 +11,7 @@ import { appendAuditEvent } from './observability/audit-log.js';
 import type { AuthorityToken } from '../../../task-runtime/authority/store.js';
 import { captureValkeyAuthority, invokeFencedValkey } from './lua/fenced.js';
 import { raceTimeout } from './loop-stop.js';
+import { createRepeatWarning } from '$lib/server/utils/repeat-warning.js';
 
 const log = Logger.for('LeaderLock');
 
@@ -22,8 +23,17 @@ function leaderResourceFromKey(key: string): string {
     return key.startsWith('lock:orch:') ? key.slice('lock:orch:'.length) : key;
 }
 
-/** Set once a release failure was logged at warn level; later ones are debug. */
-let releaseFailureWarned = false;
+/**
+ * A Valkey that is gone fails every class lock's release the same way: one
+ * warning per window for the whole process, the rest at debug. A release that
+ * works ends the window.
+ */
+const releaseFailures = createRepeatWarning(log);
+
+/** Test seam. */
+export function __resetLeaderLockReleaseWarningForTests(): void {
+    releaseFailures.reset();
+}
 
 /**
  * Renewable SET-NX lock. Acquires `key=holderId NX PX ttl`; renews via a small
@@ -280,13 +290,12 @@ export class LeaderLock {
             if (result !== 0 && result !== '0' && result !== 1 && result !== '1')
                 throw new Error('Invalid LeaderLock release acknowledgement');
             this.releaseRequired = false;
+            releaseFailures.reset();
         } catch (err) {
-            // One warning per process: a Valkey that is gone fails every class lock the same way.
-            (releaseFailureWarned ? log.debug : log.warn).call(log, 'LeaderLock release failed', {
+            releaseFailures.warn('LeaderLock release failed', {
                 key: this.key,
                 err: errMessage(err),
             });
-            releaseFailureWarned = true;
             if (options.strict)
                 throw new Error(`UNKNOWN: LeaderLock release unconfirmed for ${this.key}`, {
                     cause: err,

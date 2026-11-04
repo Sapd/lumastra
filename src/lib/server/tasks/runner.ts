@@ -881,6 +881,11 @@ export class TaskRunner {
         }
     }
 
+    /** A job is running in this process (from its first phase on). */
+    hasExecutingJobs(): boolean {
+        return this.executingJobs > 0 || this.executingRunIds.size > 0;
+    }
+
     isExecutionQuiescent(): boolean {
         return (
             this.executingJobs === 0 &&
@@ -1289,13 +1294,22 @@ export class TaskRunner {
 
     private async stopResources(): Promise<void> {
         const failures: unknown[] = [];
-        // Read before the handlers below are aborted: those unwind on their own time.
-        const hadActiveJobs = this.abortControllers.size > 0 || this.heartbeats.size > 0;
         this.stopped = true;
         this.connWatchdog?.stop();
         // Setup reserves ownership before calling a factory. A hotload already
         // in flight must publish its worker before teardown snapshots the maps.
         await Promise.all([...this.workerSetups]);
+
+        // A job in its first phase (resolving the task, waiting on gates, claiming)
+        // has no abort controller and no heartbeat yet, but is executing: abort it
+        // as a shutdown interruption, the way the owned runs below are, so it
+        // unwinds instead of running on while the Worker closes. The abort reaches
+        // it as soon as it creates its controller.
+        for (const runId of [...this.executingRunIds]) {
+            if (this.heartbeats.has(runId)) continue;
+            if (!this.requestedExecutionCancels.has(runId)) this.shutdownInterrupted.add(runId);
+            this.cancelExecution(runId);
+        }
 
         // Fast-recovery release on graceful shutdown (e.g. a redeploy SIGTERM):
         // proactively relinquish every run THIS instance owns so the next worker
@@ -1357,19 +1371,25 @@ export class TaskRunner {
             }
         }
 
-        // Close every Worker at once. A Worker with no active job has nothing left
-        // to settle, so its close is bounded: BullMQ's own close() never returns
-        // while the task Valkey is down (a compose restart stops Valkey together
-        // with the worker) and used to run the process into its shutdown deadline,
-        // one worker after the other. With a job still active the close waits for
-        // it as before.
+        // Close every Worker at once. BullMQ's own close() never returns while the
+        // task Valkey is down (a compose restart stops Valkey together with the
+        // worker) and used to run the process into its shutdown deadline, one worker
+        // after the other. A Worker with nothing running is therefore abandoned after
+        // a short bound; one with a job in flight is awaited for as long as the job
+        // needs. "In flight" is read when the bound expires, from everything that
+        // marks a job as executing: a job may have started after the stop began.
         let workersForcedClosed = 0;
+        const jobsInFlight = (): boolean =>
+            this.executingJobs > 0 ||
+            this.executingRunIds.size > 0 ||
+            this.abortControllers.size > 0 ||
+            this.heartbeats.size > 0;
         const closeWorker = (worker: WorkerLike): Promise<unknown> =>
-            hadActiveJobs
-                ? worker.close()
-                : closeBullmqBounded(worker, WORKER_CLOSE_TIMEOUT_MS).then((settled) => {
-                      if (!settled) workersForcedClosed++;
-                  });
+            closeBullmqBounded(worker, WORKER_CLOSE_TIMEOUT_MS, () => !jobsInFlight()).then(
+                (settled) => {
+                    if (!settled) workersForcedClosed++;
+                },
+            );
         await Promise.all([
             ...[...this.classes].map(async ([key, rt]) => {
                 try {
@@ -5650,6 +5670,11 @@ export async function startTaskRunner(
     } finally {
         _runnerStarting = null;
     }
+}
+
+/** True while a job runs in this process's task runner. */
+export function taskRunnerHasExecutingJobs(): boolean {
+    return _runner?.hasExecutingJobs() ?? false;
 }
 
 export async function stopTaskRunner(options: { strict?: boolean } = {}): Promise<void> {

@@ -54,10 +54,18 @@ export interface OutageGate {
     recovered(now?: number): void;
 }
 
-/** `onEnd` (optional) fires once an outage has been quiet for `quietMs`. */
+/** How often a warning repeats while one outage keeps going. */
+export const OUTAGE_REMINDER_MS = 5 * 60_000;
+
+/**
+ * `onEnd` (optional) fires once an outage has been quiet for `quietMs`.
+ * `reminder` (optional) fires every `everyMs` while the outage is still going, so
+ * a long one is not just a single line at its start.
+ */
 export function createOutageGate(
     quietMs: number = OUTAGE_QUIET_MS,
     onEnd?: (end: OutageEnd) => void,
+    reminder?: { everyMs: number; onOngoing: (state: OutageEnd) => void },
 ): OutageGate {
     // Last error of the running outage; decides `first`.
     let lastErrorAt = Number.NEGATIVE_INFINITY;
@@ -68,6 +76,11 @@ export function createOutageGate(
     let errors = 0;
     let suppressed = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let reminderTimer: ReturnType<typeof setInterval> | undefined;
+    const stopReminder = (): void => {
+        if (reminderTimer) clearInterval(reminderTimer);
+        reminderTimer = undefined;
+    };
     const arm = (delayMs: number): void => {
         timer = setTimeout(() => {
             timer = undefined;
@@ -76,6 +89,7 @@ export function createOutageGate(
                 arm(quietMs - idleMs);
                 return;
             }
+            stopReminder();
             onEnd?.({ durationMs: lastActivityAt - startedAt, errors });
         }, delayMs);
         timer.unref?.();
@@ -91,6 +105,13 @@ export function createOutageGate(
                 errors = 1;
                 startedAt = now;
                 if (onEnd && !timer) arm(quietMs);
+                if (reminder && !reminderTimer) {
+                    reminderTimer = setInterval(() => {
+                        if (Date.now() - lastActivityAt > quietMs) return stopReminder();
+                        reminder.onOngoing({ durationMs: Date.now() - startedAt, errors });
+                    }, reminder.everyMs);
+                    reminderTimer.unref?.();
+                }
                 return { first: true, suppressed: previouslySuppressed };
             }
             errors++;
@@ -125,12 +146,24 @@ export function isConnectionLossError(err: unknown): boolean {
     return CONNECTION_LOSS_MESSAGE.test(message);
 }
 
-const processGate = createOutageGate(OUTAGE_QUIET_MS, ({ durationMs, errors }) => {
-    log.info('Task Valkey connection errors stopped; assuming it is reachable again', {
-        outageSeconds: Math.round(durationMs / 1000),
-        errors,
-    });
-});
+const processGate = createOutageGate(
+    OUTAGE_QUIET_MS,
+    ({ durationMs, errors }) => {
+        log.info('Task Valkey connection errors stopped; assuming it is reachable again', {
+            outageSeconds: Math.round(durationMs / 1000),
+            errors,
+        });
+    },
+    {
+        everyMs: OUTAGE_REMINDER_MS,
+        onOngoing: ({ durationMs, errors }) => {
+            log.warn('Task Valkey is still unreachable', {
+                outageMinutes: Math.round(durationMs / 60_000),
+                errors,
+            });
+        },
+    },
+);
 
 interface ErrorEmitter {
     on(event: 'error', listener: (err: Error) => void): unknown;
@@ -260,6 +293,12 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | unde
 export async function closeBullmqBounded(
     target: ClosableBullmq,
     timeoutMs: number,
+    /**
+     * Asked when the bound expires. Answer `false` while the object still has work
+     * in flight (a Worker with a job running): its close is then awaited for as
+     * long as it takes instead of being forced.
+     */
+    mayAbandon: () => boolean = () => true,
 ): Promise<boolean> {
     const qe = target;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -274,6 +313,10 @@ export async function closeBullmqBounded(
         if (outcome === 'closed') return true;
     } finally {
         clearTimeout(timer);
+    }
+    if (!mayAbandon()) {
+        await closing;
+        return true;
     }
     const backend = qe.getBackend?.() as BackendInternals | undefined;
     const targets: Array<[Promise<RawClient> | undefined, RawClient | undefined]> = [
