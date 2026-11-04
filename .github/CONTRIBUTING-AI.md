@@ -38,6 +38,14 @@ question. If you can't explain a change, don't submit it.
    it doesn't apply. The review is a second pair of eyes, not a replacement for yours or
    the maintainer's.
 
+**Recommended: review your own diff before you open the PR.** Ask a reviewer of your choice
+to look at it, and if you can, also run `/bmad-review`, the multi-lens review skill from the
+[BMad Method](https://github.com/bmad-code-org/BMAD-METHOD) (adversarial, edge-case and
+verification-gap lenses). Install it in your checkout with `npx bmad-method install`, then run
+`/bmad-review` on your diff; never commit `_bmad/`, `_bmad-output/` or your tool's skill folder.
+[AGENTS.md](../AGENTS.md#before-you-open-a-pull-request) has the full pre-PR checklist. Findings
+you fix before the PR are findings nobody has to discuss in review.
+
 ## What gets a PR or issue closed
 
 - **"Vibe-coded" PRs.** A PR that wasn't fully tested end to end, or whose author can't
