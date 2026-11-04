@@ -25,6 +25,9 @@
 //    every Worker's and QueueEvents' blocking connection a few seconds AFTER
 //    recovery, so counting those stretched a 4 s outage to 11 s and could hold
 //    the INFO back for as long as reconnects kept coming.
+// 4. Counting. The messages count the sources (scopes) that lost the
+//    connection, not the errors: each of a worker's ~200 connections errors on
+//    every reconnect attempt, so a 0.7 s restart counted 706 errors.
 
 import { Logger } from '../utils/logger.js';
 
@@ -40,17 +43,19 @@ export interface OutageEnd {
     durationMs: number;
     /** Distinct errors: one ioredis error fanned out to N BullMQ listeners counts once. */
     errors: number;
+    /** Distinct sources passed to `note` (calls without one count as one). */
+    sources: number;
 }
 
 export interface OutageGate {
     /**
-     * Record an error. `first` is true for the first error of an outage;
-     * `suppressed` is how many errors the previous outage swallowed (only
-     * meaningful when `first`). Pass the error object so that the same error
-     * delivered to several listeners (a shared connection forwards its error to
-     * every Queue built on it) is counted once.
+     * Record an error. `first` is true for the first error of an outage. Pass
+     * the error object so that the same error delivered to several listeners (a
+     * shared connection forwards its error to every Queue built on it) is
+     * counted once, and `source` (the failing connection's scope) so that a
+     * connection retrying many times counts as one source.
      */
-    note(now?: number, err?: unknown): { first: boolean; suppressed: number };
+    note(now?: number, err?: unknown, source?: string): { first: boolean };
     /**
      * Record that a connection became usable again. The first reconnect after
      * the latest error of a running outage marks its end for the reported
@@ -80,7 +85,7 @@ export function createOutageGate(
     let recoveredAt: number | undefined;
     let startedAt = 0;
     let errors = 0;
-    let suppressed = 0;
+    let sources = new Set<string>();
     let seen = new WeakSet<object>();
     let timer: ReturnType<typeof setTimeout> | undefined;
     let reminderTimer: ReturnType<typeof setInterval> | undefined;
@@ -99,21 +104,22 @@ export function createOutageGate(
                 return;
             }
             stopReminder();
-            onEnd?.({ durationMs: endedAt() - startedAt, errors });
+            onEnd?.({ durationMs: endedAt() - startedAt, errors, sources: sources.size });
         }, delayMs);
         timer.unref?.();
     };
     return {
-        note(now = Date.now(), err?: unknown) {
+        note(now = Date.now(), err?: unknown, source = '') {
             const first = now - lastErrorAt > quietMs;
-            const previouslySuppressed = suppressed;
-            if (first) seen = new WeakSet<object>();
-            else if (typeof err === 'object' && err !== null && seen.has(err))
-                return { first: false, suppressed: 0 };
+            if (first) {
+                seen = new WeakSet<object>();
+                sources = new Set<string>();
+            } else if (typeof err === 'object' && err !== null && seen.has(err))
+                return { first: false };
             if (typeof err === 'object' && err !== null) seen.add(err);
+            sources.add(source);
             lastErrorAt = now;
             if (first) {
-                suppressed = 0;
                 errors = 1;
                 startedAt = now;
                 recoveredAt = undefined;
@@ -121,15 +127,18 @@ export function createOutageGate(
                 if (reminder && !reminderTimer) {
                     reminderTimer = setInterval(() => {
                         if (Date.now() - lastErrorAt > quietMs) return stopReminder();
-                        reminder.onOngoing({ durationMs: Date.now() - startedAt, errors });
+                        reminder.onOngoing({
+                            durationMs: Date.now() - startedAt,
+                            errors,
+                            sources: sources.size,
+                        });
                     }, reminder.everyMs);
                     reminderTimer.unref?.();
                 }
-                return { first: true, suppressed: previouslySuppressed };
+                return { first: true };
             }
             errors++;
-            suppressed++;
-            return { first: false, suppressed: 0 };
+            return { first: false };
         },
         recovered(now = Date.now()) {
             if (now - lastErrorAt > quietMs || now < lastErrorAt) return;
@@ -165,19 +174,19 @@ let lastLoss: { scope: string; err: string } | undefined;
 function createProcessGate(): OutageGate {
     return createOutageGate(
         OUTAGE_QUIET_MS,
-        ({ durationMs, errors }) => {
+        ({ durationMs, sources }) => {
             log.info('Task Valkey connection errors stopped; assuming it is reachable again', {
                 // Tenths: a `docker compose restart` of Valkey is often under a second.
                 outageSeconds: Math.round(durationMs / 100) / 10,
-                errors,
+                failedSources: sources,
             });
         },
         {
             everyMs: OUTAGE_REMINDER_MS,
-            onOngoing: ({ durationMs, errors }) => {
+            onOngoing: ({ durationMs, sources }) => {
                 log.warn('Task Valkey is still unreachable', {
                     outageMinutes: Math.round(durationMs / 60_000),
-                    errors,
+                    failedSources: sources,
                     ...(lastLoss
                         ? { lastErrorScope: lastLoss.scope, lastError: lastLoss.err }
                         : {}),
@@ -205,16 +214,12 @@ function isErrorEmitter(target: unknown): target is ErrorEmitter {
 export function logTaskConnectionLoss(scope: string, err: unknown): boolean {
     if (!isConnectionLossError(err)) return false;
     const message = err instanceof Error ? err.message : String(err);
-    const outage = processGate.note(Date.now(), err);
+    const outage = processGate.note(Date.now(), err, scope);
     lastLoss = { scope, err: message };
     if (!outage.first) return true;
     log.warn(
         'Task Valkey connection error; BullMQ reconnects on its own. Further connection errors of this outage are not logged',
-        {
-            scope,
-            err: message,
-            ...(outage.suppressed > 0 ? { suppressedInPreviousOutage: outage.suppressed } : {}),
-        },
+        { scope, err: message },
     );
     return true;
 }

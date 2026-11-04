@@ -23,15 +23,15 @@ import {
 } from './queue-outage.js';
 
 describe('createOutageGate', () => {
-    it('reports only the first error of an outage and carries the suppressed count over', () => {
+    it('reports only the first error of an outage', () => {
         const gate = createOutageGate(1000);
-        expect(gate.note(0)).toEqual({ first: true, suppressed: 0 });
+        expect(gate.note(0)).toEqual({ first: true });
         expect(gate.note(100).first).toBe(false);
         expect(gate.note(900).first).toBe(false);
         // Errors keep arriving: the outage is not over, however long it lasts.
         expect(gate.note(1800).first).toBe(false);
         // Quiet for longer than the window: the next error is a new outage.
-        expect(gate.note(3000)).toEqual({ first: true, suppressed: 3 });
+        expect(gate.note(3000)).toEqual({ first: true });
     });
 
     it('calls onEnd once the outage has been quiet for the window', () => {
@@ -46,7 +46,7 @@ describe('createOutageGate', () => {
             expect(onEnd).not.toHaveBeenCalled();
             vi.advanceTimersByTime(200);
             expect(onEnd).toHaveBeenCalledTimes(1);
-            expect(onEnd).toHaveBeenCalledWith({ durationMs: 600, errors: 2 });
+            expect(onEnd).toHaveBeenCalledWith({ durationMs: 600, errors: 2, sources: 1 });
         } finally {
             vi.useRealTimers();
         }
@@ -66,7 +66,7 @@ describe('createOutageGate', () => {
             gate.recovered();
             vi.advanceTimersByTime(200);
             expect(onEnd).toHaveBeenCalledTimes(1);
-            expect(onEnd).toHaveBeenCalledWith({ durationMs: 800, errors: 1 });
+            expect(onEnd).toHaveBeenCalledWith({ durationMs: 800, errors: 1, sources: 1 });
         } finally {
             vi.useRealTimers();
         }
@@ -86,7 +86,7 @@ describe('createOutageGate', () => {
                 gate.recovered();
             }
             expect(onEnd).toHaveBeenCalledTimes(1);
-            expect(onEnd).toHaveBeenCalledWith({ durationMs: 4000, errors: 1 });
+            expect(onEnd).toHaveBeenCalledWith({ durationMs: 4000, errors: 1, sources: 1 });
         } finally {
             vi.useRealTimers();
         }
@@ -106,7 +106,7 @@ describe('createOutageGate', () => {
             vi.advanceTimersByTime(500);
             gate.recovered();
             vi.advanceTimersByTime(1000);
-            expect(onEnd).toHaveBeenCalledWith({ durationMs: 1200, errors: 2 });
+            expect(onEnd).toHaveBeenCalledWith({ durationMs: 1200, errors: 2, sources: 1 });
         } finally {
             vi.useRealTimers();
         }
@@ -121,19 +121,43 @@ describe('createOutageGate', () => {
             vi.advanceTimersByTime(700);
             gate.note();
             vi.advanceTimersByTime(1000);
-            expect(onEnd).toHaveBeenCalledWith({ durationMs: 700, errors: 2 });
+            expect(onEnd).toHaveBeenCalledWith({ durationMs: 700, errors: 2, sources: 1 });
         } finally {
             vi.useRealTimers();
         }
     });
 
     it('counts one error object delivered to several listeners once', () => {
-        const gate = createOutageGate(1000);
-        const shared = new Error('getaddrinfo ENOTFOUND valkey');
-        expect(gate.note(0, shared).first).toBe(true);
-        for (let i = 0; i < 20; i++) expect(gate.note(1, shared).first).toBe(false);
-        gate.note(200, new Error('getaddrinfo ENOTFOUND valkey'));
-        expect(gate.note(5000).suppressed).toBe(1);
+        vi.useFakeTimers();
+        try {
+            const onEnd = vi.fn();
+            const gate = createOutageGate(1000, onEnd);
+            const shared = new Error('getaddrinfo ENOTFOUND valkey');
+            expect(gate.note(Date.now(), shared).first).toBe(true);
+            for (let i = 0; i < 20; i++) expect(gate.note(Date.now(), shared).first).toBe(false);
+            gate.note(Date.now(), new Error('getaddrinfo ENOTFOUND valkey'));
+            vi.advanceTimersByTime(1000);
+            expect(onEnd).toHaveBeenCalledWith(expect.objectContaining({ errors: 2 }));
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('counts a source that keeps retrying once', () => {
+        vi.useFakeTimers();
+        try {
+            const onEnd = vi.fn();
+            const gate = createOutageGate(1000, onEnd);
+            for (let attempt = 0; attempt < 4; attempt++)
+                for (let c = 0; c < 200; c++)
+                    gate.note(Date.now(), new Error('getaddrinfo ENOTFOUND valkey'), `worker:${c}`);
+            vi.advanceTimersByTime(1000);
+            expect(onEnd).toHaveBeenCalledWith(
+                expect.objectContaining({ errors: 800, sources: 200 }),
+            );
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('reminds every interval while one outage keeps going, and stops when it ends', () => {
@@ -275,7 +299,19 @@ describe('process-wide outage messages', () => {
         vi.advanceTimersByTime(OUTAGE_QUIET_MS);
         expect(log.warn).toHaveBeenCalledTimes(1);
         expect(log.info).toHaveBeenCalledTimes(1);
-        expect(log.info.mock.calls[0][1]).toEqual({ outageSeconds: 0.4, errors: 4 });
+        expect(log.info.mock.calls[0][1]).toEqual({ outageSeconds: 0.4, failedSources: 1 });
+    });
+
+    it('counts a worker restart by failed sources, not by reconnect errors', () => {
+        // Worker: ~200 connections of their own, each erroring on every retry.
+        for (let attempt = 0; attempt < 3; attempt++) {
+            for (let t = 0; t < 200; t++)
+                logTaskConnectionLoss(`task-worker:t${t}`, new Error('getaddrinfo ENOTFOUND v'));
+            vi.advanceTimersByTime(100);
+        }
+        vi.advanceTimersByTime(OUTAGE_QUIET_MS);
+        expect(log.warn).toHaveBeenCalledTimes(1);
+        expect(log.info.mock.calls[0][1]).toEqual({ outageSeconds: 0.2, failedSources: 200 });
     });
 
     it('logs the recovery while BullMQ objects keep reconnecting after it', () => {
@@ -292,7 +328,7 @@ describe('process-wide outage messages', () => {
             backend.emit('ready');
         }
         expect(log.info).toHaveBeenCalledTimes(1);
-        expect(log.info.mock.calls[0][1]).toEqual({ outageSeconds: 3, errors: 2 });
+        expect(log.info.mock.calls[0][1]).toEqual({ outageSeconds: 3, failedSources: 1 });
     });
 
     it('names the source of the latest error in the reminder', () => {
