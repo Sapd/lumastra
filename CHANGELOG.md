@@ -16,6 +16,26 @@ health → Cluster also warns when the running proxy is behind.
 The iPhone, iPad and Apple TV apps have their own version numbers. Their notes are on
 [lumastra.org/about/changelog/](https://lumastra.org/about/changelog/).
 
+## 0.1.2 - 2026-11-04
+
+Live TV proxy: no update needed.
+
+### Fixed
+
+- A full `docker compose restart` (PostgreSQL, Valkey and the app stopping together) no longer
+  keeps the worker stopping for about 60 s with "Task runtime shutdown failed". The worker and
+  web now stop in a few seconds with no errors. Shutdown gives up waiting only on a server that
+  is really unreachable (checked with its own TCP connection, per server), never on a slow one;
+  in that case it leaves its locks and lease to expire instead of releasing them. A worker with
+  running jobs still interrupts them and stops in order.
+- The web container's shutdown steps each have a time limit, and the database and Valkey pools
+  always keep enough time to close, so a hung step can't make Docker kill the container.
+- A Valkey restart no longer floods the log with hundreds of warnings: connection errors are
+  logged once per outage (with a reminder every 5 minutes if it lasts), the recovery message
+  reports the real outage length, and other errors are still logged every time.
+- The example compose file gives the web service a stop grace period, and the sonic service's
+  media line is commented out like the others.
+
 ## 0.1.1 - 2026-11-04
 
 Live TV proxy: no update needed.
@@ -37,12 +57,10 @@ install test of 0.1.0.
 
 ### Fixed
 
-- `docker compose restart` of a fresh install no longer leaves the worker hanging for 60 s and
-  logging "Task runtime shutdown failed". Closing the task queue listeners gave up waiting while
-  Valkey was restarting; it now stops after a few seconds.
-- A Valkey or PostgreSQL restart no longer floods the log: connection errors are logged once
-  per outage (other Valkey errors are still logged every time), and failed best-effort writes
-  while the app shuts down are warnings, not errors.
+- Closing the task queue listeners no longer waits forever while Valkey is restarting. A full
+  `docker compose restart` could still keep the worker stopping for about 60 s; that is fixed
+  in 0.1.2.
+- Failed best-effort transcode-job writes while the app shuts down are warnings, not errors.
 - Cancelling a music transcode right as ffmpeg started could record the stream as finished and
   put an empty file into the audio cache. A cancelled encode now always ends as an error.
 - Titles and descriptions from XMLTV guides, AniDB, Kavita and the assistant's links are no
