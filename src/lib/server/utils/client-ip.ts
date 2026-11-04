@@ -185,32 +185,34 @@ function hasAnyClientIpProxies(): boolean {
 
 /**
  * How far the strict client address can be believed (self-checks):
- * - `pinned`  — it comes from an explicit narrow CLIENT_IP_PROXY_IPS list, or from the router hop
- *               with a router that only adopts X-Forwarded-For from a narrow range
- *               (LUMASTRA_ROUTER_REALIP_WIDE=false; no request needed to know),
- * - `caveat`  — it comes from the router's X-Forwarded-For and that router trusts a wide range
- *               (or the chart did not say, but a hop request was served): any in-cluster pod that
- *               reaches the router can choose it,
- * - `none`    — the strict client IP is the TCP peer.
+ * - `pinned`     — it comes from an explicit narrow CLIENT_IP_PROXY_IPS list, or from the router
+ *                  hop with a router that only adopts X-Forwarded-For from a narrow range
+ *                  (LUMASTRA_ROUTER_REALIP_WIDE=false) AND a hop request was actually served by this
+ *                  process (the hop works: keys match, router restarted after a rotation),
+ * - `unverified` — the chart says the router is narrow, but no request has carried a valid hop
+ *                  since this process started: a key mismatch or a router not restarted after a
+ *                  key rotation would make every client resolve to the router pod's address,
+ * - `caveat`     — the address can be chosen by something that is not proof: a wide
+ *                  CLIENT_IP_PROXY_IPS range, a router that adopts X-Forwarded-For from a wide range
+ *                  (or the chart did not say, but a hop request was served),
+ * - `none`       — the strict client IP is the TCP peer.
  * Not an identity statement: use `forwardAuthTrustPosture` for that.
  */
-export type ClientIpPinState = 'pinned' | 'caveat' | 'none';
+export type ClientIpPinState = 'pinned' | 'unverified' | 'caveat' | 'none';
 
 export function clientIpPinState(): ClientIpPinState {
+    const hasClientList = !matcherIsEmpty(CLIENT_IP_PROXIES);
+    const clientListWide =
+        hasClientList && !!findWideTrustedProxyRanges(process.env.CLIENT_IP_PROXY_IPS);
+    // Unauthenticated wide list: anything in the range chooses the address, whatever the router says.
+    if (clientListWide) return 'caveat';
     const exposure = routerRealIpExposure();
     if (exposure === 'wide') return 'caveat';
-    if (
-        exposure === 'narrow' &&
-        deriveRouterHopSecret(process.env.LUMASTRA_MASTER_KEY).length > 0
-    ) {
-        return 'pinned';
-    }
-    if (
-        !matcherIsEmpty(CLIENT_IP_PROXIES) &&
-        !findWideTrustedProxyRanges(process.env.CLIENT_IP_PROXY_IPS)
-    ) {
-        return 'pinned';
-    }
+    const hopConfigured =
+        exposure === 'narrow' && deriveRouterHopSecret(process.env.LUMASTRA_MASTER_KEY).length > 0;
+    if (hopConfigured && routerHopSeen()) return 'pinned';
+    if (hasClientList) return 'pinned';
+    if (hopConfigured) return 'unverified';
     return routerHopSeen() ? 'caveat' : 'none';
 }
 

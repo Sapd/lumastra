@@ -26,7 +26,7 @@ is sorted (deterministic). Rendered into the <release>-env ConfigMap; its hash r
 {{- if kindIs "slice" $cip }}{{ $cip = join "," $cip }}{{ end -}}
 {{- if and $cip (ne (toString $cip) "<nil>") }}{{ $_ := set $e "CLIENT_IP_PROXY_IPS" (toString $cip) }}{{ end -}}
 {{- /* Tells the app (self-checks only) whether the router-hop client address can be chosen by any pod. */ -}}
-{{- if include "lumastra.routerHopOn" . }}{{ $_ := set $e "LUMASTRA_ROUTER_REALIP_WIDE" (ternary "true" "false" (not (empty (include "lumastra.routerRealIpWide" .)))) }}{{ end -}}
+{{- if include "lumastra.routerHopOn" . }}{{ $_ := set $e "LUMASTRA_ROUTER_REALIP_WIDE" (include "lumastra.routerRealIpWide" .) }}{{ end -}}
 {{- if $v.app.lowRamMode }}{{ $_ := set $e "LUMASTRA_LOW_RAM_MODE" "true" }}{{ end -}}
 {{- /* auth */ -}}
 {{- /* null = not rendered: the app default / Admin UI value applies (README: Authentication) */ -}}

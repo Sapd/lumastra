@@ -156,6 +156,13 @@ describe('evaluateSingleIpPolicyPosture', () => {
         expect(evaluateSingleIpPolicyPosture(2, 'fail-closed', 'pinned').status).toBe('pass');
     });
 
+    it('is info while the router hop is not yet verified on this pod', () => {
+        const result = evaluateSingleIpPolicyPosture(2, 'fail-closed', 'unverified');
+        expect(result.status).toBe('info');
+        expect(result.title).toContain('not yet verified');
+        expect(evaluateSingleIpPolicyPosture(0, 'fail-closed', 'unverified').status).toBe('pass');
+    });
+
     it('warns, caveated, when the client IP comes from a router that trusts a wide range', () => {
         const result = evaluateSingleIpPolicyPosture(2, 'fail-closed', 'caveat');
         expect(result.status).toBe('warn');

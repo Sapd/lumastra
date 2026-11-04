@@ -535,21 +535,49 @@ and secrets.env has LUMASTRA_MASTER_KEY). Returns "true" or "".
 {{- end -}}
 
 {{- /*
-Whether the router adopts X-Forwarded-For from a range any in-cluster pod may be in: a
-router.realIp.fromCIDRs entry wider than /24 (IPv6: wider than /64), AND no NetworkPolicy keeps
-other pods away from the router (networkPolicy.enabled with a non-empty ingressFrom).
-Returns "true" or "".
+Whether a NetworkPolicy peer (one networkPolicy.ingressFrom entry) is narrow enough to count as a guard:
+a non-empty podSelector, a non-empty namespaceSelector, or an ipBlock narrower than /16 (IPv6: /64 or
+narrower). `{}` selectors and `0.0.0.0/0` select every pod. Returns "true" or "".
+*/ -}}
+{{- define "lumastra.npPeerNarrow" -}}
+{{- $ps := default dict .podSelector -}}
+{{- $ns := default dict .namespaceSelector -}}
+{{- $ok := false -}}
+{{- if or $ps.matchLabels $ps.matchExpressions }}{{ $ok = true }}{{ end -}}
+{{- if or $ns.matchLabels $ns.matchExpressions }}{{ $ok = true }}{{ end -}}
+{{- if .ipBlock }}
+{{- $parts := splitList "/" (toString .ipBlock.cidr) }}
+{{- if eq (len $parts) 2 }}
+{{- $bits := int (index $parts 1) }}
+{{- if contains ":" (index $parts 0) }}{{ if ge $bits 64 }}{{ $ok = true }}{{ end }}{{ else }}{{ if ge $bits 17 }}{{ $ok = true }}{{ end }}{{ end }}
+{{- end }}
+{{- end }}
+{{- if $ok }}true{{ end -}}
+{{- end -}}
+
+{{- /*
+Whether the router adopts X-Forwarded-For from a range any in-cluster pod may be in. Returns
+"true" (wide), "false" (narrow) or "unknown" (router.realIp.fromCIDRs empty: the router adopts none).
+Narrow = exact addresses, IPv4 /28 or narrower, IPv6 /120 or narrower (a node's pod range is usually a
+/24, a /64 is a whole subnet); ::ffff: mapped ranges count as wide. A wide range is NOT a problem when a
+NetworkPolicy keeps other pods away from the router: networkPolicy.enabled and a non-empty ingressFrom
+whose every entry is narrow (lumastra.npPeerNarrow). That holds only if your CNI enforces NetworkPolicy.
 */ -}}
 {{- define "lumastra.routerRealIpWide" -}}
 {{- $r := .Values.router -}}
+{{- $cidrs := default list $r.realIp.fromCIDRs -}}
 {{- $wide := false -}}
-{{- range (default list $r.realIp.fromCIDRs) }}
-{{- $parts := splitList "/" (toString .) }}
-{{- if eq (len $parts) 2 }}
+{{- range $cidrs }}
+{{- $c := toString . }}
+{{- $parts := splitList "/" $c }}
+{{- if hasPrefix "::ffff:" (lower $c) }}{{ $wide = true }}
+{{- else if eq (len $parts) 2 }}
 {{- $bits := int (index $parts 1) }}
-{{- if contains ":" (index $parts 0) }}{{ if lt $bits 64 }}{{ $wide = true }}{{ end }}{{ else }}{{ if lt $bits 24 }}{{ $wide = true }}{{ end }}{{ end }}
+{{- if contains ":" (index $parts 0) }}{{ if lt $bits 120 }}{{ $wide = true }}{{ end }}{{ else }}{{ if lt $bits 28 }}{{ $wide = true }}{{ end }}{{ end }}
 {{- end }}
 {{- end }}
-{{- $guarded := and .Values.networkPolicy.enabled .Values.networkPolicy.ingressFrom -}}
-{{- if and $wide (not $guarded) }}true{{ end -}}
+{{- $from := default list .Values.networkPolicy.ingressFrom -}}
+{{- $guarded := and .Values.networkPolicy.enabled (gt (len $from) 0) -}}
+{{- range $from }}{{ if not (include "lumastra.npPeerNarrow" .) }}{{ $guarded = false }}{{ end }}{{ end -}}
+{{- if eq (len $cidrs) 0 }}unknown{{ else if and $wide (not $guarded) }}true{{ else }}false{{ end -}}
 {{- end -}}

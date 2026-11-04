@@ -356,6 +356,16 @@ router:
     # nginx include into a memory emptyDir; the master key is visible to that init container only, never
     # to nginx. Rendered only while secrets.env has LUMASTRA_MASTER_KEY (the default). Restart the
     # router pods after rotating the key. No identity trust is involved.
+    # LIMIT: the hop proves "came through the router", not that the router's X-Forwarded-For is honest.
+    # The router adopts X-Forwarded-For from `realIp.fromCIDRs` (default all of RFC 1918), so any pod that
+    # can reach the router chooses the client address (per-IP login/auth rate limits, IP-pinned grants,
+    # PAT/service-token IP allowlists). Set networkPolicy.enabled + networkPolicy.ingressFrom (every entry
+    # must select something specific: `{}` and 0.0.0.0/0 do not count; the CNI must enforce NetworkPolicy)
+    # and/or narrow realIp.fromCIDRs to your ingress pods (exact addresses, IPv4 /28 or narrower, IPv6
+    # /120; a node's whole pod range is a /24 and still counts as wide). NOTES.txt warns until you do, and
+    # the chart tells the app (LUMASTRA_ROUTER_REALIP_WIDE) so the Security Self-Check does too.
+    # The derived value is an HMAC of the key: use a 64-hex key (a low-entropy passphrase key could be
+    # brute-forced offline from a sniffed value).
     hop:
         enabled: true
         resources:

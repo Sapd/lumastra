@@ -59,7 +59,7 @@ vi.mock('$lib/server/config/config.service', () => ({
 vi.mock('$lib/server/utils/client-ip', () => {
     return {
         forwardAuthTrustPosture: vi.fn(() => 'allowlist' as const),
-        clientIpPinState: vi.fn(() => 'none' as 'none' | 'pinned' | 'caveat'),
+        clientIpPinState: vi.fn(() => 'none' as 'none' | 'pinned' | 'caveat' | 'unverified'),
     };
 });
 
@@ -420,6 +420,16 @@ describe('checkStreamTokenIpPinningIneffective', () => {
         expect(f.status).toBe('warn');
         expect(f.detail).toContain('any pod in the cluster can choose it');
         expect(f.remediation).toContain('router.realIp.fromCIDRs');
+    });
+
+    it('reports info (not pass, not warn) while the router hop is not yet verified on this pod', () => {
+        mockConfigValues.STREAM_TOKEN_WILDCARD_IP = false;
+        mockForwardAuthTrustPosture.mockReturnValue('fail-closed');
+        vi.mocked(clientIpPinState).mockReturnValue('unverified');
+        const f = checkStreamTokenIpPinningIneffective();
+        expect(f.status).toBe('info');
+        expect(f.title).toContain('not yet verified');
+        expect(f.detail).toContain('restarted after a key rotation');
     });
 
     it('a caveat does not matter at the default wildcard IP, nor with TRUSTED_PROXY_IPS pinned', () => {

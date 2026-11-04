@@ -379,9 +379,22 @@ export function evaluateSingleIpPolicyPosture(
             type: 'inventory',
             status: 'warn',
             title: 'require_single_ip rests on a router X-Forwarded-For any pod can set',
-            detail: `${rowsWithSingleIp} user_stream_policies row(s) set require_single_ip=true. The client IP comes from the Helm router\u2019s X-Forwarded-For, and that router adopts it from a wide range (router.realIp.fromCIDRs wider than /24, with no networkPolicy limiting who reaches the router), so any pod in the cluster can choose it. The control tells clients apart, but a pod in the cluster can choose the address it is counted under.`,
+            detail: `${rowsWithSingleIp} user_stream_policies row(s) set require_single_ip=true. The client IP comes from the Helm router\u2019s X-Forwarded-For, and that router adopts it from a wide range (router.realIp.fromCIDRs wider than /28, with no NetworkPolicy and narrow ingressFrom limiting who reaches the router), so any pod in the cluster can choose it. The control tells clients apart, but a pod in the cluster can choose the address it is counted under.`,
             remediation:
                 'Enable networkPolicy with networkPolicy.ingressFrom and/or narrow router.realIp.fromCIDRs to your ingress controller pods.',
+            evidence: 'user_stream_policies.require_single_ip; client-ip.ts:clientIpPinState',
+        });
+    }
+    if (rowsWithSingleIp > 0 && posture !== 'allowlist' && clientIpPin === 'unverified') {
+        return finding({
+            id: 'inventory.single-ip-policy-posture',
+            method: 'forward-auth',
+            type: 'inventory',
+            status: 'info',
+            title: 'require_single_ip: router hop not yet verified on this pod',
+            detail: `${rowsWithSingleIp} user_stream_policies row(s) set require_single_ip=true. No request has carried a valid router-hop secret since this pod started. If the master key differs between the app and the router, or the router pods were not restarted after a key rotation, every client resolves to the router pod\u2019s address and the control never trips. Check again after traffic.`,
+            remediation:
+                'Make sure LUMASTRA_MASTER_KEY is the same in both and restart the router pods after rotating it.',
             evidence: 'user_stream_policies.require_single_ip; client-ip.ts:clientIpPinState',
         });
     }

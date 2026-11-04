@@ -42,31 +42,75 @@ tests:
     - it: tells the app the router adopts X-Forwarded-For from a wide range (default RFC 1918, no policy)
       asserts:
           - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
-    - it: narrow router.realIp.fromCIDRs (/24 or exact addresses) is not wide
+    - it: narrow router.realIp.fromCIDRs (exact addresses, IPv4 /28 or narrower) is not wide
+      set: { router.realIp.fromCIDRs: [10.42.0.0/28, 10.42.1.7] }
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'false' }
+    - it: a /24 is wide (a node's whole flannel pod range)
       set: { router.realIp.fromCIDRs: [10.42.0.0/24, 10.42.1.7] }
       asserts:
-          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'false' }
-    - it: a /23 is wide
-      set: { router.realIp.fromCIDRs: [10.42.0.0/23] }
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
+    - it: a /27 is wide
+      set: { router.realIp.fromCIDRs: [10.42.0.0/27] }
       asserts:
           - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
-    - it: an IPv6 range wider than /64 is wide, a /64 is not
-      set: { router.realIp.fromCIDRs: ['fd00::/48'] }
-      asserts:
-          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
-    - it: an IPv6 /64 is not wide
+    - it: an IPv6 /64 is wide, a /120 is not
       set: { router.realIp.fromCIDRs: ['fd00:1::/64'] }
       asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
+    - it: an IPv6 /120 is not wide
+      set: { router.realIp.fromCIDRs: ['fd00:1::/120'] }
+      asserts:
           - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'false' }
-    - it: a wide range behind a NetworkPolicy with ingressFrom is not wide
+    - it: an IPv4-mapped IPv6 range is treated as wide
+      set: { router.realIp.fromCIDRs: ['::ffff:10.42.0.0/120'] }
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
+    - it: empty router.realIp.fromCIDRs is unknown, not narrow
+      set: { router.realIp.fromCIDRs: [] }
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: unknown }
+    - it: a wide range behind a NetworkPolicy whose ingressFrom selects pods is not wide
       set:
           networkPolicy.enabled: true
           networkPolicy.ingressFrom:
               - podSelector: { matchLabels: { app.kubernetes.io/name: traefik } }
       asserts:
           - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'false' }
+    - it: an ingressFrom ipBlock narrower than /16 counts as a guard
+      set:
+          networkPolicy.enabled: true
+          networkPolicy.ingressFrom: [{ ipBlock: { cidr: 10.42.0.8/29 } }]
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'false' }
     - it: networkPolicy.enabled with an EMPTY ingressFrom keeps the router open, so still wide
       set: { networkPolicy.enabled: true }
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
+    - it: an ingressFrom that selects every pod is no guard (empty namespaceSelector)
+      set:
+          networkPolicy.enabled: true
+          networkPolicy.ingressFrom: [{ namespaceSelector: {} }]
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
+    - it: an ingressFrom that selects every pod is no guard (0.0.0.0/0, /16)
+      set:
+          networkPolicy.enabled: true
+          networkPolicy.ingressFrom: [{ ipBlock: { cidr: 0.0.0.0/0 } }]
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
+    - it: one wide entry among narrow ones spoils the guard
+      set:
+          networkPolicy.enabled: true
+          networkPolicy.ingressFrom:
+              - podSelector: { matchLabels: { app.kubernetes.io/name: traefik } }
+              - podSelector: {}
+      asserts:
+          - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
+    - it: an ipBlock /16 (a whole pod network) is no guard
+      set:
+          networkPolicy.enabled: true
+          networkPolicy.ingressFrom: [{ ipBlock: { cidr: 10.42.0.0/16 } }]
       asserts:
           - equal: { path: data.LUMASTRA_ROUTER_REALIP_WIDE, value: 'true' }
     - it: no router, or no hop, renders no exposure flag

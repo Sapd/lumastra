@@ -139,8 +139,12 @@ router's `X-Forwarded-For` is honest. The router takes the client address from i
 app uses for per-IP login and auth rate-limit buckets, IP-pinned playback grants and
 PAT/service-token IP allowlists (a stolen token then passes `allowed_ips`). Recommended:
 `networkPolicy.enabled: true` with `networkPolicy.ingressFrom` set to your ingress controller pods,
-and/or `router.realIp.fromCIDRs` narrowed to those pods (a range of /24 or narrower, or exact
-addresses). The chart warns while neither is done.
+and/or `router.realIp.fromCIDRs` narrowed to those pods (exact addresses, or IPv4 /28 / IPv6 /120 or
+narrower: a node's whole pod range is usually a /24, which still counts as wide). An `ingressFrom` counts
+only if every entry selects something specific (a non-empty `podSelector` or `namespaceSelector`, or an
+`ipBlock` narrower than /16): `{}` selectors and `0.0.0.0/0` select every pod. NetworkPolicy helps only if
+your CNI enforces it. The chart warns while neither is done. `router.realIp.fromCIDRs: []` makes the router
+adopt no `X-Forwarded-For` at all; the chart then reports the exposure as unknown.
 
 The derived value is a plain HMAC of the master key and travels in cleartext inside the cluster. With
 a low-entropy passphrase master key, someone who sniffs it can brute-force the key offline. Use
@@ -303,8 +307,10 @@ router adopts it and forwards it with a valid hop secret. Close that with `netwo
 and `networkPolicy.ingressFrom` (only your ingress controller reaches the router) and/or by
 narrowing `router.realIp.fromCIDRs` to the ingress controller's pods. `helm install` prints a
 warning, and the app's Security Self-Check reports the client address as caveated, while the router
-trusts a range wider than /24 that any pod can reach (the app learns this from
-`LUMASTRA_ROUTER_REALIP_WIDE`, which the chart renders). With `networkPolicy.enabled` only the
+trusts a range wider than /28 that any pod can reach (the app learns this from
+`LUMASTRA_ROUTER_REALIP_WIDE`, which the chart renders). Even with a narrow router the check says
+"not yet verified" until this pod has served a request that carried the router's hop secret (a key
+mismatch, or router pods not restarted after a key rotation, would otherwise go unnoticed). With `networkPolicy.enabled` only the
 router and `networkPolicy.metricsFrom` reach web at all.
 
 Do not put a pod CIDR into `TRUSTED_PROXY_IPS`: that list also decides whose forward-auth identity

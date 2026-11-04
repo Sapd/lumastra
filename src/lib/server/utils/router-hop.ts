@@ -89,6 +89,12 @@ function headerMatches(headers: Headers): boolean {
  * before or after `acceptAndStripRouterHop`.
  */
 export function isRouterHopAuthenticated(request: Pick<Request, 'headers'> | undefined): boolean {
+    // WARNING: inside a scope the verdict belongs to the INBOUND request being served; the argument
+    // is then ignored. Never call this (or getClientIp*, which does) with a Request that is not the
+    // inbound one while in scope, e.g. one built for a proxied or outbound call: it would inherit the
+    // inbound verdict. Mint (play-sessions) and validate (forward-auth) must be reached by the inbound
+    // request itself, never via event.fetch: a nested handle run opens a scope of its own and falls
+    // back to its own peer.
     const inScope = scope.getStore();
     if (inScope) return inScope.authenticated;
     if (!request) return false;
@@ -115,6 +121,9 @@ export function acceptAndStripRouterHop(request: Request): boolean {
 }
 
 /**
+ * ONLY routerHopHandle (hooks.server.ts) may call this: a scope opened anywhere else would
+ * let that code decide the verdict for the whole request (router-hop.scope.test.ts guards it).
+ *
  * Run `fn` (the rest of the handle chain) in a scope that remembers whether the hop secret matched,
  * after stripping the header. Every client-IP reader consults the scope first, so the verdict
  * survives a rebuilt Request. Outside a scope (tests, background work) readers fall back to the
@@ -133,10 +142,11 @@ export function routerHopSeen(): boolean {
 /**
  * What the chart says about the router's X-Forwarded-For source (LUMASTRA_ROUTER_REALIP_WIDE,
  * rendered only while the hop is on):
- * - `wide`    — the router adopts X-Forwarded-For from a range wider than /24 that any in-cluster
- *               pod may be in (and no NetworkPolicy limits who reaches the router),
- * - `narrow`  — it does not,
- * - `unknown` — not set (not the Helm chart, or an older chart).
+ * - `wide`    — the router adopts X-Forwarded-For from a range wider than /28 that any in-cluster
+ *               pod may be in (and no NetworkPolicy with a narrow ingressFrom limits who reaches
+ *               the router),
+ * - `narrow`  — it does not (assuming the CNI enforces NetworkPolicy, if that is what guards it),
+ * - `unknown` — not set (not the Helm chart, or an older chart), or router.realIp.fromCIDRs empty.
  */
 export function routerRealIpExposure(): 'wide' | 'narrow' | 'unknown' {
     const v = (process.env.LUMASTRA_ROUTER_REALIP_WIDE ?? '').trim().toLowerCase();

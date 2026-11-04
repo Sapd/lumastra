@@ -826,28 +826,67 @@ describe('client-ip', () => {
             expect(clientIpProxiesPinned()).toBe(false);
         });
 
-        it('pin state follows LUMASTRA_ROUTER_REALIP_WIDE from the chart, with no request needed', async () => {
+        it('pin state follows LUMASTRA_ROUTER_REALIP_WIDE from the chart; narrow needs a verified hop', async () => {
             process.env.LUMASTRA_ROUTER_REALIP_WIDE = 'true';
             const wide = await importWithKey(KEY);
             expect(wide.clientIpPinState()).toBe('caveat');
             process.env.LUMASTRA_ROUTER_REALIP_WIDE = 'false';
             const narrow = await importWithKey(KEY);
+            // Chart says narrow, but no hop request has been served by this process yet.
+            expect(narrow.clientIpPinState()).toBe('unverified');
+            expect(narrow.clientIpProxiesPinned()).toBe(false);
+            const ev = hopEvent({
+                peer: '10.42.0.11',
+                xff: '1.1.1.1',
+                hop: narrow.hop.deriveRouterHopSecret(KEY),
+            });
+            narrow.hop.acceptAndStripRouterHop(ev.request);
             expect(narrow.clientIpPinState()).toBe('pinned');
             expect(narrow.clientIpProxiesPinned()).toBe(true);
-            // Narrow router but no env master key: the hop cannot work, so it is not pinned.
+            // Narrow router but no env master key: the hop cannot work.
             const noKey = await importWithKey(undefined);
             expect(noKey.clientIpPinState()).toBe('none');
+            // 'unknown' (chart with empty router.realIp.fromCIDRs, or no chart flag) is not narrow.
+            process.env.LUMASTRA_ROUTER_REALIP_WIDE = 'unknown';
+            const unknown = await importWithKey(KEY);
+            expect(unknown.clientIpPinState()).toBe('none');
             delete process.env.LUMASTRA_ROUTER_REALIP_WIDE;
         });
 
-        it('a wide router caveat outranks a narrow CLIENT_IP_PROXY_IPS list', async () => {
-            process.env.LUMASTRA_ROUTER_REALIP_WIDE = 'true';
-            delete process.env.TRUSTED_PROXY_IPS;
+        it('a key mismatch never verifies: narrow router + wrong secret stays unverified', async () => {
+            process.env.LUMASTRA_ROUTER_REALIP_WIDE = 'false';
+            const { clientIpPinState, hop } = await importWithKey(KEY);
+            const ev = hopEvent({
+                peer: '10.42.0.11',
+                xff: '1.1.1.1',
+                hop: hop.deriveRouterHopSecret('9'.repeat(64)),
+            });
+            hop.acceptAndStripRouterHop(ev.request);
+            expect(clientIpPinState()).toBe('unverified');
+            delete process.env.LUMASTRA_ROUTER_REALIP_WIDE;
+        });
+
+        it('a wide CLIENT_IP_PROXY_IPS is a caveat even when the router flag says narrow, or nothing is said', async () => {
+            for (const flag of ['false', 'true', undefined]) {
+                if (flag === undefined) delete process.env.LUMASTRA_ROUTER_REALIP_WIDE;
+                else process.env.LUMASTRA_ROUTER_REALIP_WIDE = flag;
+                process.env.LUMASTRA_MASTER_KEY = KEY;
+                delete process.env.TRUSTED_PROXY_IPS;
+                process.env.CLIENT_IP_PROXY_IPS = '10.42.0.0/16';
+                vi.resetModules();
+                const { clientIpPinState } = await import('./client-ip');
+                expect(clientIpPinState(), String(flag)).toBe('caveat');
+            }
+            delete process.env.LUMASTRA_ROUTER_REALIP_WIDE;
+        });
+
+        it('a narrow CLIENT_IP_PROXY_IPS list is pinned', async () => {
+            delete process.env.LUMASTRA_ROUTER_REALIP_WIDE;
             process.env.CLIENT_IP_PROXY_IPS = '10.42.0.11';
+            delete process.env.TRUSTED_PROXY_IPS;
             vi.resetModules();
             const { clientIpPinState } = await import('./client-ip');
-            expect(clientIpPinState()).toBe('caveat');
-            delete process.env.LUMASTRA_ROUTER_REALIP_WIDE;
+            expect(clientIpPinState()).toBe('pinned');
         });
 
         it('downstream code never sees the secret: after the strip the header reads null', async () => {

@@ -473,9 +473,9 @@ export function checkProxyWideRange(): SecuritySelfCheckFinding {
     if (routerWide) {
         warnings.push({
             title: 'The router adopts X-Forwarded-For from a wide range',
-            detail: 'router.realIp.fromCIDRs is wider than /24 and no NetworkPolicy limits who reaches the router, so any pod in the cluster can send the router an X-Forwarded-For; the router forwards it with a valid router-hop secret and the app believes it as the client address. That address keys per-IP login and auth rate limits, IP-pinned playback grants and PAT/service-token IP allowlists.',
+            detail: 'router.realIp.fromCIDRs is wider than /28 (a node\u2019s pod range is usually a /24) and no NetworkPolicy with a narrow ingressFrom limits who reaches the router, so any pod in the cluster can send the router an X-Forwarded-For; the router forwards it with a valid router-hop secret and the app believes it as the client address. That address keys per-IP login and auth rate limits, IP-pinned playback grants and PAT/service-token IP allowlists.',
             remediation:
-                'Enable networkPolicy with networkPolicy.ingressFrom (your ingress controller pods) and/or narrow router.realIp.fromCIDRs to those pods.',
+                'Enable networkPolicy with networkPolicy.ingressFrom (your ingress controller pods; an empty selector or 0.0.0.0/0 does not count) and/or narrow router.realIp.fromCIDRs to those pods (/28 or narrower).',
         });
     }
     if (warnings.length > 0) {
@@ -510,7 +510,7 @@ export function checkProxyWideRange(): SecuritySelfCheckFinding {
         type: 'config-static',
         status: 'pass',
         title: 'TRUSTED_PROXY_IPS and CLIENT_IP_PROXY_IPS list no wide range',
-        detail: `Neither list has any IPv4 range wider than /${MIN_TRUSTED_PROXY_PREFIX_V4} and no IPv6 range, and the router does not adopt X-Forwarded-For from a wide range.`,
+        detail: `Neither list has any IPv4 range wider than /${MIN_TRUSTED_PROXY_PREFIX_V4} and no IPv6 range, and the router does not adopt X-Forwarded-For from a wide range (if your CNI enforces NetworkPolicy, where that is what keeps other pods away from it).`,
         evidence: 'trusted-proxy-ranges.ts',
     });
 }
@@ -547,9 +547,22 @@ export function checkStreamTokenIpPinningIneffective(): SecuritySelfCheckFinding
             type: 'config-static',
             status: 'warn',
             title: 'Stream-token IP pinning rests on a router X-Forwarded-For any pod can set',
-            detail: 'STREAM_TOKEN_WILDCARD_IP=false. The client IP comes from the Helm router\u2019s X-Forwarded-For, and that router adopts it from a wide range (router.realIp.fromCIDRs wider than /24, with no networkPolicy limiting who reaches the router), so any pod in the cluster can choose it. Pinning still tells clients apart, but a pod in the cluster can pick the address it is pinned to.',
+            detail: 'STREAM_TOKEN_WILDCARD_IP=false. The client IP comes from the Helm router\u2019s X-Forwarded-For, and that router adopts it from a wide range (router.realIp.fromCIDRs wider than /28, with no NetworkPolicy and narrow ingressFrom limiting who reaches the router), so any pod in the cluster can choose it. Pinning still tells clients apart, but a pod in the cluster can pick the address it is pinned to.',
             remediation:
                 'Enable networkPolicy with networkPolicy.ingressFrom and/or narrow router.realIp.fromCIDRs to your ingress controller pods.',
+            evidence: 'client-ip.ts:clientIpPinState; router-hop.ts',
+        });
+    }
+    if (!wildcardIp && posture !== 'allowlist' && pin === 'unverified') {
+        return finding({
+            id: 'stream-token.ip-pinning-ineffective',
+            method: 'forward-auth',
+            type: 'config-static',
+            status: 'info',
+            title: 'Stream-token IP pinning: router hop not yet verified on this pod',
+            detail: 'STREAM_TOKEN_WILDCARD_IP=false and the chart says the router only adopts X-Forwarded-For from a narrow range, but no request has carried a valid router-hop secret since this pod started. If the master key differs between the app and the router, or the router pods were not restarted after a key rotation, every client resolves to the router pod\u2019s address and pinning does not tell clients apart. Check again after traffic.',
+            remediation:
+                'Make sure LUMASTRA_MASTER_KEY is the same in both and restart the router pods after rotating it.',
             evidence: 'client-ip.ts:clientIpPinState; router-hop.ts',
         });
     }
@@ -562,7 +575,9 @@ export function checkStreamTokenIpPinningIneffective(): SecuritySelfCheckFinding
             title: 'Stream-token IP pinning is not in an ineffective state',
             detail: wildcardIp
                 ? 'STREAM_TOKEN_WILDCARD_IP is at its default (true) — stream tokens are not IP-bound, so proxy posture is not relevant to this check.'
-                : 'STREAM_TOKEN_WILDCARD_IP=false and TRUSTED_PROXY_IPS is pinned — stream-token IP binding reads a distinct per-client address.',
+                : posture === 'allowlist'
+                  ? 'STREAM_TOKEN_WILDCARD_IP=false and TRUSTED_PROXY_IPS is pinned — stream-token IP binding reads a distinct per-client address.'
+                  : 'STREAM_TOKEN_WILDCARD_IP=false and the client address comes from a verified router hop or a narrow CLIENT_IP_PROXY_IPS list — stream-token IP binding reads a distinct per-client address (if your CNI enforces NetworkPolicy, where that is what keeps other pods away from the router).',
             evidence: 'client-ip.ts:getClientIpStrict',
         });
     }
