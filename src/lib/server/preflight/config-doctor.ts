@@ -516,7 +516,9 @@ export function formatDoctorReport(report: DoctorReport): string {
     const lines: string[] = [];
     const e = report.resolved.embedding;
     lines.push('Embedding configuration:');
-    lines.push(`  provider:   ${e.provider}`);
+    // `e.provider` always names a provider (it picks the default dimensions), so
+    // without any key it would claim Voyage on a fresh install. Say none instead.
+    lines.push(`  provider:   ${e.hasProvider ? e.provider : 'none'}`);
     lines.push(`  model:      ${e.model} (${e.modelSource})`);
     lines.push(`  dimensions: ${e.dimensions} (${e.dimensionSource})`);
     lines.push('');

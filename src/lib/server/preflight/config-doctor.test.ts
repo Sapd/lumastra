@@ -3,7 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { resolveMasterKey } from '../crypto/master-key.js';
-import { runConfigDoctor } from './config-doctor.js';
+import { formatDoctorReport, runConfigDoctor } from './config-doctor.js';
 import { toConfigHealthView } from './config-health-view.js';
 
 // Unit tests for the env-only (synchronous) config-doctor checks added beyond
@@ -138,5 +138,22 @@ describe('config-doctor gateway-trust check', () => {
                 'forward-auth.trusts-docker-gateway',
             );
         }
+    });
+});
+
+describe('formatDoctorReport embedding header', () => {
+    function providerLine(env: Record<string, string | undefined>): string | undefined {
+        return formatDoctorReport(runConfigDoctor({ env, procNetRoute: null }))
+            .split('\n')
+            .find((line) => line.trim().startsWith('provider:'));
+    }
+
+    it('shows provider none when no embedding key is set', () => {
+        expect(providerLine(baseEnv())).toBe('  provider:   none');
+    });
+
+    it('shows the configured provider when a key is set', () => {
+        expect(providerLine(baseEnv({ VOYAGE_API_KEY: 'pa-test' }))).toBe('  provider:   voyage');
+        expect(providerLine(baseEnv({ OPENAI_API_KEY: 'sk-test' }))).toBe('  provider:   openai');
     });
 });
