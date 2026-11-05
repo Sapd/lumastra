@@ -13,7 +13,7 @@
 #
 # Do NOT remove this pin to "simplify" the file. Without it a cross-build does not
 # fail — it hangs, which on `stable` means a release build that never returns.
-FROM --platform=$BUILDPLATFORM node:24.22.1-alpine@sha256:6a1c190e17215d844926b0677f4bf87273ff7d5e54db06d3b5b5863ab0b09a3d AS builder
+FROM --platform=$BUILDPLATFORM node:24.22.2-alpine@sha256:8a32c8cf649a49915a66e81e7a609223c708d0adabf288ee3f4077d765542f85 AS builder
 WORKDIR /app
 
 # Copy package files first for better layer caching.
@@ -124,7 +124,7 @@ RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build \
 # build after that layer was evicted produced an image with musl-only bindings and
 # preprod crash-looped on `Cannot find module '@valkey/valkey-glide-linux-x64-gnu'`.
 # Resolving on the same libc we ship makes the stage produce what the runtime needs.
-FROM node:24.22.1-slim@sha256:1681862882da07ee5476fee047bcf34138833f1df42633bb25bcb0f438d5bf3d AS prod-deps
+FROM node:24.22.1-slim@sha256:be8204d4bd327363357f532187b752ff62759c31bedf98e9e18fc08c9cbd605c AS prod-deps
 WORKDIR /app
 
 COPY package*.json ./
@@ -143,7 +143,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # (an arm64 release build no longer compiles Rust under QEMU, which took most of
 # the release job). Native builds (target == build arch) are unchanged.
 # Runtime selection remains explicit; packaging does not activate either binary.
-FROM --platform=$BUILDPLATFORM node:24.22.1-bookworm-slim@sha256:1681862882da07ee5476fee047bcf34138833f1df42633bb25bcb0f438d5bf3d AS native-node-tools
+FROM --platform=$BUILDPLATFORM node:24.22.1-bookworm-slim@sha256:be8204d4bd327363357f532187b752ff62759c31bedf98e9e18fc08c9cbd605c AS native-node-tools
 FROM --platform=$BUILDPLATFORM rust:1.99.1-bookworm AS native-builder
 ARG TARGETARCH
 ARG BUILDARCH
@@ -178,7 +178,7 @@ RUN set -eu; \
 # All Node stages use the same patch version and multi-arch INDEX digests.
 # Keep these pins >= .node-min-version; Dependabot checks for updates daily.
 # Bookworm glibc 2.36 binaries run on Ubuntu noble's newer glibc 2.39.
-FROM node:24.22.1-bookworm-slim@sha256:1681862882da07ee5476fee047bcf34138833f1df42633bb25bcb0f438d5bf3d AS node-runtime
+FROM node:24.22.1-bookworm-slim@sha256:be8204d4bd327363357f532187b752ff62759c31bedf98e9e18fc08c9cbd605c AS node-runtime
 
 # Production runtime (Ubuntu 24.04 "noble").
 # Ubuntu base (not Debian) because the Intel GPU userspace required for QSV (the
