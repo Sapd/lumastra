@@ -919,7 +919,7 @@ export type Direction = 'A hosts' | 'B hosts';
 export type Engine = 'chromium' | 'webkit' | 'firefox' | 'brave';
 
 /**
- * Per-project engine roles (playwright.watch-together.config.ts `metadata`): which
+ * Per-project engine roles (tests/playwright/playwright.watch-together.config.ts `metadata`): which
  * engine the host and the guests run in. Default: everyone in Chromium.
  */
 export interface EngineRoles {

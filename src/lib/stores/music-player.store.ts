@@ -4937,7 +4937,7 @@ function createMusicPlayerStore() {
 export const musicPlayerStore = createMusicPlayerStore();
 
 // Expose store on window in dev/test mode for Playwright E2E access. A production
-// build gets it only when built with VITE_E2E_HOOKS=true (playwright.music.config.ts);
+// build gets it only when built with VITE_E2E_HOOKS=true (tests/playwright/playwright.music.config.ts);
 // otherwise Vite folds the condition to false and drops the block.
 if (
     typeof window !== 'undefined' &&

@@ -5,23 +5,30 @@
  * Config for the cross-client Watch Together e2e (browser <-> Apple TV simulator).
  *
  *   WT_WEB_URL=http://127.0.0.1:5191 WT_E2E_DIR=/tmp/wt-e2e ... \
- *     npx playwright test -c playwright.watch-together-tv.config.ts
+ *     npx playwright test -c tests/playwright/playwright.watch-together-tv.config.ts
  *
  * Deliberately separate from playwright.config.ts: the server is already running
  * (no webServer), there is no DB seeding (no globalSetup/Teardown), and the spec is
  * named *.e2e.ts so the normal `playwright test` run never collects it.
  */
 
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@playwright/test';
 
-const E2E_DIR = process.env.WT_E2E_DIR || './test-results/wt-e2e';
+// A relative WT_E2E_DIR (or the default) is relative to the app root, as it was before this
+// file moved to tests/playwright/.
+const E2E_DIR = resolve(
+    fileURLToPath(new URL('../..', import.meta.url)),
+    process.env.WT_E2E_DIR || './test-results/wt-e2e',
+);
 
 // One id for the whole run. Playwright restarts the worker after a failed test, which
 // re-evaluates the spec module, so per-run state must live in env + files, not memory.
 process.env.WT_RUN_ID ??= String(Date.now());
 
 export default defineConfig({
-    testDir: './tests',
+    testDir: '..',
     testMatch: 'watch-together-tv.e2e.ts',
 
     fullyParallel: false,

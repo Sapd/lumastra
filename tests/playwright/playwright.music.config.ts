@@ -9,10 +9,10 @@
  * search, mood radio, cluster shuffle.
  *
  *   VITE_E2E_HOOKS=true npm run build
- *   DATABASE_URL=… CACHE_URL=… npx playwright test -c playwright.music.config.ts
+ *   DATABASE_URL=… CACHE_URL=… npx playwright test -c tests/playwright/playwright.music.config.ts
  *   … --grep @pr          # the per-PR subset (mirroring + crossfade)
  *
- * Same shape as playwright.watch-together.config.ts (read its header): its own server
+ * Same shape as tests/playwright/playwright.watch-together.config.ts (read its header): its own server
  * (`node build`, verdicts never on `vite dev`), its own seeding, one worker, no retries.
  * The build needs VITE_E2E_HOOKS=true: it compiles in `window.__musicPlayerStore`, the
  * read-only window the scenarios use to observe the player (dev builds always have it).
@@ -23,10 +23,15 @@
  */
 
 import { resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { defineConfig, devices } from '@playwright/test';
-import { MUSIC_USER, musicPort, outDir, serverUrl, webUrl } from './tests/music-e2e/music-env';
+import { MUSIC_USER, musicPort, outDir, serverUrl, webUrl } from '../music-e2e/music-env';
 
-const OUT = outDir();
+// outDir() is relative to the app root (where this config lived before it moved to
+// tests/playwright/). Playwright resolves outputDir and the report folder against this file,
+// so the root is anchored explicitly. The transcode cache keeps resolving outDir() as before.
+const APP_ROOT = fileURLToPath(new URL('../..', import.meta.url));
+const OUT = resolve(APP_ROOT, outDir());
 const SERVER = process.env.MUSIC_E2E_SERVER === 'dev' ? 'dev' : 'build';
 const SERVER_COMMAND =
     SERVER === 'dev'
@@ -34,9 +39,9 @@ const SERVER_COMMAND =
         : `node build`;
 
 export default defineConfig({
-    testDir: './tests/music-e2e',
+    testDir: '../music-e2e',
     testMatch: '*.e2e.ts',
-    globalSetup: './tests/music-e2e/global-setup.ts',
+    globalSetup: '../music-e2e/global-setup.ts',
 
     fullyParallel: false,
     workers: 1,
@@ -77,6 +82,7 @@ export default defineConfig({
                 ? `test -f build/index.js || { echo 'build/ missing: run VITE_E2E_HOOKS=true npm run build first (or MUSIC_E2E_SERVER=dev)' >&2; exit 1; }; mkdir -p '${OUT}' && exec ${SERVER_COMMAND} > '${OUT}/server.log' 2>&1`
                 : `mkdir -p '${OUT}' && exec ${SERVER_COMMAND} > '${OUT}/server.log' 2>&1`,
         url: serverUrl(),
+        cwd: '../..',
         reuseExistingServer: !!process.env.MUSIC_E2E_REUSE_SERVER,
         timeout: 180_000,
         env: {
@@ -84,7 +90,7 @@ export default defineConfig({
                 Object.entries(process.env).filter(([, v]) => v !== undefined),
             ) as Record<string, string>),
             // Forward-auth headers count only from a trusted proxy peer; the browser
-            // reaches the server over loopback (see playwright.watch-together.config.ts).
+            // reaches the server over loopback (see tests/playwright/playwright.watch-together.config.ts).
             TRUSTED_PROXY_IPS: '127.0.0.1,::1,::ffff:127.0.0.1',
             // Forward auth is opt-in; the specs sign in through its headers.
             FORWARD_AUTH_ENABLED: 'true',
@@ -95,7 +101,7 @@ export default defineConfig({
             FEATURE_MUSIC_CLUSTERS: 'true',
             FEATURE_USER_PATS: 'true',
             // The default (/config/cache/…) is not writable outside the image.
-            MUSIC_TRANSCODE_CACHE_DIR: resolve(OUT, 'transcode-cache'),
+            MUSIC_TRANSCODE_CACHE_DIR: resolve(outDir(), 'transcode-cache'),
             JWT_SECRET:
                 process.env.JWT_SECRET || 'music-e2e-jwt-secret-not-for-production-0123456789',
             HOST: '127.0.0.1',

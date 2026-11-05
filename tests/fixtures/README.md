@@ -20,7 +20,7 @@ To regenerate: delete the file and run the command above.
 ## watch-together/
 
 `wt-movie-240s.mp4` (240 s, ~1.2 MB) and `wt-episode-60s.mp4` (60 s, ~0.3 MB) for the
-web-only Watch Together e2e (`tests/watch-together/`, `playwright.watch-together.config.ts`).
+web-only Watch Together e2e (`tests/watch-together/`, `tests/playwright/playwright.watch-together.config.ts`).
 H.264 High 640x360 24 fps (2 s GOP, so seeks land on a nearby keyframe) + a SILENT AAC
 stereo track (the tests make no sound in any browser, real Safari included, without
 touching the element's `muted` state that the autoplay test depends on) —

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * globalSetup for playwright.watch-together.config.ts.
+ * globalSetup for tests/playwright/playwright.watch-together.config.ts.
  *
  * Runs AFTER the config's webServer is up (Playwright starts plugins first), so it
  * can talk to the app as well as to the database:

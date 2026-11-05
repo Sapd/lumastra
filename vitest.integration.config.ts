@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { defineConfig } from 'vitest/config';
-import { cleanVitestTmpDir } from './vitest.tmpdir-cleanup';
-import { paraglideLocaleModulesForTests } from './vitest.paraglide-locale-modules';
+import { cleanVitestTmpDir } from './tests/vitest/vitest.tmpdir-cleanup';
+import { paraglideLocaleModulesForTests } from './tests/vitest/vitest.paraglide-locale-modules';
 import { sveltekit } from '@sveltejs/kit/vite';
 
 // Resolve the integration test database URL the same way test-database.ts does:

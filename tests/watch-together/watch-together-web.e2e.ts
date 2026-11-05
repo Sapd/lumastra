@@ -4,7 +4,7 @@
 /**
  * Watch Together — web-only e2e: two browser contexts, two users, one party.
  *
- * Run with playwright.watch-together.config.ts (NOT collected by the normal run).
+ * Run with tests/playwright/playwright.watch-together.config.ts (NOT collected by the normal run).
  * Every scenario runs twice: user A (test2) hosting and user B (uitest) hosting.
  * `@pr` marks the per-PR subset (scenarios 1–3); the nightly job runs everything.
  *

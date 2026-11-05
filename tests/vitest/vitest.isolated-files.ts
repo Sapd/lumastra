@@ -1,7 +1,10 @@
+// SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Unit test files that run in their own process (Vitest `isolate: true`), in the
  * `unit-isolated` project. Everything else runs in the `unit` project with
- * `isolate: false` (workers are reused across files; vitest.shared-setup.ts
+ * `isolate: false` (workers are reused across files; tests/vitest/vitest.shared-setup.ts
  * resets module and process state between files). A file belongs here only
  * for a reason below. Do not list files that merely fail after a polluter: fix
  * or list the polluter.
@@ -14,7 +17,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = fileURLToPath(new URL('.', import.meta.url));
+// This file lives in tests/vitest/; the scan below is relative to the app root.
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const SCAN_DIRS = ['src', 'scripts', 'plugins', 'tests'];
 const TEST_FILE = /\.(test|spec)\.(js|ts)$/;
 

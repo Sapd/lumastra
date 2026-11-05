@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * globalTeardown for playwright.watch-together.config.ts: writes summary.json from the
+ * globalTeardown for tests/playwright/playwright.watch-together.config.ts: writes summary.json from the
  * ndjson rows every worker appended. It used to be a last test (zz-finalize), which
  * only works while one worker runs the files in order; with WT_WORKERS > 1 a test can
  * still be running when any given test finishes. Teardown runs once, after all of them

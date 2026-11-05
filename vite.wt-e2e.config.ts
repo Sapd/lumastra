@@ -4,7 +4,7 @@
 /**
  * Dev-server config for the Watch Together e2e runs — browser <-> Apple TV
  * (the Apple apps' Watch Together e2e script) and browser <-> browser
- * (playwright.watch-together.config.ts): the normal config with file
+ * (tests/playwright/playwright.watch-together.config.ts): the normal config with file
  * watching and HMR OFF. Other sessions edit this checkout while a run is in
  * progress; every server-side edit re-initialises the dev server, and during that
  * window /api/v1 answers 401 — which signs the Apple TV app out (a PAT has no

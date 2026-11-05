@@ -3,7 +3,7 @@
 
 /**
  * Web music player regression e2e — real audio, real Web Audio crossfade engine.
- * Harness: music-harness.ts. Config + how to run: playwright.music.config.ts.
+ * Harness: music-harness.ts. Config + how to run: tests/playwright/playwright.music.config.ts.
  *
  * What a scenario asserts is what a listener hears (the output analyser, one sine
  * tone per fixture track) and what the UI shows; the store is only read, and only

@@ -4,7 +4,7 @@
 /**
  * Watch Together — cross-client e2e: Chromium (this spec) <-> Apple TV simulator.
  *
- * Run with playwright.watch-together-tv.config.ts (NOT collected by the normal run).
+ * Run with tests/playwright/playwright.watch-together-tv.config.ts (NOT collected by the normal run).
  * The Apple TV app is driven by an XCUITest "driver" that polls ${WT_E2E_DIR}/tv-cmd.json;
  * the app itself writes a state probe (WT_TV_PROBE_FILE) every ~250 ms.
  *

@@ -1,9 +1,9 @@
 import { defineConfig } from 'vitest/config';
-import { cleanVitestTmpDir } from './vitest.tmpdir-cleanup';
+import { cleanVitestTmpDir } from './tests/vitest/vitest.tmpdir-cleanup';
 import { diagnosticRouteWords } from './vite.diagnostic-route-words';
-import { paraglideLocaleModulesForTests } from './vitest.paraglide-locale-modules';
+import { paraglideLocaleModulesForTests } from './tests/vitest/vitest.paraglide-locale-modules';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { ISOLATED_UNIT_FILES } from './vitest.isolated-files';
+import { ISOLATED_UNIT_FILES } from './tests/vitest/vitest.isolated-files';
 
 const UNIT_INCLUDE = [
     'src/**/*.{test,spec}.{js,ts}',
@@ -90,7 +90,7 @@ export default defineConfig({
         fileParallelism: true,
         // Default: every file in its own process. The `unit` project below turns
         // this off for the bulk of the suite; `unit-isolated` keeps it for the
-        // files listed in vitest.isolated-files.ts.
+        // files listed in tests/vitest/vitest.isolated-files.ts.
         isolate: true,
         projects: [
             {
@@ -99,11 +99,11 @@ export default defineConfig({
                     name: 'unit',
                     // Shared workers: ~2x faster than one process per file. Module
                     // state and process globals are reset between files by the
-                    // setup file, see vitest.shared-setup.ts.
+                    // setup file, see tests/vitest/vitest.shared-setup.ts.
                     isolate: false,
                     include: UNIT_INCLUDE,
                     exclude: [...BASE_EXCLUDE, ...ISOLATED_UNIT_FILES],
-                    setupFiles: ['./vitest.shared-setup.ts'],
+                    setupFiles: ['./tests/vitest/vitest.shared-setup.ts'],
                 },
             },
             {

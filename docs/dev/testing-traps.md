@@ -44,9 +44,9 @@ CI. Read it before writing a `vi.mock`, an integration test that seeds data, or 
   output has a per-benchmark stats table, and note that env-guarded files report "skipped" when their
   URLs are unset.
 - **Every vitest config needs the shared plugins.** Each config under the project root must list
-  `cleanVitestTmpDir()` (`vitest.tmpdir-cleanup.ts`); vitest leaves a large module dump in the OS
+  `cleanVitestTmpDir()` (`tests/vitest/vitest.tmpdir-cleanup.ts`); vitest leaves a large module dump in the OS
   temp dir per run and fills the disk without it. A config that loads `sveltekit()` must also list
-  `paraglideLocaleModulesForTests()` (`vitest.paraglide-locale-modules.ts`); without it the message
+  `paraglideLocaleModulesForTests()` (`tests/vitest/vitest.paraglide-locale-modules.ts`); without it the message
   barrel loads one module per message and route tests time out when run alone. If route tests start
   timing out, check the plugin's compile step did not fail (it warns and falls back to the slow tree).
 

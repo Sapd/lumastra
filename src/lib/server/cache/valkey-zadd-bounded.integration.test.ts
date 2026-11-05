@@ -35,7 +35,7 @@
  *
  * Run standalone (no Postgres needed, unlike `npm run test:integration`):
  *   CACHE_URL=redis://localhost:<port>/0 \
- *     npx vitest run --config vitest.config.valkey-integration.ts
+ *     npx vitest run --config tests/vitest/vitest.config.valkey-integration.ts
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';

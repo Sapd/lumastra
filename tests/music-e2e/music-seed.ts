@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * Fixtures + seeding for the music player e2e (playwright.music.config.ts).
+ * Fixtures + seeding for the music player e2e (tests/playwright/playwright.music.config.ts).
  *
  * The audio is GENERATED here with ffmpeg (pure sine tones, tagged): no third-party
  * recordings, nothing binary in the repo. Every crossfade track has its OWN tone, so

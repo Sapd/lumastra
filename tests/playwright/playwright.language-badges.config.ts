@@ -4,7 +4,7 @@ import { defineConfig } from '@playwright/test';
 
 // Real browser interaction/layout checks of the shared components, without a DB.
 export default defineConfig({
-    testDir: './tests',
+    testDir: '..',
     testMatch: 'language-badges.ui.spec.ts',
     workers: 1,
     reporter: 'list',

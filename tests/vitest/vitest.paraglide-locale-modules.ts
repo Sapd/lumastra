@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { mkdir, rename, rm } from 'node:fs/promises';

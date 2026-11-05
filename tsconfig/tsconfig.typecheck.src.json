@@ -2,7 +2,7 @@
     // Source pass of the tsgo typecheck gate (see scripts/typecheck/tsgo-check.mjs).
     //
     // Splits the batch typecheck into a source pass (this file) and two test passes
-    // (tsconfig.typecheck.test-server.json, tsconfig.typecheck.test-rest.json), with zero
+    // (tsconfig/tsconfig.typecheck.test-server.json, tsconfig/tsconfig.typecheck.test-rest.json), with zero
     // coverage loss — every source file is checked here, every test file in a test pass. IDE/tsserver is unaffected (it
     // type-checks per-file, not the whole program at once) and still uses the full
     // tsconfig.json.
@@ -12,28 +12,28 @@
     // .svelte-kit/non-ambient.d.ts) is loaded by every pass regardless of how the
     // files are partitioned. If TS2859 appears, re-sync .svelte-kit and then find the
     // hot call site — see scripts/typecheck/README.md. Do not split further to fix TS2859.
-    // (The tests ARE split in two, for memory alone — see tsconfig.typecheck.test-server.json.)
+    // (The tests ARE split in two, for memory alone — see tsconfig/tsconfig.typecheck.test-server.json.)
     //
     // NOTE: `exclude` does NOT merge across `extends` — it must restate every
     // exclusion from the inherited configs (node_modules, paraglide, the
     // service-worker files from .svelte-kit/tsconfig.json) plus the test carve-out.
-    "extends": "./tsconfig.json",
+    "extends": "../tsconfig.json",
     "exclude": [
-        "node_modules/**",
-        "**/node_modules/**",
-        "src/paraglide/**",
-        "src/lib/paraglide/**",
-        "src/service-worker.js",
-        "src/service-worker/**/*.js",
-        "src/service-worker.ts",
-        "src/service-worker/**/*.ts",
-        "src/service-worker.d.ts",
-        "src/service-worker/**/*.d.ts",
-        "src/**/*.test.ts",
-        "src/**/*.spec.ts",
-        "src/**/__tests__/**",
-        "src/**/__fixtures__/**",
-        "test/**",
-        "tests/**"
+        "../node_modules/**",
+        "../**/node_modules/**",
+        "../src/paraglide/**",
+        "../src/lib/paraglide/**",
+        "../src/service-worker.js",
+        "../src/service-worker/**/*.js",
+        "../src/service-worker.ts",
+        "../src/service-worker/**/*.ts",
+        "../src/service-worker.d.ts",
+        "../src/service-worker/**/*.d.ts",
+        "../src/**/*.test.ts",
+        "../src/**/*.spec.ts",
+        "../src/**/__tests__/**",
+        "../src/**/__fixtures__/**",
+        "../test/**",
+        "../tests/**"
     ]
 }

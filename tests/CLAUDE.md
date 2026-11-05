@@ -33,7 +33,7 @@ differences between a local `.env` and CI).
 
 ## Real Live TV E2E
 
-`tests/livetv/` belongs only to `playwright.livetv.config.ts` / `npm run test:e2e:livetv`.
+`tests/livetv/` belongs only to `tests/playwright/playwright.livetv.config.ts` / `npm run test:e2e:livetv`.
 The default Playwright config must keep excluding it. Read `docs/dev/livetv-e2e.md` before
 changing it: it starts a real strict one-slot provider and standalone stream proxy, uses real
 M3U/XMLTV import tasks and v1 PATs, and decodes app-served segments. No player hooks or route

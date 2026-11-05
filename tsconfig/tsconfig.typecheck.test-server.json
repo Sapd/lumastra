@@ -1,11 +1,11 @@
 {
     // Test pass, part 1 of 2, of the tsgo typecheck gate (see scripts/typecheck/tsgo-check.mjs):
-    // every test/spec file under src/lib/server/. Part 2 is tsconfig.typecheck.test-rest.json;
+    // every test/spec file under src/lib/server/. Part 2 is tsconfig/tsconfig.typecheck.test-rest.json;
     // together they cover every test file exactly once.
     //
     // The tests are split in two for MEMORY only: as one program they peaked at 7.1 GB plus
     // 1.8 GB of swap on GitHub's 2 vCPU / 8 GB runner (2026-11-03); the halves peak at 5.9 GB
-    // and 4.4 GB. This does nothing for TS2859 floods — see tsconfig.typecheck.src.json.
+    // and 4.4 GB. This does nothing for TS2859 floods — see tsconfig/tsconfig.typecheck.src.json.
     //
     // The `include` is restated (it does NOT merge across `extends`) and lists ONLY
     // test files plus the ambient/global declarations that source relies on —
@@ -13,24 +13,24 @@
     // (App.Locals et al.), and hand-written *.d.ts shims. Non-test source files are
     // deliberately NOT entry points here (they are checked in the source pass); they
     // are still pulled in — and checked — wherever a test imports them.
-    "extends": "./tsconfig.json",
+    "extends": "../tsconfig.json",
     "include": [
-        ".svelte-kit/ambient.d.ts",
-        ".svelte-kit/non-ambient.d.ts",
-        ".svelte-kit/types/**/$types.d.ts",
-        "src/app.d.ts",
-        "src/**/*.d.ts",
-        "src/lib/server/**/*.test.ts",
-        "src/lib/server/**/*.spec.ts",
-        "src/lib/server/**/__tests__/**/*.ts",
-        "src/lib/server/**/__fixtures__/**/*.ts"
+        "../.svelte-kit/ambient.d.ts",
+        "../.svelte-kit/non-ambient.d.ts",
+        "../.svelte-kit/types/**/$types.d.ts",
+        "../src/app.d.ts",
+        "../src/**/*.d.ts",
+        "../src/lib/server/**/*.test.ts",
+        "../src/lib/server/**/*.spec.ts",
+        "../src/lib/server/**/__tests__/**/*.ts",
+        "../src/lib/server/**/__fixtures__/**/*.ts"
     ],
     "exclude": [
-        "node_modules/**",
-        "**/node_modules/**",
-        "src/paraglide/**",
-        "src/lib/paraglide/**",
-        "src/service-worker.d.ts",
-        "src/service-worker/**/*.d.ts"
+        "../node_modules/**",
+        "../**/node_modules/**",
+        "../src/paraglide/**",
+        "../src/lib/paraglide/**",
+        "../src/service-worker.d.ts",
+        "../src/service-worker/**/*.d.ts"
     ]
 }

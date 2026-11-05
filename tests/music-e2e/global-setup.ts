@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * globalSetup for playwright.music.config.ts. Runs after the webServer is up:
+ * globalSetup for tests/playwright/playwright.music.config.ts. Runs after the webServer is up:
  *   1. an admin row if there is none (first-run setup must be complete before a
  *      forward-auth request auto-provisions a user), and the listener's user row;
  *   2. the previous run's rows removed, the fixture tracks generated + seeded;

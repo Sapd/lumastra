@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * Seeding for the web-only Watch Together e2e (playwright.watch-together.config.ts).
+ * Seeding for the web-only Watch Together e2e (tests/playwright/playwright.watch-together.config.ts).
  *
  * Every scenario seeds its OWN media rows with fresh RFC-4122 v4 ids, so no watch
  * progress, resume point or "already watched" flag from an earlier scenario (or an

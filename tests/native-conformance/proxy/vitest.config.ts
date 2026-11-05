@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { defineConfig } from 'vitest/config';
-import { cleanVitestTmpDir } from '../../../vitest.tmpdir-cleanup';
+import { cleanVitestTmpDir } from '../../vitest/vitest.tmpdir-cleanup';
 
 // mergeConfig concatenates include arrays: replace it explicitly so an isolated
 // conformance run does not silently execute the entire TS reference suite again.

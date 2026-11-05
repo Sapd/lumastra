@@ -4,7 +4,7 @@
 /**
  * Web-only Watch Together e2e: two browser contexts (two users) in one party.
  *
- *   DATABASE_URL=… CACHE_URL=… npx playwright test -c playwright.watch-together.config.ts
+ *   DATABASE_URL=… CACHE_URL=… npx playwright test -c tests/playwright/playwright.watch-together.config.ts
  *   … --grep @pr          # the per-PR subset (scenarios 1–3)
  *
  * Separate from playwright.config.ts on purpose: its own server, its own seeding, no
@@ -26,14 +26,19 @@
  * preprod runner: the slot's test DB). Never the shared lumastra_dev, never preprod/prod.
  */
 
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
-import { outDir, webUrl, wtPort, wtWorkers } from './tests/watch-together/wt-env';
+import { outDir, webUrl, wtPort, wtWorkers } from '../watch-together/wt-env';
 
 // One id for the whole run. Playwright restarts the worker after a failed test, which
 // re-evaluates the spec module, so per-run state lives in env + files, not memory.
 process.env.WT_RUN_ID ??= String(Date.now());
 
-const OUT = outDir();
+// Relative outDir() values are relative to the app root, as before this file moved to
+// tests/playwright/. Playwright resolves outputDir and the report folder against this file,
+// so the root is anchored explicitly.
+const OUT = resolve(fileURLToPath(new URL('../..', import.meta.url)), outDir());
 const SERVER = process.env.WT_SERVER === 'dev' ? 'dev' : 'build';
 const SERVER_COMMAND =
     SERVER === 'dev'
@@ -41,10 +46,10 @@ const SERVER_COMMAND =
         : `node build`;
 
 export default defineConfig({
-    testDir: './tests/watch-together',
+    testDir: '../watch-together',
     testMatch: '*.e2e.ts',
-    globalSetup: './tests/watch-together/global-setup.ts',
-    globalTeardown: './tests/watch-together/global-teardown.ts',
+    globalSetup: '../watch-together/global-setup.ts',
+    globalTeardown: '../watch-together/global-teardown.ts',
 
     // WT_WORKERS (default 1) scenarios at a time. Each worker signs in as its own pair
     // of users (wt-env.ts wtUsersFor), so no two running scenarios share a party, a
@@ -68,7 +73,7 @@ export default defineConfig({
     // `chromium`: every scenario. The cross-engine projects put a WebKit (Safari's
     // engine) or Firefox participant opposite a Chromium one — as host or as guest —
     // and run what is not Chromium-specific, in one user direction.
-    //   npx playwright test -c playwright.watch-together.config.ts --project chromium
+    //   npx playwright test -c tests/playwright/playwright.watch-together.config.ts --project chromium
     //   … --project 'webkit-*' --project 'firefox-*'
     projects: [
         // This scenario temporarily enables instance-wide library types. Run it
@@ -128,6 +133,7 @@ export default defineConfig({
         // /api/health* routes answer 503 "Account not provisioned" until then.
         url: webUrl(),
         // A reused server would share another run's DB + Valkey state.
+        cwd: '../..',
         reuseExistingServer: !!process.env.WT_REUSE_SERVER,
         timeout: 180_000,
         env: {

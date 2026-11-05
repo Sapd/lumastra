@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { defineConfig, devices } from '@playwright/test';
-import { sweepBrowserOrigin } from './tests/route-sweep/browser-origin';
+import { sweepBrowserOrigin } from '../route-sweep/browser-origin';
 
 /**
  * Playwright configuration for the pre-release route sweep.
@@ -24,7 +24,7 @@ const BROWSER = sweepBrowserOrigin(BASE_URL, process.env.SWEEP_CSRF_ORIGIN);
 
 export default defineConfig({
     // Keep the sweep isolated from the existing e2e suite and its database hooks.
-    testDir: './tests/route-sweep',
+    testDir: '../route-sweep',
     fullyParallel: true,
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,
@@ -54,7 +54,7 @@ export default defineConfig({
         ['list'],
         // Its OWN folder: sharing 'playwright-report' with the main e2e suite would
         // make a sweep run overwrite that suite's last report. Ignored via .gitignore.
-        ['html', { open: 'never', outputFolder: 'playwright-route-sweep-report' }],
+        ['html', { open: 'never', outputFolder: '../../playwright-route-sweep-report' }],
         ...(process.env.PLAYWRIGHT_JSON_REPORT
             ? [['json', { outputFile: process.env.PLAYWRIGHT_JSON_REPORT }] as const]
             : []),

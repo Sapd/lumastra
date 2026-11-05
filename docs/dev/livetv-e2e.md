@@ -3,7 +3,7 @@
 
 # Real Live TV E2E
 
-`playwright.livetv.config.ts` runs the actual application, import tasks, PostgreSQL/Valkey,
+`tests/playwright/playwright.livetv.config.ts` runs the actual application, import tasks, PostgreSQL/Valkey,
 standalone stream proxy and generated H.264/AAC provider. No network route, player or provider
 API is mocked. The generated media and guide have no third-party recordings or show titles.
 This is a contributor test harness, not a deployment guide.

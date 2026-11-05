@@ -100,7 +100,7 @@ Two things cause it, in this order of likelihood:
 
     ```bash
     node node_modules/@typescript/native/bin/tsc --noEmit \
-        -p tsconfig.typecheck.src.json \
+        -p tsconfig/tsconfig.typecheck.src.json \
       | grep 'error TS2859' | sed 's/(.*//' | sort | uniq -c | sort -rn | head
     ```
 

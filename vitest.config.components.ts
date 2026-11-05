@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
-import { cleanVitestTmpDir } from './vitest.tmpdir-cleanup';
+import { cleanVitestTmpDir } from './tests/vitest/vitest.tmpdir-cleanup';
 import { diagnosticRouteWords } from './vite.diagnostic-route-words';
-import { paraglideLocaleModulesForTests } from './vitest.paraglide-locale-modules';
+import { paraglideLocaleModulesForTests } from './tests/vitest/vitest.paraglide-locale-modules';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { svelteTesting } from '@testing-library/svelte/vite';
 

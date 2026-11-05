@@ -34,8 +34,8 @@ The step summary of the `Select jobs` job lists each job and the files that made
 The source of truth is `scripts/ci/changed-jobs.mjs`; `scripts/ci/changed-jobs.test.js` pins every row below.
 
 **Run everything (GLOBAL):** `package.json`, `package-lock.json`, `packages/**/package.json`, `.npmrc`,
-`.nvmrc`, `.node-version`, `.node-min-version`, `.tool-versions`, `tsconfig*.json`, `vite*.ts`,
-`vitest*.ts`, `svelte.config.*`, `eslint.config.*`, `tailwind.config.*`, `postcss.config.*`,
+`.nvmrc`, `.node-version`, `.node-min-version`, `.tool-versions`, `tsconfig*.json`, `tsconfig/*.json`, `vite*.ts`,
+`vitest*.ts`, `tests/vitest/*.ts`, `svelte.config.*`, `eslint.config.*`, `tailwind.config.*`, `postcss.config.*`,
 `project.inlang/**`, `.github/workflows/**`, `.github/actions/**`, `scripts/ci/**`, `docs/api/**`
 (the OpenAPI spec generates `src/lib/api/schema.d.ts`, and tests read the guide).
 

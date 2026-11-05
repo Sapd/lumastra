@@ -34,7 +34,7 @@ import { CONFIGS, runPass } from './tsgo-run.mjs';
  * programs. Coverage is complete either way: every source file is checked in the src
  * pass, every test file in exactly one test pass, and source imported by a test is
  * checked there too. The tests are split in two for MEMORY only (see
- * tsconfig.typecheck.test-server.json and runPass in tsgo-run.mjs).
+ * tsconfig/tsconfig.typecheck.test-server.json and runPass in tsgo-run.mjs).
  *
  * WHAT THE SPLIT IS *NOT* FOR (corrected 2026-07-28 — the earlier note here was
  * wrong and cost a day of debugging):
@@ -56,7 +56,7 @@ import { CONFIGS, runPass } from './tsgo-run.mjs';
  *
  * So: if TS2859 ever reappears, DO NOT split further (it cannot help) and DO NOT raise or ignore the
  * count. Instead find the hot call site — run a pass, then group TS2859 by file:
- *   npx -y -p <pinned tsgo> tsgo --noEmit -p tsconfig.typecheck.src.json \
+ *   npx -y -p <pinned tsgo> tsgo --noEmit -p tsconfig/tsconfig.typecheck.src.json \
  *     | grep 'error TS2859' | cut -d'(' -f1 | sort | uniq -c | sort -rn | head
  * The top entry is almost always a single generic instantiated over a route union.
  *

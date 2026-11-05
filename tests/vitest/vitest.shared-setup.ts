@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Setup file of the shared (`isolate: false`) unit project.
  *
@@ -40,7 +43,7 @@ if (
     !(g.__vitest_worker__?.evaluatedModules?.idToModuleMap instanceof Map)
 ) {
     throw new Error(
-        'vitest.shared-setup.ts: Vitest internals __vitest_mocker__.reset / ' +
+        'tests/vitest/vitest.shared-setup.ts: Vitest internals __vitest_mocker__.reset / ' +
             '__vitest_worker__.evaluatedModules.idToModuleMap are gone (Vitest upgrade?). ' +
             'Update the per-file reset here, or set isolate: true for the unit project.',
     );

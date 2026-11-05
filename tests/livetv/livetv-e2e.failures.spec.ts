@@ -53,7 +53,7 @@ async function adminChannels(admin: APIRequestContext): Promise<AdminChannel[]> 
 
 test.describe('real Live TV failure modes @livetv', (): void => {
     test.skip(missingFfmpeg, ffmpegSkipReason);
-    // Tests run in order on one worker (playwright.livetv.config.ts); a failure must not skip the rest.
+    // Tests run in order on one worker (tests/playwright/playwright.livetv.config.ts); a failure must not skip the rest.
 
     test.afterEach(async ({ actors }): Promise<void> => {
         await control({ feed: '*', mode: 'ok' });
@@ -112,7 +112,7 @@ test.describe('real Live TV failure modes @livetv', (): void => {
 
             // Bounds: `end` makes FFmpeg exit (next 1 s health check, immediate failover);
             // `stall` needs the proxy's 30 s stale-segment detection, then the 5 s degraded
-            // window from playwright.livetv.config.ts, plus health-check and probe slack.
+            // window from tests/playwright/playwright.livetv.config.ts, plus health-check and probe slack.
             const bound = mode === 'end' ? 45_000 : 90_000;
             // The HLS 410 is what a media-only player sees. A keepalive in every round keeps the
             // proxy viewer alive: playlist reads alone expire it after the 12 s viewer timeout,

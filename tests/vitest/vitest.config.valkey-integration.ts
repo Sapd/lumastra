@@ -1,5 +1,13 @@
+// SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
 import { cleanVitestTmpDir } from './vitest.tmpdir-cleanup';
+
+// This file lives in tests/vitest/. Its include/setup/globalSetup paths are relative to the
+// app root, so the root is set explicitly.
+const APP_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 /**
  * Scoped config for Valkey-only integration tests — the Lua admission
@@ -27,9 +35,10 @@ import { cleanVitestTmpDir } from './vitest.tmpdir-cleanup';
  * it can additionally be run on its own, without paying the Postgres setup
  * cost, when only Valkey is available.
  *
- * Run: CACHE_URL=redis://localhost:<port>/0 npx vitest run --config vitest.config.valkey-integration.ts
+ * Run: CACHE_URL=redis://localhost:<port>/0 npx vitest run --config tests/vitest/vitest.config.valkey-integration.ts
  */
 export default defineConfig({
+    root: APP_ROOT,
     plugins: [cleanVitestTmpDir()],
     test: {
         include: ['src/lib/server/cache/valkey-zadd-bounded.integration.test.ts'],

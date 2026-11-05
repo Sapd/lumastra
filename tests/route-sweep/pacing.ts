@@ -19,7 +19,7 @@ const WINDOW_MS = 60_000;
 const TOTAL_BUDGET = 24; // of 30 per window
 const navigations: number[] = [];
 
-/** Same default as playwright.route-sweep.config.ts. */
+/** Same default as tests/playwright/playwright.route-sweep.config.ts. */
 const WORKERS = Number(process.env.SWEEP_WORKERS ?? (process.env.CI ? 1 : 2));
 
 export async function paceNavigation(): Promise<void> {

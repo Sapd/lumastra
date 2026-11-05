@@ -5,6 +5,7 @@
 // Same environment as vitest.integration.config.ts (test DB, scratch Valkey DB, setup file); only `include` differs.
 import 'dotenv/config';
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
 import { cleanVitestTmpDir } from './vitest.tmpdir-cleanup';
 import { paraglideLocaleModulesForTests } from './vitest.paraglide-locale-modules';
 import { sveltekit } from '@sveltejs/kit/vite';
@@ -68,7 +69,12 @@ const TEST_CACHE_URL = resolveTestCacheUrl();
  *   npm run db:test:create    # Creates lumastra_tests database
  *   npm run test:integration  # Runs migrations automatically on first run
  */
+// This file lives in tests/vitest/. Its include/setup/globalSetup paths are relative to the
+// app root, so the root is set explicitly.
+const APP_ROOT = fileURLToPath(new URL('../..', import.meta.url));
+
 export default defineConfig({
+    root: APP_ROOT,
     define: { __API_CONTRACT_STRICT__: true },
     plugins: [sveltekit(), cleanVitestTmpDir(), paraglideLocaleModulesForTests()],
     test: {

@@ -75,8 +75,8 @@ unused.
 ## Running
 
 ```bash
-npx playwright test --config=playwright.route-sweep.config.ts
-PLAYWRIGHT_JSON_REPORT=sweep.json npx playwright test --config=playwright.route-sweep.config.ts
+npx playwright test --config=tests/playwright/playwright.route-sweep.config.ts
+PLAYWRIGHT_JSON_REPORT=sweep.json npx playwright test --config=tests/playwright/playwright.route-sweep.config.ts
 ```
 
 The HTML report is ~16 MB and unreadable outside a browser; the JSON one is how
@@ -93,7 +93,7 @@ Point the sweep at a server that authorises everything and confirm it goes red:
 
 ```bash
 node -e "require('node:http').createServer((q,s)=>{s.writeHead(200,{'content-type':'application/json'});s.end('{\"ok\":true,\"items\":[],\"page\":{\"total\":0}}')}).listen(55999,'127.0.0.1')" &
-SWEEP_BASE_URL=http://127.0.0.1:55999 npx playwright test --config=playwright.route-sweep.config.ts --project=api tier-c-authz
+SWEEP_BASE_URL=http://127.0.0.1:55999 npx playwright test --config=tests/playwright/playwright.route-sweep.config.ts --project=api tier-c-authz
 ```
 
 Against the permissive server a few hundred assertions must fail: those are the

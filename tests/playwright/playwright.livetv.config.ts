@@ -14,7 +14,7 @@ import {
     identityHeaders,
     haveLiveTvFfmpeg,
     dedicatedDatabaseUrl,
-} from './tests/livetv/env';
+} from '../livetv/env';
 
 const binariesAvailable = haveLiveTvFfmpeg();
 // Refuse shared databases before Playwright starts either server.
@@ -43,9 +43,9 @@ const sharedEnv = {
 };
 
 export default defineConfig({
-    testDir: './tests/livetv',
+    testDir: '../livetv',
     testMatch: 'livetv-e2e.*.spec.ts',
-    globalSetup: './tests/livetv/global-setup.ts',
+    globalSetup: '../livetv/global-setup.ts',
     workers: 1,
     fullyParallel: false,
     retries: 0,
@@ -70,6 +70,7 @@ export default defineConfig({
               {
                   // The Rust build is a cold `cargo build --release` the first time on a slot.
                   command: 'npm run build:proxy && exec build/lumastra-livetv-proxy --serve',
+                  cwd: '../..',
                   url: `http://127.0.0.1:${proxyPort}/status`,
                   env: { ...sharedEnv, PORT: String(proxyPort) },
                   reuseExistingServer: false,
@@ -81,6 +82,7 @@ export default defineConfig({
               // Import tasks run in a dedicated worker; the web process never runs tasks.
               {
                   command: 'node scripts/dev-worker.mjs',
+                  cwd: '../..',
                   url: `http://127.0.0.1:${workerPort}/api/health`,
                   env: {
                       ...sharedEnv,
@@ -101,6 +103,7 @@ export default defineConfig({
                       process.env.LIVETV_E2E_SERVER === 'build'
                           ? 'node build'
                           : `npx vite dev --host 127.0.0.1 --port ${appPort} --strictPort`,
+                  cwd: '../..',
                   url: baseURL,
                   env: {
                       ...sharedEnv,

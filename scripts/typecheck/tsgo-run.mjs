@@ -33,9 +33,9 @@ export const ERROR_LINE = /\(\d+,\d+\): error TS\d+/;
 
 /** The programs the gate checks. Union = the whole project; every one must be 0. */
 export const CONFIGS = [
-    { label: 'src', file: 'tsconfig.typecheck.src.json' },
-    { label: 'test-server', file: 'tsconfig.typecheck.test-server.json' },
-    { label: 'test-rest', file: 'tsconfig.typecheck.test-rest.json' },
+    { label: 'src', file: 'tsconfig/tsconfig.typecheck.src.json' },
+    { label: 'test-server', file: 'tsconfig/tsconfig.typecheck.test-server.json' },
+    { label: 'test-rest', file: 'tsconfig/tsconfig.typecheck.test-rest.json' },
 ];
 
 /**

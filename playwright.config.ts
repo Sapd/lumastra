@@ -51,7 +51,7 @@ export default defineConfig({
     // Test file pattern
     testMatch: '**/*.spec.ts',
 
-    // The route sweep has its own config (playwright.route-sweep.config.ts) and
+    // The route sweep has its own config (tests/playwright/playwright.route-sweep.config.ts) and
     // targets a running remote instance. Its identity module throws at import
     // without SWEEP_IDENTITY_MODE, so collecting it here fails the whole run.
     // Real Live TV owns its source/proxy lifecycle and one-slot state too.
