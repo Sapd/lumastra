@@ -461,6 +461,85 @@ describe('Search Queries', () => {
     });
 
     // =========================================================================
+    // Ranking of localized and exact titles (searchMedia + searchMediaFulltext)
+    // =========================================================================
+
+    describe('exact title ranking', () => {
+        // Prod 2026-11-07: "haus des geldes" ranked "The Color of Money" (German
+        // "Die Farbe des Geldes", a fuzzy lookalike) above "Money Heist" (whose
+        // German title it is exactly), because every localized hit tied.
+        async function seedHeistPair(): Promise<{ exactId: string; lookalikeId: string }> {
+            const exactId = await insertMediaWithMetadata(sql, {
+                title: 'Vault Robbers',
+                mediaType: 'tv',
+                year: 2017,
+                tmdbId: 12000201,
+                jellyfinId: 'jf-rank-exact-001',
+                popularity: 10,
+            });
+            const lookalikeId = await insertMediaWithMetadata(sql, {
+                title: 'Colour of Coins',
+                mediaType: 'movie',
+                year: 1986,
+                tmdbId: 12000202,
+                jellyfinId: 'jf-rank-lookalike-001',
+                popularity: 500,
+            });
+            await sql`
+                INSERT INTO media_titles (media_id, title, language, kind, source) VALUES
+                    (${exactId}::uuid, 'Haus des Geldes', 'de', 'localized', 'test'),
+                    (${lookalikeId}::uuid, 'Die Farbe des Geldes', 'de', 'localized', 'test')
+            `;
+            return { exactId, lookalikeId };
+        }
+
+        for (const [name, run] of [
+            [
+                'searchMedia',
+                (q: string) =>
+                    searchMedia(sql, q, unrestrictedAccess(), { mediaTypes: ['movie', 'tv'] }),
+            ],
+            [
+                'searchMediaFulltext',
+                (q: string) =>
+                    searchMediaFulltext(sql, q, unrestrictedAccess(), {
+                        mediaTypes: ['movie', 'tv'],
+                    }),
+            ],
+        ] as const) {
+            it(`${name}: an exact localized title outranks a more popular fuzzy lookalike`, async () => {
+                const { exactId, lookalikeId } = await seedHeistPair();
+                const ids = (await run('haus des geldes')).map((r) => r.internal_id);
+                // The lookalike must really be in the result, or the order proves nothing.
+                expect(ids).toContain(lookalikeId);
+                expect(ids[0]).toBe(exactId);
+            });
+
+            it(`${name}: an exact primary title wins regardless of case`, async () => {
+                const exactId = await insertMediaWithMetadata(sql, {
+                    title: 'Zorblat',
+                    mediaType: 'movie',
+                    year: 2001,
+                    tmdbId: 12000203,
+                    jellyfinId: 'jf-rank-case-001',
+                    popularity: 1,
+                });
+                const longerId = await insertMediaWithMetadata(sql, {
+                    title: 'Zorblat Returns',
+                    mediaType: 'movie',
+                    year: 2004,
+                    tmdbId: 12000204,
+                    jellyfinId: 'jf-rank-case-002',
+                    popularity: 900,
+                });
+                const ids = (await run('zorblat')).map((r) => r.internal_id);
+                expect(ids).toContain(longerId);
+                expect(ids[0]).toBe(exactId);
+            });
+        }
+    });
+
+    // =========================================================================
     // searchMediaFulltext
     // =========================================================================
 

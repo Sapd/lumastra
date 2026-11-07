@@ -48,6 +48,7 @@ import {
     peopleMatchFragment,
     mediaTitlesMatchFragment,
     buildLikePattern,
+    escapeLikePattern,
     buildSearchFilter,
     searchNeedsTrigramThreshold,
     searchSupportsSubstringMatch,
@@ -130,20 +131,51 @@ const RANK_PREFIX_TITLE_BOOST = 1;
  * Build the additive exact/prefix title boost for the rank expression of the
  * movie/tv/music search builders and the admin quick-nav search (all alias
  * media_items as `mi`). `query` is the raw user query.
+ *
+ * Both sides go through `lower()`: `immutable_unaccent` folds accents but not
+ * case, so without it a viewer typing "money heist" never got the exact boost
+ * for "Money Heist", only the (ILIKE, case-insensitive) prefix one.
+ *
+ * `includeLocalized` adds the same exact/prefix tiers for the titles in the
+ * `media_titles` side table (localized / original / alias), taking the larger of
+ * the two so an item is never boosted twice. Without it every localized hit
+ * tied: German "Haus des Geldes" (the exact German title of "Money Heist") and
+ * fuzzy lookalikes such as "Die Farbe des Geldes" scored the same, and the
+ * popularity tiebreak put the lookalikes first. Only the catalog searches pass
+ * it (music has no media_titles rows), and only from 3 characters on, like the
+ * media_titles match arm.
  */
 export function buildExactPrefixTitleBoost(
     sql: postgres.Sql,
     query: string,
+    opts: { includeLocalized?: boolean } = {},
 ): postgres.PendingQuery<postgres.Row[]> {
-    return sql`
+    const primary = sql`
         CASE
-            WHEN immutable_unaccent(mi.title) = immutable_unaccent(${query})
-                 OR immutable_unaccent(mi.original_title) = immutable_unaccent(${query})
+            WHEN lower(immutable_unaccent(mi.title)) = lower(immutable_unaccent(${query}))
+                 OR lower(immutable_unaccent(mi.original_title)) = lower(immutable_unaccent(${query}))
             THEN ${RANK_EXACT_TITLE_BOOST}
             WHEN immutable_unaccent(mi.title) ILIKE immutable_unaccent(${query}) || '%'
             THEN ${RANK_PREFIX_TITLE_BOOST}
             ELSE 0
         END`;
+    if (!opts.includeLocalized || !searchSupportsSubstringMatch(query)) return primary;
+    // Two uncorrelated sets, each found once through idx_media_titles_title_trgm
+    // (an ILIKE without wildcards is a case-insensitive equality the trigram
+    // index still serves) and probed per row as a hashed subplan. A correlated
+    // per-row lookup instead cost 1.9 s for "the" on prod (11.5k matched rows).
+    const escaped = escapeLikePattern(query.trim());
+    return sql`GREATEST(${primary}, CASE
+            WHEN mi.id IN (
+                SELECT mt.media_id FROM media_titles mt
+                WHERE immutable_unaccent(mt.title) ILIKE immutable_unaccent(${escaped})
+            ) THEN ${RANK_EXACT_TITLE_BOOST}
+            WHEN mi.id IN (
+                SELECT mt.media_id FROM media_titles mt
+                WHERE immutable_unaccent(mt.title) ILIKE immutable_unaccent(${escaped + '%'})
+            ) THEN ${RANK_PREFIX_TITLE_BOOST}
+            ELSE 0
+        END)`;
 }
 
 /**
@@ -1011,7 +1043,7 @@ export async function searchMedia(
                     THEN ts_rank('{0,0,0,1}', mi.search_vector, to_tsquery('simple', immutable_unaccent(${tsQuery}))) + ${RANK_TITLE_FTS_BOOST}
                     ELSE ${RANK_ACTOR_DIRECTOR_BASE}
                 END
-                + ${buildExactPrefixTitleBoost(sql, query)} as rank
+                + ${buildExactPrefixTitleBoost(sql, query, { includeLocalized: true })} as rank
             FROM media_items mi
             ${buildMetadataLateralJoinFragment(sql)}
             WHERE mi.status = 'active'
@@ -1240,7 +1272,7 @@ export async function searchMediaFulltext(
                     -- Actor/director matches (lowest)
                     ELSE ${RANK_FT_ACTOR_DIRECTOR_BASE}
                 END
-                + ${buildExactPrefixTitleBoost(sql, query)} as rank,
+                + ${buildExactPrefixTitleBoost(sql, query, { includeLocalized: true })} as rank,
                 -- Overview snippet for overview matches
                 CASE
                     WHEN mi.search_vector @@ to_tsquery('simple', immutable_unaccent(${tsQuery}))
