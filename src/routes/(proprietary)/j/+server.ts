@@ -3,6 +3,7 @@
 // Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
 
 import { json } from '@sveltejs/kit';
+import { advertisedBaseUrl } from '$lib/server/proprietary/jellyfin-compat/advertised-base-url';
 import type { RequestHandler } from './$types';
 import { getPublicSystemInfo } from '$lib/server/proprietary/jellyfin-compat/serializers/system';
 
@@ -17,6 +18,5 @@ import { getPublicSystemInfo } from '$lib/server/proprietary/jellyfin-compat/ser
 export const trailingSlash = 'always';
 
 export const GET: RequestHandler = async ({ url }) => {
-    const baseUrl = `${url.protocol}//${url.host}`;
-    return json(getPublicSystemInfo(baseUrl));
+    return json(getPublicSystemInfo(advertisedBaseUrl(url)));
 };

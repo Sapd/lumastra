@@ -5,6 +5,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { withJellyfinAuth } from '$lib/server/proprietary/jellyfin-compat/middleware';
+import { advertisedBaseUrl } from '$lib/server/proprietary/jellyfin-compat/advertised-base-url';
 import { getPublicSystemInfo } from '$lib/server/proprietary/jellyfin-compat/serializers/system';
 import type { JellyfinSystemInfo } from '$lib/server/proprietary/jellyfin-compat/types';
 
@@ -28,7 +29,7 @@ function systemArchitecture(): string {
 
 export const GET: RequestHandler = withJellyfinAuth(async ({ url }) => {
     return json({
-        ...getPublicSystemInfo(url.origin),
+        ...getPublicSystemInfo(advertisedBaseUrl(url)),
         OperatingSystemDisplayName: 'Linux',
         SystemArchitecture: systemArchitecture(),
         HasUpdateAvailable: false,
