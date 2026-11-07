@@ -29,6 +29,7 @@ import {
     getMetadataProviderChain,
 } from '../../utils/provider-config.js';
 import { buildLibraryAccessFilter } from './builders/library-access.builder.js';
+import { searchSupportsSubstringMatch } from './builders/search-filter.builder.js';
 import { buildLibraryGroupFilter } from './builders/library-group.builder.js';
 import { buildAgeRatingFilter, type AgeRatingFilterParams } from './builders/age-rating.builder.js';
 import { PG_TEXT_OID } from './builders/keyset-cursor.builder.js';
@@ -674,6 +675,13 @@ export async function getLocalAvailableExternalIds(
  * audiobook-browse's own predicate. `original_title`/`english_title` are
  * included so a viewer can find a title by the name they know it under; all
  * three columns carry an unaccented trigram index.
+ *
+ * Localized titles live in the `media_titles` side table, not on the row, so a
+ * German viewer typing "Haus des Geldes" for the English-primary "Money Heist"
+ * found nothing here while global search found it. That arm uses the same
+ * IN-subquery as search (`idx_media_titles_title_trgm`) and, like search, only
+ * from 3 characters on: a 1–2 character pattern has no usable trigrams and
+ * would scan the whole side table on every keystroke.
  */
 function buildTitleQueryFilter(
     sql: postgres.Sql,
@@ -682,10 +690,17 @@ function buildTitleQueryFilter(
     const trimmed = query?.trim();
     if (!trimmed) return sql``;
     const pattern = `%${trimmed.replace(/([%_\\])/g, '\\$1')}%`;
+    const localized = searchSupportsSubstringMatch(trimmed)
+        ? sql`OR mi.id IN (
+            SELECT mt.media_id FROM media_titles mt
+            WHERE immutable_unaccent(mt.title) ILIKE immutable_unaccent(${pattern})
+        )`
+        : sql``;
     return sql`AND (
         immutable_unaccent(mi.title) ILIKE immutable_unaccent(${pattern})
         OR immutable_unaccent(COALESCE(mi.original_title, '')) ILIKE immutable_unaccent(${pattern})
         OR immutable_unaccent(COALESCE(mi.english_title, '')) ILIKE immutable_unaccent(${pattern})
+        ${localized}
     )`;
 }
 

@@ -211,6 +211,28 @@ describe('Browse Queries', () => {
             expect(items.map((i) => i.internal_id)).toContain(id);
         });
 
+        it('matches a localized title from media_titles (German "Haus des Geldes")', async () => {
+            const id = await seedMovie('Vault Robbers');
+            await sql`
+                INSERT INTO media_titles (media_id, title, language, kind)
+                VALUES (${id}::uuid, 'Tresor der Träume', 'de', 'localized')
+            `;
+            const { items, totalCount } = await getMediaAlphabetical(sql, {
+                access: unrestrictedAccess(),
+                mediaType: 'movie',
+                query: 'tresor der traume',
+                limit: 50,
+            });
+            expect(items.map((i) => i.internal_id)).toEqual([id]);
+            expect(totalCount).toBe(1);
+            const buckets = await getAlphabeticalBucketCounts(sql, {
+                access: unrestrictedAccess(),
+                mediaType: 'movie',
+                query: 'tresor der traume',
+            });
+            expect(buckets.reduce((n, b) => n + b.count, 0)).toBe(1);
+        });
+
         it('treats % and _ as literals rather than wildcards', async () => {
             await seedMovie('Plain Title');
             const { items, totalCount } = await getMediaAlphabetical(sql, {
