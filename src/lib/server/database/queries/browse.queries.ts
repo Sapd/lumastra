@@ -301,13 +301,10 @@ export async function getFilteredRecentlyAddedMedia(
         // the proven walk-up builder shared with A-Z browse.
         const groupFilter = buildLibraryGroupFilter(sql, groupId);
 
-        // Title search: parameterized ILIKE with LIKE wildcards escaped so a
-        // user-supplied '%' / '_' is treated literally.
-        const trimmedQuery = query?.trim();
-        const titleFilter =
-            trimmedQuery && trimmedQuery.length > 0
-                ? sql`AND mi.title ILIKE ${'%' + trimmedQuery.replace(/[%_\\]/g, '\\$&') + '%'} ESCAPE '\\'`
-                : sql``;
+        // Title search: the same filter as the A-Z view (accent-insensitive,
+        // original/English/localized titles, LIKE wildcards literal), so one
+        // query finds the same titles in both views of /browse.
+        const titleFilter = buildTitleQueryFilter(sql, query);
 
         // GENRE-FILTER SLOT: a future `genreName` option would add an
         // `AND EXISTS (... jsonb_array_elements(pm.metadata->'genres') ...)`
@@ -679,9 +676,14 @@ export async function getLocalAvailableExternalIds(
  * Localized titles live in the `media_titles` side table, not on the row, so a
  * German viewer typing "Haus des Geldes" for the English-primary "Money Heist"
  * found nothing here while global search found it. That arm uses the same
- * IN-subquery as search (`idx_media_titles_title_trgm`) and, like search, only
- * from 3 characters on: a 1–2 character pattern has no usable trigrams and
- * would scan the whole side table on every keystroke.
+ * substring IN-subquery as search (`idx_media_titles_title_trgm`) and, like
+ * search, only from 3 characters on: a 1–2 character pattern has no usable
+ * trigrams and would scan the whole side table on every keystroke. Unlike
+ * search it has no fuzzy `%` arm: browse narrows a list and stays exact, and a
+ * `%` arm would also need `SET LOCAL pg_trgm.similarity_threshold` in every
+ * caller of this filter.
+ *
+ * Also used by the Recently-added view, so both views of /browse agree.
  */
 function buildTitleQueryFilter(
     sql: postgres.Sql,

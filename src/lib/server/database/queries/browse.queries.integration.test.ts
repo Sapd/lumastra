@@ -233,6 +233,24 @@ describe('Browse Queries', () => {
             expect(buckets.reduce((n, b) => n + b.count, 0)).toBe(1);
         });
 
+        it('searches localized titles only from 3 characters on', async () => {
+            const id = await seedMovie('Vault Robbers');
+            await sql`
+                INSERT INTO media_titles (media_id, title, language, kind)
+                VALUES (${id}::uuid, 'Tresor der Träume', 'de', 'localized')
+            `;
+            const run = (query: string) =>
+                getMediaAlphabetical(sql, {
+                    access: unrestrictedAccess(),
+                    mediaType: 'movie',
+                    query,
+                    limit: 50,
+                });
+            // 'tr' is not in 'Vault Robbers', only in the localized title.
+            expect((await run('tr')).items).toHaveLength(0);
+            expect((await run('tre')).items.map((i) => i.internal_id)).toEqual([id]);
+        });
+
         it('treats % and _ as literals rather than wildcards', async () => {
             await seedMovie('Plain Title');
             const { items, totalCount } = await getMediaAlphabetical(sql, {
@@ -587,6 +605,20 @@ describe('Browse Queries', () => {
             // The TV-only genre is a pill that would land a viewer on an empty
             // grid — it must be absent, not present with count 0.
             expect(movieFacets.map((f) => f.genre)).toEqual(['ZZAction']);
+        });
+
+        it('counts a title matched only by its localized title under a query', async () => {
+            const id = await seedWithGenre('movie', 'Vault Robbers', ['ZZHeist']);
+            await seedWithGenre('movie', 'Unrelated', ['ZZHeist']);
+            await sql`
+                INSERT INTO media_titles (media_id, title, language, kind)
+                VALUES (${id}::uuid, 'Tresor der Träume', 'de', 'localized')
+            `;
+            const facets = await getGenreFacetCounts(sql, {
+                access: unrestrictedAccess(),
+                query: 'tresor der traume',
+            });
+            expect(facets).toEqual([{ genre: 'ZZHeist', count: 1 }]);
         });
 
         it('keeps single-title genres (no minimum-count floor, unlike getGenreList)', async () => {
@@ -1348,6 +1380,19 @@ describe('Browse Queries', () => {
             const titles = rows.map((r) => r.title);
             expect(titles).toContain('Brand New Movie');
             expect(titles).not.toContain('Decoy Movie');
+        });
+
+        it('title search also finds localized titles, like the A-Z view', async () => {
+            await sql`
+                INSERT INTO media_titles (media_id, title, language, kind)
+                VALUES (${brandNewMovieId}::uuid, 'Funkelnagelneu', 'de', 'localized')
+            `;
+            const rows = await getFilteredRecentlyAddedMedia(sql, {
+                access: unrestrictedAccess(),
+                newness: 'everything',
+                query: 'funkelnagel',
+            });
+            expect(rows.map((r) => r.id)).toEqual([brandNewMovieId]);
         });
 
         it('restricts to a library group when groupId is given', async () => {
