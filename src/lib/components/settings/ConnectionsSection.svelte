@@ -57,6 +57,7 @@
     const showSubsonic = $derived($page.data?.features?.subsonicCompat === true);
 
     let showJellyfinModal = $state(false);
+    let jellyfinQuickConnectCode = $state('');
     let showSubsonicModal = $state(false);
 
     // MAL state
@@ -554,12 +555,18 @@
         const connect = to.url.searchParams.get('connect');
         if (!connect) return;
         if (connect === 'jellyfin' && showJellyfin) {
+            // `&code=` comes from a Jellyfin client's Quick Connect link (the
+            // /j/web shim forwards Moonfin's sign-in QR here). Only prefill: the
+            // person still approves with a tap.
+            const code = to.url.searchParams.get('code');
+            jellyfinQuickConnectCode = code && /^\d{6}$/.test(code) ? code : '';
             showJellyfinModal = true;
         } else if (connect === 'subsonic' && showSubsonic) {
             showSubsonicModal = true;
         }
         const url = new URL(to.url);
         url.searchParams.delete('connect');
+        url.searchParams.delete('code');
         window.history.replaceState(window.history.state, '', url);
     });
 
@@ -838,7 +845,13 @@
 {/if}
 
 {#if showJellyfinModal}
-    <JellyfinConnectModal {username} onclose={() => (showJellyfinModal = false)} />
+    <JellyfinConnectModal
+        {username}
+        initialQuickConnectCode={jellyfinQuickConnectCode}
+        onclose={() => {
+            showJellyfinModal = false;
+            jellyfinQuickConnectCode = '';
+        }} />
 {/if}
 {#if showSubsonicModal}
     <SubsonicConnectModal open={showSubsonicModal} onclose={() => (showSubsonicModal = false)} />

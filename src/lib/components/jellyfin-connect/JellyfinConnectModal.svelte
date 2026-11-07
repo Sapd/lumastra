@@ -5,6 +5,7 @@
 
 <script lang="ts">
     import * as m from '$lib/paraglide/messages';
+    import { untrack } from 'svelte';
     import {
         Icon,
         XMark,
@@ -42,10 +43,12 @@
 
     interface Props {
         username: string;
+        /** Prefill from a Quick Connect link (`?connect=jellyfin&code=`). */
+        initialQuickConnectCode?: string;
         onclose: () => void;
     }
 
-    let { username, onclose }: Props = $props();
+    let { username, initialQuickConnectCode = '', onclose }: Props = $props();
 
     // State
     let hasPassword = $state(false);
@@ -57,7 +60,8 @@
     let deleting = $state(false);
 
     // Quick Connect state
-    let quickConnectCode = $state('');
+    // Only the value at open time counts; the person can edit it afterwards.
+    let quickConnectCode = $state(untrack(() => initialQuickConnectCode));
     let authorizing = $state(false);
 
     // Read-only Jellyfin token state. Used by Discord RPC, Tautulli,

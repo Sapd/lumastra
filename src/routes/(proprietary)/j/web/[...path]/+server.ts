@@ -9,9 +9,10 @@
 // when a user clicks "Play" or shares a link. The fragment after `#` is
 // client-side only — the server only sees `/j/web/index.html`.
 //
-// We serve a tiny HTML page that reads `location.hash`, pulls the `id` out,
-// and `location.replace`s to Lumastra's `/watch/<id>` page. If the hash is
-// malformed or absent, fall back to `/`.
+// We serve a tiny HTML page that reads `location.hash` and `location.replace`s
+// to the matching Lumastra page (`/watch/<id>`, or the Jellyfin connect modal
+// for a Quick Connect code); see redirect-html.ts. A malformed or absent hash
+// falls back to `/`.
 //
 // === AUTH (trusted-proxy only; access enforced at the redirect target) ===
 //
@@ -39,18 +40,10 @@
 import type { RequestHandler } from './$types';
 import { isForwardAuthPeerTrusted } from '$lib/server/utils/client-ip';
 import { ApiResponses } from '$lib/server/utils/api-responses';
+import { base } from '$app/paths';
+import { buildDeeplinkRedirectHtml } from './redirect-html';
 
-const REDIRECT_HTML = `<!doctype html>
-<html><head><meta charset="utf-8"><title>Redirecting…</title>
-<meta name="robots" content="noindex"></head>
-<body><script>
-(function () {
-    var h = location.hash || '';
-    // Match either dashed UUID (36) or dashless Jellyfin form (32) as id=...
-    var m = h.match(/[?&]id=([0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12})/);
-    location.replace(m ? '/watch/' + m[1] : '/');
-})();
-</script>Redirecting…</body></html>`;
+const REDIRECT_HTML = buildDeeplinkRedirectHtml(base);
 
 function isFromTrustedProxy(event: { getClientAddress: () => string }): boolean {
     // The request is only legitimate when it arrives via the reverse proxy: if
