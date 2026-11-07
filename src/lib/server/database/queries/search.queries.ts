@@ -137,45 +137,53 @@ const RANK_PREFIX_TITLE_BOOST = 1;
  * for "Money Heist", only the (ILIKE, case-insensitive) prefix one.
  *
  * `includeLocalized` adds the same exact/prefix tiers for the titles in the
- * `media_titles` side table (localized / original / alias), taking the larger of
- * the two so an item is never boosted twice. Without it every localized hit
- * tied: German "Haus des Geldes" (the exact German title of "Money Heist") and
- * fuzzy lookalikes such as "Die Farbe des Geldes" scored the same, and the
- * popularity tiebreak put the lookalikes first. Only the catalog searches pass
- * it (music has no media_titles rows), and only from 3 characters on, like the
- * media_titles match arm.
+ * `media_titles` side table (localized / original / alias). They sit in the same
+ * CASE as the primary tiers, so an item is boosted once and a primary exact
+ * match skips the side-table probe. Without them every localized hit tied:
+ * German "Haus des Geldes" (the exact German title of "Money Heist") and fuzzy
+ * lookalikes such as "Die Farbe des Geldes" scored the same, and the popularity
+ * tiebreak put the lookalikes first. Required, so each caller states whether
+ * its rows can have media_titles (catalog and admin quick-nav: yes; music: no).
+ * Only from 3 characters on, like the media_titles match arm.
+ *
+ * The query is trimmed and its LIKE wildcards escaped for every arm, so a
+ * trailing space or a literal `%`/`_` scores the same on both kinds of title.
  */
 export function buildExactPrefixTitleBoost(
     sql: postgres.Sql,
     query: string,
-    opts: { includeLocalized?: boolean } = {},
+    opts: { includeLocalized: boolean },
 ): postgres.PendingQuery<postgres.Row[]> {
-    const primary = sql`
+    const q = query.trim();
+    const prefixPattern = `${escapeLikePattern(q)}%`;
+    const localized = opts.includeLocalized && searchSupportsSubstringMatch(q);
+    // Uncorrelated sets, each found once through idx_media_titles_title_trgm (an
+    // ILIKE without wildcards is a case-insensitive equality the trigram index
+    // still serves) and probed per row as a hashed subplan. A correlated per-row
+    // lookup instead cost 1.9 s for "the" on prod (11.5k matched rows).
+    const localizedExact = localized
+        ? sql`OR mi.id IN (
+                SELECT mt.media_id FROM media_titles mt
+                WHERE immutable_unaccent(mt.title) ILIKE immutable_unaccent(${escapeLikePattern(q)})
+            )`
+        : sql``;
+    const localizedPrefix = localized
+        ? sql`OR mi.id IN (
+                SELECT mt.media_id FROM media_titles mt
+                WHERE immutable_unaccent(mt.title) ILIKE immutable_unaccent(${prefixPattern})
+            )`
+        : sql``;
+    return sql`
         CASE
-            WHEN lower(immutable_unaccent(mi.title)) = lower(immutable_unaccent(${query}))
-                 OR lower(immutable_unaccent(mi.original_title)) = lower(immutable_unaccent(${query}))
+            WHEN lower(immutable_unaccent(mi.title)) = lower(immutable_unaccent(${q}))
+                 OR lower(immutable_unaccent(mi.original_title)) = lower(immutable_unaccent(${q}))
+                 ${localizedExact}
             THEN ${RANK_EXACT_TITLE_BOOST}
-            WHEN immutable_unaccent(mi.title) ILIKE immutable_unaccent(${query}) || '%'
+            WHEN immutable_unaccent(mi.title) ILIKE immutable_unaccent(${prefixPattern})
+                 ${localizedPrefix}
             THEN ${RANK_PREFIX_TITLE_BOOST}
             ELSE 0
         END`;
-    if (!opts.includeLocalized || !searchSupportsSubstringMatch(query)) return primary;
-    // Two uncorrelated sets, each found once through idx_media_titles_title_trgm
-    // (an ILIKE without wildcards is a case-insensitive equality the trigram
-    // index still serves) and probed per row as a hashed subplan. A correlated
-    // per-row lookup instead cost 1.9 s for "the" on prod (11.5k matched rows).
-    const escaped = escapeLikePattern(query.trim());
-    return sql`GREATEST(${primary}, CASE
-            WHEN mi.id IN (
-                SELECT mt.media_id FROM media_titles mt
-                WHERE immutable_unaccent(mt.title) ILIKE immutable_unaccent(${escaped})
-            ) THEN ${RANK_EXACT_TITLE_BOOST}
-            WHEN mi.id IN (
-                SELECT mt.media_id FROM media_titles mt
-                WHERE immutable_unaccent(mt.title) ILIKE immutable_unaccent(${escaped + '%'})
-            ) THEN ${RANK_PREFIX_TITLE_BOOST}
-            ELSE 0
-        END)`;
 }
 
 /**
@@ -390,7 +398,7 @@ export async function searchAdminQuickNav(
                            similarity(immutable_unaccent(mi.original_title), immutable_unaccent(${query})),
                            similarity(immutable_unaccent(mi.english_title), immutable_unaccent(${query}))
                        )
-                   END + ${buildExactPrefixTitleBoost(db, query)} AS rank
+                   END + ${buildExactPrefixTitleBoost(db, query, { includeLocalized: true })} AS rank
             FROM media_items mi
             LEFT JOIN media_items parent ON mi.parent_id = parent.id
             LEFT JOIN media_items grandparent ON parent.parent_id = grandparent.id
@@ -683,7 +691,7 @@ export async function searchMusic(
                     -- direct FTS hit ties (ts_rank has no length normalization), the
                     -- alphabetical tiebreak takes over, and a short query like "sum"
                     -- LIMIT-truncates "Sum 41" behind dozens of "…Summer…" tracks.
-                    + ${buildExactPrefixTitleBoost(db, query)} AS rank,
+                    + ${buildExactPrefixTitleBoost(db, query, { includeLocalized: false })} AS rank,
                     -- Popularity tiebreak, a SORT KEY and never part of rank. An
                     -- artist-name query ties every track of that artist (own and
                     -- credited) at one credit tier, and the tie used to break A-Z,

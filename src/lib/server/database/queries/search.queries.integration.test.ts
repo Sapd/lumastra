@@ -39,6 +39,8 @@ import {
     searchEpisode,
     findSeriesContext,
     getSeasonCountsBySeriesIds,
+    searchAdminQuickNav,
+    buildExactPrefixTitleBoost,
 } from './search.queries.js';
 import { unrestrictedAccess } from './builders/media-access-boundary.js';
 
@@ -532,11 +534,51 @@ describe('Search Queries', () => {
                     jellyfinId: 'jf-rank-case-002',
                     popularity: 900,
                 });
-                const ids = (await run('zorblat')).map((r) => r.internal_id);
+                // Mixed case and a trailing space: neither may cost the exact boost.
+                const ids = (await run('ZorBLAT ')).map((r) => r.internal_id);
                 expect(ids).toContain(longerId);
                 expect(ids[0]).toBe(exactId);
             });
+
+            it(`${name}: a localized title that starts with the query outranks a lookalike`, async () => {
+                const { exactId, lookalikeId } = await seedHeistPair();
+                const ids = (await run('haus des gelde')).map((r) => r.internal_id);
+                expect(ids).toContain(lookalikeId);
+                expect(ids[0]).toBe(exactId);
+            });
         }
+
+        it('the boost treats % and _ in the query as literals, on both kinds of title', async () => {
+            const { exactId } = await seedHeistPair();
+            const boost = async (q: string, includeLocalized = true) => {
+                const [row] = await sql<{ b: number }[]>`
+                    SELECT (${buildExactPrefixTitleBoost(sql, q, { includeLocalized })})::float AS b
+                    FROM media_items mi WHERE mi.id = ${exactId}::uuid
+                `;
+                return Number(row?.b);
+            };
+            expect(await boost('haus des geldes')).toBe(5); // localized exact
+            expect(await boost('Haus des')).toBe(1); // localized prefix
+            expect(await boost('haus des geldes', false)).toBe(0); // opt-out
+            expect(await boost('ha')).toBe(0); // below the 3-character gate
+            expect(await boost('haus%')).toBe(0); // literal %, not a wildcard
+            expect(await boost('h_us des')).toBe(0); // literal _, not a wildcard
+            expect(await boost('vault%')).toBe(0); // primary prefix escapes too
+            expect(await boost(' VAULT ROBBERS ')).toBe(5); // primary exact: trim + case
+        });
+
+        it('searchAdminQuickNav: an exact localized title outranks a fuzzy lookalike', async () => {
+            const { exactId, lookalikeId } = await seedHeistPair();
+            const rows = await searchAdminQuickNav(
+                sql,
+                'haus des geldes',
+                unrestrictedAccess(),
+                30,
+            );
+            const ids = rows.map((r) => r.id);
+            expect(ids).toContain(lookalikeId);
+            expect(ids.indexOf(exactId)).toBeLessThan(ids.indexOf(lookalikeId));
+        });
     });
 
     // =========================================================================
