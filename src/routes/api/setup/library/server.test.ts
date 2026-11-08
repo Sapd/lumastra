@@ -266,6 +266,27 @@ describe('POST /api/setup/library', () => {
         );
     });
 
+    // The first-run wizard offers the same types as the admin wizard. Each one
+    // must pass the server's media-type check and get its default group name.
+    it.each([
+        ['home_video', 'Home Videos'],
+        ['training', 'Training'],
+        ['educational', 'Educational'],
+        ['personal', 'Personal'],
+    ])(
+        'accepts a %s library from the setup path and names its group "%s"',
+        async (mediaType, groupName) => {
+            const res = await callPost({ path: `/data/${mediaType}`, mediaType });
+
+            expect(await res.json()).toMatchObject({ ok: true, scanStarted: true });
+            expect(mockCreateGroup).toHaveBeenCalledWith(expect.anything(), { name: groupName });
+            expect(mockCreatePath).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.objectContaining({ path: `/data/${mediaType}`, media_type: mediaType }),
+            );
+        },
+    );
+
     it('scans the EXISTING library (no duplicate create) when the path is already registered', async () => {
         mockGetPaths.mockResolvedValue([
             {

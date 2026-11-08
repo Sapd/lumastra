@@ -1453,6 +1453,10 @@
         { id: 'tv', label: () => m.setup_library_default_name_tv() },
         { id: 'anime', label: () => m.setup_library_default_name_anime() },
         { id: 'music', label: () => m.setup_library_default_name_music() },
+        { id: 'home_video', label: () => m.setup_library_default_name_home_video() },
+        { id: 'training', label: () => m.setup_library_default_name_training() },
+        { id: 'educational', label: () => m.setup_library_default_name_educational() },
+        { id: 'personal', label: () => m.setup_library_default_name_personal() },
     ] as const;
     type LibraryMediaType = (typeof LIBRARY_MEDIA_TYPES)[number]['id'];
 
