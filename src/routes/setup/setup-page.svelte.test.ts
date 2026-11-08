@@ -842,6 +842,63 @@ describe('/setup — library step', () => {
         expect(screen.queryByText(/looking for media folders/i)).toBeNull();
     });
 
+    it('offers every folder library type, not only movies/TV/anime/music, and posts the one picked', async () => {
+        api.apiGet.mockImplementation((path: string) =>
+            Promise.resolve(
+                path === '/api/setup/library-mounts'
+                    ? ok({ candidates: [{ path: '/data/media/Kurse', entries: 2 }] })
+                    : ok(null),
+            ),
+        );
+        api.apiPost.mockImplementation((path: string) =>
+            Promise.resolve(
+                path === '/api/setup/library-probe'
+                    ? ok({ readable: true })
+                    : path === '/api/setup/library'
+                      ? ok({ ok: true, readable: true, runId: 'run-1' })
+                      : ok(),
+            ),
+        );
+        render(SetupPage, { props: { data: pageData({ resume: true }) as never } });
+        await fireEvent.click(screen.getByRole('button', { name: /save & continue/i }));
+        await screen.findByText('/data/media/Kurse');
+
+        const expected = [
+            'movie',
+            'tv',
+            'anime',
+            'music',
+            'home_video',
+            'training',
+            'educational',
+            'personal',
+        ];
+        // Both pickers: the manual form's and the one next to each found folder.
+        const selects = [...document.querySelectorAll('select')].filter((s) =>
+            [...s.options].some((o) => o.value === 'movie'),
+        );
+        expect(selects.length).toBeGreaterThanOrEqual(2);
+        for (const select of selects) {
+            const values = [...select.options].map((o) => o.value).filter(Boolean);
+            expect(values).toEqual(expected);
+        }
+
+        const manualPath = document.getElementById('lib-path') as HTMLInputElement;
+        await fireEvent.input(manualPath, { target: { value: '/data/media/Family' } });
+        const manualType = document.getElementById('lib-type') as HTMLSelectElement;
+        await pick(manualType, 'home_video');
+        await fireEvent.submit(manualPath.closest('form') as HTMLFormElement);
+        await waitFor(() =>
+            expect(
+                api.apiPost.mock.calls.some(
+                    ([path, , body]) =>
+                        path === '/api/setup/library' &&
+                        (body as { mediaType?: string }).mediaType === 'home_video',
+                ),
+            ).toBe(true),
+        );
+    });
+
     it('Continue adds the ticked folder suggestions before it moves on', async () => {
         api.apiGet.mockImplementation((path: string) =>
             Promise.resolve(
