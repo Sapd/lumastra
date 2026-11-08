@@ -5111,7 +5111,7 @@
     "setup_public_api_off_warning": "Ist das ausgeschaltet, können sich die Lumastra-Apps für iPhone, iPad und Apple TV nicht an diesem Server anmelden, und /api/v1 ist nicht verfügbar.",
     "setup_jfcompat_group": "Kompatibilität mit externen Clients",
     "setup_jfcompat_name": "Jellyfin-Client-Kompatibilität (/j)",
-    "setup_jfcompat_desc": "Ermöglicht externen Jellyfin-Apps und Clients wie Streamyfin, sich mit diesem Server zu verbinden. Deaktivieren lässt die /j-API mit 404 antworten.",
+    "setup_jfcompat_desc": "Ermöglicht Jellyfin-Apps und Clients wie Streamyfin, sich mit diesem Server zu verbinden. Jede Person verbindet eine App unter Einstellungen → Verbindungen (App-Passwort oder Quick-Connect-Code), nicht mit ihrem Web-Login. Deaktivieren lässt die /j-API mit 404 antworten.",
     "setup_subsonic_name": "Subsonic-Client-Kompatibilität (/subsonic)",
     "setup_subsonic_desc": "Erlaubt Subsonic- und OpenSubsonic-Apps wie Symfonium, Ultrasonic und DSub den Zugriff auf deine Musikbibliothek. Standardmäßig aus. Wenn dein Reverse-Proxy die ganze App hinter einen Login stellt, braucht auch /subsonic eine Bypass-Location (siehe Installationsdokumentation).",
     "setup_btn_skip": "Vorerst überspringen",

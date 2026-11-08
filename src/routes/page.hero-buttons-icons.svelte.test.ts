@@ -145,4 +145,18 @@ describe('homepage hero buttons: icon resolution from page data', () => {
         expect(screen.getByText('Docs')).toBeTruthy();
         expect(document.querySelector('.hero-btn__icon')).toBeNull();
     });
+
+    test('default toolbar offers "Set up a Jellyfin app" when /j is on', () => {
+        render(HomePage, { data: baseData({ features: { jellyfinCompat: true } }) } as never);
+        const link = screen.getByRole('link', { name: m.settings_connections_connect_client() });
+        expect(link.getAttribute('href')).toContain('/settings/connections?connect=jellyfin');
+        expect(link.getAttribute('target')).toBeNull();
+    });
+
+    test('default toolbar hides "Set up a Jellyfin app" when /j is off', () => {
+        render(HomePage, { data: baseData({ features: { jellyfinCompat: false } }) } as never);
+        expect(
+            screen.queryByRole('link', { name: m.settings_connections_connect_client() }),
+        ).toBeNull();
+    });
 });

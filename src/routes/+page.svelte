@@ -71,6 +71,7 @@
     import { saveHomeWidgetOrder } from './home-widget-order';
     import { dragHandleZone, dragHandle } from 'svelte-dnd-action';
     import { safeFlip } from '$lib/utils/safe-flip';
+    import { JELLYFIN_CONNECT_URL } from '$lib/config/hero-button-labels';
 
     import {
         Icon,
@@ -81,6 +82,7 @@
         ArrowDownOnSquareStack,
         MagnifyingGlass,
         RectangleGroup,
+        ServerStack,
     } from 'svelte-hero-icons';
 
     import { writable } from 'svelte/store';
@@ -1104,6 +1106,16 @@
                     <Icon src={RectangleGroup} class="hero-btn__icon" />
                     <span class="hidden sm:inline">{m.browse()}</span>
                 </a>
+                {#if data.features?.jellyfinCompat === true}
+                    <a
+                        class="hero-btn"
+                        href={resolve(JELLYFIN_CONNECT_URL)}
+                        aria-label={m.settings_connections_connect_client()}>
+                        <Icon src={ServerStack} class="hero-btn__icon" />
+                        <span class="hidden sm:inline"
+                            >{m.settings_connections_connect_client()}</span>
+                    </a>
+                {/if}
                 {#if showMoviesAndShows}
                     <a class="hero-btn" href={jellyfinHomeUrl} target="_blank">
                         <Icon src={Film} class="hero-btn__icon" />
