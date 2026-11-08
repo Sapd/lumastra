@@ -66,8 +66,8 @@
             !links.some((link) => link.url === JELLYFIN_CONNECT_URL),
     );
 
-    function addJellyfinConnect() {
-        const newButton: HeroButton = {
+    function jellyfinConnectButton(): HeroButton {
+        return {
             id: crypto.randomUUID(),
             action: 'link',
             label: m.settings_connections_connect_client(),
@@ -78,7 +78,10 @@
             external: false,
             enabled: true,
         };
-        links = [...links, newButton];
+    }
+
+    function addJellyfinConnect() {
+        links = [...links, jellyfinConnectButton()];
         emitChange();
     }
 
@@ -119,7 +122,9 @@
 
     // Default toolbar matching the homepage's hardcoded fallback. Search & Browse
     // default ON; the env-backed link buttons (Movies/Audiobooks/Books) start
-    // enabled with empty URLs for the admin to fill.
+    // enabled with empty URLs for the admin to fill. With /j on, the fallback
+    // also shows "Set up a Jellyfin app" after Browse, so the loaded list does too:
+    // loading the defaults must not silently drop a button users already see.
     function loadDefaults() {
         links = [
             {
@@ -138,6 +143,7 @@
                 icon: 'rectangle-group',
                 enabled: true,
             },
+            ...(featureFlags.jellyfinCompat === true ? [jellyfinConnectButton()] : []),
             {
                 id: crypto.randomUUID(),
                 action: 'assistant',

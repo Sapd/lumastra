@@ -109,3 +109,41 @@ describe('HeroButtonsEditor — Jellyfin connect quick-add', () => {
         expect(screen.getByRole('button', { name: /browse/i })).toBeTruthy();
     });
 });
+
+describe('HeroButtonsEditor — Load defaults', () => {
+    afterEach(() => cleanup());
+
+    async function loadDefaults(jellyfinCompat: boolean): Promise<EmittedButton[]> {
+        let emitted: EmittedButton[] = [];
+        render(HeroButtonsEditor, {
+            links: [],
+            featureFlags: { jellyfinCompat },
+            onchange: (detail: EmittedButton[]) => (emitted = detail),
+        });
+        await fireEvent.click(screen.getByRole('button', { name: /load defaults/i }));
+        return emitted;
+    }
+
+    /**
+     * The home page's fallback toolbar shows the button after Browse while /j is on;
+     * loading the defaults must keep it, or saving them silently removes it.
+     */
+    test('includes "Set up a Jellyfin app" after Browse when /j is on', async () => {
+        const emitted = await loadDefaults(true);
+        const browse = emitted.findIndex((b) => b.action === 'browse');
+        expect(emitted[browse + 1]).toMatchObject({
+            action: 'link',
+            url: JELLYFIN_CONNECT_URL,
+            external: false,
+            enabled: true,
+        });
+        expect(emitted.filter((b) => b.url === JELLYFIN_CONNECT_URL)).toHaveLength(1);
+        expect(quickAddButton()).toBeNull();
+    });
+
+    test('leaves it out when /j is off', async () => {
+        const emitted = await loadDefaults(false);
+        expect(emitted.length).toBeGreaterThan(0);
+        expect(emitted.some((b) => b.url === JELLYFIN_CONNECT_URL)).toBe(false);
+    });
+});
