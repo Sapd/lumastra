@@ -19,6 +19,7 @@ import {
     UPLOADABLE_LIBRARY_TYPES,
     LIBRARY_UPLOAD_NAV_DEP,
 } from '$lib/shared/uploadable-library-types.js';
+import { privateModuleSwitchedOn } from '$lib/server/private-modules-env.js';
 import { localsIsAdmin } from '$lib/server/auth/locals-admin.js';
 
 const logger = Logger.for('AdminLegacyNav');
@@ -165,7 +166,11 @@ export const load: LayoutServerLoad = async ({ locals, parent, depends }) => {
     // Showcase nav visibility. Gated on the operator's showcase master switch,
     // which DEFAULTS OFF, so the entry is hidden by default (and would be a dead
     // link in a tree where the route is removed). Shown only when turned on.
-    const showcaseEnabled = config.FEATURE_PUBLIC_SHOWCASE;
+    // Also needs the private gate (LUMASTRA_PRIVATE_MODULES), which the routes
+    // check themselves: without it the page answers 404, so no nav entry.
+    const showcaseEnabled = config.FEATURE_PUBLIC_SHOWCASE && privateModuleSwitchedOn('showcase');
+    // Training assignments are part of the private 'assessment' module.
+    const assessmentModuleOn = privateModuleSwitchedOn('assessment');
     return {
         user: locals.user ? { ...locals.user, isAdmin: localsIsAdmin(locals) } : locals.user,
         // Use DB-authoritative isAdmin so manually promoted users see admin tabs
@@ -193,8 +198,8 @@ export const load: LayoutServerLoad = async ({ locals, parent, depends }) => {
             // AdminNav's enterprise nav-item gating gets a typed boolean
             // instead of `unknown` — the spread's source is cast to
             // Record<string, unknown> and loses its concrete keys.
-            trainingAssignments: features.trainingAssignments,
-            assessment: features.assessment,
+            trainingAssignments: features.trainingAssignments && assessmentModuleOn,
+            assessment: features.assessment && assessmentModuleOn,
             showcase: showcaseEnabled,
             libraryUpload,
         },

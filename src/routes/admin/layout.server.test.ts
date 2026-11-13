@@ -6,22 +6,34 @@
  * breaks the whole admin shell, not one page.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { isRedirect } from '@sveltejs/kit';
 
 vi.mock('$app/environment', () => ({ dev: false, browser: false, building: false }));
+
+const flags = vi.hoisted(() => ({ showcase: false, training: false, assessment: false }));
 
 vi.mock('$lib/server/config', () => ({
     config: {
         DEFAULT_USER: 'dev-admin',
         TMDB_API_KEY: '',
         MDBLIST_API_KEY: '',
-        FEATURE_PUBLIC_SHOWCASE: false,
+        get FEATURE_PUBLIC_SHOWCASE() {
+            return flags.showcase;
+        },
         LIVETV_SOURCE: '',
         STREAM_PROXY_URL: '',
         SHOW_DEVELOPER_TOOLS: false,
     },
-    features: { ffmpegAvailable: true, trainingAssignments: false, assessment: false },
+    features: {
+        ffmpegAvailable: true,
+        get trainingAssignments() {
+            return flags.training;
+        },
+        get assessment() {
+            return flags.assessment;
+        },
+    },
     devFeaturesEnabled: false,
 }));
 
@@ -54,6 +66,7 @@ vi.mock('$lib/server/database/queries/admin-ui-prefs.queries.js', () => ({
 const { load } = await import('./+layout.server.js');
 
 type LoadResult = {
+    features: Record<string, unknown>;
     navPins: Array<{ href: string; label: string }>;
     providerIndex: unknown[];
     defaultUser?: string;
@@ -76,6 +89,63 @@ beforeEach(() => {
     mockGetNavPins.mockResolvedValue([]);
     mockUpdateNavPinHref.mockResolvedValue(undefined);
     mockLoadProviderSearchIndex.mockResolvedValue([]);
+});
+
+describe('/admin layout load: nav entries of the private modules', () => {
+    const original = process.env.LUMASTRA_PRIVATE_MODULES;
+    beforeEach(() => {
+        flags.showcase = true;
+        flags.training = true;
+        flags.assessment = true;
+    });
+    afterEach(() => {
+        flags.showcase = flags.training = flags.assessment = false;
+        if (original === undefined) delete process.env.LUMASTRA_PRIVATE_MODULES;
+        else process.env.LUMASTRA_PRIVATE_MODULES = original;
+    });
+
+    it('with the feature flags on but the private gate off, no dead links: all three are hidden', async () => {
+        delete process.env.LUMASTRA_PRIVATE_MODULES;
+        const { features } = await runLoad();
+        expect(features.showcase).toBe(false);
+        expect(features.assessment).toBe(false);
+        expect(features.trainingAssignments).toBe(false);
+    });
+
+    it('LUMASTRA_PRIVATE_MODULES=all shows them', async () => {
+        process.env.LUMASTRA_PRIVATE_MODULES = 'all';
+        const { features } = await runLoad();
+        expect(features.showcase).toBe(true);
+        expect(features.assessment).toBe(true);
+        expect(features.trainingAssignments).toBe(true);
+    });
+
+    it('a list enables only what it names; training follows the assessment module', async () => {
+        process.env.LUMASTRA_PRIVATE_MODULES = 'Showcase';
+        let { features } = await runLoad();
+        expect(features).toMatchObject({
+            showcase: true,
+            assessment: false,
+            trainingAssignments: false,
+        });
+        process.env.LUMASTRA_PRIVATE_MODULES = 'assessment';
+        ({ features } = await runLoad());
+        expect(features).toMatchObject({
+            showcase: false,
+            assessment: true,
+            trainingAssignments: true,
+        });
+    });
+
+    it('the feature flag still has to be on as well', async () => {
+        process.env.LUMASTRA_PRIVATE_MODULES = 'all';
+        flags.showcase = false;
+        flags.assessment = false;
+        const { features } = await runLoad();
+        expect(features.showcase).toBe(false);
+        expect(features.assessment).toBe(false);
+        expect(features.trainingAssignments).toBe(true);
+    });
 });
 
 describe('/admin layout load', () => {
