@@ -152,6 +152,27 @@ const done = new Set<string>();
 let inFlight: Promise<void> | null = null;
 let complete = false;
 
+/**
+ * A step that failed at boot (a transient import or filesystem hiccup) is tried
+ * again on its own, so /j remote control and the sweeper do not stay
+ * unregistered until some later request happens to call us. A few attempts, a
+ * minute apart; a step that keeps failing is then left to the next explicit call.
+ */
+const RETRY_DELAY_MS = 60_000;
+const MAX_TIMED_RETRIES = 5;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let timedRetries = 0;
+
+function scheduleRetry(): void {
+    if (retryTimer || timedRetries >= MAX_TIMED_RETRIES) return;
+    timedRetries += 1;
+    retryTimer = setTimeout(() => {
+        retryTimer = null;
+        void ensureCompatLoaded();
+    }, RETRY_DELAY_MS);
+    if (typeof retryTimer.unref === 'function') retryTimer.unref();
+}
+
 /** Run every step that has not worked yet; a failure is logged and never blocks the others. */
 async function runSteps(): Promise<void> {
     let failed = false;
@@ -167,6 +188,7 @@ async function runSteps(): Promise<void> {
         }
     }
     complete = !failed;
+    if (failed) scheduleRetry();
 }
 
 /** Names of the registrations that have not worked yet (empty once everything is loaded). */
@@ -210,4 +232,7 @@ export function __resetCompatLoadedForTests(): void {
     done.clear();
     inFlight = null;
     complete = false;
+    if (retryTimer) clearTimeout(retryTimer);
+    retryTimer = null;
+    timedRetries = 0;
 }

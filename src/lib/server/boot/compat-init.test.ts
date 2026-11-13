@@ -204,6 +204,49 @@ describe('ensureCompatLoaded', () => {
         expect(h.registerJellyfinCompatRevocationProvider).toHaveBeenCalledTimes(2);
     });
 
+    it('a registration that failed at boot is retried on its own after a minute, without any later call', async () => {
+        vi.useFakeTimers();
+        try {
+            h.registerJellyfinRemoteControl.mockImplementationOnce(() => {
+                throw new Error('transient import failure');
+            });
+            const { ensureCompatLoaded, pendingCompatSteps } = await load();
+
+            await ensureCompatLoaded();
+            expect(pendingCompatSteps()).toEqual(['/j remote control']);
+
+            await vi.advanceTimersByTimeAsync(59_000);
+            expect(h.registerJellyfinRemoteControl).toHaveBeenCalledTimes(1);
+            await vi.advanceTimersByTimeAsync(2_000);
+
+            expect(h.registerJellyfinRemoteControl).toHaveBeenCalledTimes(2);
+            expect(pendingCompatSteps()).toEqual([]);
+            // Everything that worked is not run again, and the timer stops.
+            expect(h.registerAiAssistantProvider).toHaveBeenCalledTimes(1);
+            await vi.advanceTimersByTimeAsync(10 * 60_000);
+            expect(h.registerJellyfinRemoteControl).toHaveBeenCalledTimes(2);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('stops retrying a step that keeps failing after a few attempts', async () => {
+        vi.useFakeTimers();
+        try {
+            h.registerJellyfinRemoteControl.mockImplementation(() => {
+                throw new Error('permanent');
+            });
+            const { ensureCompatLoaded } = await load();
+            await ensureCompatLoaded();
+            await vi.advanceTimersByTimeAsync(30 * 60_000);
+            expect(h.registerJellyfinRemoteControl.mock.calls.length).toBeLessThanOrEqual(6);
+            expect(h.registerJellyfinRemoteControl.mock.calls.length).toBeGreaterThan(1);
+        } finally {
+            h.registerJellyfinRemoteControl.mockReset();
+            vi.useRealTimers();
+        }
+    });
+
     it('an enrolment loop that throws on start does not stop the registrations', async () => {
         h.startRelayTokenEnrolLoop.mockImplementationOnce(() => {
             throw new Error('boom');
