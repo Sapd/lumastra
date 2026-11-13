@@ -68,6 +68,14 @@ export type ReleasesFetchResult =
 export type ReleasesFetcher = (opts: {
     etag: string | null;
     signal?: AbortSignal;
+    /**
+     * False when lumastra.org was already asked in the last day (a retry after
+     * a failure): the fetcher must not contact it again. Plain GitHub fetchers
+     * ignore it.
+     */
+    contactAllowed?: boolean;
+    /** The fetcher calls this right before it contacts lumastra.org. */
+    onContact?: () => void;
 }) => Promise<ReleasesFetchResult>;
 
 async function readCapped(res: Response): Promise<string> {

@@ -1232,12 +1232,11 @@ export const configSchema: SettingDefinition[] = [
     {
         key: 'LICENSE_SERVER_CONTACT_ENABLED',
         type: 'boolean',
-        label: 'Contact lumastra.org for the push relay token',
+        label: 'Contact lumastra.org (update check, push relay)',
         description:
-            'Lets this server ask lumastra.org for the token that iPhone and Apple TV push notifications need when they go through the standard relay. Only the install ID and the Lumastra version are sent. Off: this server never contacts lumastra.org and push through the standard relay does not work. Your own Apple key or your own relay are not affected.',
+            'Once a day the update check asks lumastra.org for the latest release instead of GitHub. The request carries only the Lumastra version; lumastra.org counts it by version and country and stores no IP address or ID. With push notifications on, this server also asks lumastra.org for the token that iPhone and Apple TV push needs through the standard relay (install ID and version are sent). Off: this server never contacts lumastra.org, the update check reads GitHub directly, and push through the standard relay does not work. Your own Apple key or your own relay are not affected.',
         defaultValue: true,
         section: 'licensing',
-        showWhen: { key: 'FEATURE_PUSH_NOTIFICATIONS', equals: true },
         requiresRestart: false,
     },
     {
@@ -1931,9 +1930,9 @@ export const configSchema: SettingDefinition[] = [
     {
         key: 'UPDATE_CHECK_ENABLED',
         type: 'boolean',
-        label: 'Check for Lumastra updates (contacts GitHub once a day)',
+        label: 'Check for Lumastra updates (once a day)',
         description:
-            'Once a day, read the list of Lumastra releases from api.github.com and tell admins when a newer version is out. Security releases show as a red notice until you update. No account, token or information about this server is sent.',
+            'Once a day, read the list of Lumastra releases and tell admins when a newer version is out. Security releases show as a red notice until you update. The list comes from lumastra.org, or from api.github.com when "Contact lumastra.org" is off or lumastra.org does not answer. Only the Lumastra version is sent to lumastra.org, nothing else about this server.',
         defaultValue: true,
         section: 'diagnostics',
         requiresRestart: false,

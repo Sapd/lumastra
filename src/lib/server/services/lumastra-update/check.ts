@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * The Lumastra update check: ask GitHub once a day which releases exist,
+ * The Lumastra update check: ask once a day which releases exist (lumastra.org,
+ * which counts the request anonymously, or GitHub; see lumastra-org-releases.ts),
  * remember the answer, and let the attention adapter and the Instance page
  * compare it against the running build.
  *
@@ -27,6 +28,7 @@ import {
     removeFromTaskSettingList,
     upsertTaskSettings,
 } from '$lib/server/database/queries/task-settings.queries.js';
+import { claimUpdateCheck } from './claim.queries.js';
 import { isRepositoryReleaseUrl, type ReleasesFetcher } from './github-releases.js';
 import {
     evaluateUpdate,
@@ -50,6 +52,12 @@ const JITTER_MS = 2 * 60 * 60 * 1000;
 /** Retry an unexpected failure sooner than a day, but not hourly. */
 const ERROR_RETRY_MS = 6 * 60 * 60 * 1000;
 const MAX_STORED_RELEASES = 300;
+/**
+ * lumastra.org is asked at most once a day: a retry after a failed attempt
+ * (6 h later) goes to GitHub directly. Just under 24 h, so the next day's
+ * jittered check (24 h ± 2 h) may ask again.
+ */
+const CONTACT_MIN_GAP_MS = 20 * 60 * 60 * 1000;
 /**
  * The ETag only covers page 1. Once a week the list is read without it, so an
  * edit to an older release (a security flag added later) is still picked up.
@@ -77,6 +85,8 @@ export interface LumastraUpdateState {
     lastAttemptAt: string | null;
     /** Last time the whole list was read without If-None-Match. */
     fullFetchAt: string | null;
+    /** Last time lumastra.org was asked (not GitHub); see CONTACT_MIN_GAP_MS. */
+    lastContactAt: string | null;
     /** Read from its own key (see REVIEWED_KEY); never written with `state`. */
     reviewedSecurity: string[];
 }
@@ -92,6 +102,7 @@ export const EMPTY_UPDATE_STATE: LumastraUpdateState = {
     failingSince: null,
     lastAttemptAt: null,
     fullFetchAt: null,
+    lastContactAt: null,
     reviewedSecurity: [],
 };
 
@@ -128,6 +139,7 @@ export async function readUpdateState(sql: postgres.Sql): Promise<LumastraUpdate
         failingSince: isoDate(r.failingSince),
         lastAttemptAt: isoDate(r.lastAttemptAt),
         fullFetchAt: isoDate(r.fullFetchAt),
+        lastContactAt: isoDate(r.lastContactAt),
         reviewedSecurity,
         checkedAt: isoDate(r.checkedAt),
         nextCheckAt: isoDate(r.nextCheckAt),
@@ -236,6 +248,20 @@ export async function runUpdateCheck(deps: UpdateCheckDeps): Promise<UpdateCheck
         return { status: 'not-due', evaluation: evaluateStoredUpdate(state, deps.build) };
     }
 
+    // Several processes can find the check due at the same moment (replicas, a
+    // restart overlapping a run). One atomic claim makes exactly one of them
+    // go on; the hold covers the retry window, so a failure is not retried by
+    // everyone at once. A manual run is one admin's click and skips it.
+    if (!deps.force) {
+        const claimed = await claimUpdateCheck(deps.sql, {
+            pluginId: UPDATE_CHECK_STATE_ID,
+            nowMs: now,
+            holdMs: ERROR_RETRY_MS,
+        });
+        if (!claimed)
+            return { status: 'not-due', evaluation: evaluateStoredUpdate(state, deps.build) };
+    }
+
     const nextDaily = new Date(now + DAY_MS + (random() * 2 - 1) * JITTER_MS).toISOString();
     const nowIso = new Date(now).toISOString();
     let status: UpdateCheckStatus;
@@ -248,7 +274,15 @@ export async function runUpdateCheck(deps: UpdateCheckDeps): Promise<UpdateCheck
     const etag = state.releases.length > 0 && fullFetchAge < FULL_REFRESH_MS ? state.etag : null;
 
     try {
-        const result = await deps.fetchReleases({ etag, signal: deps.signal });
+        const contactAge = state.lastContactAt ? now - Date.parse(state.lastContactAt) : Infinity;
+        const result = await deps.fetchReleases({
+            etag,
+            signal: deps.signal,
+            contactAllowed: deps.force === true || contactAge >= CONTACT_MIN_GAP_MS,
+            onContact: () => {
+                next.lastContactAt = nowIso;
+            },
+        });
         switch (result.kind) {
             case 'ok':
                 if (result.complete) {

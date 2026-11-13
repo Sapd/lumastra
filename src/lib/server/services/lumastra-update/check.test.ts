@@ -25,6 +25,14 @@ vi.mock('$lib/server/database/queries/task-settings.queries.js', () => ({
     }),
 }));
 
+const claim = vi.hoisted(() => ({ granted: true, calls: [] as unknown[][] }));
+vi.mock('./claim.queries.js', () => ({
+    claimUpdateCheck: vi.fn(async (...args: unknown[]) => {
+        claim.calls.push(args);
+        return claim.granted;
+    }),
+}));
+
 import {
     markSecurityReviewed,
     unmarkSecurityReviewed,
@@ -80,6 +88,8 @@ function fetcher(...results: Array<ReleasesFetchResult | Error>) {
 
 beforeEach(() => {
     stored = {};
+    claim.granted = true;
+    claim.calls = [];
 });
 
 describe('runUpdateCheck', () => {
@@ -332,5 +342,66 @@ describe('markSecurityReviewed', () => {
         await unmarkSecurityReviewed(sql, '0.1.1');
         const out = await runUpdateCheck(deps(fetcher({ kind: 'not-modified' }), { force: true }));
         expect(out.evaluation?.securityFixedIn?.version).toBe('0.1.1');
+    });
+
+    describe('one request per install per day', () => {
+        it('another process holds the claim: no request, state untouched', async () => {
+            claim.granted = false;
+            const f = fetcher({ kind: 'ok', etag: null, releases: [rel('0.1.2')], complete: true });
+            const out = await runUpdateCheck(deps(f));
+            expect(out.status).toBe('not-due');
+            expect(f).not.toHaveBeenCalled();
+            expect(stored).toEqual({});
+        });
+
+        it('a due check claims before it asks, holding the slot for the retry window', async () => {
+            const f = fetcher({ kind: 'not-modified' });
+            await runUpdateCheck(deps(f));
+            expect(claim.calls).toHaveLength(1);
+            expect(claim.calls[0][1]).toMatchObject({
+                nowMs: NOW,
+                holdMs: 6 * 3600_000,
+            });
+        });
+
+        it('a manual run does not need the claim', async () => {
+            claim.granted = false;
+            const f = fetcher({ kind: 'not-modified' });
+            const out = await runUpdateCheck(deps(f, { force: true }));
+            expect(out.status).not.toBe('not-due');
+            expect(f).toHaveBeenCalledTimes(1);
+            expect(claim.calls).toHaveLength(0);
+        });
+
+        it('not due: the claim is not even attempted', async () => {
+            const f = fetcher({ kind: 'ok', etag: null, releases: [rel('0.1.2')], complete: true });
+            await runUpdateCheck(deps(f));
+            claim.calls = [];
+            await runUpdateCheck(deps(f, { now: () => NOW + 3600_000 }));
+            expect(claim.calls).toHaveLength(0);
+        });
+
+        it('contact: allowed on the first attempt, remembered, then not repeated within 20 h', async () => {
+            const f = vi.fn<ReleasesFetcher>(async (opts) => {
+                if (opts.contactAllowed) opts.onContact?.();
+                throw new Error('offline');
+            });
+            await runUpdateCheck(deps(f));
+            expect(f.mock.calls[0][0].contactAllowed).toBe(true);
+            expect((await readUpdateState(sql)).lastContactAt).toBe(new Date(NOW).toISOString());
+
+            // The 6 h retry after a failed day: GitHub only, lumastra.org is not asked again.
+            await runUpdateCheck(deps(f, { now: () => NOW + 6 * 3600_000 }));
+            expect(f.mock.calls[1][0].contactAllowed).toBe(false);
+
+            // The next day it may ask again.
+            await runUpdateCheck(deps(f, { now: () => NOW + 25 * 3600_000 }));
+            expect(f.mock.calls[2][0].contactAllowed).toBe(true);
+        });
+
+        it('a fetcher that never contacted lumastra.org leaves lastContactAt alone', async () => {
+            await runUpdateCheck(deps(fetcher({ kind: 'not-modified' })));
+            expect((await readUpdateState(sql)).lastContactAt).toBeNull();
+        });
     });
 });

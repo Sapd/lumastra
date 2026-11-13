@@ -2,19 +2,24 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * Lumastra Update Check — once a day, ask GitHub which Lumastra releases
- * exist, so the admin notice can say when this install is behind and, above
- * all, when it is missing a security fix.
+ * Lumastra Update Check — once a day, ask which Lumastra releases exist
+ * (lumastra.org, which also counts the request anonymously by version; GitHub
+ * when the contact switch is off or lumastra.org fails), so the admin notice
+ * can say when this install is behind and, above all, when it is missing a
+ * security fix.
  *
  * Like the plugin update check it NEVER installs anything; its whole output is
  * a stored release list (see `services/lumastra-update/check.ts`) that the
  * attention adapter and the Instance page compare with the running build.
  *
- * Scheduling: the task wakes hourly, but the check itself only contacts GitHub
+ * Scheduling: the task wakes hourly, but the check itself only asks
  * when the stored `nextCheckAt` has passed — 24h ± 2h after the previous
  * check, plus a random 0–5 min delay — so installs spread over the day rather
  * than all calling at the same bucket boundary. A manual run checks at once.
  * The admin switch `UPDATE_CHECK_ENABLED` turns it off: no request is made.
+ * `LICENSE_SERVER_CONTACT_ENABLED` (the push relay's opt-out) off means GitHub
+ * only: lumastra.org is not contacted. One run per day across all processes:
+ * the task is a global singleton and `runUpdateCheck` takes an atomic claim.
  *
  * Failures (offline box, GitHub down, rate limit, the repo 404ing before its
  * first release) are reported in the run result, never thrown: a remote outage
@@ -27,7 +32,7 @@ import { registry } from '../../registry.js';
 import { getDb } from '$lib/server/database/connection.js';
 import { config } from '$lib/server/config.js';
 import { runUpdateCheck } from '$lib/server/services/lumastra-update/check.js';
-import { fetchLumastraReleases } from '$lib/server/services/lumastra-update/github-releases.js';
+import { fetchReleasesPreferringLumastraOrg } from '$lib/server/services/lumastra-update/lumastra-org-releases.js';
 
 type LumastraUpdateCheckInput = Record<string, unknown>;
 
@@ -66,8 +71,9 @@ export const lumastraUpdateCheckTask = defineTask<
     processingVersion: 1,
     minAppVersion: '0.0.0',
 
-    // Database for its state; the one outbound request goes through the
-    // pinned ssrf-guard transport in github-releases.ts, never ctx.http.
+    // Database for its state; the outbound requests go through the pinned
+    // ssrf-guard transport (lumastra-org-releases.ts, github-releases.ts),
+    // never ctx.http.
     capabilities: { database: true },
 
     schedule: {
@@ -125,7 +131,16 @@ export const lumastraUpdateCheckTask = defineTask<
             fetchReleases: async (opts) => {
                 if (!manual) await abortableDelay(Math.random() * MAX_START_DELAY_MS, signal);
                 if (signal.aborted) throw new Error('aborted');
-                return fetchLumastraReleases(opts);
+                return fetchReleasesPreferringLumastraOrg({
+                    version: runningVersion,
+                    etag: opts.etag,
+                    signal: opts.signal,
+                    // Read now, after the start delay: an opt-out switched in the
+                    // meantime is respected.
+                    contact: () => config.LICENSE_SERVER_CONTACT_ENABLED,
+                    contactAllowed: opts.contactAllowed ?? true,
+                    onContact: opts.onContact,
+                });
             },
             logger,
             force: manual,
@@ -143,7 +158,7 @@ export const lumastraUpdateCheckTask = defineTask<
                 message = 'Not due yet';
                 break;
             case 'failed':
-                message = `Could not reach GitHub: ${outcome.error ?? 'unknown error'}`;
+                message = `Could not check for updates: ${outcome.error ?? 'unknown error'}`;
                 break;
             case 'rate-limited':
                 message = 'GitHub rate limit reached; postponed';

@@ -64,16 +64,27 @@ license (CLA §3). You keep your copyright.
 
 ## Network calls to lumastra.org
 
-Lumastra makes no license check. It contacts the project's servers only for push notifications to
-the Apple apps: a token request to lumastra.org, and the push messages themselves to
-push.lumastra.org.
+Lumastra makes no license check. It contacts the project's servers for two things: the daily
+update check (lumastra.org) and push notifications to the Apple apps (a token request to
+lumastra.org, and the push messages themselves to push.lumastra.org). Both lumastra.org calls are
+switched by **Contact lumastra.org (update check, push relay)** (`LICENSE_SERVER_CONTACT_ENABLED`),
+on by default.
 
-<!-- UPDATE-CHECK: add when D6 lands -->
+**Update check.** Once a day, one scheduled task (not one per replica) sends
+`GET https://lumastra.org/api/update-check?v=<version>` and gets the latest release list back, so
+the admin notice can show new releases and the red "Security: yes" notice. The request carries the
+Lumastra version and nothing else: no install ID, no hash, no cookie. lumastra.org counts it in
+aggregate by version, date and Cloudflare's country for the request, and stores no IP address, so
+nothing links two requests. Like any web request it reveals your server's IP address to the
+network path and to Cloudflare. If lumastra.org does not answer, Lumastra reads GitHub's release
+list (`api.github.com`) instead. With the contact setting off, it reads GitHub only and sends
+nothing to lumastra.org. **Check for Lumastra updates** (`UPDATE_CHECK_ENABLED`) off stops the
+check altogether.
 
 |              |                                                                                                                                                                                                                                                                                                                       |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Endpoint** | `POST https://lumastra.org/api/push/relay-token`                                                                                                                                                                                                                                                                      |
-| **When**     | Only while push notifications are on, delivery uses the standard relay (no own Apple key), no `PUSH_RELAY_TOKEN` is set and **Contact lumastra.org for the push relay token** (`LICENSE_SERVER_CONTACT_ENABLED`) is on, which is the default. About every 6 hours.                                                    |
+| **When**     | Only while push notifications are on, delivery uses the standard relay (no own Apple key), no `PUSH_RELAY_TOKEN` is set and **Contact lumastra.org (update check, push relay)** is on, which is the default. About every 6 hours.                                                                                     |
 | **Sent**     | `install_uuid` (a random per-installation ID, readable at **/admin/system/instance**) and `app_version`. The token is bound to the installation, which is why the ID is sent on every renewal. No titles, paths, accounts or library data. Like any web request, it reveals your server's IP address to lumastra.org. |
 | **Received** | A relay token, valid for at most 24 hours, held in memory and in the cache.                                                                                                                                                                                                                                           |
 
