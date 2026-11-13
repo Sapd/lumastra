@@ -23,6 +23,9 @@
  * Executor children, the credential-revocation fan-out and the plugin `ctx.ai`
  * surface never start it, so one install makes one call, not one per process.
  *
+ * With LUMASTRA_CLI=1 (the reset-password command) only the registrations run: no
+ * sweeper, remote control, enrolment loop or retry timer.
+ *
  * Never inside a plugin-isolation worker: those hold no database and no master
  * key, and must not start loops or call out.
  *
@@ -51,6 +54,8 @@ export interface CompatLoadOptions {
 
 interface Step {
     name: string;
+    /** Starts a background loop, timer or listener: skipped in a CLI process (LUMASTRA_CLI=1). */
+    background?: boolean;
     /** Skipped on a stream-proxy-only node (it has no database). */
     needsFullNode: boolean;
     run: () => void | Promise<void>;
@@ -127,6 +132,7 @@ const STEPS: Step[] = [
     {
         name: '/j silent-start sweeper',
         needsFullNode: true,
+        background: true,
         run: async () => {
             const [{ startSilentStartSweeper }, { getDb }] = await Promise.all([
                 import('$lib/server/proprietary/jellyfin-compat/silent-start.js'),
@@ -140,6 +146,7 @@ const STEPS: Step[] = [
     {
         name: '/j remote control',
         needsFullNode: true,
+        background: true,
         run: async () => {
             const { registerJellyfinRemoteControl } =
                 await import('$lib/server/proprietary/jellyfin-compat/remote-control/register.js');
@@ -163,7 +170,24 @@ const MAX_TIMED_RETRIES = 5;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 let timedRetries = 0;
 
+/**
+ * Command-line tools (scripts/reset-password.ts) set LUMASTRA_CLI=1. They need the
+ * registrations (the /j revocation provider above all) but must not start loops,
+ * sweepers, listeners or retry timers that would keep the process alive.
+ */
+function isCliProcess(): boolean {
+    return process.env.LUMASTRA_CLI === '1';
+}
+
+function skipStep(step: Step): boolean {
+    return (
+        (step.needsFullNode && config.STREAM_PROXY_MODE) ||
+        (step.background === true && isCliProcess())
+    );
+}
+
 function scheduleRetry(): void {
+    if (isCliProcess()) return;
     if (retryTimer || timedRetries >= MAX_TIMED_RETRIES) return;
     timedRetries += 1;
     retryTimer = setTimeout(() => {
@@ -178,7 +202,7 @@ async function runSteps(): Promise<void> {
     let failed = false;
     for (const step of STEPS) {
         if (done.has(step.name)) continue;
-        if (step.needsFullNode && config.STREAM_PROXY_MODE) continue;
+        if (skipStep(step)) continue;
         try {
             await step.run();
             done.add(step.name);
@@ -193,9 +217,9 @@ async function runSteps(): Promise<void> {
 
 /** Names of the registrations that have not worked yet (empty once everything is loaded). */
 export function pendingCompatSteps(): string[] {
-    return STEPS.filter(
-        (step) => !done.has(step.name) && !(step.needsFullNode && config.STREAM_PROXY_MODE),
-    ).map((step) => step.name);
+    return STEPS.filter((step) => !done.has(step.name) && !skipStep(step)).map(
+        (step) => step.name,
+    );
 }
 
 /**
@@ -205,7 +229,7 @@ export function pendingCompatSteps(): string[] {
  */
 export function ensureCompatLoaded(options: CompatLoadOptions = {}): Promise<void> {
     if (isIsolationWorker()) return Promise.resolve();
-    if (options.enrolRelayToken && !config.STREAM_PROXY_MODE) {
+    if (options.enrolRelayToken && !config.STREAM_PROXY_MODE && !isCliProcess()) {
         // Synchronously, before any await. A throw here (never expected) must
         // not stop the registrations below. The loop itself is idempotent.
         try {

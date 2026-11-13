@@ -15,7 +15,8 @@
 // Prints a generated password. To choose one instead, pass it in the environment:
 //   docker compose exec -e LUMASTRA_NEW_PASSWORD='…' lumastra npx tsx … <username>
 //
-// Exit codes: 0 = password set, 2 = user not found or password rejected, 1 = error.
+// Exit codes: 0 = password set and every credential revoked, 2 = user not found or
+// password rejected, 3 = password set but some credentials could not be revoked, 1 = error.
 
 import { randomBytes } from 'node:crypto';
 
@@ -48,17 +49,14 @@ async function main(): Promise<number> {
     // their text loader here so the command needs no NODE_OPTIONS (see register-lua.mjs).
     const { register } = await import('node:module');
     register('./tsx-lua-loader.mjs', import.meta.url);
-    // ...and it reaches `@sveltejs/kit` (api/problem.ts imports its `json`), a build-time
-    // dependency the runtime image doesn't ship. This command never answers an HTTP
-    // request, so a stand-in module is enough.
-    const kitShim = `export const json = (d, i) => Response.json(d, i);
-export const error = (s, b) => { throw Object.assign(new Error(String(b ?? s)), { status: s }); };
-export const redirect = (s, l) => { throw Object.assign(new Error('redirect'), { status: s, location: l }); };`;
-    const kitHook = `export async function resolve(specifier, context, next) {
-  if (specifier === '@sveltejs/kit') return { url: 'data:text/javascript,' + encodeURIComponent(${JSON.stringify(kitShim)}), shortCircuit: true };
-  return next(specifier, context);
-}`;
-    register(`data:text/javascript,${encodeURIComponent(kitHook)}`);
+    // ...and `@sveltejs/kit`, `$app/*`, `$env/*` and `import.meta.glob`, which only the
+    // SvelteKit/Vite runtime provides. This command never answers an HTTP request, so the
+    // stand-ins in tsx-sveltekit-shim-loader.mjs are enough. Without them the PAT,
+    // service-token and /j stores could not be revoked (v0.1.4 fresh-install report).
+    register('./tsx-sveltekit-shim-loader.mjs', import.meta.url);
+    // Tell boot/compat-init.ts to register the /j revocation hook only, without starting
+    // its background loops (sweeper, remote control, relay enrolment, retry timers).
+    process.env.LUMASTRA_CLI = '1';
     const { getDb } = await import('../src/lib/server/database/connection.js');
     // Not admin-user.service's resetPassword(): its import graph reaches @sveltejs/kit,
     // which the runtime image doesn't ship. Same steps, from the modules it composes.
@@ -68,6 +66,11 @@ export const redirect = (s, l) => { throw Object.assign(new Error('redirect'), {
     const { validatePasswordPolicy } = await import('../src/lib/shared/password-strength.js');
     const { revokeAllCredentialsForUser } =
         await import('../src/lib/server/services/credential-revocation.service.js');
+
+    // The /j session store and the Subsonic auth cache live in Valkey; without a connection
+    // their sweeps fail (and are reported as failed stores below).
+    const { connectValkey, disconnectValkey } = await import('../src/lib/server/cache/valkey.js');
+    await connectValkey();
 
     const sql = getDb();
     if (!sql) {
@@ -87,16 +90,25 @@ export const redirect = (s, l) => { throw Object.assign(new Error('redirect'), {
         }
         await setUserPassword(sql, user.id, await hashPassword(newPassword));
         const { failedStores } = await revokeAllCredentialsForUser(sql, user.id, user.username);
+        if (failedStores.length > 0) {
+            // The password IS changed, but old credentials may still work: say so
+            // loudly and fail, so a script or an operator cannot miss it.
+            console.error(
+                `Password for "${user.username}" changed, but these credentials could NOT be ` +
+                    `revoked and may still work: ${failedStores.join(', ')}. ` +
+                    'Revoke them under Admin → Users, then run this command again.',
+            );
+            if (!chosen) console.log(`New password: ${newPassword}`);
+            return 3;
+        }
         console.log(
             `Password for "${user.username}" changed. All of their sessions were signed out.`,
         );
-        if (failedStores.length > 0) {
-            console.warn(`Some sign-outs did not complete: ${failedStores.join(', ')}`);
-        }
         if (!chosen) console.log(`New password: ${newPassword}`);
         return 0;
     } finally {
         await sql.end({ timeout: 5 });
+        await disconnectValkey().catch(() => undefined);
     }
 }
 
