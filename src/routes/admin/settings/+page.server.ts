@@ -19,7 +19,7 @@ import {
  * /admin/settings/homepage, sync → /admin/settings/providers, image/media →
  * /admin/settings/media, advanced-tasks → /admin/settings/tasks. What remains
  * is genuinely instance-wide: identity (branding), the cross-cutting feature
- * switchboard, global runtime defaults, the enterprise module flags, and the
+ * switchboard, global runtime defaults, the private-module flags, and the
  * lumastra.org contact switches.
  *
  * `src/lib/config/admin-settings-pages.ts` mirrors this split for deep links;
@@ -31,7 +31,7 @@ const SECTION_IDS = [
     'localization',
     'diagnostics',
     'advanced',
-    'enterprise',
+    'modules',
     'licensing',
 ];
 

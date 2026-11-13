@@ -81,7 +81,7 @@ function extractParams(routeId) {
 }
 
 function classifyTree(routeId) {
-    if (routeId.includes('(enterprise)')) return 'enterprise';
+    if (routeId.includes('(private)')) return 'private';
     if (routeId.includes('(proprietary)')) return 'proprietary';
     return 'public';
 }
@@ -163,7 +163,7 @@ function collectPages() {
             tree,
             // Source-available routes ship in the public build; commercial-only
             // routes are omitted from the published inventory.
-            inPublicBuild: tree !== 'enterprise',
+            inPublicBuild: tree !== 'private',
             gate,
             gateEvidence: evidence,
             hasPageServer,

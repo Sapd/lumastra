@@ -12,6 +12,7 @@
     import AudiobookshelfAttribution from '$lib/components/settings/AudiobookshelfAttribution.svelte';
     import { toasts } from '$lib/stores/toast.store';
     import { resolve } from '$lib/paths';
+    import { TRAINING_USE_CASE, type UseCaseId } from '$lib/config/use-case-ids.js';
     import { AdminPageHeader } from '$lib/components/admin/index.js';
     import { adminPageIcons } from '$lib/components/admin/admin-page-icons.js';
     import * as m from '$lib/paraglide/messages.js';
@@ -68,12 +69,12 @@
         discardPreview();
     }
 
-    // The 'enterprise' preset id is stored in existing profiles, so it stays.
+    // The training preset id is stored in existing profiles, so it stays.
     // Its display label comes from the messages, like a translated name; the
     // other presets' labels are plain data.
     function presetLabel(preset: { id: string; label: string }): string {
-        return preset.id === 'enterprise'
-            ? m.admin_instance_preset_enterprise_label()
+        return preset.id === TRAINING_USE_CASE
+            ? m.admin_instance_preset_training_label()
             : preset.label;
     }
 
@@ -94,7 +95,7 @@
     }
 
     type ProfileRequest = {
-        useCases: ('vod' | 'music' | 'enterprise' | 'showcase')[];
+        useCases: UseCaseId[];
         landingPath?: string;
         dryRun?: boolean;
         expectedRevision: string | null;
@@ -249,8 +250,8 @@
                 id: p.id,
                 label: presetLabel(p),
                 note:
-                    p.id === 'enterprise'
-                        ? m.admin_instance_profile_enterprise_note({ path: p.landingPath })
+                    p.id === TRAINING_USE_CASE
+                        ? m.admin_instance_profile_training_note({ path: p.landingPath })
                         : undefined,
             }))}
             {selected}

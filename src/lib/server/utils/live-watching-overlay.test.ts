@@ -100,7 +100,7 @@ describe('applyLiveOverlay', () => {
             id: 'ep-s3e2',
             title: 'Anomalie',
             mediaType: 'episode',
-            seriesId: 'series-internal-enterprise',
+            seriesId: 'series-internal-training',
             seriesName: 'Star Harbor: Voyager',
             seasonNumber: 3,
             episodeNumber: 2,
@@ -109,7 +109,7 @@ describe('applyLiveOverlay', () => {
         const liveSession = makeSession({
             mediaId: 'ep-s3e7',
             mediaType: 'episode',
-            seriesId: 'series-internal-enterprise',
+            seriesId: 'series-internal-training',
             username: 'denis',
             positionMs: 1_424_000,
             runtimeMs: 2_584_000,
@@ -126,13 +126,13 @@ describe('applyLiveOverlay', () => {
         expect(result.continueWatching).toHaveLength(1);
         const [row] = result.continueWatching;
         expect(row.id).toBe('ep-s3e7');
-        expect(row.seriesId).toBe('series-internal-enterprise');
+        expect(row.seriesId).toBe('series-internal-training');
         expect(row.seriesName).toBe('Star Harbor: Voyager');
         expect(row.lastEventSource).toBe('lumastra-player');
         expect(row.livePlaybackState).toBe('playing');
         expect(row.updatedAt).toBe(NOW_ISO);
         expect(result.suppressedSeriesIds.size).toBe(0);
-        expect(result.representedSeriesIds.has('series-internal-enterprise')).toBe(true);
+        expect(result.representedSeriesIds.has('series-internal-training')).toBe(true);
         expect(result.continueWatching[0].isAvailable).toBe(true);
 
         const section = buildMergedWatchingSection({
@@ -195,14 +195,14 @@ describe('applyLiveOverlay', () => {
             id: 'ep-s3e2',
             title: 'Anomalie',
             mediaType: 'episode',
-            seriesId: 'series-internal-enterprise',
+            seriesId: 'series-internal-training',
             seriesName: 'Star Harbor: Voyager',
             updatedAt: '2026-04-26T16:03:00.000Z',
         });
         const nearComplete = makeSession({
             mediaId: 'ep-s3e7',
             mediaType: 'episode',
-            seriesId: 'series-internal-enterprise',
+            seriesId: 'series-internal-training',
             username: 'denis',
             positionMs: 2_514_000,
             runtimeMs: 2_584_000,
@@ -217,7 +217,7 @@ describe('applyLiveOverlay', () => {
         });
 
         expect(result.continueWatching).toEqual([]);
-        expect(result.suppressedSeriesIds.has('series-internal-enterprise')).toBe(true);
+        expect(result.suppressedSeriesIds.has('series-internal-training')).toBe(true);
         expect(result.suppressedSessions).toHaveLength(1);
     });
 
@@ -390,7 +390,7 @@ describe('applyLiveOverlay', () => {
             id: 'ep-s3e2',
             title: 'Anomaly',
             mediaType: 'episode',
-            seriesId: 'series-enterprise',
+            seriesId: 'series-training',
             seriesName: 'Star Harbor: Voyager',
             seasonNumber: 3,
             episodeNumber: 2,
@@ -399,7 +399,7 @@ describe('applyLiveOverlay', () => {
         const liveS3E10 = makeSession({
             mediaId: 'ep-s3e10',
             mediaType: 'episode',
-            seriesId: 'series-enterprise',
+            seriesId: 'series-training',
             username: 'denis',
             positionMs: 60_000,
             runtimeMs: 2_600_000,
@@ -424,7 +424,7 @@ describe('applyLiveOverlay', () => {
         expect(row.seasonNumber).toBe(3);
         expect(row.episodeNumber).toBe(10);
         expect(row.seriesName).toBe('Star Harbor: Voyager');
-        expect(row.seriesId).toBe('series-enterprise');
+        expect(row.seriesId).toBe('series-training');
     });
 
     it('inserts a new CW row with correct title for a series with no prior durable row', () => {

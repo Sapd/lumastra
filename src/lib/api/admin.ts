@@ -18,6 +18,7 @@ import { UserTokenListResponseSchema } from '$lib/schemas/api-user-responses';
 
 import { StuckItemReasonSchema } from '$lib/schemas/ingest-map.js';
 import { z } from 'zod';
+import type { UseCaseId } from '$lib/config/use-case-ids.js';
 import { AdminUserEmailResponseSchema } from '$lib/schemas/admin-user.js';
 import { SharedEpisodeThumbReviewSchema } from '$lib/schemas/admin-image-extraction.js';
 import {
@@ -1814,7 +1815,7 @@ export function resetHomepageWidgets() {
 
 /** Apply (or preview) an instance use-case preset. */
 export function applyInstanceProfile(body: {
-    useCases: ('vod' | 'music' | 'enterprise' | 'showcase')[];
+    useCases: UseCaseId[];
     landingPath?: string;
     dryRun?: boolean;
 }) {

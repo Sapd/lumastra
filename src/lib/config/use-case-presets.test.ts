@@ -16,6 +16,7 @@ import {
     type PreviousProfile,
     type UseCaseId,
 } from './use-case-presets';
+import { TRAINING_USE_CASE } from './use-case-ids';
 import { configSchema } from './schema';
 import { SETUP_PREFERENCE_KEYS } from './setup-preferences';
 
@@ -24,7 +25,7 @@ const ALL_CAPS = { hasEmbeddings: true, hasSonicEmbedder: true };
 
 describe('applyUseCasePreset', () => {
     it('every preset patch covers every managed key', () => {
-        for (const sel of [['vod'], ['music'], ['enterprise'], ['showcase'], []] as const) {
+        for (const sel of [['vod'], ['music'], [TRAINING_USE_CASE], ['showcase'], []] as const) {
             const { patch } = applyUseCasePreset([...sel], NO_CAPS);
             for (const k of MANAGED_KEYS) expect(patch).toHaveProperty(k);
         }
@@ -45,9 +46,9 @@ describe('applyUseCasePreset', () => {
         expect(r.landingPath).toBe('/');
     });
 
-    it('enterprise-only strips external + social and lands on library', () => {
-        const r = applyUseCasePreset(['enterprise'], NO_CAPS);
-        expect(r.primaryMode).toBe('enterprise');
+    it('training-only strips external + social and lands on library', () => {
+        const r = applyUseCasePreset([TRAINING_USE_CASE], NO_CAPS);
+        expect(r.primaryMode).toBe(TRAINING_USE_CASE);
         expect(r.patch.FEATURE_AI_RECOMMENDATIONS).toBe(false);
         expect(r.patch.FEATURE_GRAVATAR).toBe(false);
         expect(r.patch.FEATURE_AUTO_LYRICS).toBe(false);
@@ -57,22 +58,22 @@ describe('applyUseCasePreset', () => {
         expect(r.landingPath).toBe('/library/home_video');
     });
 
-    it('enterprise turns the LMS on (assessment + training) so a fresh box has working /admin/{courses,trainings,reporting}', () => {
-        const r = applyUseCasePreset(['enterprise'], NO_CAPS);
+    it('training turns the LMS on (assessment + training) so a fresh box has working /admin/{courses,trainings,reporting}', () => {
+        const r = applyUseCasePreset([TRAINING_USE_CASE], NO_CAPS);
         expect(r.patch.FEATURE_ASSESSMENT).toBe(true);
         expect(r.patch.FEATURE_TRAINING_ASSIGNMENTS).toBe(true);
         // …but NOT the public showcase surface — that is its own preset.
         expect(r.patch.FEATURE_PUBLIC_SHOWCASE).toBe(false);
     });
 
-    it('LMS flags stay off for non-enterprise presets', () => {
+    it('LMS flags stay off for non-training presets', () => {
         const v = applyUseCasePreset(['vod'], NO_CAPS);
         expect(v.patch.FEATURE_ASSESSMENT).toBe(false);
         expect(v.patch.FEATURE_TRAINING_ASSIGNMENTS).toBe(false);
     });
 
     it('enable-wins: VOD+Training re-enables external', () => {
-        const r = applyUseCasePreset(['vod', 'enterprise'], NO_CAPS);
+        const r = applyUseCasePreset(['vod', TRAINING_USE_CASE], NO_CAPS);
         expect(r.patch.FEATURE_AI_RECOMMENDATIONS).toBe(true);
         expect(r.patch.PLUGIN_LUMASTRA_INTRO_ANALYZER_ENABLED).toBe(true);
     });
@@ -80,15 +81,15 @@ describe('applyUseCasePreset', () => {
     it('no ghost keys: a key set by an unselected preset returns to baseline', () => {
         // FEATURE_MUSIC_TRANSCODE is enabled by the music preset. With music NOT
         // selected, it must project to its schema baseline, never linger as true.
-        const r = applyUseCasePreset(['enterprise'], NO_CAPS);
-        expect(r.patch.FEATURE_MUSIC_TRANSCODE).toBe(false); // enterprise disables it
+        const r = applyUseCasePreset([TRAINING_USE_CASE], NO_CAPS);
+        expect(r.patch.FEATURE_MUSIC_TRANSCODE).toBe(false); // training disables it
         const v = applyUseCasePreset(['vod'], NO_CAPS);
         expect(v.patch).toHaveProperty('FEATURE_MUSIC_TRANSCODE'); // projected, not missing
     });
 
     it('enable-wins regardless of selection order', () => {
-        const a = applyUseCasePreset(['vod', 'enterprise'], NO_CAPS);
-        const b = applyUseCasePreset(['enterprise', 'vod'], NO_CAPS);
+        const a = applyUseCasePreset(['vod', TRAINING_USE_CASE], NO_CAPS);
+        const b = applyUseCasePreset([TRAINING_USE_CASE, 'vod'], NO_CAPS);
         expect(a.patch.FEATURE_AI_RECOMMENDATIONS).toBe(true);
         expect(b.patch.FEATURE_AI_RECOMMENDATIONS).toBe(true);
         expect(a.patch.PLUGIN_LUMASTRA_INTRO_ANALYZER_ENABLED).toBe(true);
@@ -155,11 +156,11 @@ describe('applyUseCasePreset', () => {
     // Every assertion below covers a key some SELECTED preset explicitly turns
     // ON (`false`), so enable-wins must keep the task running.
 
-    it('preprod repro: vod+music+enterprise keeps vod/music tasks enabled', () => {
-        // The exact selection running on preprod, where enterprise's
+    it('preprod repro: vod+music+training keeps vod/music tasks enabled', () => {
+        // The exact selection running on preprod, where the training preset's
         // `DISABLE_FRIBB_ANIME_SYNC: true` beat vod's explicit `false` and left
         // 9,174 coverage rows stuck `pending` for 51 days.
-        const r = applyUseCasePreset(['vod', 'music', 'enterprise'], ALL_CAPS);
+        const r = applyUseCasePreset(['vod', 'music', TRAINING_USE_CASE], ALL_CAPS);
         expect(r.patch.DISABLE_FRIBB_ANIME_SYNC).toBe(false); // vod wants it on
         expect(r.patch.DISABLE_MAL_ANIME_ENRICHMENT).toBe(false); // vod wants it on
         expect(r.patch.DISABLE_CURATED_LISTS_SYNC).toBe(false); // vod wants it on
@@ -168,8 +169,8 @@ describe('applyUseCasePreset', () => {
 
     it('enable-wins on DISABLE_* holds regardless of selection order', () => {
         for (const sel of [
-            ['vod', 'enterprise'],
-            ['enterprise', 'vod'],
+            ['vod', TRAINING_USE_CASE],
+            [TRAINING_USE_CASE, 'vod'],
             ['showcase', 'vod'],
             ['vod', 'showcase'],
         ] as const) {
@@ -182,8 +183,8 @@ describe('applyUseCasePreset', () => {
     it('a DISABLE_* switch no preset turns on stays off', () => {
         // Guards against over-correcting: enable-wins only fires when some
         // SELECTED preset actually asks for the capability. vod never mentions
-        // DISABLE_HOLIDAY_RECOMMENDATIONS, so enterprise's `true` stands.
-        const r = applyUseCasePreset(['vod', 'enterprise'], ALL_CAPS);
+        // DISABLE_HOLIDAY_RECOMMENDATIONS, so the training preset's `true` stands.
+        const r = applyUseCasePreset(['vod', TRAINING_USE_CASE], ALL_CAPS);
         expect(r.patch.DISABLE_HOLIDAY_RECOMMENDATIONS).toBe(true);
     });
 
@@ -254,7 +255,7 @@ describe('wizard preference overlap', () => {
         for (const sel of [
             ['vod'],
             ['music'],
-            ['enterprise'],
+            [TRAINING_USE_CASE],
             ['showcase'],
             ['vod', 'music'],
             [],

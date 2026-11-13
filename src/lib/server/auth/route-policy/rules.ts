@@ -10,7 +10,7 @@
  *
  * and review the snapshot diff: every line is a route id × method whose access
  * changed. Patterns use normalised route ids (`normalizeRouteId`): groups
- * dropped, param names erased. `(enterprise)` route ids are never matched here.
+ * dropped, param names erased. `(private)` route ids are never matched here.
  *
  * Step 1 (shadow mode) records TODAY's effective behaviour, which is not always
  * what a route's own declaration says — see the design spec §1.7.

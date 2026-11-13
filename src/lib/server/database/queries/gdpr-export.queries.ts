@@ -19,7 +19,7 @@
  * - CAP: large append-only tables are limited to 10k rows with a `truncated` marker.
  * - TEXT keys: user_stream_policies, user_feed_preferences store user_id as TEXT.
  *   playlist_view_state was migrated to UUID in 16.102.0 and now uses ::uuid.
- * - Optional enterprise tables (certificates, course_enrollments, quiz_attempts,
+ * - Optional private-module tables (certificates, course_enrollments, quiz_attempts,
  *   training_acknowledgements) and the plugin-owned shoutbox_messages table
  *   are guarded with a query-level `.catch()` fallback to an empty section;
  *   they degrade gracefully on installs without the assessment migrations, or
@@ -479,7 +479,7 @@ export async function collectUserExport(
         userLibraryPermRows,
         userLibraryPermCount,
 
-        // Optional enterprise tables — null when table does not exist
+        // Optional private-module tables — null when table does not exist
         userAccessGroupRows,
         userAccessGroupCount,
 
@@ -499,7 +499,7 @@ export async function collectUserExport(
         oauthDeviceCodeRows,
         oauthDeviceCodeCount,
 
-        // Optional enterprise tables — null when table does not exist
+        // Optional private-module tables — null when table does not exist
         certificateRows,
         certificateCount,
 
@@ -1015,7 +1015,7 @@ export async function collectUserExport(
             { count: string }[]
         >`SELECT COUNT(*)::text AS count FROM user_library_permissions WHERE user_id = ${userId}::uuid`,
 
-        // user_access_groups — access group memberships (optional enterprise table)
+        // user_access_groups — access group memberships (optional private-module table)
         sql<Record<string, unknown>[]>`
             SELECT user_id, group_id, assigned_at
             FROM user_access_groups WHERE user_id = ${userId}::uuid LIMIT ${PER_TABLE_LIMIT}
@@ -1026,7 +1026,7 @@ export async function collectUserExport(
             () => [{ count: '0' }] as { count: string }[],
         ),
 
-        // training_assignments — assignments targeting this user as the learner (optional enterprise table)
+        // training_assignments — assignments targeting this user as the learner (optional private-module table)
         // assigned_by (the admin actor) is excluded; only the subject's own assignment data is exported.
         sql<Record<string, unknown>[]>`
             SELECT id, title, item_kind, media_id, playlist_id, required, require_ack,
@@ -1100,7 +1100,7 @@ export async function collectUserExport(
             { count: string }[]
         >`SELECT COUNT(*)::text AS count FROM oauth_device_codes WHERE user_id = ${userId}::uuid`,
 
-        // certificates — optional enterprise table; empty section when table absent
+        // certificates — optional private-module table; empty section when table absent
         sql<Record<string, unknown>[]>`
             SELECT id, user_id, course_id, enrollment_id, serial, issued_at, revoked_at
             FROM certificates WHERE user_id = ${userId}::uuid
@@ -1112,7 +1112,7 @@ export async function collectUserExport(
             () => [{ count: '0' }] as { count: string }[],
         ),
 
-        // course_enrollments — optional enterprise table
+        // course_enrollments — optional private-module table
         sql<Record<string, unknown>[]>`
             SELECT * FROM course_enrollments WHERE user_id = ${userId}::uuid
             ORDER BY enrolled_at DESC LIMIT ${PER_TABLE_LIMIT}
@@ -1123,7 +1123,7 @@ export async function collectUserExport(
             () => [{ count: '0' }] as { count: string }[],
         ),
 
-        // quiz_attempts — optional enterprise table (answers jsonb is personal data — include it)
+        // quiz_attempts — optional private-module table (answers jsonb is personal data — include it)
         sql<Record<string, unknown>[]>`
             SELECT id, quiz_id, user_id, enrollment_id, started_at, submitted_at,
                    score, passed, attempt_number, answers
@@ -1136,7 +1136,7 @@ export async function collectUserExport(
             () => [{ count: '0' }] as { count: string }[],
         ),
 
-        // training_acknowledgements — optional enterprise table
+        // training_acknowledgements — optional private-module table
         sql<Record<string, unknown>[]>`
             SELECT * FROM training_acknowledgements WHERE user_id = ${userId}::uuid
             ORDER BY acknowledged_at DESC LIMIT ${PER_TABLE_LIMIT}
@@ -1193,7 +1193,7 @@ export async function collectUserExport(
         // shoutbox_messages — plugin-owned table (plugins/shoutbox), created by
         // the plugin's own ensureSchema (commit 213502df6), NOT a host migration.
         // It may therefore not exist on installs where the shoutbox plugin has
-        // never loaded. Guarded exactly like the optional enterprise tables
+        // never loaded. Guarded exactly like the optional private-module tables
         // above: any query error (including "relation does not exist") degrades
         // to an empty section instead of failing the whole export. No secret
         // columns exist on this table, so every non-linkage column is exported;

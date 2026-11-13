@@ -5,7 +5,7 @@
  * File-system view of `src/routes` for the access-gate tests: which route ids
  * exist, which route files define them, and a concrete URL path for each.
  * Reads the tree only — it never imports a route module, so it works the same
- * in the public tree and in a checkout that also has the `(enterprise)` routes.
+ * in the public tree and in a checkout that also has the `(private)` routes.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
@@ -17,7 +17,7 @@ export const ROUTES_DIR = join(process.cwd(), 'src/routes');
 const ROUTE_FILE = /^\+(page|layout|server)(@[^.]*)?(\.server)?\.(ts|js|svelte)$/;
 
 export interface RouteFile {
-    /** SvelteKit route id, groups and params verbatim: `/admin/(enterprise)/courses/[id]`. */
+    /** SvelteKit route id, groups and params verbatim: `/admin/(private)/courses/[id]`. */
     id: string;
     /** Absolute path on disk. */
     file: string;
@@ -66,7 +66,7 @@ export function samplePathFor(id: string): string {
     return `/${segments.join('/')}`;
 }
 
-/** `/admin/(enterprise)/courses` → `/admin/courses`. */
+/** `/admin/(private)/courses` → `/admin/courses`. */
 export function withoutGroups(id: string): string {
     return id.replace(/\/\([^/)]+\)/g, '') || '/';
 }

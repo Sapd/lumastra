@@ -7,7 +7,7 @@
  * Drives the /setup wizard on a fresh (no-admin) Lumastra instance.
  *
  * FILE NAMING — the "00-" numeric prefix ensures Playwright sorts and runs
- * this spec BEFORE all alphabetically-named specs (enterprise-*, music-*,
+ * this spec BEFORE all alphabetically-named specs (music-*,
  * settings-*, …). On a fresh instance /setup blocks every other route; if the
  * other specs were to run first they would all 302 to /setup and fail. Running
  * this spec first completes onboarding so the rest of the suite can proceed
@@ -24,10 +24,10 @@
  * and no OIDC provider, so it works on a bare Windows demo box as well as on
  * any CI environment that starts the dev server fresh.
  *
- * PRESET ASSERTION — the "enterprise" use-case is selected on step 3 (the VOD
- * default is deselected and enterprise toggled on). After finishSetup() the app
+ * PRESET ASSERTION — the training use-case is selected on step 3 (the VOD
+ * default is deselected and training toggled on). After finishSetup() the app
  * navigates to /admin/library. We then verify via the root layout __data.json
- * that primaryMode === 'enterprise', confirming the instance-profile POST was
+ * that primaryMode === TRAINING_USE_CASE, confirming the instance-profile POST was
  * applied and persisted.
  *
  * Pre-conditions:
@@ -37,6 +37,7 @@
 
 import { adminTest as test, expect } from './fixtures/auth';
 import type { Page } from '@playwright/test';
+import { TRAINING_USE_CASE } from '../src/lib/config/use-case-ids';
 
 // Unique enough to avoid collisions with any real account.
 const SETUP_USERNAME = 'e2e_setup_admin';
@@ -160,7 +161,7 @@ test.describe('onboarding: first-run setup wizard', () => {
 
     // ─── Full happy-path flow ─────────────────────────────────────────────────
     // Last on purpose: it creates the admin, after which every test above skips.
-    test('full wizard: creates admin, selects enterprise preset, completes setup', async ({
+    test('full wizard: creates admin, selects the training preset, completes setup', async ({
         page,
         request,
     }) => {
@@ -195,9 +196,9 @@ test.describe('onboarding: first-run setup wizard', () => {
         await vodCard.click(); // deselects vod
         await expect(vodCard).toHaveAttribute('aria-pressed', 'false');
 
-        const enterpriseCard = page.getByRole('button', { name: /home videos.*training/i });
-        await enterpriseCard.click(); // selects enterprise
-        await expect(enterpriseCard).toHaveAttribute('aria-pressed', 'true', { timeout: 3000 });
+        const trainingCard = page.getByRole('button', { name: /home videos.*training/i });
+        await trainingCard.click(); // selects the training preset
+        await expect(trainingCard).toHaveAttribute('aria-pressed', 'true', { timeout: 3000 });
 
         // ── Finish: "Skip for now" ─────────────────────────────────────────
         // It saves step 3 (preferences + the use-case profile) like "Save &
@@ -217,8 +218,8 @@ test.describe('onboarding: first-run setup wizard', () => {
         await page.goto('/setup', { waitUntil: 'domcontentloaded' });
         expect(page.url()).not.toContain('/setup');
 
-        // ── Assertion 2: enterprise preset was persisted ───────────────────
-        // A dry run of the enterprise profile lists what applying it would still
+        // ── Assertion 2: training preset was persisted ───────────────────
+        // A dry run of the training profile lists what applying it would still
         // change. The wizard applied it, so nothing is left to change, except
         // keys an environment variable locks (saving those is a no-op). The
         // dry run echoes primaryMode from the request, so that alone proves
@@ -227,7 +228,7 @@ test.describe('onboarding: first-run setup wizard', () => {
         // The adminTest fixture (tests/fixtures/auth.ts) supplies X-Forwarded-User +
         // admin group headers, so the admin gate lets this through.
         const profileRes = await request.post('/api/admin/instance-profile', {
-            data: { useCases: ['enterprise'], dryRun: true },
+            data: { useCases: [TRAINING_USE_CASE], dryRun: true },
             headers: { 'content-type': 'application/json' },
         });
         expect(profileRes.status()).toBe(200);
@@ -237,7 +238,7 @@ test.describe('onboarding: first-run setup wizard', () => {
             diff?: { key: string; envLocked?: true }[];
         };
         expect(profile.preview).toBe(true);
-        expect(profile.primaryMode).toBe('enterprise');
+        expect(profile.primaryMode).toBe(TRAINING_USE_CASE);
         expect((profile.diff ?? []).filter((d) => !d.envLocked)).toEqual([]);
     });
 });

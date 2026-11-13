@@ -76,9 +76,9 @@ export const reviewedExternalArtwork = [
     ['api/image/catalog/[id]/[type]', 'legacy catalog: external handles authenticate and gate'],
     // The public export removes this route group. Check the group rather than
     // the individual route so a missing route inside a private tree still fails.
-    ...(existsSync(join(root, 'src/routes/(enterprise)'))
+    ...(existsSync(join(root, 'src/routes/(private)'))
         ? ([
-              ['(enterprise)/showcase/image/[id]/[type]', 'public showcase group only; UUIDs only'],
+              ['(private)/showcase/image/[id]/[type]', 'public showcase group only; UUIDs only'],
           ] as const)
         : []),
     [

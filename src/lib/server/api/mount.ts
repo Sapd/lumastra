@@ -601,7 +601,7 @@ type ResponseInspection = {
  *
  * MIRRORS `filePathToOpenApiPath()` in scripts/openapi/generate-public.ts (and
  * its twin in check-response-contract.ts) SEGMENT FOR SEGMENT, deliberately
- * including its rough edges: route groups (`(enterprise)`) are NOT stripped and
+ * including its rough edges: route groups (`(private)`) are NOT stripped and
  * `[[optional]]` / `[x=matcher]` segments are not special-cased. That is the
  * point — `docsByPath` predicates are written against the string the GENERATOR
  * produces, so the runtime must produce the SAME string or a def would be

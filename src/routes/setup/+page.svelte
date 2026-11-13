@@ -45,6 +45,7 @@
     } from 'svelte-hero-icons';
     import Toggle from '$lib/components/ui/Toggle.svelte';
     import { presetPreferenceDefaults, type UseCaseId } from '$lib/config/use-case-presets.js';
+    import { TRAINING_USE_CASE } from '$lib/config/use-case-ids.js';
     import type {
         SetupPreferenceField,
         SetupPreferencesHydration,
@@ -731,11 +732,11 @@
     // sections render (a music-only instance shouldn't see trickplay/Jellyfin;
     // a movies-only instance shouldn't see lyrics/Discogs/Subsonic). An EMPTY
     // selection fails open: everything shows, nothing is silently hidden.
-    // 'enterprise' covers home videos/training — video-family content.
+    // The training use case covers home videos — video-family content.
     const wantsVideo = $derived(
         useCaseSelection.length === 0 ||
             useCaseSelection.includes('vod') ||
-            useCaseSelection.includes('enterprise'),
+            useCaseSelection.includes(TRAINING_USE_CASE),
     );
     const wantsMusic = $derived(
         useCaseSelection.length === 0 || useCaseSelection.includes('music'),
@@ -2914,7 +2915,7 @@
                             options={[
                                 { id: 'vod', label: m.setup_usecase_vod() },
                                 { id: 'music', label: m.setup_usecase_music() },
-                                { id: 'enterprise', label: m.setup_usecase_enterprise() },
+                                { id: TRAINING_USE_CASE, label: m.setup_usecase_training() },
                             ]}
                             selected={useCaseSelection}
                             ontoggle={toggleUseCase} />

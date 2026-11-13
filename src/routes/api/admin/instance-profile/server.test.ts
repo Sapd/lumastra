@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { TRAINING_USE_CASE } from '$lib/config/use-case-ids';
 
 const { saveConfig, upsert, invalidate, getConfigValue, isEnvOverridden, getActiveNonEntLibs } =
     vi.hoisted(() => ({
@@ -172,13 +173,13 @@ describe('POST /api/admin/instance-profile', () => {
 
     it('rejects an unsafe landing path override', async () => {
         expect(POST).toBeDefined();
-        const res = await POST!(req({ useCases: ['enterprise'], landingPath: '//evil.com' }));
+        const res = await POST!(req({ useCases: [TRAINING_USE_CASE], landingPath: '//evil.com' }));
         expect(res.status).toBe(422);
     });
 
-    it('activates non-entertainment library types for enterprise', async () => {
+    it('activates non-entertainment library types for training', async () => {
         expect(POST).toBeDefined();
-        await POST!(req({ useCases: ['enterprise'] }));
+        await POST!(req({ useCases: [TRAINING_USE_CASE] }));
         const types = upsert.mock.calls.map((c) => c[1]!.mediaType);
         expect(types).toEqual(
             expect.arrayContaining(['home_video', 'training', 'educational', 'personal']),
@@ -187,7 +188,7 @@ describe('POST /api/admin/instance-profile', () => {
 
     it('dryRun returns diff without calling saveConfig or upsert', async () => {
         expect(POST).toBeDefined();
-        const res = await POST!(req({ useCases: ['enterprise'], dryRun: true }));
+        const res = await POST!(req({ useCases: [TRAINING_USE_CASE], dryRun: true }));
         expect(res.status).toBe(200);
         const body = (await res.json()) as { preview?: boolean; diff?: unknown[] };
         expect(body.preview).toBe(true);
@@ -198,36 +199,36 @@ describe('POST /api/admin/instance-profile', () => {
         expect(invalidate).not.toHaveBeenCalled();
     });
 
-    it('enterprise preset uses first visible non-ent library as landing path', async () => {
+    it('training preset uses first visible non-ent library as landing path', async () => {
         getActiveNonEntLibs.mockResolvedValueOnce([
             { media_type: 'training', sidebar_visible: true },
             { media_type: 'educational', sidebar_visible: true },
         ]);
         expect(POST).toBeDefined();
-        const res = await POST!(req({ useCases: ['enterprise'] }));
+        const res = await POST!(req({ useCases: [TRAINING_USE_CASE] }));
         expect(res.status).toBe(200);
         expect(saveConfig.mock.calls).toHaveLength(1);
         const saved = saveConfig.mock.calls[0]![0];
         expect(saved.INSTANCE_LANDING_PATH).toBe('/library/training');
     });
 
-    it('enterprise preset falls back to /library/home_video when no non-ent libraries exist', async () => {
+    it('training preset falls back to /library/home_video when no non-ent libraries exist', async () => {
         // default mock returns [] — no override needed
         expect(POST).toBeDefined();
-        const res = await POST!(req({ useCases: ['enterprise'] }));
+        const res = await POST!(req({ useCases: [TRAINING_USE_CASE] }));
         expect(res.status).toBe(200);
         expect(saveConfig.mock.calls).toHaveLength(1);
         const saved = saveConfig.mock.calls[0]![0];
         expect(saved.INSTANCE_LANDING_PATH).toBe('/library/home_video');
     });
 
-    it('enterprise preset respects explicit caller landingPath over DB lookup', async () => {
+    it('training preset respects explicit caller landingPath over DB lookup', async () => {
         getActiveNonEntLibs.mockResolvedValueOnce([
             { media_type: 'training', sidebar_visible: true },
         ]);
         expect(POST).toBeDefined();
         const res = await POST!(
-            req({ useCases: ['enterprise'], landingPath: '/library/personal' }),
+            req({ useCases: [TRAINING_USE_CASE], landingPath: '/library/personal' }),
         );
         expect(res.status).toBe(200);
         expect(saveConfig.mock.calls).toHaveLength(1);
@@ -235,20 +236,20 @@ describe('POST /api/admin/instance-profile', () => {
         expect(saved.INSTANCE_LANDING_PATH).toBe('/library/personal');
     });
 
-    it('enterprise preset skips non-sidebar-visible libraries when picking landing path', async () => {
+    it('training preset skips non-sidebar-visible libraries when picking landing path', async () => {
         getActiveNonEntLibs.mockResolvedValueOnce([
             { media_type: 'training', sidebar_visible: false },
             { media_type: 'educational', sidebar_visible: true },
         ]);
         expect(POST).toBeDefined();
-        const res = await POST!(req({ useCases: ['enterprise'] }));
+        const res = await POST!(req({ useCases: [TRAINING_USE_CASE] }));
         expect(res.status).toBe(200);
         expect(saveConfig.mock.calls).toHaveLength(1);
         const saved = saveConfig.mock.calls[0]![0];
         expect(saved.INSTANCE_LANDING_PATH).toBe('/library/educational');
     });
 
-    it('enterprise preset respects sort_order when picking landing path (training=1 wins over educational=0 alphabetically)', async () => {
+    it('training preset respects sort_order when picking landing path (training=1 wins over educational=0 alphabetically)', async () => {
         // 'educational' comes before 'training' alphabetically but training has lower sort_order=1
         // The endpoint should sort by sort_order and pick the lowest (training=1).
         getActiveNonEntLibs.mockResolvedValueOnce([
@@ -256,7 +257,7 @@ describe('POST /api/admin/instance-profile', () => {
             { media_type: 'training', sidebar_visible: true, sort_order: 1 },
         ]);
         expect(POST).toBeDefined();
-        const res = await POST!(req({ useCases: ['enterprise'] }));
+        const res = await POST!(req({ useCases: [TRAINING_USE_CASE] }));
         expect(res.status).toBe(200);
         expect(saveConfig.mock.calls).toHaveLength(1);
         const saved = saveConfig.mock.calls[0]![0];
@@ -362,8 +363,8 @@ describe('POST /api/admin/instance-profile', () => {
     });
 
     it('library types: existing rows are left alone; only newly asked-for types are revealed', async () => {
-        withConfig({ INSTANCE_USE_CASES: ['enterprise'] });
-        await POST!(req({ useCases: ['enterprise', 'showcase'] }));
+        withConfig({ INSTANCE_USE_CASES: [TRAINING_USE_CASE] });
+        await POST!(req({ useCases: [TRAINING_USE_CASE, 'showcase'] }));
         const calls = upsert.mock.calls.map((c) => c[1]);
         expect(calls.find((c) => c.mediaType === 'training')).toMatchObject({ reveal: false });
         expect(calls.find((c) => c.mediaType === 'product')).toMatchObject({ reveal: true });
@@ -371,7 +372,7 @@ describe('POST /api/admin/instance-profile', () => {
 
     it('a refused config save activates no library types', async () => {
         saveConfig.mockRejectedValueOnce(new Error('Invalid value'));
-        const res = await POST!(req({ useCases: ['enterprise'] }));
+        const res = await POST!(req({ useCases: [TRAINING_USE_CASE] }));
         expect(res.status).toBeGreaterThanOrEqual(500);
         expect(upsert).not.toHaveBeenCalled();
     });
@@ -381,7 +382,7 @@ describe('POST /api/admin/instance-profile', () => {
             if (setting.mediaType === 'training') throw new Error('db');
             return true;
         });
-        const res = await POST!(req({ useCases: ['enterprise'] }));
+        const res = await POST!(req({ useCases: [TRAINING_USE_CASE] }));
         expect(res.status).toBe(200);
         const body = (await res.json()) as { libraryTypesNotActivated: string[] };
         expect(body.libraryTypesNotActivated).toEqual(['training']);

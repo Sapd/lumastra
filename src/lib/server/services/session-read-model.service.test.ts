@@ -517,7 +517,7 @@ describe('SessionReadModel', () => {
                 media_title: 'Mirror Image',
                 season_number: 3,
                 episode_number: 10,
-                series_id: 'series-enterprise',
+                series_id: 'series-training',
                 series_title: 'Star Harbor: Voyager',
             });
 

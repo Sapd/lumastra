@@ -4,5 +4,5 @@
 import { createPolicyTable } from './policy.js';
 import { ROUTE_POLICY_RULES } from './rules.js';
 
-/** The compiled AGPL route policy table. `(enterprise)` route ids never match it. */
+/** The compiled AGPL route policy table. `(private)` route ids never match it. */
 export const routePolicyTable = createPolicyTable(ROUTE_POLICY_RULES);

@@ -74,7 +74,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     }
 
     // Entertainment-specific capabilities are only meaningful when their feature is
-    // configured. An enterprise/training instance (requests + live TV off) never sees
+    // configured. A training-only instance (requests + live TV off) never sees
     // request/acquisition/live-tv capabilities in the access-group editor.
     //
     // The three config sections that describe WHO may reach this server now render

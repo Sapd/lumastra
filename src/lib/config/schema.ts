@@ -23,6 +23,7 @@ import { CLIENT_VERSION_PATTERN } from '$lib/shared/client-version.js';
 import { isCorsOrigin } from '$lib/shared/cors-origins.js';
 import { normalizePublicBaseUrl } from '$lib/shared/public-base-url.js';
 import { normalizeLanguageTag } from '$lib/shared/metadata-language.js';
+import { TRAINING_USE_CASE } from './use-case-ids';
 
 // Homepage widget definitions and feature-flag helpers now live in their own
 // dependency-light module (2026-09-25) so pages that only need those don't
@@ -744,7 +745,7 @@ Configure these settings in your \`config/settings.json\` file:
         collapsedByDefault: true,
     },
     {
-        id: 'enterprise',
+        id: 'modules',
         label: 'Training & Showcase',
         description: 'Training, assessment, and public showcase feature flags',
         icon: 'AcademicCap',
@@ -6990,7 +6991,7 @@ export const configSchema: SettingDefinition[] = [
                 { value: 'vod', label: 'VOD (film/TV-first)' },
                 { value: 'music', label: 'Music-first' },
                 { value: 'mixed', label: 'Mixed (balanced)' },
-                { value: 'enterprise', label: 'Home & Training' },
+                { value: TRAINING_USE_CASE, label: 'Home & Training' },
                 { value: 'showcase', label: 'Product Showcase (public + internal)' },
             ],
         },
@@ -7011,9 +7012,9 @@ export const configSchema: SettingDefinition[] = [
         type: 'array',
         label: 'Instance Use Cases',
         description:
-            "Selected onboarding use-cases (vod | music | enterprise | showcase) that produced this instance's defaults. Managed by the Instance Profile screen.",
+            "Selected onboarding use-cases that produced this instance's defaults. Managed by the Instance Profile screen.",
         defaultValue: [],
-        section: 'enterprise',
+        section: 'modules',
         uiHints: { hidden: true },
     },
     {
@@ -7023,7 +7024,7 @@ export const configSchema: SettingDefinition[] = [
         description:
             'What the last instance-profile apply projected (JSON: use cases, the value it set for each managed key, time). Re-applying compares against it, so settings changed elsewhere since are kept. Managed by the Instance Profile screen; never edit by hand.',
         defaultValue: '',
-        section: 'enterprise',
+        section: 'modules',
         uiHints: { hidden: true },
     },
     // ─────────────────── Native Quiz & Assessment ────────────────
@@ -7032,9 +7033,9 @@ export const configSchema: SettingDefinition[] = [
         type: 'boolean',
         label: 'Native Quiz & Certificate (Assessment)',
         description:
-            'Master switch for the native quiz + certificate-of-completion layer (Phase A). When ON, /learn, /admin/courses, and /certificates become available. Default OFF for non-enterprise installs.',
+            'Master switch for the native quiz + certificate-of-completion layer (Phase A). When ON, /learn, /admin/courses, and /certificates become available. Default OFF unless the private modules are installed.',
         defaultValue: false,
-        section: 'enterprise',
+        section: 'modules',
         requiresRestart: false,
     },
     // ─────────────────── Training Assignments ─────────────────────
@@ -7043,9 +7044,9 @@ export const configSchema: SettingDefinition[] = [
         type: 'boolean',
         label: 'Training Assignments',
         description:
-            'Master switch for the enterprise training assignment and completion-tracking layer. When ON, /my/trainings and /admin/trainings become available and the Sidebar nav entries appear. Default OFF for non-enterprise installs; reads live, no restart needed.',
+            'Master switch for the training assignment and completion-tracking layer. When ON, /my/trainings and /admin/trainings become available and the Sidebar nav entries appear. Default OFF unless the private modules are installed; reads live, no restart needed.',
         defaultValue: false,
-        section: 'enterprise',
+        section: 'modules',
         requiresRestart: false,
     },
     // ─────────────────── Product Showcase public surface ───────────────────────
@@ -7056,7 +7057,7 @@ export const configSchema: SettingDefinition[] = [
         description:
             'Master switch for the /showcase public (unauthenticated) route. When OFF the public route 404s even if SHOWCASE_PUBLIC_LIBRARY_GROUP_ID is set. Default OFF (deny-by-default); reads live, so toggling is instant.',
         defaultValue: false,
-        section: 'enterprise',
+        section: 'modules',
         requiresRestart: false,
     },
     {
@@ -7066,7 +7067,7 @@ export const configSchema: SettingDefinition[] = [
         description:
             'UUID of the single library_groups row whose items are publicly visible on /showcase. Empty = nothing is public even when FEATURE_PUBLIC_SHOWCASE is on (deny-by-default). Set this to the group you want publicly accessible.',
         defaultValue: '',
-        section: 'enterprise',
+        section: 'modules',
         validation: { maxLength: 36 },
     },
     {
@@ -7076,7 +7077,7 @@ export const configSchema: SettingDefinition[] = [
         description:
             "When ON, the /showcase route sets a permissive frame-ancestors CSP so it can be iframed. When OFF, frame-ancestors 'none' (default). Requires SHOWCASE_EMBED_ALLOWED_ORIGINS to be set; an empty allow-list with this flag ON is rejected (prevents frame-ancestors * wildcard).",
         defaultValue: false,
-        section: 'enterprise',
+        section: 'modules',
         requiresRestart: false,
     },
     {
@@ -7086,7 +7087,7 @@ export const configSchema: SettingDefinition[] = [
         description:
             "Allow-list of origins for the frame-ancestors CSP when SHOWCASE_ALLOW_EMBED is ON (e.g. ['https://acme.com']). Must not be empty when SHOWCASE_ALLOW_EMBED=true: an empty allow-list disables embedding to prevent a frame-ancestors * wildcard.",
         defaultValue: [],
-        section: 'enterprise',
+        section: 'modules',
     },
     {
         key: 'SHOWCASE_KIOSK_MODE',
@@ -7095,7 +7096,7 @@ export const configSchema: SettingDefinition[] = [
         description:
             'Display-only flag: hides nav chrome, enables auto-advance / looping playback for showroom screens. No auth effect.',
         defaultValue: false,
-        section: 'enterprise',
+        section: 'modules',
         requiresRestart: false,
     },
     {
@@ -7105,7 +7106,7 @@ export const configSchema: SettingDefinition[] = [
         description:
             "When ON, the /showcase public route additionally requires a valid signed-URL token (?expires&purpose=showcase&sig): 'link-shared' mode instead of fully open. Generate share links via POST /api/admin/showcase/share-link. Default ON (safer default; explicit opt-out for fully-open).",
         defaultValue: true,
-        section: 'enterprise',
+        section: 'modules',
         requiresRestart: false,
     },
     {
@@ -7115,7 +7116,7 @@ export const configSchema: SettingDefinition[] = [
         description:
             'Deployment-wide hard ceiling on concurrent showcase-initiated ffmpeg transcodes (across every web replica — enforced by one shared Valkey admission, not a per-pod counter). Fails CLOSED: if Valkey is unreachable, showcase transcodes are refused rather than uncapped. Must be set to the SAME value on every replica — this is one deployment-wide figure, not a per-pod allowance. Default 4, conservative to avoid starving authenticated users of transcode capacity.',
         defaultValue: 4,
-        section: 'enterprise',
+        section: 'modules',
         validation: { min: 1, max: 100 },
         requiresRestart: false,
     },

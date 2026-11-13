@@ -12,13 +12,14 @@
 import { cleanup, fireEvent, render } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import UseCaseTiles from './UseCaseTiles.svelte';
+import { TRAINING_USE_CASE } from '$lib/config/use-case-ids';
 
 afterEach(cleanup);
 
 const options = [
     { id: 'vod', label: 'Movies & TV' },
     { id: 'music', label: 'Music' },
-    { id: 'enterprise', label: 'Training', note: 'Lands on /learn' },
+    { id: TRAINING_USE_CASE, label: 'Training', note: 'Lands on /learn' },
 ];
 
 describe('UseCaseTiles', () => {

@@ -64,7 +64,7 @@ import type { AdminSectionId } from '$lib/schemas/api-admin-status-payload.js';
 
 export type { AdminSectionId };
 
-/** Which enterprise module a page belongs to (all default OFF / unlicensed). */
+/** Which private module a page belongs to (all default OFF / unlicensed). */
 export type PrivateModule = 'trainingAssignments' | 'assessment' | 'showcase';
 
 /** How the admin nav renders — user preference, live-switchable (spec §4). */
@@ -84,7 +84,7 @@ export interface AdminNavPage {
     statusKey?: AdminSectionId;
     /** Developer-only page — hidden unless developer tools are enabled. */
     devOnly?: boolean;
-    /** Visible only when the given enterprise module is licensed/enabled. */
+    /** Visible only when the given private module is licensed/enabled. */
     privateModule?: PrivateModule;
     /**
      * Visible only when this key in layout `data.features` is truthy.
@@ -614,7 +614,7 @@ function pageVisible(page: AdminNavPage, ctx: NavGateContext): boolean {
 
 /**
  * The manifest filtered for the current context: drops dev sections/pages when
- * dev tools are off, enterprise pages when their module is off, feature-flagged
+ * dev tools are off, private-module pages when their module is off, feature-flagged
  * pages when their flag is off. Sections with no visible pages are dropped.
  * Pure — unit-tested.
  */

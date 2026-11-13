@@ -75,7 +75,7 @@ describe('visibleNav gating', () => {
         expect(ids).toContain('developer');
     });
 
-    it('hides enterprise pages unless their module is enabled', () => {
+    it('hides private-module pages unless their module is enabled', () => {
         const users = visibleNav(baseCtx).find((s) => s.id === 'users');
         const paths = users?.pages.map((p) => p.path) ?? [];
         expect(paths).not.toContain('/admin/trainings');
@@ -161,7 +161,7 @@ describe('findNavPage', () => {
 /**
  * Every manifest path must resolve to a real route directory (admin-ia
  * redesign, step `sections-routing`: "this step breaks links if sloppy").
- * SvelteKit route GROUPS (`(enterprise)`) are transparent in the URL, so the
+ * SvelteKit route GROUPS (`(private)`) are transparent in the URL, so the
  * walker skips those segments rather than requiring a literal directory match.
  */
 function collectPagePaths(dir: string, urlPrefix: string): string[] {
@@ -189,17 +189,17 @@ describe('route existence', () => {
     it('every ADMIN_NAV path has a matching route directory under src/routes', () => {
         const adminRoutesRoot = join(dirname(fileURLToPath(import.meta.url)), '../../routes/admin');
         const validPaths = new Set(collectPagePaths(adminRoutesRoot, '/admin'));
-        // Some pages live under routes/admin/(enterprise), which the public tree does
+        // Some pages live under routes/admin/(private), which the public tree does
         // not ship. Their nav entries stay hidden there (the module is never enabled), so
         // only require their routes when that route group is present.
-        const hasPrivateTree = existsSync(join(adminRoutesRoot, '(enterprise)'));
-        const enterprisePaths = new Set(
+        const hasPrivateTree = existsSync(join(adminRoutesRoot, '(private)'));
+        const privatePaths = new Set(
             ADMIN_NAV.flatMap((s) => s.pages)
                 .filter((p) => 'privateModule' in p && p.privateModule)
                 .map((p) => p.path),
         );
         for (const path of allNavPaths()) {
-            if (!hasPrivateTree && enterprisePaths.has(path)) continue;
+            if (!hasPrivateTree && privatePaths.has(path)) continue;
             expect(validPaths.has(path), `no route directory backs manifest path ${path}`).toBe(
                 true,
             );

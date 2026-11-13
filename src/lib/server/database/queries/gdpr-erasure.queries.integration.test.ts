@@ -56,7 +56,7 @@ describe('GDPR Erasure Queries', () => {
     beforeEach(async () => {
         // CASCADE off users cleans the FK children; media cleared because
         // user_ratings FK → media_items. Audit tables cleared explicitly.
-        // The enterprise-training parents (courses/quizzes/training_assignments)
+        // The private-module training parents (courses/quizzes/training_assignments)
         // do NOT cascade from users (courses.created_by is RESTRICT), so list them
         // explicitly; TRUNCATE … CASCADE then clears their FK children
         // (course_enrollments/quiz_attempts/certificates/training_acknowledgements).
@@ -78,8 +78,8 @@ describe('GDPR Erasure Queries', () => {
         ]);
     });
 
-    /** Whether the enterprise-training migrations have been applied to this DB. */
-    async function enterpriseTablesPresent(): Promise<boolean> {
+    /** Whether the private-module training migrations have been applied to this DB. */
+    async function privateTablesPresent(): Promise<boolean> {
         const reg = await sql<{ exists: string | null }[]>`
             SELECT to_regclass('public.courses') AS exists
         `;
@@ -218,15 +218,15 @@ describe('GDPR Erasure Queries', () => {
                     ${sql.json({ type: 'user', id: otherUsername, via: 'ui' })}, '1')
         `;
 
-        // ── Heavy-wave enterprise cascade tables ─────────────────────────────
+        // ── Heavy-wave private-module cascade tables ─────────────────────────────
         // These have a direct FK → users(id) ON DELETE CASCADE, so the final
         // `DELETE FROM users` is what removes the subject's rows. Seed them here so
         // the test ACTUALLY proves cascade-removal (not just registry presence) and
         // would fail if a future migration weakened one of those FKs to NO ACTION.
         // The subject is the LEARNER; the SECOND user owns the course (created_by is
         // a RESTRICT FK, so it must be a surviving user, not the subject).
-        const enterprise = await enterpriseTablesPresent();
-        if (enterprise) {
+        const privateModuleTables = await privateTablesPresent();
+        if (privateModuleTables) {
             const course = await sql<{ id: string }[]>`
                 INSERT INTO courses (title, slug, status, created_by)
                 VALUES ('Compliance 101', ${'c-' + userId.slice(0, 8)}, 'published', ${otherId}::uuid)
@@ -362,7 +362,7 @@ describe('GDPR Erasure Queries', () => {
 
         // ── Heavy-wave cascade tables: ZERO rows for the subject afterwards ───
         // Proves the ON DELETE CASCADE FKs actually fired (not just registry entry).
-        if (enterprise) {
+        if (privateModuleTables) {
             expect(
                 await count(
                     sql`SELECT COUNT(*)::int n FROM course_enrollments WHERE user_id = ${userId}::uuid`,
@@ -428,7 +428,7 @@ describe('GDPR Erasure Queries', () => {
         expect(
             await count(sql`SELECT COUNT(*)::int n FROM users WHERE id = ${otherId}::uuid`),
         ).toBe(1);
-        if (enterprise) {
+        if (privateModuleTables) {
             // The owner's course, quiz, course_enrollment all survive.
             expect(
                 await count(
@@ -698,7 +698,7 @@ describe('GDPR Erasure Queries', () => {
     // Pre-flight abort: subject is the assigner of admin training content
     // -------------------------------------------------------------------------
     it('aborts (rolls back) when the subject is the assigner of a training assignment', async () => {
-        // Skip gracefully on installs without the enterprise-training migration.
+        // Skip gracefully on installs without the private-module training migration.
         const reg = await sql<{ exists: string | null }[]>`
             SELECT to_regclass('public.training_assignments') AS exists
         `;

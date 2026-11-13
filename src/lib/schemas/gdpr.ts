@@ -244,7 +244,7 @@ export const UserDataExportSchema = z
             'oauth_device_codes metadata (client_id, scope, status, created_at, expires_at). Excludes device_code and user_code.',
         ),
 
-        // ── Access group memberships (optional — empty section on non-enterprise installs)
+        // ── Access group memberships (optional — empty section on installs without the private modules)
         user_access_groups: TruncatedSectionSchema.describe(
             'user_access_groups rows — access group memberships (group_id, assigned_at).',
         ),

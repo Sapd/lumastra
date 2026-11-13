@@ -69,7 +69,7 @@ function adminRoutes(): RouteFile[] {
  * `import.meta.glob`). They get no search-meta.ts; their nav pages are indexed
  * from ADMIN_NAV instead.
  */
-const PROTECTED_TIER_DIR = '(enterprise)';
+const PROTECTED_TIER_DIR = '(private)';
 const isProtectedTier = (file: string): boolean => file.split(/[\\/]/).includes(PROTECTED_TIER_DIR);
 
 const metaByRoute = new Map(ADMIN_ROUTE_METAS.map((r) => [r.path, r.meta]));
@@ -120,7 +120,7 @@ describe('every admin route has search metadata', () => {
         );
         for (const section of ADMIN_NAV) {
             for (const page of section.pages) {
-                // Core keeps gated enterprise nav definitions, but the public tree
+                // Core keeps gated private-module nav definitions, but the public tree
                 // has neither their pages nor search metadata. In a private tree,
                 // still require each page so a missing route cannot hide a gap.
                 if (page.privateModule && !hasPrivateTree) {

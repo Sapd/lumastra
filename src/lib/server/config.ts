@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { PRIMARY_MODES, type PrimaryMode } from '$lib/config/use-case-ids.js';
 import { normalizePublicBaseUrl } from '$lib/shared/public-base-url.js';
 import { parseWorkerMode, resolveTaskProcessRole, type WorkerMode } from './task-role.js';
 
@@ -21,7 +22,7 @@ export const devFeaturesEnabled: boolean = dev || parseBoolEnv(process.env.ALLOW
 
 // Training/showcase surfaces are only exposed in builds that include the private modules.
 // This is deliberately build-time, not an admin/env setting, so standard builds
-// do not advertise enterprise-only configuration that is not meant for them.
+// do not advertise private-module-only configuration that is not meant for them.
 export const privateModulesBuildEnabled: boolean = false;
 
 // ============================================================================
@@ -1192,14 +1193,14 @@ export const config = {
     //                  the '/' redirect; kept separate so the mode is declarative even
     //                  when the redirect is not yet desired)
     //   'mixed'      — balanced layout; neither VOD nor music is primary
-    //   'enterprise' — enterprise/home-&-training mode: libraries-first, no external metadata
+    //   home/training — home-videos and training mode (see TRAINING_USE_CASE): libraries-first, no external metadata
     //   'showcase'   — product showcase mode: public /showcase surface + internal product library
     // Normalised to the allowed set so a misconfigured env var falls back to 'vod'.
-    get INSTANCE_PRIMARY_MODE(): 'vod' | 'music' | 'mixed' | 'enterprise' | 'showcase' {
+    get INSTANCE_PRIMARY_MODE(): PrimaryMode {
         return getEnum(
             'INSTANCE_PRIMARY_MODE',
             env.INSTANCE_PRIMARY_MODE,
-            ['vod', 'music', 'mixed', 'enterprise', 'showcase'],
+            [...PRIMARY_MODES],
             'vod',
         );
     },
@@ -1271,7 +1272,7 @@ export const config = {
     // ─────────────────── Training Assignments ─────────────────────
     // Master switch for the training assignment + completion-tracking layer.
     // When OFF, /my/trainings 404s, /admin/trainings 404s, and the nav entries
-    // are hidden. Default OFF for non-enterprise installs.
+    // are hidden. Default OFF unless the private modules are installed.
     get FEATURE_TRAINING_ASSIGNMENTS(): boolean {
         return getBool('FEATURE_TRAINING_ASSIGNMENTS', env.FEATURE_TRAINING_ASSIGNMENTS, false);
     },
@@ -1281,7 +1282,7 @@ export const config = {
     // Master switch for the native quiz + certificate-of-completion layer
     // (Phase A). When OFF, /learn 404s, /admin/courses 404s, certificate
     // routes 404, and the nav "Learn" entry is hidden. Default OFF for
-    // non-enterprise installs.
+    // installs without the private modules.
     get FEATURE_ASSESSMENT(): boolean {
         return getBool('FEATURE_ASSESSMENT', env.FEATURE_ASSESSMENT, false);
     },

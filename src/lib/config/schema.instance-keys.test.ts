@@ -3,15 +3,16 @@
 
 import { describe, it, expect } from 'vitest';
 import { configSchema } from './schema';
+import { TRAINING_USE_CASE } from './use-case-ids';
 
 function find(key: string) {
     return configSchema.find((s) => s.key === key);
 }
 
 describe('instance-profile schema keys', () => {
-    it('INSTANCE_PRIMARY_MODE offers an enterprise option', () => {
+    it('INSTANCE_PRIMARY_MODE offers a training option', () => {
         const opts = find('INSTANCE_PRIMARY_MODE')?.validation?.options?.map((o) => o.value);
-        expect(opts).toEqual(expect.arrayContaining(['vod', 'music', 'mixed', 'enterprise']));
+        expect(opts).toEqual(expect.arrayContaining(['vod', 'music', 'mixed', TRAINING_USE_CASE]));
     });
 
     it('INSTANCE_PRIMARY_MODE offers a showcase option', () => {

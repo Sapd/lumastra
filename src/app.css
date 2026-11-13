@@ -476,7 +476,7 @@
     /* Skeleton-UI-style preset badge variants (Skeleton itself is not
        installed — these names are load-bearing call sites across the
        plugin/admin surfaces, e.g. ExternalPluginCard.svelte,
-       CapabilityBadges.svelte, the enterprise training pages). "tonal" is
+       CapabilityBadges.svelte, the private training pages). "tonal" is
        a soft tinted chip (mirrors .badge-success/.badge-warning/etc above,
        on the theme color tokens); "filled" is a solid chip. */
     .preset-tonal-primary {

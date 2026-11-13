@@ -45,7 +45,7 @@ describe('/api/for-you/watching sequential live fallback helpers', () => {
             id: 'ep-s3e7',
             title: 'Die Ladung',
             mediaType: 'episode',
-            seriesId: 'series-enterprise',
+            seriesId: 'series-training',
             seriesName: 'Star Harbor: Voyager',
             seasonNumber: 3,
             episodeNumber: 7,
@@ -55,12 +55,12 @@ describe('/api/for-you/watching sequential live fallback helpers', () => {
         const out = createSequentialNextUpItem(
             makeNextSequentialEpisode(),
             liveItem,
-            'series-enterprise',
+            'series-training',
             '2026-04-26T18:30:00.000Z',
         );
 
         expect(out.id).toBe('ep-s3e8');
-        expect(out.seriesId).toBe('series-enterprise');
+        expect(out.seriesId).toBe('series-training');
         expect(out).not.toHaveProperty('jellyfinSeriesId');
         expect(out.seriesName).toBe('Star Harbor: Voyager');
         expect(out.watchProgress).toBe(0);
@@ -83,12 +83,12 @@ describe('/api/for-you/watching sequential live fallback helpers', () => {
                 id: 'ep-s3e7',
                 title: 'Die Ladung',
                 mediaType: 'episode',
-                seriesId: 'series-enterprise',
+                seriesId: 'series-training',
                 seriesName: 'Star Harbor: Voyager',
                 seasonNumber: 3,
                 episodeNumber: 7,
             }),
-            'series-enterprise',
+            'series-training',
             '2026-04-25T18:30:00.000Z',
         );
         const otherSeries = createSequentialNextUpItem(
@@ -116,12 +116,12 @@ describe('/api/for-you/watching sequential live fallback helpers', () => {
                 id: 'ep-s3e7',
                 title: 'Die Ladung',
                 mediaType: 'episode',
-                seriesId: 'series-enterprise',
+                seriesId: 'series-training',
                 seriesName: 'Star Harbor: Voyager',
                 seasonNumber: 3,
                 episodeNumber: 7,
             }),
-            'series-enterprise',
+            'series-training',
             '2026-04-26T18:30:00.000Z',
         );
 

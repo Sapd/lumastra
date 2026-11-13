@@ -687,7 +687,7 @@ export async function setUserAdmin(
  * anonymize audit-attribution → DELETE FROM users firing the cascades) and returns
  * the per-table erasure report as the confirmation artifact.
  *
- * Pre-flight: if the subject is the creator/assigner of admin-owned enterprise
+ * Pre-flight: if the subject is the creator/assigner of admin-owned private-module
  * content via a NOT NULL, NO ACTION/RESTRICT FK (courses.created_by /
  * training_assignments.assigned_by), the erasure is aborted (409) with guidance to
  * re-attribute that content first — nothing is changed.

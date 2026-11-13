@@ -43,6 +43,7 @@ import {
     serializeAppliedProfile,
     type UseCaseId,
 } from '$lib/config/use-case-presets.js';
+import { TRAINING_USE_CASE, USE_CASE_IDS } from '$lib/config/use-case-ids.js';
 import {
     appliedProfileRevision,
     readInstanceProfileState,
@@ -60,10 +61,10 @@ import { Logger } from '$lib/server/utils/logger.js';
 
 const logger = Logger.for('AdminInstanceProfile');
 
-const VALID_USE_CASES: readonly UseCaseId[] = ['vod', 'music', 'enterprise', 'showcase'];
+const VALID_USE_CASES: readonly UseCaseId[] = USE_CASE_IDS;
 
 const InstanceProfileBodySchema = z.object({
-    useCases: z.array(z.enum(['vod', 'music', 'enterprise', 'showcase'])),
+    useCases: z.array(z.enum(USE_CASE_IDS as [UseCaseId, ...UseCaseId[]])),
     landingPath: z.string().optional(),
     dryRun: z.boolean().optional(),
     /**
@@ -180,7 +181,7 @@ export const def = defineEndpoint({
                 landingPath = landingPathOverride;
             } else if (recomputeLanding) {
                 landingPath = result.landingPath;
-                if (result.primaryMode === 'enterprise') {
+                if (result.primaryMode === TRAINING_USE_CASE) {
                     const sql = await aiDbService.getSql();
                     if (sql) {
                         try {
@@ -222,13 +223,13 @@ export const def = defineEndpoint({
                 if (!isEnvOverridden(key)) applied[key] = to;
                 else if (!sameConfigValue(effective(key), to)) envLocked.push(key);
             }
-            // An enterprise profile's landing page is the first visible library,
+            // A training profile's landing page is the first visible library,
             // not the preset's path, so it differs from the base without anyone
             // having changed it: no "replaces your change" for that one.
             const overridden = result.overrides.filter(
                 (key) =>
                     key in applied &&
-                    !(key === 'INSTANCE_LANDING_PATH' && previous?.useCases.includes('enterprise')),
+                    !(key === 'INSTANCE_LANDING_PATH' && previous?.useCases.includes(TRAINING_USE_CASE)),
             );
             const effectiveLanding =
                 'INSTANCE_LANDING_PATH' in applied

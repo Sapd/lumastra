@@ -182,8 +182,8 @@ const COORDINATION_KEY_PREFIXES: readonly string[] = [
     // Deployment-wide showcase transcode slots. Same reasoning as `dl:prep:`
     // one line up, one notch more dangerous: an evicted slot set does not just
     // lift a fairness cap, it lifts the ONLY hard ceiling on concurrent
-    // unauthenticated ffmpeg spawns (see
-    // `enterprise/showcase/hls/showcase-transcode-cap.ts`).
+    // unauthenticated ffmpeg spawns (see the
+    // showcase transcode cap in the private showcase module).
     'showcase:transcode:',
     // Security- and correctness-bearing state (independent review of the
     // two-Valkey split, 2026-10-20). Each of these fails OPEN if evicted:

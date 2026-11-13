@@ -212,7 +212,7 @@ export const ERASURE_TABLE_REGISTRY: readonly ErasureTableEntry[] = [
     },
 
     // ── Blocking actor FKs — NOT NULL, ON DELETE NO ACTION/RESTRICT ───────────
-    // These name the subject as the CREATOR/ASSIGNER of admin-owned enterprise
+    // These name the subject as the CREATOR/ASSIGNER of admin-owned private-module
     // content (legitimate-interest records, not the subject's personal data). The
     // column is NOT NULL so it can't be nulled, and the FK is NO ACTION/RESTRICT so
     // the final `DELETE FROM users` would FAIL (not silently orphan). Erasure
@@ -656,12 +656,12 @@ export async function eraseUserData(
         if (!exists[0]) return null;
 
         // ── 0. PRE-FLIGHT: blocking actor FKs ─────────────────────────────────
-        // If the subject is the creator/assigner of admin-owned enterprise content
+        // If the subject is the creator/assigner of admin-owned private-module content
         // via a NOT NULL, NO ACTION/RESTRICT FK, the final users delete would FAIL.
         // Abort the whole transaction with guidance to re-attribute first, rather
         // than letting the cascade either fail loudly or (worse) destroy content.
         // Each table is existence-guarded via to_regclass so the check is a no-op on
-        // installs that haven't run the enterprise-training migrations.
+        // installs that haven't run the private-module training migrations.
         const blocked: ErasureBlocker[] = [];
         for (const entry of ERASURE_TABLE_REGISTRY) {
             if (entry.strategy !== 'blocks-on-actor-fk') continue;

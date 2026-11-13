@@ -28,23 +28,23 @@ import { getLocale } from '$lib/paraglide/runtime.js';
 // The parentheses are escaped: unescaped they are a glob group, not literal.
 
 const metaModules = import.meta.glob<{ searchMeta: AdminSearchMeta }>(
-    ['/src/routes/admin/**/search-meta.ts', '!/src/routes/admin/\\(enterprise\\)/**'],
+    ['/src/routes/admin/**/search-meta.ts', '!/src/routes/admin/\\(private\\)/**'],
     { eager: true },
 );
 
 /** Throws when a protected-tier file was collected: that breaks the license boundary. */
 export function assertNoProtectedTierMetas(files: string[]): void {
-    const offending = files.filter((file) => file.includes('(enterprise)'));
+    const offending = files.filter((file) => file.includes('(private)'));
     if (offending.length > 0) {
         throw new Error(
             `License boundary: core search index collected protected-tier files (${offending.join(', ')}). ` +
-                'Core code may not import the (enterprise) tier, not even via import.meta.glob.',
+                'Core code may not import the (private) tier, not even via import.meta.glob.',
         );
     }
 }
 assertNoProtectedTierMetas(Object.keys(metaModules));
 
-/** `/src/routes/admin/(enterprise)/reporting/search-meta.ts` to `/admin/reporting`. */
+/** `/src/routes/admin/(private)/reporting/search-meta.ts` to `/admin/reporting`. */
 export function routeOfMetaFile(file: string): string {
     const segments = file
         .replace(/^\/src\/routes/, '')

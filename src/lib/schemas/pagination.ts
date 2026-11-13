@@ -8,7 +8,7 @@
  * envelope shared across the API surface. Before this file existed, several
  * near-identical `PageBlockSchema` copies had drifted apart (some carried
  * `nextCursor`, some didn't) across `api-for-you-responses.ts`,
- * `api-playback-responses.ts`, `api-admin-responses.ts`, and `api/enterprise.ts`.
+ * `api-playback-responses.ts`, `api-admin-responses.ts`, and the private modules' API schemas.
  *
  * `PageBlockSchema` here is the SUPERSET shape — `limit`/`hasMore` required,
  * `offset`/`nextCursor`/`total` all optional — matching the server's

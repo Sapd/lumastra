@@ -195,7 +195,7 @@ export const load: LayoutServerLoad = async ({ locals, parent, depends }) => {
             // to poll for Live TV viewer status.
             liveTvProxyConfigured: Boolean(config.STREAM_PROXY_URL),
             // Re-declared explicitly (not just inherited via the spread) so
-            // AdminNav's enterprise nav-item gating gets a typed boolean
+            // AdminNav's private-module nav-item gating gets a typed boolean
             // instead of `unknown` — the spread's source is cast to
             // Record<string, unknown> and loses its concrete keys.
             trainingAssignments: features.trainingAssignments && assessmentModuleOn,

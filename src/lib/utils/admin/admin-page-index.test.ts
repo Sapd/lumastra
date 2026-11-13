@@ -49,7 +49,7 @@ describe('routeOfMetaFile', () => {
         expect(routeOfMetaFile('/src/routes/admin/system/health/search-meta.ts')).toBe(
             '/admin/system/health',
         );
-        expect(routeOfMetaFile('/src/routes/admin/(enterprise)/reporting/search-meta.ts')).toBe(
+        expect(routeOfMetaFile('/src/routes/admin/(private)/reporting/search-meta.ts')).toBe(
             '/admin/reporting',
         );
     });
@@ -88,22 +88,22 @@ describe('protected-tier exclusion', () => {
         'utf8',
     );
 
-    it('the glob excludes the literal "(enterprise)" directory', () => {
+    it('the glob excludes the literal "(private)" directory', () => {
         // Read the pattern out of the real import.meta.glob call, so this cannot drift.
-        const literal = /'(!\/src\/routes\/admin\/[^']*enterprise[^']*)'/.exec(source)?.[1];
+        const literal = /'(!\/src\/routes\/admin\/[^']*private[^']*)'/.exec(source)?.[1];
         expect(literal).toBeTruthy();
         const pattern = (literal as string).slice(1).replace(/\\\\/g, '\\');
         const picomatch = createRequire(import.meta.url)('picomatch') as (
             glob: string,
         ) => (path: string) => boolean;
         const isExcluded = picomatch(pattern);
-        expect(isExcluded('/src/routes/admin/(enterprise)/trainings/search-meta.ts')).toBe(true);
+        expect(isExcluded('/src/routes/admin/(private)/trainings/search-meta.ts')).toBe(true);
         expect(isExcluded('/src/routes/admin/system/health/search-meta.ts')).toBe(false);
     });
 
     it('fails loudly if a protected-tier file is ever collected', () => {
         expect(() =>
-            assertNoProtectedTierMetas(['/src/routes/admin/(enterprise)/x/search-meta.ts']),
+            assertNoProtectedTierMetas(['/src/routes/admin/(private)/x/search-meta.ts']),
         ).toThrow(/License boundary/);
         expect(() =>
             assertNoProtectedTierMetas(['/src/routes/admin/system/health/search-meta.ts']),

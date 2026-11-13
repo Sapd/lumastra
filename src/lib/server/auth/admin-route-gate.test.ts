@@ -92,7 +92,7 @@ describe('route enumeration', () => {
     });
 
     it('turns route ids into URL paths', () => {
-        expect(samplePathFor('/admin/(enterprise)/courses/[id]')).toBe('/admin/courses/p1');
+        expect(samplePathFor('/admin/(private)/courses/[id]')).toBe('/admin/courses/p1');
         expect(samplePathFor('/admin/media/[...rest]')).toBe('/admin/media/a/b');
         expect(samplePathFor('/admin/[[lang]]/x')).toBe('/admin/x');
         expect(samplePathFor('/admin/[id=uuid]/y')).toBe('/admin/p1/y');

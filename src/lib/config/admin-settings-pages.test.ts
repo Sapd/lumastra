@@ -68,7 +68,7 @@ describe('admin settings page registry', () => {
             'localization',
             'diagnostics',
             'advanced',
-            'enterprise',
+            'modules',
             'licensing',
         ]);
     });

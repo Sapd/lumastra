@@ -6,7 +6,7 @@
  * every change in review.
  *
  * - coverage: every route id × method in src/routes resolves to exactly one rule
- *   (no ties, no unmatched ids; `(enterprise)` ids are registered separately);
+ *   (no ties, no unmatched ids; `(private)` ids are registered separately);
  * - every `public` / `token-surface` row carries a reason;
  * - every token-surface route references one of its rule's authenticators —
  *   the only check that sees a forgotten `withJellyfinAuth`, because such a
@@ -250,7 +250,7 @@ describe('route policy table', () => {
 
 describe('route id normalisation', () => {
     it.each([
-        ['/admin/(enterprise)/courses/[id]', '/admin/courses/[]'],
+        ['/admin/(private)/courses/[id]', '/admin/courses/[]'],
         ['/api/v1/media/[id=uuid]/images/[role]', '/api/v1/media/[]/images/[]'],
         ['/(proprietary)/j/[...path]', '/j/[...]'],
         ['/p/[featureId]/[[page]]', '/p/[]/[[]]'],

@@ -43,7 +43,7 @@
 
     // Boolean capability vocabulary (max_age_rating + livetv priority handled separately).
     // `flag` ties an entertainment-specific capability to its feature: it is only offered
-    // when that feature is configured, so enterprise/training instances don't surface
+    // when that feature is configured, so training-only instances don't surface
     // request/acquisition/live-tv capabilities at all.
     type CapFlag = 'requests' | 'liveTv' | 'mediaManagement';
     const BOOLEAN_CAPS: { key: AccessCapability; label: string; flag?: CapFlag }[] = [

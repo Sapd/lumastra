@@ -35,16 +35,16 @@ import {
 } from '$lib/server/services/push/apns-credential.js';
 
 const logger = Logger.for('AdminSettings');
-const ENTERPRISE_SECTION_ID = 'enterprise';
+const PRIVATE_MODULES_SECTION_ID = 'modules';
 
 function filterPrivateBuildSections<T extends { id: string }>(sections: T[]): T[] {
     if (privateModulesBuildEnabled) return sections;
-    return sections.filter((section) => section.id !== ENTERPRISE_SECTION_ID);
+    return sections.filter((section) => section.id !== PRIVATE_MODULES_SECTION_ID);
 }
 
 function filterPrivateBuildSettings<T extends { section: string }>(settings: T[]): T[] {
     if (privateModulesBuildEnabled) return settings;
-    return settings.filter((setting) => setting.section !== ENTERPRISE_SECTION_ID);
+    return settings.filter((setting) => setting.section !== PRIVATE_MODULES_SECTION_ID);
 }
 
 export interface SettingsLoadResult {

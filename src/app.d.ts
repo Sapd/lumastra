@@ -10,6 +10,7 @@ import type {
     UserMenuLink,
 } from './routes/+layout.server';
 import type { ResolvedIds } from './lib/server/services/media-id-resolver.types';
+import type { PrimaryMode } from './lib/config/use-case-ids';
 import type { UserContext } from './lib/server/types';
 import type { ValidatedStreamingSession } from './lib/server/oauth/streaming-session.service';
 import type { Principal } from './lib/server/api/principal';
@@ -420,7 +421,7 @@ declare global {
             /** Server primary metadata language, followed by additional metadata languages. */
             mediaLanguagePriority?: string[];
             /** Instance primary content mode. Default 'vod'. */
-            primaryMode?: 'vod' | 'music' | 'mixed' | 'enterprise' | 'showcase';
+            primaryMode?: PrimaryMode;
             forYou?: AppForYouConfig;
             player?: AppPlayerConfig;
             browse?: AppBrowseConfig;

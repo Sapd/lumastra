@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import ts from 'typescript';
+import { exportedMethods } from './registry.test-helpers.js';
 import { defRegistry, expandAliases, routeRegistry, reviewedExternalArtwork } from './registry.js';
 import { surfaces, subsonicSurfaces } from './surfaces.js';
 
@@ -21,41 +22,8 @@ import { surfaces, subsonicSurfaces } from './surfaces.js';
 // pending device recognition fields; POST returns a decision, never catalog media.
 
 const root = resolve(__dirname, '../../../../../..');
-const methods = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'fallback']);
-const isPrivateRoute = (route: string): boolean => route.split('/').includes('(enterprise)');
-
-function exportedMethods(source: string): string[] {
-    const file = ts.createSourceFile('route.ts', source, ts.ScriptTarget.Latest, true);
-    const names: string[] = [];
-    for (const statement of file.statements) {
-        if (
-            ts.isFunctionDeclaration(statement) &&
-            statement.name &&
-            statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)
-        )
-            names.push(statement.name.text);
-        if (
-            ts.isExportDeclaration(statement) &&
-            statement.exportClause &&
-            ts.isNamedExports(statement.exportClause)
-        ) {
-            names.push(...statement.exportClause.elements.map((element) => element.name.text));
-        }
-        if (
-            ts.isVariableStatement(statement) &&
-            statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)
-        ) {
-            for (const declaration of statement.declarationList.declarations) {
-                if (ts.isIdentifier(declaration.name)) names.push(declaration.name.text);
-                if (ts.isObjectBindingPattern(declaration.name))
-                    names.push(
-                        ...declaration.name.elements.map((element) => element.name.getText(file)),
-                    );
-            }
-        }
-    }
-    return names.filter((name) => methods.has(name)).sort();
-}
+const isPrivateRoute = (route: string): boolean => route.split('/').includes('(private)');
+const isPrivateDef = (def: string): boolean => def.startsWith('private/');
 
 function subsonicRegistry(): string[] {
     const source = readFileSync(
@@ -100,78 +68,18 @@ describe('cross-surface availability inventory', () => {
             .filter(([route]) => !guarded.has(route))
             .map(([route, source]) => `${route}: ${exportedMethods(source).join(',')}`)
             .sort();
-        const enterpriseInventory = {
-            endpointDefs: endpointDefs.filter((def) => def.startsWith('enterprise/')),
+        const privateInventory = {
+            endpointDefs: endpointDefs.filter(isPrivateDef),
             otherRoutes: otherRoutes.filter(isPrivateRoute),
             reviewedExternalArtwork: reviewedExternalArtwork.filter(([route]) =>
                 isPrivateRoute(route),
             ),
         };
-        // Preserve the complete reviewed private inventory. Only an entirely
-        // stripped tree may omit it; deleting one private route/def still fails.
-        if (existsSync(resolve(root, 'src/routes/(enterprise)'))) {
-            expect(enterpriseInventory).toEqual({
-                endpointDefs: [
-                    'enterprise/admin/courses/[id].ts',
-                    'enterprise/admin/courses/index.ts',
-                    'enterprise/admin/courses/modules/[moduleId].ts',
-                    'enterprise/admin/quizzes/[id].ts',
-                    'enterprise/admin/quizzes/index.ts',
-                    'enterprise/admin/quizzes/questions/[qid].ts',
-                    'enterprise/admin/quizzes/questions/options/[oid].ts',
-                    'enterprise/admin/quizzes/questions/options/index.ts',
-                    'enterprise/admin/reporting/matrix/export.ts',
-                    'enterprise/admin/reporting/users/[userId]/transcript/export.ts',
-                    'enterprise/admin/showcase/library-group.ts',
-                    'enterprise/admin/showcase/share-link.ts',
-                    'enterprise/admin/trainings/[id].ts',
-                    'enterprise/admin/trainings/index.ts',
-                    'enterprise/courses/[id].ts',
-                    'enterprise/courses/complete/[moduleId].ts',
-                    'enterprise/courses/enroll/[id].ts',
-                    'enterprise/my/trainings/acknowledge/[id].ts',
-                    'enterprise/my/trainings/index.ts',
-                    'enterprise/quizzes/attempts/[id].ts',
-                    'enterprise/quizzes/submit/[attemptId].ts',
-                    'enterprise/showcase/stream-token.ts',
-                ],
-                otherRoutes: [
-                    '(enterprise)/showcase/hls/[id]/[...path]: GET,OPTIONS',
-                    '(enterprise)/showcase/hls/[id]: GET,OPTIONS',
-                    '(enterprise)/showcase/image/[id]/[type]: GET',
-                    'api/(enterprise)/courses/[id]/enroll: POST',
-                    'api/(enterprise)/courses/[id]/modules/[moduleId]/complete: POST',
-                    'api/(enterprise)/courses/[id]: GET',
-                    'api/(enterprise)/learn/modules/[moduleId]/complete: POST',
-                    'api/(enterprise)/my/trainings/[id]/acknowledge: POST',
-                    'api/(enterprise)/my/trainings: GET',
-                    'api/(enterprise)/quizzes/[id]/attempts/[attemptId]/submit: POST',
-                    'api/(enterprise)/quizzes/[id]/attempts: POST',
-                    'api/(enterprise)/showcase/stream-token: POST',
-                    'api/admin/(enterprise)/courses/[id]/modules/[moduleId]: DELETE,PATCH',
-                    'api/admin/(enterprise)/courses/[id]: GET,PATCH,POST',
-                    'api/admin/(enterprise)/courses: GET,POST',
-                    'api/admin/(enterprise)/quizzes/[id]/questions/[qid]/options/[oid]: DELETE,PATCH',
-                    'api/admin/(enterprise)/quizzes/[id]/questions/[qid]/options: POST',
-                    'api/admin/(enterprise)/quizzes/[id]/questions/[qid]: DELETE,PATCH',
-                    'api/admin/(enterprise)/quizzes/[id]: GET,PATCH,POST',
-                    'api/admin/(enterprise)/quizzes: GET,POST',
-                    'api/admin/(enterprise)/reporting/matrix/export: DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT',
-                    'api/admin/(enterprise)/reporting/users/[userId]/transcript/export: GET',
-                    'api/admin/(enterprise)/showcase/library-group: DELETE,GET,POST',
-                    'api/admin/(enterprise)/showcase/share-link: POST',
-                    'api/admin/(enterprise)/trainings/[id]: DELETE,GET,PATCH',
-                    'api/admin/(enterprise)/trainings: GET,POST',
-                ],
-                reviewedExternalArtwork: [
-                    [
-                        '(enterprise)/showcase/image/[id]/[type]',
-                        'public showcase group only; UUIDs only',
-                    ],
-                ],
-            });
-        } else {
-            expect(enterpriseInventory).toEqual({
+        // A tree without the private modules must carry none of their routes or defs. When the
+        // private tree is present, its reviewed inventory is asserted by
+        // registry.private-tree.test.ts (kept out of the public export).
+        if (!existsSync(resolve(root, 'src/routes/(private)'))) {
+            expect(privateInventory).toEqual({
                 endpointDefs: [],
                 otherRoutes: [],
                 reviewedExternalArtwork: [],
@@ -190,7 +98,7 @@ describe('cross-surface availability inventory', () => {
                 .sort()
                 .map((route) => `${route}: ${exportedMethods(routes.get(route)!).join(',')}`),
             otherRoutes: otherRoutes.filter((route) => !isPrivateRoute(route)),
-            endpointDefs: endpointDefs.filter((def) => !def.startsWith('enterprise/')),
+            endpointDefs: endpointDefs.filter((def) => !isPrivateDef(def)),
             guardedSubsonic: [...guardedSubsonic].sort(),
             otherSubsonic: subsonic.filter((method) => !guardedSubsonic.has(method)),
         }).toMatchSnapshot();

@@ -7,6 +7,7 @@
     import { browser } from '$app/environment';
     import { page } from '$app/stores';
     import { base } from '$app/paths';
+    import { TRAINING_USE_CASE, type PrimaryMode } from '$lib/config/use-case-ids.js';
     import { resolve } from '$lib/paths';
     import { onMount, onDestroy, untrack } from 'svelte';
     import type { ComponentType, SvelteComponent } from 'svelte';
@@ -110,7 +111,7 @@
         nonEntertainmentLibraries?: NonEntertainmentLibrary[];
         activeLibraryTypes?: string[];
         /** Instance primary mode — controls music-first vs VOD-first nav layout. */
-        primaryMode?: 'vod' | 'music' | 'mixed' | 'enterprise' | 'showcase';
+        primaryMode?: PrimaryMode;
         /** Whether Live TV is available (features.liveTV — flag enabled AND a
          *  standalone tuner source configured). Gates the VOD-nav "Live TV" entry;
          *  music-first mode's "Radio" pill is a separate, always-on /livetv link
@@ -128,9 +129,9 @@
         musicClusters?: boolean;
         /** Whether Text-to-Sound Search is available (features.textToSound). */
         textToSound?: boolean;
-        /** Whether the enterprise Training Assignments feature is enabled. */
+        /** Whether the  Assignments feature is enabled. */
         trainingAssignments?: boolean;
-        /** Whether the enterprise Assessment (native quiz + certificate) feature is enabled. */
+        /** Whether the  (native quiz + certificate) feature is enabled. */
         assessment?: boolean;
     }
 
@@ -340,32 +341,32 @@
     //     groups: ['__ADMIN__'] so they remain visible to admins but hidden from
     //     regular users (admins always keep full nav per the CLAUDE.md contract).
     //
-    // For enterprise mode ('enterprise'), libraries are shown to all; entertainment/discovery
+    // For the home/training mode, libraries are shown to all; entertainment/discovery
     // surfaces (Browse, Music, Admin) are demoted to admins only.
     //
     // For all other modes ('vod', 'mixed') the existing order is preserved unchanged.
     let defaultMenuItems = $derived.by((): MenuItem[] => {
-        if (primaryMode === 'enterprise') {
+        if (primaryMode === TRAINING_USE_CASE) {
             // Home & Training: libraries + playlists for everyone;
             // entertainment/discovery demoted to admins (full nav per CLAUDE.md).
             const firstNonEnt = nonEntertainmentLibraries
                 .slice()
                 .sort((a, b) => a.sort_order - b.sort_order)
                 .find((l) => l.sidebar_visible);
-            const enterpriseHomeUrl = firstNonEnt
+            const trainingHomeUrl = firstNonEnt
                 ? `/library/${firstNonEnt.media_type}`
                 : '/library/home_video';
             const items: MenuItem[] = [
                 {
                     label: m.nav_home(),
-                    url: enterpriseHomeUrl,
+                    url: trainingHomeUrl,
                     icon: '/icons/home.svg',
                     outline: true,
                     external: false,
                 },
                 { label: m.nav_playlists(), url: '/playlists', icon: QueueList, external: false },
             ];
-            // Training Assignments (enterprise feature).
+            // Training Assignments (private-module feature).
             if (trainingAssignments) {
                 items.push({
                     label: m.nav_my_trainings(),
@@ -374,7 +375,7 @@
                     external: false,
                 });
             }
-            // Assessment — native quiz + certificate (enterprise feature).
+            // Assessment — native quiz + certificate (private-module feature).
             if (assessment) {
                 items.push({
                     label: m.nav_learn(),
@@ -414,7 +415,7 @@
         if (primaryMode === 'showcase') {
             // Showcase / Product Showcase: internal product library for authenticated staff;
             // public /showcase page linked for all authenticated users.
-            // Entertainment/discovery surfaces demoted to admins only (same as enterprise).
+            // Entertainment/discovery surfaces demoted to admins only (same as the training mode).
             const firstProduct = nonEntertainmentLibraries
                 .slice()
                 .sort((a, b) => a.sort_order - b.sort_order)
@@ -630,7 +631,7 @@
         // In mixed mode (vod + music both selected) they'd clutter the dock; they're
         // still reachable from the /music page tiles/search.
 
-        // Training Assignments (enterprise feature — shown when enabled in any mode).
+        // Training Assignments (private-module feature — shown when enabled in any mode).
         if (trainingAssignments) {
             items.push({
                 label: m.nav_my_trainings(),
@@ -640,7 +641,7 @@
             });
         }
 
-        // Assessment — native quiz + certificate (enterprise feature).
+        // Assessment — native quiz + certificate (private-module feature).
         if (assessment) {
             items.push({
                 label: m.nav_learn(),

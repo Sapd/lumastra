@@ -63,7 +63,7 @@ export interface RouteRule {
 }
 
 /**
- * `/admin/(enterprise)/courses/[id=uuid]` → `/admin/courses/[]`: route groups
+ * `/admin/(private)/courses/[id=uuid]` → `/admin/courses/[]`: route groups
  * dropped, param names erased (`[x]`/`[x=m]` → `[]`, `[...x]` → `[...]`,
  * `[[x]]` → `[[]]`) so renaming a param can never move a route to another rule.
  */
@@ -77,9 +77,9 @@ export function normalizeRouteId(id: string): string {
     return out || '/';
 }
 
-/** True for a route id inside an `(enterprise)` group — never matched by the AGPL rules. */
+/** True for a route id inside an `(private)` group — never matched by the AGPL rules. */
 export function isPrivateRouteId(id: string): boolean {
-    return /\/\(enterprise\)(\/|$)/.test(id);
+    return /\/\(private\)(\/|$)/.test(id);
 }
 
 interface CompiledRule {

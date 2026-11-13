@@ -106,7 +106,7 @@ export async function backfillHasFilesMediaItems(sql: postgres.Sql): Promise<voi
  *   music/recommendation gates — all of which use `has_files` as the O(1)
  *   library-membership predicate (`availability.queries.ts`, `browse.queries.ts`,
  *   `search-access-context.ts`).
- * - `product` — the enterprise showcase catalog documents `has_files = true` as its
+ * - `product` — the showcase catalog documents `has_files = true` as its
  *   "published" gate (`showcase.queries.ts`). Defensive: no writer lives in this
  *   tree, so it cannot be verified here, and guessing wrong is destructive.
  *

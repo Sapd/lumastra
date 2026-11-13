@@ -58,8 +58,6 @@ const LINKED_SINKS = new Set([
     'src/lib/server/auth/admin-route-gate.ts:AdminGateEvent:user',
     'src/lib/server/auth/route-policy/shadow.ts:user:as',
     'src/lib/server/cache/library-group-permissions-cache.ts:toLibraryAccessUser:localsUser',
-    'src/lib/server/enterprise/assessment/course-access.ts:isCourseGroupDenied:localsUser',
-    'src/lib/server/enterprise/assessment/course-access.ts:assertCourseGroupAccessOrNotFound:localsUser',
     'src/lib/server/proprietary/jellyfin-compat/access-context.ts:JellyfinAccessUser:JellyfinAccessUser',
     'src/lib/server/proprietary/jellyfin-compat/library-views-utils.ts:LibraryViewUser:LibraryViewUser',
 ]);

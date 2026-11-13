@@ -39,7 +39,7 @@ export const ADMIN_SETTINGS_PAGES: AdminSettingsPageDef[] = [
             'localization',
             'diagnostics',
             'advanced',
-            'enterprise',
+            'modules',
             'licensing',
         ],
     },

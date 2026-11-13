@@ -30,7 +30,7 @@ export interface AdminGateEvent {
     };
 }
 
-/** `/admin/(enterprise)/courses` → `/admin/courses`: route groups never appear in a URL. */
+/** `/admin/(private)/courses` → `/admin/courses`: route groups never appear in a URL. */
 function stripRouteGroups(id: string): string {
     return id.replace(/\/\([^/)]+\)/g, '') || '/';
 }

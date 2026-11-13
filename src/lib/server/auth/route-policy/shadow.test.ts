@@ -377,9 +377,9 @@ describe('route policy shadow mode', () => {
         expect(classes()).toEqual(['M1']);
     });
 
-    it('skips unrouted and enterprise requests', async () => {
+    it('skips unrouted and private-module requests', async () => {
         await run({ routeId: null }, () => new Response(null, { status: 404 }));
-        await run({ routeId: '/admin/(enterprise)/courses' }, () => new Response('{}'));
+        await run({ routeId: '/admin/(private)/courses' }, () => new Response('{}'));
         expect(warn).not.toHaveBeenCalled();
     });
 

@@ -17,11 +17,11 @@
  * sessions, preview-cache store, bandwidth/telemetry, and segment-delivery
  * failure recording.
  *
- * The proprietary (`/j`) and enterprise (`showcase`) mounts are covered in
+ * The proprietary (`/j`) and private-module (`showcase`) mounts are covered in
  * their own tree-local seam files — see Global Constraint 8 (a test of
- * proprietary/enterprise code must live in that tree):
+ * proprietary/private-module code must live in that tree):
  *   - src/routes/(proprietary)/j/Videos/[itemId]/hls/[...path]/c1-job-item-binding.seam.test.ts
- *   - src/routes/(enterprise)/showcase/hls/[id]/[...path]/c1-job-item-binding.seam.test.ts
+ *   - src/routes/(private)/showcase/hls/[id]/[...path]/c1-job-item-binding.seam.test.ts
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';

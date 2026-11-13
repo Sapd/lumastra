@@ -146,7 +146,7 @@ test.describe('real settings SSR hydration', () => {
         'conn-sonarr',
         'metadata',
         'advanced-tasks-tuning,branding',
-        'branding,features,advanced,enterprise,licensing',
+        'branding,features,advanced,modules,licensing',
     ]) {
         test(`hydrates ${section} with a saved advanced preference and preserves server DOM`, async ({
             page,

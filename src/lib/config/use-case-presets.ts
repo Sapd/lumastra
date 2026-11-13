@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { configSchema } from './schema';
+import { TRAINING_USE_CASE, type UseCaseId } from './use-case-ids';
 
-export type UseCaseId = 'vod' | 'music' | 'enterprise' | 'showcase';
+export type { UseCaseId };
 
 export interface PresetCapabilities {
     hasEmbeddings: boolean;
@@ -177,18 +178,18 @@ export const USE_CASE_PRESETS: Record<UseCaseId, UseCasePreset> = {
             sonicEmbedder: MUSIC_CLUSTER,
         },
     },
-    enterprise: {
-        id: 'enterprise',
+    [TRAINING_USE_CASE]: {
+        id: TRAINING_USE_CASE,
         label: 'Home Videos / Training',
-        primaryModeCandidate: 'enterprise',
+        primaryModeCandidate: TRAINING_USE_CASE,
         primaryRank: 2,
         landingPath: '/library/home_video',
         libraryTypes: ['home_video', 'training', 'educational', 'personal'],
-        // The LMS is the core of the enterprise/training use case — turn it on so a
-        // fresh enterprise box has working /admin/{courses,quizzes,trainings,reporting}
+        // The LMS is the core of the training use case — turn it on so a
+        // fresh training box has working /admin/{courses,quizzes,trainings,reporting}
         // + /my/trainings out of the box (otherwise every LMS route 302-redirects until
         // an admin flips the flags). FEATURE_PUBLIC_SHOWCASE stays its own 'showcase'
-        // preset (a distinct, public surface) — pick both presets for an enterprise
+        // preset (a distinct, public surface) — pick both presets for a training
         // instance that also wants a public product showcase.
         enable: ['FEATURE_AVATAR_UPLOAD', 'FEATURE_ASSESSMENT', 'FEATURE_TRAINING_ASSIGNMENTS'],
         disable: [
@@ -246,8 +247,8 @@ export const USE_CASE_PRESETS: Record<UseCaseId, UseCasePreset> = {
  * For `DISABLE_*` switches that inverts enable-wins into *disable*-wins: in any
  * multi-preset selection, one preset's `DISABLE_X: true` overrode another's
  * explicit `DISABLE_X: false` and silently turned the task off. Observed on
- * preprod with `INSTANCE_USE_CASES=['vod','music','enterprise']`, where
- * enterprise's `DISABLE_FRIBB_ANIME_SYNC: true` beat vod's explicit `false`;
+ * preprod with `INSTANCE_USE_CASES=['vod','music','<training>']`, where
+ * the training preset's `DISABLE_FRIBB_ANIME_SYNC: true` beat vod's explicit `false`;
  * the task then no-op'd on every scheduled run (returning success) while its
  * coverage stage accumulated 9,174 rows stuck `pending` for 51 days.
  *
@@ -333,7 +334,7 @@ export function applyUseCasePreset(selected: UseCaseId[], caps: PresetCapabiliti
             for (const k of p.capabilityEnable.sonicEmbedder) setVal(k, true);
     }
 
-    // Resolve primary mode by lowest rank (vod > music > enterprise); empty → vod.
+    // Resolve primary mode by lowest rank (vod > music > training); empty → vod.
     const primary = presets.reduce<UseCasePreset | null>(
         (best, p) => (best === null || p.primaryRank < best.primaryRank ? p : best),
         null,

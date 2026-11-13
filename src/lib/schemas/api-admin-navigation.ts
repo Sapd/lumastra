@@ -81,7 +81,7 @@ export const InstanceProfileResponseSchema = z
         preview: z.literal(true).optional(),
         /** Config diff entries (dry-run only). */
         diff: z.array(InstanceProfileDiffEntrySchema).optional(),
-        /** The resolved primary mode (vod | music | enterprise | showcase | mixed). */
+        /** The resolved primary mode (a PrimaryMode value). */
         primaryMode: z.string(),
         /** The resolved landing path for this profile. */
         landingPath: z.string(),
