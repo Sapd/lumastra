@@ -47,10 +47,6 @@ vi.mock('$lib/server/config/domains/ai', () => ({
     }),
 }));
 
-vi.mock('$lib/server/licensing/entitlements', () => ({
-    getEffectiveEntitlements: async () => ({ aiAssistant: true }),
-}));
-
 // `searchAccessBoundary` is deliberately NOT mocked: runAssistant projects the
 // access context through it to build the required MediaAccessBoundary, and the
 // real projection must run.

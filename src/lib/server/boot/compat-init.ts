@@ -21,7 +21,6 @@
  * and, first and synchronously, starts the push relay token enrolment loop
  * (relay-token-enrol.ts).
  *
- * It replaces what `proprietary/licensing/init.ts` used to do besides licensing.
  * Never inside a plugin-isolation worker: those hold no database and no master
  * key, and must not start loops or call out.
  *
@@ -124,10 +123,8 @@ async function load(): Promise<void> {
 export function ensureCompatLoaded(): Promise<void> {
     if (isIsolationWorker()) return Promise.resolve();
     if (!loading) {
-        // Synchronously, before any await: the legacy licence loop (still present
-        // until it is removed) asks `wantsLicenceMintedRelayToken()` on its first
-        // tick and must already see that this loop owns the relay token. A throw
-        // here (never expected) must not stop the registrations below.
+        // Synchronously, before any await. A throw here (never expected) must
+        // not stop the registrations below.
         try {
             startRelayTokenEnrolLoop();
         } catch (err) {

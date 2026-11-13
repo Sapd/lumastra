@@ -4,12 +4,8 @@
 /**
  * Where the relay credential comes from.
  *
- * The bug this pins: before `PUSH_RELAY_TOKEN` existed, the ONLY writer of
- * this store was `maybeRefreshLicense()`, which returns early when
- * `LICENSE_ENFORCEMENT_ENABLED` is off — the default in every build shipped so
- * far, production included — and again when the licence is already valid. So
- * the credential was unobtainable in practice, and push could never deliver on
- * any install anyone actually runs.
+ * `PUSH_RELAY_TOKEN` wins when set; otherwise the minted token held by the
+ * enrolment loop is used.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';

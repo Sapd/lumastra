@@ -54,7 +54,7 @@ describe('appearance ?/save', () => {
     });
 
     it('refuses any key that is not an appearance setting', async () => {
-        const result = await save({ APPEARANCE_CUSTOM_CSS: '', LICENSE_KEY: 'x' });
+        const result = await save({ APPEARANCE_CUSTOM_CSS: '', APP_NAME: 'x' });
         expect(result).toMatchObject({ status: 400 });
         expect(state.saved).toEqual([]);
     });

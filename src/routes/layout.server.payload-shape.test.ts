@@ -83,9 +83,6 @@ vi.mock('$lib/server/database/queries/user-preferences.queries.js', () => ({
 vi.mock('$lib/server/services/music/radio-configured.service.js', () => ({
     isRadioConfigured: vi.fn(async () => false),
 }));
-vi.mock('$lib/server/licensing/feature-gate.js', () => ({
-    isModuleLicensed: vi.fn(async () => false),
-}));
 vi.mock('$lib/server/theme/enabled-themes.js', () => ({
     getEnabledThemes: vi.fn(() => []),
     resolveActiveThemeId: () => 'default',

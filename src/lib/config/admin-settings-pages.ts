@@ -150,9 +150,9 @@ export const ADMIN_SETTINGS_PAGES: AdminSettingsPageDef[] = [
  * Sections that exist in the schema but have no settings page (no route loads
  * them). They are intentionally not reachable via search deep-links.
  *
- * Now empty, and it should stay that way. `requests` and `licensing` used to sit
- * here, which meant the Jellyseerr URL/API key and the instance LICENSE_KEY were
- * settable only via environment variable or by hand-editing settings.json. An
+ * Now empty, and it should stay that way. `requests` used to sit here, which
+ * meant the Jellyseerr URL/API key were settable only via environment variable
+ * or by hand-editing settings.json. An
  * entry here is a config surface an operator cannot reach: add one only when a
  * section is deliberately not operator-facing, never to paper over a page that
  * forgot to load it.

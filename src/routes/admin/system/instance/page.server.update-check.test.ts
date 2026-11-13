@@ -28,12 +28,8 @@ vi.mock('$lib/server/services/sonic-embedding.service.js', () => ({
     isSonicEngineConfigured: () => false,
 }));
 vi.mock('$lib/server/database/index.js', () => ({ getDb: () => ({}) }));
-vi.mock('$lib/server/database/queries/license-install.queries.js', () => ({
+vi.mock('$lib/server/database/queries/install-identity.queries.js', () => ({
     getInstallUuid: vi.fn(),
-}));
-vi.mock('$lib/server/licensing/entitlements.js', () => ({
-    getLicenseServerContact: vi.fn(),
-    getLicenseStatus: vi.fn(),
 }));
 vi.mock('$lib/server/utils/audit-log.js', () => ({
     auditLog,

@@ -56,9 +56,6 @@ vi.mock('$lib/server/config/domains/ai', () => ({
     }),
 }));
 
-vi.mock('$lib/server/licensing/entitlements', () => ({
-    getEffectiveEntitlements: async () => ({ aiAssistant: true }),
-}));
 vi.mock('$lib/server/proprietary/assistant-tools/capability', () => ({
     assistantToolsEnabled: () => true,
 }));

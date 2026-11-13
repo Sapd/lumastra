@@ -39,7 +39,7 @@ describe('runAssistant entry points', () => {
         // Direct calls: `runAssistant(` not preceded by `.`/`function`.
         const direct = callersOf(/(?<![\w.])(?<!function )runAssistant\(\s*[\n{]/);
         expect(direct).toEqual([
-            'src/lib/server/proprietary/licensing/init.ts',
+            'src/lib/server/boot/compat-init.ts',
             'src/routes/api/(proprietary)/assistant/+server.ts',
         ]);
         const viaRegistry = callersOf(

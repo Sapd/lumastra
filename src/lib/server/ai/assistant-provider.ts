@@ -6,7 +6,7 @@
  *
  * This is the clean license boundary between the AGPL core and the proprietary
  * assistant pipeline (`src/lib/server/proprietary/assistant-service.ts`),
- * mirroring `licensing/entitlements.ts`: the core NEVER imports the proprietary
+ * mirroring `auth/jellyfin-compat-revocation.ts`: the core NEVER imports the proprietary
  * tree (the `check-license-boundary` CI gate forbids it, in any import form).
  * Instead the proprietary module, when present (official build), registers
  * itself here via {@link registerAiAssistantProvider} — proprietary → core,

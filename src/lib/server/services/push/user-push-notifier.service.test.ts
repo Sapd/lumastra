@@ -22,10 +22,6 @@ vi.mock('$lib/server/config.js', () => ({
     config: { FEATURE_PUSH_NOTIFICATIONS: true } as Record<string, unknown>,
 }));
 
-vi.mock('$lib/server/licensing/entitlements.js', () => ({
-    getEffectiveEntitlements: vi.fn(),
-}));
-
 vi.mock('$lib/server/database/connection.js', () => ({
     getDb: vi.fn(),
 }));
@@ -39,7 +35,6 @@ vi.mock('$lib/server/database/queries/user-push-tokens.queries.js', () => ({
 }));
 
 import { getDb } from '$lib/server/database/connection.js';
-import { getEffectiveEntitlements } from '$lib/server/licensing/entitlements.js';
 import { enqueuePushOutbox } from '$lib/server/database/queries/user-push-outbox.queries.js';
 import { userHasActivePushToken } from '$lib/server/database/queries/user-push-tokens.queries.js';
 import { enqueueUserPush } from './user-push-notifier.service.js';
@@ -49,9 +44,6 @@ const USER_ID = toUserId('00000000-0000-0000-0000-000000000001');
 describe('enqueueUserPush — getDb() branches', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.mocked(getEffectiveEntitlements).mockResolvedValue({
-            modules: new Set(['push']),
-        } as never);
     });
 
     it('returns early — without ever reading a push token or writing the outbox — when getDb() returns null', async () => {

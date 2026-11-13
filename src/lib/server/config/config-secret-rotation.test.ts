@@ -175,6 +175,30 @@ describe('rotateConfigSecrets', () => {
     });
 });
 
+describe('a stored setting the schema no longer knows (the retired licence key)', () => {
+    beforeEach(() => {
+        files.clear();
+        __resetConfigMasterKeyCacheForTests();
+        initConfigServiceSync({});
+    });
+
+    it('loads, saves other settings and rotates without touching it', async () => {
+        const retired = ['LICENSE', 'KEY'].join('_');
+        const sealed = sealSecret('retired-licence-key', KEY_A, ctx(retired));
+        const path = writeSettings({ [retired]: sealed, APP_NAME: 'Lumastra' });
+
+        expect(() => initConfigServiceSync({})).not.toThrow();
+        expect(getUndecryptableConfigKeys()).toEqual([]);
+        await expect(saveConfig({ APP_NAME: 'Mine' })).resolves.not.toThrow();
+        // Rotation re-seals it like any other sealed value; it never fails on it.
+        await expect(rotateConfigSecrets(KEY_A, KEY_B)).resolves.toMatchObject({ skipped: 0 });
+
+        const after = readSettings(path);
+        expect(openSecret(after[retired] as string, KEY_B, ctx(retired))).toBe('retired-licence-key');
+        expect(after.APP_NAME).toBe('Mine');
+    });
+});
+
 describe('undecryptable settings are reported, not silently dropped', () => {
     beforeEach(() => {
         files.clear();

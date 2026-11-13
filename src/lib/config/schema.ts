@@ -1230,28 +1230,6 @@ export const configSchema: SettingDefinition[] = [
         },
     },
     {
-        key: 'LICENSE_KEY',
-        type: 'string',
-        label: 'Commercial License Key',
-        description:
-            'Offline license key that unlocks the commercially licensed modules (the Jellyfin-compatible /j API and the AI assistant). Leave blank for the free, AGPL-only configuration; see LICENSING.md for verification details.',
-        defaultValue: '',
-        section: 'licensing',
-        uiHints: {
-            sensitive: true,
-            placeholder: 'paste your commercial license key',
-        },
-    },
-    // NOTE: license ENFORCEMENT is deliberately NOT an admin/settings/env toggle —
-    // it is a build-time constant (LICENSE_ENFORCEMENT_BUILD_DEFAULT in
-    // server/config.ts) so the paywall cannot be switched off at runtime. It is
-    // intentionally absent from this schema. See LICENSING.md / config.ts.
-    // NOTE: the licensing SERVER URL is likewise not a setting. Keys verify
-    // offline against a baked-in public key, so no other server can issue one
-    // this build accepts — pointing it elsewhere could only break auto-enrolment.
-    // It is a hardcoded constant beside that key, in
-    // server/proprietary/licensing/license-server.ts.
-    {
         key: 'LICENSE_SERVER_CONTACT_ENABLED',
         type: 'boolean',
         label: 'Contact lumastra.org for the licence',

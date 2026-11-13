@@ -7,7 +7,7 @@
  * `/j` remote-control registry as targets of the core device API.
  *
  * Registered with the core (`external-remote-targets.ts`) by `register.ts`
- * (which `licensing/init.ts` imports lazily), and only active while
+ * (which `boot/compat-init.ts` imports lazily), and only active while
  * `FEATURE_JELLYFIN_COMPAT` is on, so `GET /devices` lists the user's Jellyfin clients next to their Lumastra
  * devices under the id `jf:<remote session id>` (never a device session id),
  * `GET /devices/{id}/state` describes them and `POST /devices/{id}/commands`

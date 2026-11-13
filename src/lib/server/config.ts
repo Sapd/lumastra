@@ -24,13 +24,6 @@ export const devFeaturesEnabled: boolean = dev || parseBoolEnv(process.env.ALLOW
 // do not advertise enterprise-only configuration that is not meant for them.
 export const enterpriseFeaturesBuildEnabled: boolean = false;
 
-// License-enforcement gate. OFF: Lumastra is AGPL-3.0 with no paid parts, so an
-// install with no key (or any key) gets every feature: unlimited /j streams, the
-// AI assistant, operator branding. The gate machinery (entitlements registry,
-// licence module) is being removed step by step; this constant is the switch it
-// hangs off until it is gone. Guard: licensing/free-install.guard.test.ts.
-export const LICENSE_ENFORCEMENT_BUILD_DEFAULT: boolean = false;
-
 // ============================================================================
 // Config Service Integration
 // ============================================================================
@@ -533,22 +526,6 @@ export const config = {
     get SETUP_UNLOCK(): boolean {
         return parseBoolEnv(process.env.SETUP_UNLOCK);
     },
-    // Commercial license key (offline signed-key). Storage only — verification lives
-    // in the proprietary modules (see LICENSING.md). Blank = free, AGPL-only config.
-    get LICENSE_KEY(): string {
-        return getString('LICENSE_KEY', env.LICENSE_KEY, '');
-    },
-    // Master gate for license verification + entitlement enforcement.
-    //
-    // Build-time constant, OFF (no paid parts, see LICENSE_ENFORCEMENT_BUILD_DEFAULT).
-    // With it off the entitlements shim returns UNLIMITED_ENTITLEMENTS.
-    get LICENSE_ENFORCEMENT_ENABLED(): boolean {
-        return LICENSE_ENFORCEMENT_BUILD_DEFAULT;
-    },
-    // NOTE: the licensing SERVER URL is deliberately not here either — it is a
-    // hardcoded constant next to the signing public key it is coupled to, in
-    // server/proprietary/licensing/license-server.ts. Keys only verify against
-    // that baked-in key, so a configurable URL could only break auto-enrolment.
     get LIVETV_GROUPS(): string[] {
         return getArray('LIVETV_GROUPS', env.LIVETV_GROUPS, 'livetv,admin');
     },

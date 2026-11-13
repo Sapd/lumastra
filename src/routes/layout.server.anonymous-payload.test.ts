@@ -32,7 +32,14 @@ const NAV_CONFIG = vi.hoisted((): Record<string, unknown> => {
 vi.mock('$lib/server/config', () => ({
     config: new Proxy({} as Record<string, unknown>, {
         // localsIsAdminOrArrManager reads the ARR manager groups.
-        get: (_t, key) => (key === 'ARR_MANAGER_GROUPS' ? [] : undefined),
+        get: (_t, key) =>
+            key === 'ARR_MANAGER_GROUPS'
+                ? []
+                : key === 'APP_NAME'
+                  ? 'Lumastra'
+                  : key === 'APP_DESCRIPTION'
+                    ? 'Media Dashboard'
+                    : undefined,
     }),
     features: {},
     BACKEND_ONLY_FEATURES: new Set<string>(),
@@ -71,9 +78,6 @@ vi.mock('$lib/server/database/queries/user-preferences.queries.js', () => ({
 }));
 vi.mock('$lib/server/services/music/radio-configured.service.js', () => ({
     isRadioConfigured: vi.fn(async () => false),
-}));
-vi.mock('$lib/server/licensing/feature-gate.js', () => ({
-    isModuleLicensed: vi.fn(async () => false),
 }));
 vi.mock('$lib/server/theme/enabled-themes.js', () => ({
     getEnabledThemes: vi.fn(() => []),

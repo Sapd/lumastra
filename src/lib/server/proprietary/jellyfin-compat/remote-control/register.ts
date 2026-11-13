@@ -4,7 +4,7 @@
 
 /**
  * Wire `/j/socket` into the AGPL upgrade dispatcher. Called from the
- * proprietary init (`proprietary/licensing/init.ts`), so the AGPL core never
+ * boot loader (`boot/compat-init.ts`), so the AGPL core never
  * imports this tree.
  */
 

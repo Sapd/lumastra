@@ -42,9 +42,9 @@ vi.mock('$lib/server/database/queries/attention.queries.js', async (orig) => ({
     ...(await orig<typeof import('$lib/server/database/queries/attention.queries.js')>()),
     loadUncleanExits: async () => [],
 }));
-vi.mock('$lib/server/database/queries/license-seats.queries.js', async (orig) => ({
-    ...(await orig<typeof import('$lib/server/database/queries/license-seats.queries.js')>()),
-    countActiveSeats: async () => 0,
+vi.mock('$lib/server/database/queries/active-users.queries.js', async (orig) => ({
+    ...(await orig<typeof import('$lib/server/database/queries/active-users.queries.js')>()),
+    countActiveUsers: async () => 0,
 }));
 vi.mock('$lib/server/database/queries/admin-status-payload.queries.js', async (orig) => ({
     ...(await orig<

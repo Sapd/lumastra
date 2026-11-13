@@ -21,12 +21,6 @@
         type InstanceProfileDiffEntry,
     } from '$lib/schemas/api-admin-navigation.js';
     import { apiPost } from '$lib/api/client.js';
-    import {
-        LICENSE_MODULES,
-        LICENSE_MODULE_LABELS,
-        ENTERPRISE_LICENSE_MODULES,
-    } from '$lib/shared/license-modules.js';
-    import { licensePhase, tierLabel } from '$lib/components/admin/settings/license-status-summary';
     import UseCaseTiles from '$lib/components/setup/UseCaseTiles.svelte';
     import type { PageData, ActionData } from './$types';
 
@@ -197,140 +191,6 @@
         }
     }
 
-    // ── Licensing (ex /admin/licensing) ─────────────────────────────────────
-    function licenseErrorMessage(code: string, detail: string | undefined): string {
-        switch (code) {
-            case 'invalid':
-                return m.admin_licensing_error_invalid();
-            case 'empty':
-                return m.admin_licensing_error_empty();
-            case 'env_locked':
-                return m.admin_licensing_error_env_locked();
-            default:
-                return m.admin_licensing_error_save_failed({ detail: detail ?? '' });
-        }
-    }
-
-    // Reflect the latest action result if present, else the loaded state.
-    const licenseKeySet = $derived(
-        form && 'licenseKeySet' in form ? Boolean(form.licenseKeySet) : data.licenseKeySet,
-    );
-    let savingLicense = $state(false);
-
-    const status = $derived(data.licenseStatus);
-
-    // What this install runs on right now: grace / early access / licensed /
-    // free tier / unrestricted. Same helper as the Settings card.
-    const phase = $derived(
-        status
-            ? licensePhase({
-                  validity: status.validity,
-                  tier: status.tier,
-                  enforcementEnabled: status.enforcementEnabled,
-              })
-            : null,
-    );
-
-    // Map the verified validity to a badge label + Skeleton variant class.
-    const validityBadge = $derived.by(() => {
-        // The status lookup failed in the load: say so rather than fall through
-        // to "Enforcement off", which reads as a real license posture.
-        if (!status) {
-            return { label: m.admin_licensing_status_unavailable(), cls: 'variant-filled-warning' };
-        }
-        if (phase === 'early-access' && status?.validity === 'valid') {
-            return { label: m.admin_licensing_early_access(), cls: 'variant-filled-success' };
-        }
-        switch (status?.validity) {
-            case 'grace':
-                return { label: m.admin_licensing_grace(), cls: 'variant-filled-warning' };
-            case 'valid':
-                return { label: m.admin_licensing_valid(), cls: 'variant-filled-success' };
-            case 'expiring-soon':
-                return { label: m.admin_licensing_expiring_soon(), cls: 'variant-filled-warning' };
-            case 'expired':
-                return { label: m.admin_licensing_expired(), cls: 'variant-filled-error' };
-            case 'free-tier':
-                return { label: m.admin_licensing_free_tier(), cls: 'variant-soft-surface' };
-            default:
-                return { label: m.admin_licensing_enforcement_off(), cls: 'variant-soft-surface' };
-        }
-    });
-
-    const expiresLabel = $derived(
-        status?.expiresAt
-            ? new Date(status.expiresAt).toLocaleDateString(getLocale(), { timeZone: 'UTC' })
-            : null,
-    );
-
-    // This process's contact with lumastra.org (null in a build without the
-    // verifier, or when enforcement is off and push needs no relay token).
-    const contact = $derived(data.licenseServerContact);
-    // Contact switched off — only meaningful while enforcement is on (a build
-    // without enforcement gates nothing either way).
-    const contactOff = $derived(
-        data.licenseServerContactEnabled === false && status?.enforcementEnabled === true,
-    );
-    const fmtTime = (iso: string | null): string =>
-        iso
-            ? new Date(iso).toLocaleString(getLocale(), { dateStyle: 'medium', timeStyle: 'short' })
-            : '—';
-    const contactReason = $derived.by(() => {
-        const failure = contact?.lastFailure;
-        if (!failure || failure === 'unreachable')
-            return m.admin_licensing_contact_reason_unreachable();
-        if (failure === 'http-429') return m.admin_licensing_contact_reason_rate_limited();
-        return m.admin_licensing_contact_reason_http({ status: failure.replace('http-', '') });
-    });
-
-    /**
-     * Localized rendering of `status.reason` — the server field is plain
-     * English prose (it can be generated outside any paraglide request
-     * context), which used to be shown verbatim regardless of the viewer's UI
-     * language ("License is valid." under a fully-German admin). Maps the
-     * stable `reasonCode` to a message; an code-less/unrecognized status
-     * (older cached entry, a future code this build doesn't know) falls back
-     * to the raw English `reason` rather than showing nothing.
-     */
-    const reasonLabel = $derived.by(() => {
-        switch (status?.reasonCode) {
-            case 'valid':
-                return m.admin_licensing_reason_valid();
-            case 'valid-expiring-soon':
-                return m.admin_licensing_reason_valid_expiring_soon();
-            case 'grace-active':
-                return m.admin_licensing_reason_grace_active();
-            case 'no-key-free':
-                return m.admin_licensing_reason_no_key_free();
-            case 'grace-ended-free':
-                return m.admin_licensing_reason_grace_ended_free();
-            case 'expired-in-grace':
-                return m.admin_licensing_reason_expired_in_grace();
-            case 'expired-beyond-grace':
-                return m.admin_licensing_reason_expired_beyond_grace();
-            case 'invalid-key-free':
-                return m.admin_licensing_reason_invalid_key_free();
-            case 'db-unavailable-free':
-                return m.admin_licensing_reason_db_unavailable_free();
-            case 'install-identity-unavailable-free':
-                return m.admin_licensing_reason_install_identity_unavailable_free();
-            case 'check-failed-free':
-                return m.admin_licensing_reason_check_failed_free();
-            case 'no-provider-free':
-                return m.admin_licensing_reason_no_provider_free();
-            case 'enforcement-disabled':
-                return m.admin_licensing_reason_enforcement_disabled();
-            case 'contact-off-free':
-                return m.admin_licensing_reason_contact_off_free();
-            case 'contact-off-key-until-expiry':
-                return m.admin_licensing_reason_contact_off_key_until_expiry();
-            case 'contact-off-expired-free':
-                return m.admin_licensing_reason_contact_off_expired_free();
-            default:
-                return status?.reason ?? null;
-        }
-    });
-
     let copied = $state(false);
     async function copyInstallUuid(): Promise<void> {
         if (!data.installUuid) return;
@@ -342,42 +202,6 @@
             // Clipboard unavailable — operator can select the text manually.
         }
     }
-
-    // Edition display helpers.
-    const editionLabel = $derived.by(() => {
-        switch (status?.entitlements?.edition) {
-            case 'pro':
-                return 'Pro';
-            case 'enterprise':
-                return 'Enterprise';
-            case 'unlimited':
-                return 'Unlimited';
-            case 'free':
-                return 'Community (Free)';
-            default:
-                return status?.tier ?? 'Unknown';
-        }
-    });
-
-    // Module display config: id → label. Imported rather than declared inline
-    // because tsgo (what `npm run typecheck` runs) does not check .svelte
-    // files — an exhaustive Record written here would be enforced by nothing
-    // CI runs, and this map having silently missed `push` is exactly the bug
-    // being fixed. See LICENSE_MODULE_LABELS for the full reasoning.
-    const MODULE_LABELS = LICENSE_MODULE_LABELS;
-    const ALL_MODULES = LICENSE_MODULES;
-    const licensedModules = $derived<Set<string>>(
-        status?.entitlements?.modules
-            ? new Set([...(status.entitlements.modules as Set<string>)])
-            : new Set<string>(),
-    );
-
-    // Seat overflow banner.
-    const seatsInUse = $derived(status?.seatsInUse ?? null);
-    const seatLimit = $derived(status?.seatLimit ?? null);
-    const seatOverflow = $derived(
-        seatsInUse !== null && seatLimit !== null && seatsInUse > seatLimit,
-    );
 </script>
 
 <svelte:head>
@@ -404,7 +228,7 @@
             href="#licenses">{m.admin_instance_nav_licenses()}</a>
         <a
             class="inline-flex min-h-10 shrink-0 items-center rounded px-3 text-xs text-surface-300 hover:bg-surface-800"
-            href="#license-status">{m.admin_instance_nav_license_status()}</a>
+            href="#install-id">{m.admin_instance_nav_license_status()}</a>
         <a
             class="inline-flex min-h-10 shrink-0 items-center rounded px-3 text-xs text-surface-300 hover:bg-surface-800"
             href="#data-flows">{m.admin_instance_nav_data_flows()}</a>
@@ -795,261 +619,31 @@
         </div>
     </section>
 
-    <!-- License status -->
+    <!-- Install ID -->
     <section
-        id="license-status"
+        id="install-id"
         class="card scroll-mt-16 lg:scroll-mt-32 space-y-4 bg-surface-800/50 p-5">
-        <div class="flex items-center justify-between gap-3">
-            <h2 class="font-semibold">{m.admin_licensing_status_title()}</h2>
-            <span class="badge {validityBadge.cls}">{validityBadge.label}</span>
-        </div>
-
-        <!-- Seat overflow banner (observe policy — informational only) -->
-        {#if seatOverflow}
-            <div
-                class="rounded border border-warning-500/40 bg-warning-500/10 px-4 py-2 text-sm text-warning-300">
-                <strong>{m.admin_licensing_seat_limit_exceeded()}</strong>
-                {m.admin_licensing_seat_limit_detail({
-                    inUse: seatsInUse ?? 0,
-                    limit: seatLimit ?? 0,
-                })}
-                {#if status?.entitlements?.seatOverflowPolicy === 'degrade'}
-                    {m.admin_licensing_seat_degrade_note()}
-                {:else}
-                    {m.admin_licensing_seat_contact_note()}
-                {/if}
-            </div>
-        {/if}
-
-        {#if phase}
-            <p class="text-sm font-medium text-surface-200" data-testid="license-phase">
-                {#if phase === 'grace'}
-                    {expiresLabel
-                        ? m.admin_licensing_phase_grace({ date: expiresLabel })
-                        : m.admin_licensing_phase_grace_no_date()}
-                {:else if phase === 'early-access'}
-                    {m.admin_licensing_phase_early_access({ date: expiresLabel ?? '—' })}
-                {:else if phase === 'licensed'}
-                    {m.admin_licensing_phase_licensed()}
-                {:else if phase === 'free-tier'}
-                    {m.admin_licensing_phase_free()}
-                {:else}
-                    {m.admin_licensing_phase_unrestricted()}
-                {/if}
-            </p>
-            {#if contactOff}
-                <!-- Admin → Settings → General → Licensing switched contact off:
-                     nothing below (last contact, next attempt) applies. -->
-                <p class="text-xs text-surface-300" data-testid="license-server-contact">
-                    {phase === 'free-tier'
-                        ? m.admin_licensing_contact_off()
-                        : m.admin_licensing_contact_off_key({ date: expiresLabel ?? '—' })}
-                </p>
-                <p class="text-xs text-surface-400" data-testid="license-contact-off-losses">
-                    {m.admin_licensing_contact_off_losses()}
-                </p>
-            {:else if contact?.failingSince}
-                <p class="text-xs text-warning-300" data-testid="license-server-contact">
-                    {m.admin_licensing_contact_failing({
-                        since: fmtTime(contact.failingSince),
-                        reason: contactReason,
-                        attempts: contact.failedAttempts,
-                        next: fmtTime(contact.nextAttemptAt),
-                    })}
-                </p>
-            {:else if contact?.lastSuccessAt}
-                <p class="text-xs text-surface-400" data-testid="license-server-contact">
-                    {m.admin_licensing_contact_ok({ when: fmtTime(contact.lastSuccessAt) })}
-                </p>
-            {:else if contact && !contact.checkedAt && contact.nextAttemptAt}
-                <p class="text-xs text-surface-400" data-testid="license-server-contact">
-                    {m.admin_licensing_contact_pending({ next: fmtTime(contact.nextAttemptAt) })}
-                </p>
-            {/if}
-            {#if phase === 'grace' || phase === 'free-tier'}
-                <p class="text-xs text-surface-400">
-                    <a
-                        href="https://lumastra.org/license/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-primary-300 hover:text-primary-200"
-                        >{m.admin_licensing_manual_key_hint()}</a>
-                </p>
-            {/if}
-        {/if}
-
-        <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-            <div class="sm:col-span-2">
-                <dt class="text-xs uppercase tracking-wide text-surface-500">
-                    {m.admin_licensing_install_id()}
-                </dt>
-                <dd class="mt-1 flex items-center gap-2">
-                    {#if data.installUuid}
-                        <code
-                            class="break-all rounded bg-surface-900/70 px-2 py-1 font-mono text-xs"
-                            >{data.installUuid}</code>
-                        <button
-                            type="button"
-                            class="btn btn-sm variant-ghost-surface shrink-0"
-                            onclick={copyInstallUuid}>
-                            {copied ? m.admin_licensing_copied() : m.player_tt_action_copy()}
-                        </button>
-                    {:else}
-                        <span class="text-surface-400">{m.req_unavailable()}</span>
-                    {/if}
-                </dd>
-                <p class="mt-1 text-xs text-surface-500">
-                    {m.admin_licensing_install_id_note()}
-                </p>
-            </div>
-            <div>
-                <dt class="text-xs uppercase tracking-wide text-surface-500">
-                    {m.admin_licensing_enforcement()}
-                </dt>
-                <dd class="mt-1">
-                    {status?.enforcementEnabled ? m.common_enabled() : m.player_forced_disabled()}
-                </dd>
-            </div>
-            <div>
-                <dt class="text-xs uppercase tracking-wide text-surface-500">
-                    {m.admin_licensing_edition()}
-                </dt>
-                <dd class="mt-1 font-medium">{editionLabel}</dd>
-            </div>
-            <div>
-                <dt class="text-xs uppercase tracking-wide text-surface-500">
-                    {m.admin_licensing_tier()}
-                </dt>
-                <dd class="mt-1">{status?.tier ? tierLabel(status.tier) : m.misc_unknown()}</dd>
-            </div>
-            {#if expiresLabel && (phase === 'licensed' || phase === 'early-access')}
-                <div>
-                    <dt class="text-xs uppercase tracking-wide text-surface-500">
-                        {m.admin_licensing_expires()}
-                    </dt>
-                    <dd class="mt-1">{expiresLabel}</dd>
-                </div>
-            {/if}
-            {#if seatLimit !== null}
-                <div>
-                    <dt class="text-xs uppercase tracking-wide text-surface-500">
-                        {m.admin_licensing_seats()}
-                    </dt>
-                    <dd class="mt-1">
-                        {#if seatsInUse !== null}
-                            <span class={seatOverflow ? 'text-warning-400 font-semibold' : ''}>
-                                {seatsInUse} / {seatLimit}
-                            </span>
-                        {:else}
-                            — / {seatLimit}
-                        {/if}
-                        <span class="ml-1 text-xs text-surface-500"
-                            >{m.admin_licensing_seats_window()}</span>
-                    </dd>
-                </div>
-            {/if}
-        </dl>
-
-        {#if reasonLabel}
-            <p class="text-sm text-surface-400">{reasonLabel}</p>
-        {/if}
-
-        <!-- Module checklist -->
-        {#if status?.entitlements}
-            <div>
-                <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-surface-500">
-                    {m.admin_licensing_modules_heading()}
-                </h3>
-                <ul class="space-y-1">
-                    {#each ALL_MODULES as moduleId (moduleId)}
-                        <li class="flex items-center gap-2 text-sm">
-                            {#if licensedModules.has(moduleId)}
-                                <span class="text-success-400 select-none" aria-hidden="true"
-                                    >✓</span>
-                                <span>{MODULE_LABELS[moduleId]}</span>
-                            {:else}
-                                <span class="text-surface-600 select-none" aria-hidden="true"
-                                    >–</span>
-                                <span class="text-surface-500">{MODULE_LABELS[moduleId]}</span>
-                                {#if ENTERPRISE_LICENSE_MODULES.has(moduleId)}
-                                    <span
-                                        class="badge variant-soft-secondary text-[10px] leading-none"
-                                        >{m.admin_licensing_module_enterprise_badge()}</span>
-                                {/if}
-                            {/if}
-                        </li>
-                    {/each}
-                </ul>
-            </div>
-        {/if}
-    </section>
-
-    <!-- Commercial license -->
-    <section class="card space-y-4 bg-surface-800/50 p-5">
-        <div class="flex items-center justify-between gap-3">
-            <h2 class="font-semibold">{m.admin_licensing_commercial_title()}</h2>
-            {#if licenseKeySet && phase === 'early-access'}
-                <!-- The key set here can be one the licensing server minted automatically
-                     (early-access auto-enrol, see license-refresh.ts) rather than one the
-                     operator pasted — "Configured" read as if they had entered it. -->
-                <span class="badge variant-soft-primary"
-                    >{m.admin_licensing_auto_early_access()}</span>
-            {:else if licenseKeySet}
-                <span class="badge variant-filled-success">{m.providers_stat_configured()}</span>
-            {:else}
-                <span class="badge variant-soft-surface">{m.admin_licensing_not_configured()}</span>
-            {/if}
-        </div>
-        <p class="text-sm leading-relaxed text-surface-300">
-            {m.admin_licensing_commercial_desc()}
-        </p>
-        {#if licenseKeySet && phase === 'early-access'}
-            <p class="text-sm text-surface-400">{m.admin_licensing_auto_early_access_note()}</p>
-        {/if}
-
-        {#if form && 'errorCode' in form && form.errorCode}
-            <p class="text-sm text-error-400">
-                {licenseErrorMessage(
-                    form.errorCode,
-                    'errorDetail' in form ? form.errorDetail : undefined,
-                )}
-            </p>
-        {/if}
-
-        <form
-            method="POST"
-            action="?/save"
-            use:enhance={() => {
-                savingLicense = true;
-                return async ({ update }) => {
-                    await update();
-                    savingLicense = false;
-                };
-            }}
-            class="space-y-3">
-            <input
-                type="password"
-                name="licenseKey"
-                autocomplete="off"
-                placeholder={licenseKeySet
-                    ? m.admin_licensing_key_placeholder_set()
-                    : m.admin_licensing_key_placeholder_empty()}
-                class="input w-full font-mono text-sm" />
-            <div class="flex gap-2">
-                <button type="submit" class="btn variant-filled-primary" disabled={savingLicense}>
-                    {savingLicense ? m.modal_progress_saving() : m.admin_licensing_save_key()}
+        <h2 class="font-semibold">{m.admin_licensing_install_id()}</h2>
+        <div class="flex items-center gap-2">
+            {#if data.installUuid}
+                <code class="break-all rounded bg-surface-900/70 px-2 py-1 font-mono text-xs"
+                    >{data.installUuid}</code>
+                <button
+                    type="button"
+                    class="btn btn-sm variant-ghost-surface shrink-0"
+                    onclick={copyInstallUuid}>
+                    {copied ? m.admin_licensing_copied() : m.player_tt_action_copy()}
                 </button>
-                {#if licenseKeySet}
-                    <button
-                        type="submit"
-                        formaction="?/clear"
-                        class="btn variant-ghost-surface"
-                        disabled={savingLicense}>
-                        {m.btn_remove()}
-                    </button>
-                {/if}
-            </div>
-        </form>
+            {:else}
+                <span class="text-surface-400">{m.req_unavailable()}</span>
+            {/if}
+        </div>
+        <p class="text-xs text-surface-500">{m.admin_licensing_install_id_note()}</p>
+        {#if data.licenseServerContactEnabled === false}
+            <p class="text-xs text-surface-300" data-testid="lumastra-org-contact">
+                {m.admin_instance_contact_off()}
+            </p>
+        {/if}
     </section>
 
     <!-- Operator responsibilities -->

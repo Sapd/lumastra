@@ -3,7 +3,6 @@
 
 import { config, features, BACKEND_ONLY_FEATURES } from '$lib/server/config.js';
 import { getDb } from '$lib/server/database/connection.js';
-import { isModuleLicensed } from '$lib/server/licensing/feature-gate.js';
 import { isRadioConfigured } from '$lib/server/services/music/radio-configured.service.js';
 
 export interface ServerBranding {
@@ -17,20 +16,8 @@ export interface ServerBranding {
     ratingLogoRottenTomatoes: string;
 }
 
-/** Shared branding for SSR and server discovery, with the same license gate. */
+/** Shared branding for SSR and server discovery. */
 export async function getServerBranding(): Promise<ServerBranding> {
-    if (!(await isModuleLicensed('branding_removal'))) {
-        return {
-            appName: 'Lumastra',
-            appDescription: 'Media Dashboard',
-            logoSmall: '',
-            logoFull: '',
-            logoPlay: '',
-            backgroundImage: '',
-            ratingLogoImdb: '',
-            ratingLogoRottenTomatoes: '',
-        };
-    }
     return {
         appName: config.APP_NAME,
         appDescription: config.APP_DESCRIPTION,
@@ -52,7 +39,7 @@ export function _resetServerFeaturesCache(): void {
     featureCache.clear();
 }
 
-/** The feature matrix is private; licensing changes appear within five seconds. */
+/** The feature matrix is private; changes appear within a few seconds. */
 export function getServerFeatures(
     kind: 'web' | 'discovery' = 'web',
 ): Promise<Record<string, boolean>> {
@@ -69,10 +56,7 @@ export function getServerFeatures(
 
 async function computeServerFeatures(): Promise<Record<string, boolean>> {
     const sql = getDb();
-    const [aiAssistantLicensed, musicRadio] = await Promise.all([
-        isModuleLicensed('ai_assistant'),
-        sql ? isRadioConfigured(sql) : Promise.resolve(false),
-    ]);
+    const musicRadio = sql ? await isRadioConfigured(sql) : false;
     return {
         ...Object.fromEntries(
             Object.keys(features)
@@ -86,6 +70,6 @@ async function computeServerFeatures(): Promise<Record<string, boolean>> {
         downloadRenditions: config.FEATURE_DOWNLOAD_RENDITIONS,
         seriesSmartDownloads: config.FEATURE_DOWNLOAD_RENDITIONS,
         musicRadio,
-        aiAssistant: features.aiAssistant && aiAssistantLicensed,
+        aiAssistant: features.aiAssistant,
     };
 }

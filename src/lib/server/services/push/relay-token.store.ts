@@ -4,35 +4,25 @@
 /**
  * The relay credential, from either of two sources.
  *
- * ## Precedence: `config.PUSH_RELAY_TOKEN` first, licence-minted token second
+ * ## Precedence: `config.PUSH_RELAY_TOKEN` first, minted token second
  *
  * The configured key wins whenever it is non-empty. It is what an operator
  * running their own relay sets (point `PUSH_RELAY_URL` at it, put the bearer it
  * expects here, done), and an operator-supplied value is never overridden by
- * whatever the licence server said.
+ * a token fetched from lumastra.org.
  *
- * Otherwise the credential is the **licence-minted relay token**: every licence
- * issue/refresh response from lumastra.org carries a `relayToken` — an ES256 JWT
- * bound to this install's uuid, valid for at most 24 hours — and
- * `maybeRefreshLicense()` hands it to {@link setRelayToken}. The refresh loop
- * calls the server whenever {@link relayTokenNeedsRenewal} says so (in practice
- * every 6-hour tick while push uses the default relay), independently of whether
- * the licence itself needs renewing. That is what makes push work out of the box
- * on every install, free tier included.
+ * Otherwise the credential is the **minted relay token**: an ES256 JWT bound to
+ * this install's uuid, valid for at most 24 hours, requested by
+ * `relay-token-enrol.ts` (`POST https://lumastra.org/api/push/relay-token`) and
+ * handed to {@link setRelayToken}. The loop calls the server whenever
+ * {@link relayTokenNeedsRenewal} says so (in practice every 6-hour tick while
+ * push uses the default relay). That is what makes push work out of the box.
  *
- * Since the licence removal the token is requested by `relay-token-enrol.ts`
- * (`POST https://lumastra.org/api/push/relay-token`). Until the licence module is
- * deleted the licence refresh response is a second, legacy source; while the
- * enrolment loop runs in a process the licence loop does not mint.
+ * ## Why a short-lived token
  *
- * ## Why a separate short-lived token, not the license JWT
- *
- * The license JWT's `exp` is the license term, the relay is stateless so
- * nothing can be revoked against it, and a relay checking `exp` strictly would
- * reject during exactly the license-server outage that the local grace window
- * exists to absorb. A ≤24h relay-scoped token bounds replay to a day, makes
- * revocation effective within one refresh cycle, and keeps the grace question
- * away from the relay entirely.
+ * The relay is stateless, so nothing can be revoked against it. A ≤24h token
+ * bounds replay to a day and makes revocation effective within one refresh
+ * cycle.
  *
  * ## Expiry
  *
@@ -45,8 +35,8 @@
  * relay would 401.
  *
  * The token is held in memory per process. Every process that needs it (web for
- * capabilities, worker for delivery) runs its own refresh loop — the licensing
- * module is loaded at boot in each. The loop also shares the minted token via
+ * capabilities, worker for delivery) runs its own refresh loop, started at boot
+ * by `boot/compat-init.ts`. The loop also shares the minted token via
  * Valkey (relay-token.shared.ts) and adopts a sibling's fresher copy
  * ({@link adoptRelayTokenIfFresher}) before deciding to call the server, so a
  * restart or a second process does not fetch a token of its own.
@@ -57,7 +47,7 @@
 import { decodeJwt } from 'jose';
 import { config } from '$lib/server/config.js';
 
-/** The licensing server never mints longer; a claim beyond this is capped. */
+/** The server never mints longer; a claim beyond this is capped. */
 const MAX_LIFETIME_MS = 24 * 60 * 60 * 1000;
 /** Stop presenting a token this long before it expires (relay clock skew is 60s). */
 const EXPIRY_MARGIN_MS = 60 * 1000;
@@ -74,7 +64,6 @@ interface HeldToken {
 }
 
 let held: HeldToken | null = null;
-let enrolLoopActive = false;
 const invalidationListeners = new Set<() => void>();
 
 function unverifiedExpMs(token: string): number | null {
@@ -87,7 +76,7 @@ function unverifiedExpMs(token: string): number | null {
 }
 
 /**
- * Called by the license refresh loop when the server returns a relay token.
+ * Called by the enrolment loop when the server returns a relay token.
  *
  * @param expiresAtEpochSeconds the server's `relayTokenExp`; when absent the
  *   JWT's own `exp` is read (unverified — the relay verifies), and failing
@@ -170,7 +159,7 @@ export function hasRelayCredential(now: number = Date.now()): boolean {
 }
 
 /**
- * Whether the licence refresh should fetch a new minted token: no configured
+ * Whether the enrolment loop should fetch a new minted token: no configured
  * token, and none held or the held one past its renewal point. Says nothing
  * about whether push is on or uses the relay — the caller checks that.
  */
@@ -185,23 +174,8 @@ export function hasLiveMintedRelayToken(now: number = Date.now()): boolean {
 }
 
 /**
- * Set by the relay-token enrolment loop (relay-token-enrol.ts) while it runs in
- * this process. The legacy licence refresh loop checks it (through
- * `wantsLicenceMintedRelayToken()`) and does not mint a token itself then, so the
- * two loops never both call lumastra.org for the same token.
- */
-export function setRelayEnrolLoopActive(active: boolean): void {
-    enrolLoopActive = active;
-}
-
-/** Whether the enrolment loop runs in this process. */
-export function isRelayEnrolLoopActive(): boolean {
-    return enrolLoopActive;
-}
-
-/**
- * Called on a 401 so the next refresh replaces the licence-minted token, and
- * tells listeners (the refresh loop) to fetch one soon rather than at the next
+ * Called on a 401 so the next refresh replaces the minted token, and
+ * tells listeners (the enrolment loop) to fetch one soon rather than at the next
  * 6-hour tick.
  *
  * Deliberately does NOT clear `config.PUSH_RELAY_TOKEN` — an operator-supplied

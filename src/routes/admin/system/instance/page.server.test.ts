@@ -8,7 +8,6 @@ const isEnvOverridden = vi.hoisted(() => vi.fn((_key: string) => false));
 // The config service as the profile state reads it (effective values).
 const stored = vi.hoisted(() => ({}) as Record<string, unknown>);
 const config = vi.hoisted(() => ({
-    LICENSE_KEY: 'existing-key',
     get INSTANCE_USE_CASES() {
         return stored.INSTANCE_USE_CASES ?? [];
     },
@@ -34,12 +33,8 @@ vi.mock('$lib/server/services/sonic-embedding.service.js', () => ({
     isSonicEngineConfigured: () => false,
 }));
 vi.mock('$lib/server/database/index.js', () => ({ getDb: () => null }));
-vi.mock('$lib/server/database/queries/license-install.queries.js', () => ({
+vi.mock('$lib/server/database/queries/install-identity.queries.js', () => ({
     getInstallUuid: vi.fn(),
-}));
-vi.mock('$lib/server/licensing/entitlements.js', () => ({
-    getLicenseServerContact: vi.fn(),
-    getLicenseStatus: vi.fn(),
 }));
 vi.mock('$lib/server/utils/audit-log.js', () => ({
     auditLog,
@@ -51,48 +46,13 @@ import { applyUseCasePreset, serializeAppliedProfile } from '$lib/config/use-cas
 
 const locals = { user: { username: 'admin', isAdmin: true }, principal: { isAdmin: true } };
 
-function saveEvent(licenseKey: string) {
-    const body = new FormData();
-    body.set('licenseKey', licenseKey);
-    return {
-        request: new Request('http://localhost/admin/system/instance?/save', {
-            method: 'POST',
-            body,
-        }),
-        locals,
-    } as never;
-}
-
 beforeEach(() => {
-    saveConfig.mockReset().mockResolvedValue(undefined);
     auditLog.mockReset();
-    isEnvOverridden.mockReset().mockReturnValue(false);
 });
 
-describe('/admin/system/instance save action', () => {
-    it('refuses a blank key instead of wiping the stored one', async () => {
-        const result = (await actions.save(saveEvent('   '))) as { status?: number };
-        expect(result.status).toBe(400);
-        expect(saveConfig).not.toHaveBeenCalled();
-        expect(auditLog).not.toHaveBeenCalled();
-    });
-
-    it('saves a trimmed key', async () => {
-        const result = await actions.save(saveEvent('  abc-123  '));
-        expect(saveConfig).toHaveBeenCalledWith({ LICENSE_KEY: 'abc-123' });
-        expect(result).toEqual({ success: true, licenseKeySet: true });
-    });
-});
-
-describe('/admin/system/instance license key owned by the environment', () => {
-    it('save and clear refuse instead of answering "saved"', async () => {
-        isEnvOverridden.mockImplementation((key: string) => key === 'LICENSE_KEY');
-        const saved = (await actions.save(saveEvent('abc-123'))) as { status?: number };
-        expect(saved.status).toBe(409);
-        const cleared = (await actions.clear({ locals } as never)) as { status?: number };
-        expect(cleared.status).toBe(409);
-        expect(saveConfig).not.toHaveBeenCalled();
-        expect(auditLog).not.toHaveBeenCalled();
+describe('/admin/system/instance has no licence key actions', () => {
+    it('only exposes the security review actions', () => {
+        expect(Object.keys(actions).sort()).toEqual(['reviewSecurity', 'unreviewSecurity']);
     });
 });
 
@@ -153,25 +113,6 @@ describe('/admin/system/instance load: applied profile', () => {
         };
         expect(data.profileRevision).toBeNull();
         expect(data.profileUpdates).toEqual([]);
-    });
-});
-
-describe('/admin/system/instance license errors are codes the page translates', () => {
-    it('blank, env-owned and failed saves each return their code', async () => {
-        expect(await actions.save(saveEvent('  '))).toMatchObject({
-            status: 400,
-            data: { errorCode: 'empty' },
-        });
-        saveConfig.mockRejectedValueOnce(new Error('disk full'));
-        expect(await actions.save(saveEvent('abc'))).toMatchObject({
-            status: 500,
-            data: { errorCode: 'save_failed', errorDetail: 'disk full' },
-        });
-        isEnvOverridden.mockImplementation((key: string) => key === 'LICENSE_KEY');
-        expect(await actions.save(saveEvent('abc'))).toMatchObject({
-            status: 409,
-            data: { errorCode: 'env_locked' },
-        });
     });
 });
 

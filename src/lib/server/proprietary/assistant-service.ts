@@ -20,7 +20,7 @@
  *
  * Failure signalling — `runAssistant` THROWS typed errors instead of returning
  * HTTP responses, so non-HTTP callers (the plugin bridge) can handle them:
- *  - `AiUnavailableError`        — entitlement off, or age-restricted profile.
+ *  - `AiUnavailableError`        — age-restricted profile.
  *  - `AssistantTokenBudgetError` — the caller is over their daily token budget.
  * The HTTP route maps these back to its existing 403 / 429 responses.
  */
@@ -55,7 +55,6 @@ import {
 } from '$lib/server/utils/search-access-context.js';
 import { isSeries } from '$lib/server/utils/media-types.js';
 import { toMovieOrSeries } from '$lib/shared/media-type-domain';
-import { getEffectiveEntitlements } from '$lib/server/licensing/entitlements.js';
 import { assistantToolsEnabled } from '$lib/server/proprietary/assistant-tools/capability.js';
 import { isTrivialAssistantInput } from '$lib/server/proprietary/assistant-tools/trivial-input.js';
 import { buildAssistantTools } from '$lib/server/proprietary/assistant-tools/registry.js';
@@ -642,10 +641,10 @@ export interface RunAssistantResult {
 /**
  * Run the assistant RAG pipeline for one turn.
  *
- * Performs the entitlement gate, age block, daily token budget, access-context
+ * Performs the age block, daily token budget, access-context
  * build, tool-loop-vs-single-shot selection, persistence, and cost recording —
  * everything the `/api/assistant` POST body used to inline. Throws
- * {@link AiUnavailableError} (entitlement/age) or {@link AssistantTokenBudgetError}
+ * {@link AiUnavailableError} (age) or {@link AssistantTokenBudgetError}
  * (over budget) instead of returning HTTP responses.
  */
 export interface RunAssistantDeps {
@@ -719,17 +718,6 @@ async function runAdmittedAssistant(
     // false; it sets a content ceiling, not a blocked profile.)
     if (user.isAgeRestricted) {
         throw new AiUnavailableError('AI chat is not available for age-restricted profiles');
-    }
-
-    // License gate (graceful). When enforcement is enabled and the install is
-    // unlicensed, the AI assistant degrades off — every other feature keeps
-    // working. With enforcement off this is a no-op (entitlements unlimited).
-    const entitlements = await getEffectiveEntitlements();
-    if (!entitlements.aiAssistant) {
-        throw new AiUnavailableError(
-            'The AI assistant is part of the supporter tier and requires an active license. ' +
-                'See Admin → Licensing.',
-        );
     }
 
     const userId = user.userId;

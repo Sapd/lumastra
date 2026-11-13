@@ -43,7 +43,7 @@ vi.mock('$lib/server/config/index.js', () => ({
     },
 }));
 vi.mock('$lib/server/database', () => ({ getDb: () => (h.dbNull ? null : { sql: true }) }));
-vi.mock('$lib/server/database/queries/license-install.queries.js', () => ({
+vi.mock('$lib/server/database/queries/install-identity.queries.js', () => ({
     getInstallUuid: async () => 'install-uuid-1',
 }));
 vi.mock('$lib/server/database/queries/onboarding.queries.js', () => ({
@@ -89,7 +89,6 @@ import {
     getRelayToken,
     hasLiveMintedRelayToken,
     invalidateRelayToken,
-    isRelayEnrolLoopActive,
     setRelayToken,
 } from './relay-token.store.js';
 
@@ -256,18 +255,16 @@ describe('the loop', () => {
         h.worker = true;
         startRelayTokenEnrolLoop();
         expect(isRelayTokenEnrolLoopRunning()).toBe(false);
-        expect(isRelayEnrolLoopActive()).toBe(false);
     });
 
-    it('is idempotent, and marks itself active for the legacy licence loop', () => {
+    it('is idempotent', () => {
         vi.useFakeTimers();
         startRelayTokenEnrolLoop();
         startRelayTokenEnrolLoop();
         expect(isRelayTokenEnrolLoopRunning()).toBe(true);
-        expect(isRelayEnrolLoopActive()).toBe(true);
         expect(h.configListeners).toHaveLength(1);
         stopRelayTokenEnrolLoop();
-        expect(isRelayEnrolLoopActive()).toBe(false);
+        expect(isRelayTokenEnrolLoopRunning()).toBe(false);
         expect(h.configListeners).toHaveLength(0);
     });
 

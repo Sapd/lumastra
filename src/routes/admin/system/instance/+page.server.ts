@@ -15,17 +15,11 @@ import { join } from 'node:path';
 import { fail } from '@sveltejs/kit';
 import { config, hasEmbeddingProvider } from '$lib/server/config.js';
 import { isSonicEngineConfigured } from '$lib/server/services/sonic-embedding.service.js';
-import { saveConfig } from '$lib/server/config/index.js';
-import { get as getConfigValue, isEnvOverridden } from '$lib/server/config/config.service.js';
+import { get as getConfigValue } from '$lib/server/config/config.service.js';
 import { readInstanceProfileState } from '$lib/server/config/instance-profile-state.js';
 import { pendingProfileUpdates, schemaBaseline } from '$lib/config/use-case-presets';
 import { getDb } from '$lib/server/database/index.js';
-import { getInstallUuid } from '$lib/server/database/queries/license-install.queries.js';
-import {
-    getLicenseServerContact,
-    getLicenseStatus,
-    type LicenseStatus,
-} from '$lib/server/licensing/entitlements.js';
+import { getInstallUuid } from '$lib/server/database/queries/install-identity.queries.js';
 import { auditLog, auditActorFromLocals } from '$lib/server/utils/audit-log.js';
 import { Logger } from '$lib/server/utils/logger.js';
 import { USE_CASE_PRESETS } from '$lib/config/use-case-presets';
@@ -71,8 +65,7 @@ async function loadThirdPartyNotices(): Promise<string | null> {
 }
 
 export const load: PageServerLoad = async () => {
-    // Install identity (the operator's license identity) and the verified license
-    // status. Both are best-effort — a licensing hiccup must never break this page.
+    // Install identity. Best-effort — it must never break this page.
     let installUuid: string | null = null;
     const sql = getDb();
     if (sql) {
@@ -106,13 +99,6 @@ export const load: PageServerLoad = async () => {
         } catch (error) {
             logger.warn('Could not read the update check state', error as Error);
         }
-    }
-
-    let licenseStatus: LicenseStatus | null = null;
-    try {
-        licenseStatus = await getLicenseStatus();
-    } catch (error) {
-        logger.warn('Could not resolve license status for instance page', error as Error);
     }
 
     // The profile as POST /api/admin/instance-profile will see it: the
@@ -154,18 +140,14 @@ export const load: PageServerLoad = async () => {
             label: p.label,
             landingPath: p.landingPath,
         })),
-        // Licensing (ex /admin/licensing)
+        // Version and update check (ex /admin/licensing)
         appVersion: config.APP_VERSION,
         updateCheckEnabled: config.UPDATE_CHECK_ENABLED,
         updateCheck,
         releasesUrl: RELEASES_PAGE_URL,
         buildInfo: config.buildInfo,
-        // Never echo the key back to the client; expose only whether one is set.
-        licenseKeySet: Boolean(config.LICENSE_KEY),
         installUuid,
-        licenseStatus,
-        licenseServerContact: await getLicenseServerContact(),
-        // Admin → Settings → General → Licensing: off = no call to lumastra.org.
+        // Off = no call to lumastra.org (the push relay token is not requested).
         licenseServerContactEnabled: config.LICENSE_SERVER_CONTACT_ENABLED,
         repoUrl: REPO_URL,
         licensingUrl: `${REPO_URL}/blob/HEAD/LICENSING.md`,
@@ -177,7 +159,7 @@ export const load: PageServerLoad = async () => {
 /**
  * Shared body of the two review actions. Called only after `denyUnlessAdmin`.
  * Errors come back as `updateReviewError: true`; the page shows a localized
- * message (the license form owns `error` on this page).
+ * message.
  */
 async function changeSecurityReview(
     request: Request,
@@ -223,57 +205,6 @@ async function changeSecurityReview(
 }
 
 export const actions: Actions = {
-    save: async ({ request, locals }) => {
-        const denied = denyUnlessAdmin(locals);
-        if (denied) return denied;
-        const formData = await request.formData();
-        const raw = formData.get('licenseKey');
-        if (typeof raw !== 'string') {
-            return fail(400, { errorCode: 'invalid' as const });
-        }
-        const licenseKey = raw.trim();
-        // saveConfig never writes a key an environment variable owns; answering
-        // "saved" would show a key that is not the one in force.
-        if (isEnvOverridden('LICENSE_KEY')) {
-            return fail(409, { errorCode: 'env_locked' as const });
-        }
-        // An empty submit (Enter in the blank field) must not wipe a stored key;
-        // removing it is the separate `clear` action.
-        if (licenseKey === '') {
-            return fail(400, { errorCode: 'empty' as const });
-        }
-        try {
-            await saveConfig({ LICENSE_KEY: licenseKey });
-            auditLog('licensing.save', 'config', auditActorFromLocals(locals), {
-                set: licenseKey.length > 0,
-            });
-            return { success: true, licenseKeySet: licenseKey.length > 0 };
-        } catch (error) {
-            logger.error('Failed to save license key', error as Error);
-            return fail(500, {
-                errorCode: 'save_failed' as const,
-                errorDetail: (error as Error).message,
-            });
-        }
-    },
-    clear: async ({ locals }) => {
-        const denied = denyUnlessAdmin(locals);
-        if (denied) return denied;
-        if (isEnvOverridden('LICENSE_KEY')) {
-            return fail(409, { errorCode: 'env_locked' as const });
-        }
-        try {
-            await saveConfig({ LICENSE_KEY: '' });
-            auditLog('licensing.clear', 'config', auditActorFromLocals(locals), {});
-            return { success: true, licenseKeySet: false };
-        } catch (error) {
-            logger.error('Failed to clear license key', error as Error);
-            return fail(500, {
-                errorCode: 'save_failed' as const,
-                errorDetail: (error as Error).message,
-            });
-        }
-    },
     // "This security fix does not apply to us / we mitigated it": turns the
     // red, undismissable notice for THAT release (and older pending ones) into
     // the normal one. Admin only, audited, and only for a version the stored

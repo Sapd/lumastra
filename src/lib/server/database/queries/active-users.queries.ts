@@ -2,22 +2,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * License Seat Count Query Module (AGPL core).
+ * Active user count (monthly active users, for the admin status payload).
  *
- * Pure SQL — no side effects, no imports from proprietary modules. The
- * proprietary license service calls this to populate `seatsInUse` for the
- * admin page and seat-overflow checks. The AGPL core never calls this for
- * enforcement — it only surfaces the count as an informational metric.
- *
- * "Active seat" definition:
- *   A user who is not disabled, not soft-deleted, and whose `last_seen_at`
- *   falls within the configured activity window (default 30 days). This mirrors
- *   the industry-standard "monthly active user" definition used in per-seat
- *   licensing agreements.
- *
- * The partial index `idx_users_active_seats ON users(last_seen_at)
- * WHERE disabled_at IS NULL AND deleted_at IS NULL` (migration 16.97.0) keeps
- * this query fast on large installs.
+ * "Active" means a user who is not disabled, not soft-deleted, and whose
+ * `last_seen_at` falls within the window (default 30 days). The partial index
+ * `idx_users_active_seats ON users(last_seen_at) WHERE disabled_at IS NULL AND
+ * deleted_at IS NULL` (migration 16.97.0; the name is historical) keeps this
+ * fast on large installs.
  */
 
 import type postgres from 'postgres';
@@ -32,7 +23,7 @@ import type postgres from 'postgres';
  *              last seen within `windowDays` days. Returns 0 on an empty table
  *              or when no users have a recent `last_seen_at`.
  */
-export async function countActiveSeats(
+export async function countActiveUsers(
     sql: postgres.Sql,
     windowDays: number = 30,
 ): Promise<number> {

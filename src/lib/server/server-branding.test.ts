@@ -29,34 +29,26 @@ vi.mock('$lib/server/config.js', async (importOriginal) => {
         BACKEND_ONLY_FEATURES: new Set(['backendOnly']),
     };
 });
-const { licensed, radio } = vi.hoisted(() => ({ licensed: vi.fn(), radio: vi.fn() }));
+const { radio } = vi.hoisted(() => ({ radio: vi.fn() }));
 vi.mock('$lib/server/database/connection.js', () => ({ getDb: () => ({}) }));
-vi.mock('$lib/server/licensing/feature-gate.js', () => ({ isModuleLicensed: licensed }));
 vi.mock('$lib/server/services/music/radio-configured.service.js', () => ({ isRadioConfigured: radio }));
 import { getServerBranding, getServerFeatures, _resetServerFeaturesCache } from './server-branding.js';
 
 beforeEach(() => {
     _resetServerFeaturesCache();
-    licensed.mockReset().mockResolvedValue(true);
     radio.mockReset().mockResolvedValue(true);
 });
 
 describe('shared server branding and features', () => {
-    it('uses licensed branding', async () => {
+    it('uses the operator branding with no key or licence', async () => {
         expect(await getServerBranding()).toEqual({ appName: 'Custom', appDescription: 'Custom description',
             logoSmall: 'small', logoFull: 'full', logoPlay: 'play', backgroundImage: 'background',
             ratingLogoImdb: 'imdb', ratingLogoRottenTomatoes: 'rt' });
     });
-    it('uses default branding without a license', async () => {
-        licensed.mockResolvedValue(false);
-        expect(await getServerBranding()).toEqual({ appName: 'Lumastra', appDescription: 'Media Dashboard',
-            logoSmall: '', logoFull: '', logoPlay: '', backgroundImage: '', ratingLogoImdb: '', ratingLogoRottenTomatoes: '' });
-    });
-    it('filters backend flags and disables unlicensed AI', async () => {
-        licensed.mockResolvedValue(false);
+    it('filters backend flags and keeps the AI assistant on', async () => {
         const output = await getServerFeatures();
         expect(output).not.toHaveProperty('backendOnly');
-        expect(output.aiAssistant).toBe(false);
+        expect(output.aiAssistant).toBe(true);
     });
     it.each([false, true])('musicRadio follows isRadioConfigured=%s', async (configured) => {
         radio.mockResolvedValue(configured);
@@ -69,22 +61,23 @@ describe('shared server branding and features', () => {
             expect(typeof output[key], key).toBe('boolean');
         }
     });
-    it('memoizes each call kind and refreshes licensing within five seconds', async () => {
+    it('memoizes each call kind for three seconds', async () => {
         const now = vi.spyOn(Date, 'now').mockReturnValue(1000);
         try {
-            expect((await getServerFeatures()).aiAssistant).toBe(true);
-            licensed.mockResolvedValue(false);
-            expect((await getServerFeatures()).aiAssistant).toBe(true);
-            expect(licensed).toHaveBeenCalledTimes(1);
-            expect((await getServerFeatures('discovery')).aiAssistant).toBe(false);
+            await getServerFeatures();
+            await getServerFeatures();
+            expect(radio).toHaveBeenCalledTimes(1);
+            await getServerFeatures('discovery');
+            expect(radio).toHaveBeenCalledTimes(2);
             now.mockReturnValue(4001);
-            expect((await getServerFeatures()).aiAssistant).toBe(false);
+            await getServerFeatures();
+            expect(radio).toHaveBeenCalledTimes(3);
         } finally {
             now.mockRestore();
         }
     });
     it('retries after a failed computation', async () => {
-        licensed.mockRejectedValueOnce(new Error('offline'));
+        radio.mockRejectedValueOnce(new Error('offline'));
         await expect(getServerFeatures()).rejects.toThrow('offline');
         expect((await getServerFeatures()).aiAssistant).toBe(true);
     });

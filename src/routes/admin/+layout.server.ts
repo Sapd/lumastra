@@ -162,11 +162,9 @@ export const load: LayoutServerLoad = async ({ locals, parent, depends }) => {
         });
         return [];
     });
-    // Enterprise product-showcase nav visibility (LICENSING.md §3.2). Gated on the
-    // operator's showcase master switch, which DEFAULTS OFF — so, like the sibling
-    // enterprise FEATURE flags, the entry is hidden by default (not `isModuleLicensed`,
-    // which fails open and would leave it shown-to-everyone and, in the stripped public
-    // tree where the route is removed, a dead link). Shown+badged only when turned on.
+    // Showcase nav visibility. Gated on the operator's showcase master switch,
+    // which DEFAULTS OFF, so the entry is hidden by default (and would be a dead
+    // link in a tree where the route is removed). Shown only when turned on.
     const showcaseEnabled = config.FEATURE_PUBLIC_SHOWCASE;
     return {
         user: locals.user ? { ...locals.user, isAdmin: localsIsAdmin(locals) } : locals.user,

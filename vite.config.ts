@@ -133,13 +133,6 @@ export default defineConfig(({ mode }) => ({
             mode === 'development' ||
             !!process.env.VITEST ||
             process.env.API_CONTRACT_STRICT === '1',
-        // The image build time, baked into the bundle as a literal. The license
-        // service anchors its no-key grace window to it
-        // (proprietary/licensing/license.service.ts IMAGE_BUILD_TIME_MS), so it
-        // must NOT be a runtime env read — `docker run -e APP_BUILD_TIME=…` would
-        // reopen the window. `__buildInfo.buildTime` is the CI build-arg, or the
-        // build's own clock for a hand-run build (never empty).
-        'import.meta.env.LUMASTRA_IMAGE_BUILD_TIME': JSON.stringify(__buildInfo.buildTime),
     },
     plugins: [
         suppressBuildWarnings(),

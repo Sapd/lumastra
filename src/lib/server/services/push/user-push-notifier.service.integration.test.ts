@@ -5,19 +5,17 @@
  * Integration tests for the push ENQUEUE gate against the real test DB.
  *
  * The gate is the whole subject: `enqueueUserPush` writes at most one
- * `user_push_outbox` row, and only when the feature flag, the `push` licence
- * module, a pushable kind and an active device token all hold. Everything below
- * the licence boundary is real — `user_push_outbox.notification_id` carries a
+ * `user_push_outbox` row, and only when the feature flag, a pushable kind and
+ * an active device token all hold. Everything below the flag is real — `user_push_outbox.notification_id` carries a
  * `UNIQUE` constraint AND an FK to `user_notifications`, so idempotence and the
  * never-throws contract are proved against the actual schema rather than a stub.
  *
- * Only two things are mocked, and both are process-global rather than
- * per-notification: the operator feature flag and the licence entitlements.
+ * Only the operator feature flag is mocked, and it is process-global rather
+ * than per-notification.
  */
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import type postgres from 'postgres';
-import type { LicenseModule } from '$lib/server/licensing/entitlements.js';
 import { getTestDb, closeTestDb } from '../../../../../tests/integration/setup/test-database.js';
 import { truncateTables } from '../../../../../tests/integration/helpers/cleanup.js';
 import {
@@ -56,14 +54,6 @@ vi.mock('$lib/server/config.js', async (importOriginal) => {
     };
 });
 
-const entitlements = vi.hoisted(() => ({
-    modules: new Set<string>(['push']),
-}));
-
-vi.mock('$lib/server/licensing/entitlements.js', () => ({
-    getEffectiveEntitlements: async () => entitlements,
-}));
-
 const { enqueueUserPush, isPushNotificationKind } = await import('./user-push-notifier.service.js');
 const { upsertPushToken } =
     await import('$lib/server/database/queries/user-push-tokens.queries.js');
@@ -93,7 +83,6 @@ describe('enqueueUserPush (integration)', () => {
     beforeEach(async () => {
         await truncateTables(sql, TABLES);
         flags.push = true;
-        entitlements.modules = new Set(['push']);
         userA = generateTestUserId();
         await ensureTestUser(sql, userA);
         nid = await makeNotification(userA);
@@ -146,7 +135,7 @@ describe('enqueueUserPush (integration)', () => {
     // The gate
     // ------------------------------------------------------------------
 
-    it('writes one row when the flag, entitlement and a token are all present', async () => {
+    it('writes one row when the flag and a token are both present', async () => {
         await registerToken(userA);
         await enqueueUserPush({ userId: userA, notificationId: nid, kind: 'library.new_episode' });
         expect(await countOutboxRows()).toBe(1);
@@ -160,13 +149,6 @@ describe('enqueueUserPush (integration)', () => {
     it('writes nothing when the operator feature flag is off', async () => {
         await registerToken(userA);
         flags.push = false;
-        await enqueueUserPush({ userId: userA, notificationId: nid, kind: 'library.new_episode' });
-        expect(await countOutboxRows()).toBe(0);
-    });
-
-    it('writes nothing when the push entitlement is absent', async () => {
-        await registerToken(userA);
-        entitlements.modules = new Set([]);
         await enqueueUserPush({ userId: userA, notificationId: nid, kind: 'library.new_episode' });
         expect(await countOutboxRows()).toBe(0);
     });
@@ -216,9 +198,3 @@ describe('enqueueUserPush (integration)', () => {
         expect(isPushNotificationKind('device.state')).toBe(false);
     });
 });
-
-// Type-only assertion: the entitlement string the service gates on is a real
-// `LicenseModule`, so renaming the module in entitlements.ts breaks the build
-// here rather than silently disabling push at runtime.
-const _pushModule: LicenseModule = 'push';
-void _pushModule;

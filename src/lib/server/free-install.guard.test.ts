@@ -6,17 +6,14 @@
  *
  * Lumastra is AGPL-3.0 with no paid parts. Nothing about /j streams, the AI
  * assistant or operator branding may depend on a key, a licence server or an
- * enforcement switch. These tests run the real entitlements registry and the
- * real config (no entitlement mock), with the optional licensing module
- * replaced by an inert stand-in, which is exactly what "no key" looks like to
- * the core: no provider ever vouches for the install.
+ * enforcement switch. These tests run the real config and the real gates with
+ * nothing registered, which is exactly what a key-less install looks like.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // Real config, but a custom operator branding so the branding test can tell
-// "applied" from "defaults". Everything else (including the enforcement flag
-// the entitlements registry reads) comes from the real module.
+// "applied" from "defaults".
 vi.mock('$lib/server/config', async (importOriginal) => {
     const actual = await importOriginal<typeof import('$lib/server/config')>();
     const overrides: Record<string, unknown> = {
@@ -38,33 +35,16 @@ vi.mock('$lib/server/config', async (importOriginal) => {
     };
 });
 vi.mock('$lib/server/database/connection.js', () => ({ getDb: () => null }));
-// "No key": the optional licensing module never registers a provider.
-vi.mock('$lib/server/proprietary/licensing/init', () => ({
-    initProprietaryLicensing: () => {},
-}));
 
-import { __resetEntitlementsProviderForTests, getEffectiveEntitlements } from './entitlements';
-import { isModuleLicensed } from './feature-gate';
-import { getServerBranding } from '$lib/server/server-branding.js';
-
-beforeEach(() => {
-    __resetEntitlementsProviderForTests();
-});
+import { features } from '$lib/server/config.js';
+import { getServerBranding, getServerFeatures } from '$lib/server/server-branding.js';
 
 describe('free install (no licence key)', () => {
-    it('allows more than 2 concurrent /j streams', async () => {
-        const { jellyfinMaxConcurrentStreams: cap } = await getEffectiveEntitlements();
-        // `null` is "unlimited"; a number must at least clear the old free cap.
-        expect(cap === null || cap > 2).toBe(true);
-    });
-
-    it('has the AI assistant available (module and entitlement)', async () => {
-        expect((await getEffectiveEntitlements()).aiAssistant).toBe(true);
-        expect(await isModuleLicensed('ai_assistant')).toBe(true);
+    it('lets the AI assistant follow its own settings, nothing else', async () => {
+        expect((await getServerFeatures()).aiAssistant).toBe(features.aiAssistant);
     });
 
     it('allows operator branding (name and logos)', async () => {
-        expect(await isModuleLicensed('branding_removal')).toBe(true);
         expect(await getServerBranding()).toMatchObject({
             appName: 'My Own Server',
             appDescription: 'Family media',
@@ -73,10 +53,6 @@ describe('free install (no licence key)', () => {
             logoPlay: '/logo-play.png',
             backgroundImage: '/bg.png',
         });
-    });
-
-    it('keeps push available', async () => {
-        expect(await isModuleLicensed('push')).toBe(true);
     });
 });
 

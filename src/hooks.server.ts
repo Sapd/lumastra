@@ -1713,11 +1713,6 @@ if (!building) {
             await ensureDatabaseMigration();
             const { ensureCompatLoaded } = await import('$lib/server/boot/compat-init.js');
             await ensureCompatLoaded();
-            // The legacy licence module is still present until it is removed; it
-            // leaves the relay token to the enrolment loop started above.
-            const { ensureProprietaryLoaded } =
-                await import('$lib/server/licensing/entitlements.js');
-            await ensureProprietaryLoaded();
         } catch (err) {
             startupLogger.warn('Failed to run the boot registrations', {
                 error: String(err),

@@ -3,8 +3,7 @@
 
 /**
  * AGPL-core registry for the optional, PROPRIETARY /j (Jellyfin-compat) live
- * session store. Mirrors `ai/assistant-provider.ts` and
- * `licensing/entitlements.ts`: the core NEVER imports the proprietary
+ * session store. Mirrors `ai/assistant-provider.ts`: the core NEVER imports the proprietary
  * `jellyfin-compat` tree (the `check-license-boundary` CI gate forbids it, in
  * any import form — static, dynamic, or computed). Instead the proprietary
  * module, when present (official build), registers itself here via
@@ -33,7 +32,7 @@ export interface JellyfinCompatRevocationProvider {
 let provider: JellyfinCompatRevocationProvider | null = null;
 
 /**
- * Called by the proprietary jellyfin-compat module (via `licensing/init.ts`)
+ * Called by the proprietary jellyfin-compat module (via `boot/compat-init.ts`)
  * on load to wire itself in. (proprietary → core direction, which the
  * boundary permits.)
  */

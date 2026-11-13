@@ -173,6 +173,8 @@ export const ServerCapabilitiesSchema = z.object({
     integrations: z.object({ requests: z.object({ available: z.boolean() }) }),
     push: z.object({
         available: z.boolean(),
+        // All four values stay: shipped Apple clients decode them strictly.
+        // `not_entitled` is no longer emitted.
         unavailableReason: z
             .enum([
                 'feature_disabled',

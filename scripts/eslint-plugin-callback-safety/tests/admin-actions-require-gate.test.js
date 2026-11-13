@@ -196,7 +196,7 @@ ruleTester.run('admin-actions-require-gate', rule, {
         {
             filename: ADMIN,
             code: `export const actions = {
-                clear: async ({ locals }) => { await saveConfig({ LICENSE_KEY: '' }); return { ok: true }; },
+                clear: async ({ locals }) => { await saveConfig({ APP_NAME: '' }); return { ok: true }; },
             } satisfies Actions;`,
             errors: [{ messageId: 'ungated', data: { name: 'clear' } }],
         },

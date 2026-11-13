@@ -53,7 +53,6 @@ const PAGES = walk(ADMIN_DIR, []);
 function requestFor(): Request {
     const form = new FormData();
     form.set('updates', JSON.stringify({ ADMIN_GROUPS: 'JellyfinEcosystem' }));
-    form.set('licenseKey', 'x');
     form.set('model', 'gpt-4o');
     form.set('pricePerMillion', '1');
     return new Request('http://localhost/admin/x?/save', { method: 'POST', body: form });

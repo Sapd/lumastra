@@ -25,8 +25,8 @@
  * anyway, but silently, as a caught-and-logged enqueue failure.
  *
  * Nothing in the notification path is mocked: the real `insertNotification`, the
- * real coalescing index, the real FK. Only the operator flag and the licence
- * entitlements are, and both are process-global rather than per-notification.
+ * real coalescing index, the real FK. Only the operator flag is, and it is
+ * process-global rather than per-notification.
  */
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
@@ -57,12 +57,6 @@ vi.mock('$lib/server/config.js', async (importOriginal) => {
     };
 });
 
-const entitlements = vi.hoisted(() => ({ modules: new Set<string>(['push']) }));
-
-vi.mock('$lib/server/licensing/entitlements.js', () => ({
-    getEffectiveEntitlements: async () => entitlements,
-}));
-
 const { publishUserEvent, userEventsHub } = await import('./notification-events.service.js');
 const { upsertPushToken } =
     await import('$lib/server/database/queries/user-push-tokens.queries.js');
@@ -91,7 +85,6 @@ describe('publishUserEvent → push outbox wiring (integration)', () => {
     beforeEach(async () => {
         await truncateTables(sql, TABLES);
         flags.push = true;
-        entitlements.modules = new Set(['push']);
         userEventsHub.consumers.clear();
         userId = generateTestUserId();
         await ensureTestUser(sql, userId);

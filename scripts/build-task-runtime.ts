@@ -166,9 +166,6 @@ const result = await esbuild.build({
     // scripts/sandbox-stubs/app-paths.js).
     define: {
         __SANDBOX_APP_BASE__: JSON.stringify(resolveUrlBasePath()),
-        'import.meta.env.LUMASTRA_IMAGE_BUILD_TIME': JSON.stringify(
-            process.env.APP_BUILD_TIME ?? new Date().toISOString(),
-        ),
         __API_CONTRACT_STRICT__: 'false',
     },
     logLevel: 'warning',

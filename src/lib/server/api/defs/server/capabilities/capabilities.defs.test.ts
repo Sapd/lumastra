@@ -15,7 +15,6 @@ const flags = {
     /** PKCS#8 PEM of an operator's own Apple key, or '' for the relay-only case. */
     apnsKeyP8: '',
 };
-const entitlements = { modules: new Set<string>(['push']) };
 
 /** A throwaway P-256 key in the shape Apple ships a `.p8`. Never a real key. */
 function testSigningKey(): string {
@@ -64,10 +63,6 @@ vi.mock('$lib/server/config.js', async (importOriginal) => {
     };
 });
 
-vi.mock('$lib/server/licensing/entitlements.js', () => ({
-    getEffectiveEntitlements: async () => entitlements,
-}));
-
 // Avoids a real DB round-trip from `hasMusicLibrary()` — irrelevant to the
 // push capability under test, and the working tree's DATABASE_URL points at
 // a local dev Postgres that may not be running.
@@ -89,13 +84,12 @@ describe('capabilities.push', () => {
         flags.deviceAuth = true;
         flags.relayToken = 'relay-token-abc';
         flags.apnsKeyP8 = '';
-        entitlements.modules = new Set(['push']);
         // The credential resolver memoises against its inputs; these tests swap
         // those inputs behind a getter, so the memo has to go with them.
         _resetApnsCredentialCache();
     });
 
-    it('is available when flag, entitlement and device auth are all on', async () => {
+    it('is available when the flag, device auth and a credential are all there', async () => {
         const body = await callCapabilities();
         expect(body.push).toEqual({ available: true });
     });
@@ -114,44 +108,28 @@ describe('capabilities.push', () => {
         expect(body.push.unavailableReason).toBe('device_auth_disabled');
     });
 
-    it('is unavailable when the push entitlement is absent', async () => {
-        entitlements.modules = new Set([]);
-        const body = await callCapabilities();
-        expect(body.push.available).toBe(false);
-        expect(body.push.unavailableReason).toBe('not_entitled');
-    });
-
-    // The four cases above each toggle exactly one condition, so they cannot
-    // distinguish "checked in order" from "ANDed in any order" — the reason
-    // is unambiguous only because a single condition fails per test. These
-    // two combine multiple failing conditions to pin the actual check order
-    // (feature flag -> device auth -> entitlement): if the checks were ever
-    // reordered, one of these would report the wrong reason while the four
-    // single-condition cases above kept passing.
-    it('reports feature_disabled when both the flag and the entitlement are off', async () => {
+    // The cases above each toggle exactly one condition. These combine failing
+    // conditions to pin the check order (feature flag -> device auth ->
+    // credential).
+    it('reports feature_disabled when both the flag and the credential are off', async () => {
         flags.push = false;
-        entitlements.modules = new Set([]);
+        flags.relayToken = '';
         const body = await callCapabilities();
         expect(body.push.available).toBe(false);
         expect(body.push.unavailableReason).toBe('feature_disabled');
     });
 
-    it('reports device_auth_disabled when both device auth and the entitlement are off', async () => {
+    it('reports device_auth_disabled when both device auth and the credential are off', async () => {
         flags.deviceAuth = false;
-        entitlements.modules = new Set([]);
+        flags.relayToken = '';
         const body = await callCapabilities();
         expect(body.push.available).toBe(false);
         expect(body.push.unavailableReason).toBe('device_auth_disabled');
     });
 
-    // The regression this endpoint exists to prevent. With licence enforcement
-    // off — the default in every build shipped so far — the entitlement
-    // resolver hands back UNLIMITED_ENTITLEMENTS, which CONTAINS 'push', while
-    // the licence refresh that mints the relay token never runs. So an install
-    // in exactly the default state passed all three earlier checks, answered
-    // `available: true`, and could not deliver a single push: the client would
-    // burn the one notification-permission prompt iOS grants and every row
-    // would die reading `max_attempts`.
+    // The regression this endpoint exists to prevent: an install with push on
+    // but no relay token (contact switched off, token not fetched yet) must not
+    // answer `available: true` and then fail every delivery.
     it('is unavailable when the install holds no relay credential', async () => {
         flags.relayToken = '';
         const body = await callCapabilities();
@@ -199,15 +177,11 @@ describe('capabilities.push', () => {
         expect(body.push.unavailableReason).toBe('no_relay_credential');
     });
 
-    // Pins the credential check LAST. Entitlement is the more actionable
-    // answer for an operator ("buy the module"), and reporting
-    // no_relay_credential to an unentitled install would send them looking for
-    // a token they are not going to be issued.
-    it('reports not_entitled when both the entitlement and the credential are missing', async () => {
-        flags.relayToken = '';
-        entitlements.modules = new Set([]);
-        const body = await callCapabilities();
-        expect(body.push.available).toBe(false);
-        expect(body.push.unavailableReason).toBe('not_entitled');
+    it('never answers not_entitled: nothing is gated on a licence any more', async () => {
+        for (const relayToken of ['', 'relay-token-abc']) {
+            flags.relayToken = relayToken;
+            const body = await callCapabilities();
+            expect(body.push.unavailableReason).not.toBe('not_entitled');
+        }
     });
 });

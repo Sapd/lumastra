@@ -51,10 +51,6 @@ vi.mock('$lib/server/config/domains/ai', () => ({
     }),
 }));
 
-vi.mock('$lib/server/licensing/entitlements', () => ({
-    getEffectiveEntitlements: async () => ({ aiAssistant: true }),
-}));
-
 // Real `searchAccessBoundary` projection; only `buildSearchAccessContext` (the
 // DB-backed lookup) is stubbed, same pattern as assistant-deescalation.test.ts.
 vi.mock('$lib/server/utils/search-access-context', async (importOriginal) => {

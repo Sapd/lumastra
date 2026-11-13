@@ -34,17 +34,13 @@
  * install already holds and does not call again. A tick every ~6 h renews it; a
  * relay 401 triggers an early renewal (at most every 15 minutes).
  *
- * Coexistence with the legacy licence loop (until it is removed): while this
- * loop runs in a process, `wantsLicenceMintedRelayToken()` answers false, so the
- * licence loop of that process never mints a token too.
- *
  * @module services/push/relay-token-enrol
  */
 
 import { config } from '$lib/server/config.js';
 import { getConfigState, isEnvOverridden, onConfigChange } from '$lib/server/config/index.js';
 import { getDb } from '$lib/server/database';
-import { getInstallUuid } from '$lib/server/database/queries/license-install.queries.js';
+import { getInstallUuid } from '$lib/server/database/queries/install-identity.queries.js';
 import { isFirstRunSetupOlderThan } from '$lib/server/database/queries/onboarding.queries.js';
 import { isIsolationWorker } from '$lib/server/tasks/isolation/isolation-context.js';
 import { Logger } from '$lib/server/utils/logger.js';
@@ -55,7 +51,6 @@ import {
     heldRelayTokenExpiresAtMs,
     onRelayTokenInvalidated,
     relayTokenNeedsRenewal,
-    setRelayEnrolLoopActive,
     setRelayToken,
 } from './relay-token.store.js';
 import {
@@ -340,7 +335,6 @@ export function startRelayTokenEnrolLoop(): void {
     if (isIsolationWorker()) return;
     if (running) return;
     running = true;
-    setRelayEnrolLoopActive(true);
 
     const scheduleNext = (ms: number): void => {
         if (!running) return;
@@ -434,7 +428,6 @@ export function startRelayTokenEnrolLoop(): void {
 /** Stop the loop and reset its state (tests, shutdown). */
 export function stopRelayTokenEnrolLoop(): void {
     running = false;
-    setRelayEnrolLoopActive(false);
     for (const t of [loopTimer, retryTimer, switchOnTimer]) if (t) clearTimeout(t);
     loopTimer = null;
     retryTimer = null;

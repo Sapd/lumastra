@@ -11,7 +11,6 @@ import { EVENT_KINDS } from '$lib/server/api/event-kinds.js';
 import { jellyseerrClient } from '$lib/server/jellyseerr.js';
 import { getDb } from '$lib/server/database/connection.js';
 import { getActiveLibraryTypes } from '$lib/server/database/queries/library-types.queries.js';
-import { getEffectiveEntitlements } from '$lib/server/licensing/entitlements.js';
 import { hasUsablePushCredential } from '$lib/server/services/push/push-transport-selector.js';
 
 import { getServerFeatures } from '$lib/server/server-branding.js';
@@ -109,21 +108,16 @@ export async function hasMusicLibrary(): Promise<boolean> {
 
 /**
  * Whether this install can deliver APNs push, in check order feature flag →
- * device auth → entitlement → push credential. Registration rides the device
- * routes (`FEATURE_DEVICE_AUTH`), so that flag gates availability even when the
- * push feature flag itself is on. Entitlement is gated on
- * `modules.has('push')`, never on `edition` — see the licensing module
- * comment on `LicenseModule`.
+ * device auth → push credential. Registration rides the device routes
+ * (`FEATURE_DEVICE_AUTH`), so that flag gates availability even when the push
+ * feature flag itself is on. `not_entitled` stays in the type because shipped
+ * Apple clients decode all four reasons strictly, but nothing emits it any more.
  *
- * The credential check is last and is not optional. Entitlement and credential
- * are different facts that disagree in the common case: with licence
- * enforcement off — the default in every build shipped so far — the entitlement
- * resolver returns `UNLIMITED_ENTITLEMENTS`, which contains `'push'`, while the
- * licence refresh that mints the relay token never runs. An install in that
- * state would answer `available: true` and then fail every single delivery.
- * This endpoint exists precisely so the iOS client does not burn the one
- * notification-permission prompt iOS grants on an install that cannot deliver,
- * so a capability that ignores the credential defeats its own purpose.
+ * The credential check is last and is not optional: push is on by default, but
+ * an install without a relay token (contact with lumastra.org switched off, or
+ * the token not fetched yet) and without its own Apple key cannot deliver.
+ * This endpoint exists so the iOS client does not burn the one
+ * notification-permission prompt iOS grants on an install that cannot deliver.
  *
  * `hasUsablePushCredential()` covers BOTH routes: an operator's own Apple
  * signing key (`DirectApnsTransport`) as well as a relay credential. It asks
@@ -143,10 +137,6 @@ export async function computePushCapability(): Promise<{
     if (!config.FEATURE_DEVICE_AUTH) {
         // Registration hangs off the device routes, which that flag gates.
         return { available: false, unavailableReason: 'device_auth_disabled' };
-    }
-    const entitlements = await getEffectiveEntitlements();
-    if (!entitlements.modules.has('push')) {
-        return { available: false, unavailableReason: 'not_entitled' };
     }
     if (!hasUsablePushCredential()) {
         // 🔴 `no_relay_credential` now means "no usable push credential of any

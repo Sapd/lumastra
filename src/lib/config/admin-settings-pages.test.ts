@@ -99,9 +99,9 @@ describe('admin settings page registry', () => {
     });
 
     it('leaves no section unreachable', () => {
-        // `requests` (Jellyseerr URL + API key) and `licensing` (LICENSE_KEY) were
-        // orphans: no page loaded them, so those values could only be set by env var
-        // or by editing settings.json. Every section now resolves to a page.
+        // `requests` (Jellyseerr URL + API key) was an orphan: no page loaded it, so
+        // those values could only be set by env var or by editing settings.json.
+        // Every section now resolves to a page.
         expect([...ORPHAN_SECTION_IDS]).toEqual([]);
         expect(getPageForSection('requests')?.href).toBe('/admin/settings/connections');
         expect(getPageForSection('licensing')?.href).toBe('/admin/settings');

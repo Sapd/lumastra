@@ -365,10 +365,6 @@ async function main(): Promise<void> {
         lifecycle.signal.throwIfAborted();
         const { ensureCompatLoaded } = await import('$lib/server/boot/compat-init.js');
         await ensureCompatLoaded();
-        // The legacy licence module is still present until it is removed; it
-        // leaves the relay token to the enrolment loop started above.
-        const { ensureProprietaryLoaded } = await import('$lib/server/licensing/entitlements.js');
-        await ensureProprietaryLoaded();
         lifecycle.signal.throwIfAborted();
         const { startJellyfinConnectionLifecycle } =
             await import('$lib/server/jellyfin/connection-lifecycle.js');

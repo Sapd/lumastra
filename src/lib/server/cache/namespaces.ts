@@ -1468,33 +1468,15 @@ export const CACHE_NAMESPACES = {
     },
 
     // =========================================================================
-    // Licensing
+    // Push relay
     // =========================================================================
 
     /**
-     * Active-seat count for the commercial license enforcement layer.
-     *
-     * The seat count is derived from `countActiveSeats()` (a query over the
-     * users table). On large installs this query can be expensive so the result
-     * is cached here for 15 minutes. Staleness is acceptable: seat counts are
-     * informational (admin-page banner, overflow detection) and never touch the
-     * hot streaming or login path.
-     *
-     * Key: a single global key `'v1:seats'` (not per-user).
-     */
-    licenseSeatCount: {
-        name: 'license-seat-count-v1',
-        l1TTL: 15 * 60 * 1000, // 15 minutes in-memory
-        l2TTL: 15 * 60 * 1000, // 15 minutes in Valkey (cluster-shared)
-        description: 'Active-seat count for the commercial license enforcement layer (15-min TTL)',
-    },
-
-    /**
-     * The licence-minted push relay token (≤24h ES256 JWT, push scope only),
+     * The minted push relay token (≤24h ES256 JWT, push scope only),
      * shared by every process of the install and kept across restarts.
      *
      * Without it each process boot fetched its own token from lumastra.org, so
-     * an install in a 30 s crash loop called the licensing server every 30 s
+     * an install in a 30 s crash loop called lumastra.org every 30 s
      * per process. Written with a TTL equal to the token's remaining life.
      * L1 is short so a sibling's fresher token is seen on the next tick.
      *
@@ -1504,23 +1486,7 @@ export const CACHE_NAMESPACES = {
         name: 'push-relay-token-v1',
         l1TTL: 60 * 1000, // 1 minute in-memory
         l2TTL: 24 * 60 * 60 * 1000, // ceiling; each write passes the token's remaining life
-        description: 'Licence-minted push relay token shared across processes and restarts',
-    },
-
-    /**
-     * When the install last reached the licensing server (any successful
-     * refresh). Its presence means the weekly licence check-in is not due, so
-     * a restart or a sibling process does not call lumastra.org again. Written
-     * with a TTL of about a week.
-     *
-     * Key: a single global key `'v1:license-check-in'`.
-     */
-    licenseCheckIn: {
-        name: 'license-check-in-v1',
-        l1TTL: 60 * 1000, // 1 minute in-memory
-        l2TTL: 8 * 24 * 60 * 60 * 1000, // ceiling; each write passes its own TTL
-        description:
-            'Marker: the weekly licence check-in already happened (shared across processes)',
+        description: 'Minted push relay token shared across processes and restarts',
     },
 
     /**

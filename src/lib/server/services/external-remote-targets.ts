@@ -14,7 +14,7 @@
  *
  * Same shape as `auth/jellyfin-compat-revocation.ts`: the core never imports
  * the proprietary tree (license boundary). The provider registers itself in
- * `jellyfin-compat/remote-control/register.ts`, which `proprietary/licensing/init.ts`
+ * `jellyfin-compat/remote-control/register.ts`, which `boot/compat-init.ts`
  * imports lazily (not on stream-proxy-only nodes). Without it (an AGPL-only
  * build, or a stream-proxy node) the getters answer "nothing" and the device
  * API behaves as before. A provider whose feature is switched off answers

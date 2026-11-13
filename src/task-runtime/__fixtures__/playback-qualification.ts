@@ -265,7 +265,6 @@ export async function bundleHttpHost(
         define: {
             __SANDBOX_APP_BASE__: "''",
             __API_CONTRACT_STRICT__: 'false',
-            'import.meta.env.LUMASTRA_IMAGE_BUILD_TIME': "'playback-continuity-fixture'",
         },
         plugins: [plumbing],
     });

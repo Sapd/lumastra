@@ -13,10 +13,9 @@
  *    shard would enqueue one. A duplicate transient toast is survivable; a
  *    duplicate durable push is not.
  *
- * The admin/entitlement/token gate runs BEFORE any DB read, mirroring
+ * The feature-flag/token gate runs BEFORE any DB read, mirroring
  * `enqueueUserNotificationWebhook`, so that no row is ever created that a later
- * delivery pass could drain. Without it, every unlicensed install would write one
- * row per user per notification and then dead-letter it.
+ * delivery pass could drain.
  *
  * Never throws. `publishUserEvent` never throws into its caller, and an emitter
  * may be running inside the pipeline dispatcher's transaction.
@@ -26,7 +25,6 @@
 
 import { config } from '$lib/server/config.js';
 import { getDb } from '$lib/server/database/connection.js';
-import { getEffectiveEntitlements } from '$lib/server/licensing/entitlements.js';
 import { enqueuePushOutbox } from '$lib/server/database/queries/user-push-outbox.queries.js';
 import { userHasActivePushToken } from '$lib/server/database/queries/user-push-tokens.queries.js';
 import { NOTIFICATION_EVENT_KIND_NAMES } from '$lib/server/api/event-kinds.js';
@@ -47,16 +45,12 @@ export async function enqueueUserPush(opts: {
     notificationId: string;
     kind: string;
 }): Promise<void> {
-    // Gate first, before any DB read — a disabled or unlicensed install pays
-    // nothing, and no drainable row is created.
+    // Gate first, before any DB read — a disabled install pays nothing, and no
+    // drainable row is created.
     if (!config.FEATURE_PUSH_NOTIFICATIONS) return;
     if (!isPushNotificationKind(opts.kind)) return;
 
     try {
-        const entitlements = await getEffectiveEntitlements();
-        // Gate on the MODULE, never on the edition — edition is for display.
-        if (!entitlements.modules.has('push')) return;
-
         const sql = getDb();
         if (!sql) return;
 

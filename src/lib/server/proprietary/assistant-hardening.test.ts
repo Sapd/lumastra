@@ -73,10 +73,6 @@ vi.mock('$lib/server/cache/valkey', async (importOriginal) => ({
     zRem: (...a: unknown[]) => slotCalls.rem(...a),
 }));
 
-vi.mock('$lib/server/licensing/entitlements', () => ({
-    getEffectiveEntitlements: async () => ({ aiAssistant: true }),
-}));
-
 vi.mock('$lib/server/utils/search-access-context', async (importOriginal) => {
     const actual = await importOriginal<typeof import('$lib/server/utils/search-access-context')>();
     return {

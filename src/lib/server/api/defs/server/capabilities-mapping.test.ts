@@ -31,9 +31,6 @@ vi.mock('$lib/server/database/queries/library-types.queries.js', () => ({
     getActiveLibraryTypes: vi.fn(),
 }));
 vi.mock('$lib/server/jellyseerr.js', () => ({ jellyseerrClient: { isConfigured: () => true } }));
-vi.mock('$lib/server/licensing/entitlements.js', () => ({
-    getEffectiveEntitlements: async () => ({ modules: new Set<string>() }),
-}));
 vi.mock('$lib/server/services/push/push-transport-selector.js', () => ({
     hasUsablePushCredential: () => false,
 }));

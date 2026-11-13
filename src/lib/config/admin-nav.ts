@@ -164,11 +164,9 @@ export const ADMIN_NAV: readonly AdminNavSection[] = [
                 title: m.admin_nav_page_library_showcase,
                 description: m.admin_nav_desc_library_showcase,
                 icon: PresentationChartBar,
-                // Enterprise product-showcase module (LICENSING.md §3.2). Gated by
-                // the layout on the showcase master switch (FEATURE_PUBLIC_SHOWCASE,
-                // default OFF) → hidden+unbadged by default, shown+badged when the
-                // operator turns showcase on. The route additionally license-gates
-                // via requireModuleOrRedirect('showcase').
+                // Showcase module. Gated by the layout on the showcase master
+                // switch (FEATURE_PUBLIC_SHOWCASE, default OFF) → hidden+unbadged by
+                // default, shown+badged when the operator turns showcase on.
                 enterpriseOnly: 'showcase',
             },
             {

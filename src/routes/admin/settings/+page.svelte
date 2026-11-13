@@ -6,7 +6,6 @@
 <script lang="ts">
     import { AdminSettingsPage } from '$lib/components/admin';
     import AdminNavStyleControl from '$lib/components/admin/settings/AdminNavStyleControl.svelte';
-    import LicenseStatusCard from '$lib/components/admin/settings/LicenseStatusCard.svelte';
     import { adminPageIcons } from '$lib/components/admin/admin-page-icons';
     import type { PageData, ActionData } from './$types';
     import * as m from '$lib/paraglide/messages.js';
@@ -38,8 +37,6 @@
             <div class="mt-4">
                 <AdminNavStyleControl />
             </div>
-        {:else if sectionId === 'licensing'}
-            <LicenseStatusCard status={data.licenseSummary ?? null} />
         {/if}
     {/snippet}
 </AdminSettingsPage>

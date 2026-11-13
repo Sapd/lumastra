@@ -36,7 +36,7 @@ import { canCallJellyfin } from '$lib/server/jellyfin/runtime-gate.js';
 import { checkBinary } from '$lib/server/health/playback-health.js';
 import { getCachedDependencyChecks } from '$lib/server/preflight/dependency-checks-cache.js';
 import type { DependencyFinding } from '$lib/server/preflight/dependency-checks.js';
-import { countActiveSeats } from '$lib/server/database/queries/license-seats.queries.js';
+import { countActiveUsers } from '$lib/server/database/queries/active-users.queries.js';
 import { getSystemStatusStats } from '$lib/server/database/queries/system-status.queries.js';
 import { getMediaBrowserStats } from '$lib/server/database/queries/admin-media.queries.js';
 import {
@@ -883,7 +883,7 @@ export async function getAdminStatusPayload(): Promise<AdminStatusPayload> {
             : Promise.resolve(undefined),
         getClusterGlance(),
         sql
-            ? countActiveSeats(sql, 30).catch((err: unknown) => {
+            ? countActiveUsers(sql, 30).catch((err: unknown) => {
                   logger.warn('monthly active user count failed; omitting', { err });
                   return undefined;
               })
