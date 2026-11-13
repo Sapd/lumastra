@@ -3,11 +3,8 @@
 // Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
 
 /**
- * The free-tier "stream limit reached" decision and notice ids. The session
- * query is mocked here (its live/stale filtering is covered against a real
- * database in playback-utils.freemium.integration.test.ts); Valkey is an
- * in-memory map; the clip render is stubbed (stream-limit-clip.test.ts renders
- * a real one).
+ * The Live TV "stream limit reached" notice ids. Valkey is an in-memory map; the
+ * clip render is stubbed (stream-limit-clip.test.ts renders a real one).
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -16,25 +13,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const h = vi.hoisted(() => ({
-    cap: 2 as number | null,
-    sessions: [] as { id: string; user_id: string; media_id: string; started_at: Date }[],
     store: new Map<string, string>(),
     cacheSetOk: true,
     clipDir: '',
     clipFails: false,
-    queryThrows: false,
     clipCalls: [] as unknown[][],
 }));
 
-vi.mock('$lib/server/licensing/entitlements', () => ({
-    getEffectiveEntitlements: async () => ({ jellyfinMaxConcurrentStreams: h.cap }),
-}));
-vi.mock('$lib/server/database/queries/play-sessions.queries', () => ({
-    getLiveJellyfinCompatSessions: async () => {
-        if (h.queryThrows) throw new Error('db down');
-        return h.sessions;
-    },
-}));
 vi.mock('$lib/server/cache/valkey', () => ({
     hGetAll: async () => ({}),
     cacheGet: async (k: string) => h.store.get(k) ?? null,
@@ -71,25 +56,17 @@ import {
     isStreamLimitNoticeReport,
     noticeLanguage,
     serveStreamLimitClipFile,
-    streamCapReachedByOthers,
+    __test,
 } from './stream-limit-notice';
 import type { UserId } from '$lib/shared/user-id';
 
 const SQL = {} as never;
 const ME = 'me-uuid' as UserId;
-const OTHER = 'other-uuid';
-
-function session(id: string, mediaId: string, userId: string = OTHER) {
-    return { id, user_id: userId, media_id: mediaId, started_at: new Date() };
-}
 
 beforeEach(async () => {
-    h.cap = 2;
-    h.sessions = [];
     h.store.clear();
     h.cacheSetOk = true;
     h.clipFails = false;
-    h.queryThrows = false;
     h.clipCalls = [];
     h.clipDir = await fs.mkdtemp(join(tmpdir(), 'notice-test-'));
     await fs.writeFile(join(h.clipDir, 'clip.mp4'), Buffer.from('0123456789'));
@@ -97,42 +74,10 @@ beforeEach(async () => {
     await fs.writeFile(join(h.clipDir, 'seg-000.ts'), Buffer.from('ts'));
 });
 
-describe('streamCapReachedByOthers', () => {
-    it('is null when unlimited (licensed / enforcement off)', async () => {
-        h.cap = null;
-        h.sessions = [session('a', 'm1'), session('b', 'm2'), session('c', 'm3')];
-        expect(await streamCapReachedByOthers(SQL, ME, 'new')).toBeNull();
-    });
-
-    it('is null while a slot is free', async () => {
-        h.sessions = [session('a', 'm1')];
-        expect(await streamCapReachedByOthers(SQL, ME, 'new')).toBeNull();
-    });
-
-    it('returns the cap once other live /j streams fill it', async () => {
-        h.sessions = [session('a', 'm1'), session('b', 'm2', ME)];
-        expect(await streamCapReachedByOthers(SQL, ME, 'new')).toBe(2);
-    });
-
-    it("excludes the caller's own session for the same item (seek / track switch)", async () => {
-        h.sessions = [session('a', 'm1'), session('b', 'm2', ME)];
-        expect(await streamCapReachedByOthers(SQL, ME, 'm2')).toBeNull();
-    });
-
-    it("does not treat another user's session on the same item as the caller's", async () => {
-        h.sessions = [session('a', 'm1'), session('b', 'm2')];
-        expect(await streamCapReachedByOthers(SQL, ME, 'm2')).toBe(2);
-    });
-
-    it('fails open (real media) when the query throws', async () => {
-        h.queryThrows = true;
-        expect(await streamCapReachedByOthers(SQL, ME, 'new')).toBeNull();
-    });
-});
-
 describe('notice ids', () => {
     it('build → a clip MediaSource whose id doubles as PlaySessionId', async () => {
         const res = await buildStreamLimitPlaybackInfo({
+            kind: 'livetv_source',
             userId: ME,
             cap: 2,
             lang: 'en',
@@ -142,7 +87,7 @@ describe('notice ids', () => {
         const src = res!.MediaSources[0]!;
         expect(res!.PlaySessionId).toMatch(/^[0-9a-f]{32}$/);
         expect(src.Id).toBe(res!.PlaySessionId);
-        expect(src.Name).toBe('Stream limit reached');
+        expect(src.Name).toBe('All TV streams in use');
         expect(src.Container).toBe('mp4');
         expect(src.SupportsDirectPlay).toBe(true);
         expect(src.RunTimeTicks).toBe(15 * 10_000_000);
@@ -163,29 +108,49 @@ describe('notice ids', () => {
         });
         expect(res!.MediaSources[0]!.Name).toBe('Alle TV-Streams belegt');
         expect(h.clipCalls.at(-1)).toEqual(['livetv_source', 'de', 3]);
-        // Serving it later renders/reads the same clip, not the /j one.
+        // Serving it later renders/reads the same clip.
         await serveStreamLimitClipFile(res!.PlaySessionId, 'clip.mp4', new Request('http://x/'));
         expect(h.clipCalls.at(-1)).toEqual(['livetv_source', 'de', 3]);
         // Its reports are ignored like any notice.
         expect(await isStreamLimitNoticeReport({ playSessionId: res!.PlaySessionId })).toBe(true);
     });
 
-    it('defaults to the /j cap clip', async () => {
-        await buildStreamLimitPlaybackInfo({ userId: ME, cap: 2, lang: 'en', itemId: 'i' });
-        expect(h.clipCalls.at(-1)).toEqual(['jellyfin_cap', 'en', 2]);
+    it('a notice minted for the removed /j cap clip is not a notice', async () => {
+        h.store.set(
+            __test.noticeKey('c'.repeat(32)),
+            JSON.stringify({ userId: ME, kind: 'jellyfin_cap', lang: 'en', cap: 2 }),
+        );
+        h.store.set(
+            __test.noticeKey('d'.repeat(32)),
+            JSON.stringify({ userId: ME, lang: 'en', cap: 2 }),
+        );
+        expect(await isStreamLimitNoticeId('c'.repeat(32))).toBe(false);
+        expect(await isStreamLimitNoticeId('d'.repeat(32))).toBe(false);
     });
 
     it('returns null (→ plain error) when the clip cannot be rendered', async () => {
         h.clipFails = true;
         expect(
-            await buildStreamLimitPlaybackInfo({ userId: ME, cap: 2, lang: 'en', itemId: 'i' }),
+            await buildStreamLimitPlaybackInfo({
+                kind: 'livetv_source',
+                userId: ME,
+                cap: 2,
+                lang: 'en',
+                itemId: 'i',
+            }),
         ).toBeNull();
     });
 
     it('returns null when the notice cannot be stored', async () => {
         h.cacheSetOk = false;
         expect(
-            await buildStreamLimitPlaybackInfo({ userId: ME, cap: 2, lang: 'en', itemId: 'i' }),
+            await buildStreamLimitPlaybackInfo({
+                kind: 'livetv_source',
+                userId: ME,
+                cap: 2,
+                lang: 'en',
+                itemId: 'i',
+            }),
         ).toBeNull();
     });
 
@@ -197,6 +162,7 @@ describe('notice ids', () => {
 
     it('a session report matches by PlaySessionId or MediaSourceId', async () => {
         const res = await buildStreamLimitPlaybackInfo({
+            kind: 'livetv_source',
             userId: ME,
             cap: 2,
             lang: 'en',
@@ -211,6 +177,7 @@ describe('notice ids', () => {
     it('freshPlaySessionId keeps a client id but never reuses a notice id', async () => {
         expect(await freshPlaySessionId('client-session')).toBe('client-session');
         const res = await buildStreamLimitPlaybackInfo({
+            kind: 'livetv_source',
             userId: ME,
             cap: 2,
             lang: 'en',
@@ -239,6 +206,7 @@ describe('notice ids', () => {
 describe('serveStreamLimitClipFile', () => {
     async function noticeId(): Promise<string> {
         const res = await buildStreamLimitPlaybackInfo({
+            kind: 'livetv_source',
             userId: ME,
             cap: 2,
             lang: 'en',

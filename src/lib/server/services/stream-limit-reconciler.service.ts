@@ -41,9 +41,7 @@ function overLimitMarkerKey(userId: string): string {
  * session stubs) or raced (an admin lowering a user's limit mid-stream). This
  * re-checks the user's effective policy on every heartbeat and, when they are
  * over limit, kicks the newest excess sessions after a short grace period —
- * mirroring the Jellyfin-compat freemium pattern (`enforceFreemiumStreamLimit`)
- * but generalized to every session, gated on the licensing-free
- * `STREAM_LIMITS_ENFORCED` policy rather than an entitlement cap.
+ * gated on the `STREAM_LIMITS_ENFORCED` policy.
  *
  * Fail-safe by design: gated on the kill-switch, throttled across replicas via
  * a Valkey `SET NX`, and any error (including Valkey being unavailable) is a

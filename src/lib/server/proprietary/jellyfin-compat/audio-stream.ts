@@ -25,7 +25,6 @@ import { toLibraryAccessUser } from '$lib/server/cache/library-group-permissions
 import { checkSessionKickCooldown } from '$lib/server/services/session-kill.service';
 import { validatePlayToken, renewPlayTokenBySession, type PlayTokenData } from './play-token';
 import { applyPlayTokenIdentity, buildPlayTokenUserContext } from './play-token-user';
-import { isStreamLimitRequestBanned } from './stream-limit-access';
 import type { UserContext } from '$lib/server/types';
 
 // The play-token paths below bypass withJellyfinAuth (clients can't send auth
@@ -54,12 +53,7 @@ async function enforceTokenMediaAccess(
  */
 export async function kickedResponse(
     username: string | null | undefined,
-    userId?: string,
-    event?: RequestEvent,
-    token?: PlayTokenData,
 ): Promise<Response | null> {
-    if (userId && event && (await isStreamLimitRequestBanned(event, userId, token)))
-        return ApiResponses.kicked(0);
     if (!username) return null;
     const kick = await checkSessionKickCooldown(username);
     return kick.kicked ? ApiResponses.kicked(kick.remainingSeconds!) : null;
@@ -84,11 +78,7 @@ export async function serveAuthenticatedAudioStream(event: RequestEvent): Promis
             return ApiResponses.error('Unable to verify content access');
         }
     }
-    const kicked = await kickedResponse(
-        event.locals.user?.username,
-        event.locals.user?.userId,
-        event,
-    );
+    const kicked = await kickedResponse(event.locals.user?.username);
     if (kicked) return kicked;
     void disarmSilentStart({
         playSessionId: getParam(event.url, 'PlaySessionId'),
@@ -117,7 +107,7 @@ export async function serveAudioPlayToken(event: RequestEvent): Promise<Response
             if (!user) return ApiResponses.notFound('Media');
             const denied = await enforceTokenMediaAccess(tokenData.itemId, user);
             if (denied) return denied;
-            const kicked = await kickedResponse(tokenData.userId, user.userId, event, tokenData);
+            const kicked = await kickedResponse(tokenData.userId);
             if (kicked) return kicked;
             applyPlayTokenIdentity(event, user);
             void disarmSilentStart({
@@ -144,12 +134,7 @@ export async function serveAudioPlayToken(event: RequestEvent): Promise<Response
         if (!user) return ApiResponses.notFound('Media');
         const denied = await enforceTokenMediaAccess(fileTokenData.itemId, user);
         if (denied) return denied;
-        const kicked = await kickedResponse(
-            fileTokenData.userId,
-            user.userId,
-            event,
-            fileTokenData,
-        );
+        const kicked = await kickedResponse(fileTokenData.userId);
         if (kicked) return kicked;
         applyPlayTokenIdentity(event, user);
         void disarmSilentStart({
@@ -178,7 +163,7 @@ export async function serveAudioPlayToken(event: RequestEvent): Promise<Response
             if (!user) return ApiResponses.notFound('Media');
             const denied = await enforceTokenMediaAccess(tokenData.itemId, user);
             if (denied) return denied;
-            const kicked = await kickedResponse(tokenData.userId, user.userId, event, tokenData);
+            const kicked = await kickedResponse(tokenData.userId);
             if (kicked) return kicked;
             applyPlayTokenIdentity(event, user);
             void disarmSilentStart({

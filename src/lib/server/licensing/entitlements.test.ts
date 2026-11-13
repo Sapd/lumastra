@@ -152,49 +152,6 @@ describe('getEffectiveEntitlements', () => {
     });
 });
 
-describe('LUMASTRA_TEST_JELLYFIN_STREAM_CAP (downgrade-only test knob)', () => {
-    const KEY = 'LUMASTRA_TEST_JELLYFIN_STREAM_CAP';
-    afterEach(() => {
-        delete process.env[KEY];
-    });
-
-    function licensed(cap: number | null): Entitlements {
-        return { ...UNLIMITED_ENTITLEMENTS, edition: 'pro', jellyfinMaxConcurrentStreams: cap };
-    }
-
-    it('unset: the licence decides', async () => {
-        cfg.LICENSE_ENFORCEMENT_ENABLED = true;
-        registerEntitlementsProvider(provider({ getEntitlements: async () => licensed(null) }));
-        expect((await getEffectiveEntitlements()).jellyfinMaxConcurrentStreams).toBeNull();
-    });
-
-    it('caps an unlimited licence without touching anything else', async () => {
-        cfg.LICENSE_ENFORCEMENT_ENABLED = true;
-        process.env[KEY] = '2';
-        registerEntitlementsProvider(provider({ getEntitlements: async () => licensed(null) }));
-        const ent = await getEffectiveEntitlements();
-        expect(ent.jellyfinMaxConcurrentStreams).toBe(2);
-        expect(ent.edition).toBe('pro');
-        expect(ent.aiAssistant).toBe(true);
-    });
-
-    it('can never RAISE a cap', async () => {
-        cfg.LICENSE_ENFORCEMENT_ENABLED = true;
-        process.env[KEY] = '50';
-        registerEntitlementsProvider(provider({ getEntitlements: async () => licensed(2) }));
-        expect((await getEffectiveEntitlements()).jellyfinMaxConcurrentStreams).toBe(2);
-    });
-
-    it('ignores garbage', async () => {
-        cfg.LICENSE_ENFORCEMENT_ENABLED = true;
-        registerEntitlementsProvider(provider({ getEntitlements: async () => licensed(2) }));
-        for (const bad of ['-1', 'two', '1.5', '']) {
-            process.env[KEY] = bad;
-            expect((await getEffectiveEntitlements()).jellyfinMaxConcurrentStreams).toBe(2);
-        }
-    });
-});
-
 describe('push module', () => {
     it('is granted when enforcement is off', () => {
         expect(UNLIMITED_ENTITLEMENTS.modules.has('push')).toBe(true);

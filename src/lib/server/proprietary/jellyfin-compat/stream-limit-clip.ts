@@ -4,8 +4,8 @@
 
 /**
  * The "stream limit reached" explanation clip a /j client plays instead of the
- * real media when a stream limit is already used up: the free tier's /j cap, or
- * a Live TV provider's own concurrent-stream limit (see `NoticeKind`).
+ * real media when a Live TV provider's own concurrent-stream limit is already
+ * used up (see `NoticeKind`).
  *
  * Rendered ONCE per (kind, language, count, layout revision) — never per request — and
  * cached on disk:
@@ -42,12 +42,11 @@ const logger = Logger.for('JellyfinCompat:StreamLimitClip');
 export type NoticeLanguage = 'en' | 'de';
 
 /**
- * Which limit the clip explains.
- * - `jellyfin_cap`: the free tier's concurrent /j stream cap (a licence limit).
- * - `livetv_source`: the Live TV provider's own concurrent-stream limit (an IPTV
- *   account setting, nothing to do with the licence).
+ * Which limit the clip explains. Only `livetv_source`: the Live TV provider's
+ * own concurrent-stream limit (an IPTV account setting). There is no /j stream
+ * cap of Lumastra's own.
  */
-export type NoticeKind = 'jellyfin_cap' | 'livetv_source';
+export type NoticeKind = 'livetv_source';
 
 /** Bump when the layout or encode settings change — old caches are then ignored. */
 const LAYOUT_REV = 3;
@@ -73,42 +72,6 @@ export interface NoticeText {
     paragraphs: string[];
     /** Small grey line at the bottom; omitted when empty. */
     footer: string;
-}
-
-function jellyfinCapText(lang: NoticeLanguage, cap: number): NoticeText {
-    const word = NUMBER_WORDS[lang][cap] ?? String(cap);
-    if (lang === 'de') {
-        const lower = word.toLowerCase();
-        return {
-            title: 'Stream-Limit erreicht',
-            paragraphs: [
-                cap === 1
-                    ? 'Über eine Jellyfin-App läuft auf diesem Server bereits ein Stream.'
-                    : `Über Jellyfin-Apps laufen auf diesem Server bereits ${lower} Streams.`,
-                cap === 1
-                    ? 'Die kostenlose Version erlaubt einen gleichzeitig.'
-                    : `Die kostenlose Version erlaubt ${lower} gleichzeitig.`,
-                'Beende einen anderen Stream oder schau in der Lumastra-Web-App oder den Apple-Apps – dort gibt es kein Limit.',
-                'Wenn sonst nichts läuft, versuch es in einer Minute noch einmal.',
-            ],
-            footer: 'Mehr Streams: Lumastra Supporter',
-        };
-    }
-    const lower = word.toLowerCase();
-    return {
-        title: 'Stream limit reached',
-        paragraphs: [
-            cap === 1
-                ? 'A stream is already playing through a Jellyfin app on this server.'
-                : `${word} streams are already playing through Jellyfin apps on this server.`,
-            cap === 1
-                ? 'The free tier allows one at a time.'
-                : `The free tier allows ${lower} at a time.`,
-            'Stop another stream, or watch in the Lumastra web or Apple apps, which have no limit.',
-            'If nothing else is playing, try again in a minute.',
-        ],
-        footer: 'More streams: Lumastra Supporter',
-    };
 }
 
 function liveTvSourceText(lang: NoticeLanguage, limit: number): NoticeText {
@@ -145,10 +108,10 @@ function liveTvSourceText(lang: NoticeLanguage, limit: number): NoticeText {
 
 /**
  * The on-screen text. Calm and factual — an explanation, not an ad.
- * `count` is the limit being explained (the /j cap, or the provider's stream limit).
+ * `count` is the provider's stream limit.
  */
-export function noticeText(kind: NoticeKind, lang: NoticeLanguage, count: number): NoticeText {
-    return kind === 'livetv_source' ? liveTvSourceText(lang, count) : jellyfinCapText(lang, count);
+export function noticeText(_kind: NoticeKind, lang: NoticeLanguage, count: number): NoticeText {
+    return liveTvSourceText(lang, count);
 }
 
 function escapeXml(s: string): string {
@@ -440,7 +403,8 @@ async function removeSupersededClips(root: string, prefix: string, current: stri
             if (path === current) continue;
             const sameSlot =
                 name.startsWith(prefix) && /^[0-9a-f]{16}$/.test(name.slice(prefix.length));
-            if (sameSlot || legacy.test(name)) {
+            // `jellyfin_cap-*`: clips of the removed free-tier /j cap.
+            if (sameSlot || legacy.test(name) || name.startsWith('jellyfin_cap-')) {
                 await fs.rm(path, { recursive: true, force: true });
             }
         }

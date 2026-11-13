@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
 // Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
 
-import { isStreamLimitRequestBanned } from '$lib/server/proprietary/jellyfin-compat/stream-limit-access';
 import type { RequestHandler } from './$types';
 import { withJellyfinAuth } from '$lib/server/proprietary/jellyfin-compat/middleware';
 import { handleDownloadFile } from '$lib/server/handlers/media-download-handler';
@@ -31,15 +30,6 @@ export const GET: RequestHandler = withJellyfinAuth(async (event) => {
     // to the item + file it names — only the caller's own token, so a token
     // cannot widen access beyond what this user's own PlaybackInfo granted.
     const fileToken = await validatePlayToken(itemId);
-    if (
-        event.locals.user?.userId &&
-        (await isStreamLimitRequestBanned(
-            event,
-            event.locals.user.userId,
-            fileToken?.userId === username ? fileToken : undefined,
-        ))
-    )
-        return ApiResponses.kicked(0);
     if (fileToken?.fileId && username && fileToken.userId === username) {
         itemId = fileToken.itemId;
         (event.params as Record<string, string>).itemId = itemId;

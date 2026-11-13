@@ -36,8 +36,8 @@ export const POST: RequestHandler = withJellyfinAuth(
                 playSessionId,
                 mediaSourceId,
             } = await parsePlaybackBody(request);
-            // The free-tier "stream limit reached" clip is not a stream: no
-            // session row, no progress on the real item, no slot in the cap.
+            // The Live TV "stream limit reached" clip is not a stream: no
+            // session row, no progress on the real item.
             if (await isStreamLimitNoticeReport({ playSessionId, mediaSourceId })) {
                 return new Response(null, { status: 204 });
             }

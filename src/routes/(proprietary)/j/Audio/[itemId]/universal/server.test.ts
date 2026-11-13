@@ -33,10 +33,6 @@ vi.mock('$lib/server/proprietary/jellyfin-compat/stream-file-handler', () => ({
     handleStreamFile: (...a: unknown[]) => mockHandleStreamFile(...a),
 }));
 
-const mockIsStreamLimitRequestBanned = vi.fn();
-vi.mock('$lib/server/proprietary/jellyfin-compat/stream-limit-access', () => ({
-    isStreamLimitRequestBanned: (...a: unknown[]) => mockIsStreamLimitRequestBanned(...a),
-}));
 vi.mock('$lib/server/proprietary/jellyfin-compat/play-token', () => ({
     validatePlayToken: async (t: string) => (t === 'file-token' ? { fileId: FILE_B } : null),
 }));
@@ -109,7 +105,6 @@ function makeEvent(query: string, opts: { fetch?: typeof fetch; method?: string 
 
 beforeEach(() => {
     vi.clearAllMocks();
-    mockIsStreamLimitRequestBanned.mockResolvedValue(false);
     cfg.FEATURE_MUSIC_TRANSCODE = true;
     feat.ffmpegAvailable = true;
     audioCodecA = 'flac';
@@ -384,11 +379,4 @@ describe('HEAD /j/Audio/{itemId}/universal', () => {
         expect(res.headers.get('Content-Type')).toBe('audio/flac');
         expect(res.body).toBeNull();
     });
-});
-
-it('refuses direct-play bytes for a kicked playback', async () => {
-    mockIsStreamLimitRequestBanned.mockResolvedValue(true);
-    const res = await GET!(makeEvent('?container=flac,mp3'));
-    expect(res.status).toBe(403);
-    expect(mockHandleStreamFile).not.toHaveBeenCalled();
 });

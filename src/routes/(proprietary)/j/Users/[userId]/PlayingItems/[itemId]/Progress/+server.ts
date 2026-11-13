@@ -11,7 +11,6 @@ import { isUuid } from '$lib/server/utils/media-key-parser';
 import {
     parsePlaybackReport,
     findOrCreateJellyfinSession,
-    enforceFreemiumStreamLimit,
     isPolicyError,
 } from '$lib/server/proprietary/jellyfin-compat/playback-utils';
 import { getPlaySessionLifecycleService } from '$lib/server/services/play-session-lifecycle.service';
@@ -108,14 +107,6 @@ export const POST: RequestHandler = withJellyfinAuth(
 
             if (isPolicyError(result)) {
                 return ApiResponses.forbidden(`Stream policy: ${result.kind}`);
-            }
-
-            // Free-tier /j stream cap (one per server): kick an extra stream once
-            // past its grace, same as /j/Sessions/Playing/Progress.
-            if (
-                await enforceFreemiumStreamLimit(sql, userId, result.id, positionMs, playSessionId)
-            ) {
-                return ApiResponses.kicked(0);
             }
 
             const service = getPlaySessionLifecycleService();

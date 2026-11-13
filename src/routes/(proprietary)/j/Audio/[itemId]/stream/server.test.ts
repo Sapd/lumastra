@@ -44,7 +44,6 @@ vi.mock('$lib/server/proprietary/jellyfin-compat/music-progressive', () => ({
     streamMusicProgressive: h.streamProgressive,
 }));
 vi.mock('$lib/server/proprietary/jellyfin-compat/play-token', () => ({
-    isStreamLimitBanned: async () => false,
     validatePlayToken: h.validatePlayToken,
     renewPlayTokenBySession: vi.fn(async () => undefined),
 }));

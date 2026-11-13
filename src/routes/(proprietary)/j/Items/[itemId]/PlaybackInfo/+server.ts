@@ -78,7 +78,6 @@ import {
     freshPlaySessionId,
     noticeLanguage,
     rateLimitedPlaybackInfo,
-    streamCapReachedByOthers,
 } from '$lib/server/proprietary/jellyfin-compat/stream-limit-notice';
 import { isAudio, isAudiobook } from '$lib/server/utils/media-types';
 import {
@@ -113,9 +112,8 @@ function liveTvViewerForToken(event: RequestEvent, streamToken: string): string 
  * two-stream IPTV package. It used to reach the handler's generic catch and come back
  * as HTTP 500, so jellyfin-androidtv showed "This item cannot be played", which
  * reads as a broken server. The client now gets a short clip saying the TV
- * provider's streams are all in use (the same mechanism as the free-tier /j cap
- * clip, see stream-limit-notice.ts); clients play it like any video, where
- * Jellyfin's own `ErrorCode` refusal only reaches the few apps that render it.
+ * provider's streams are all in use (see stream-limit-notice.ts); clients play it
+ * like any video, where Jellyfin's own `ErrorCode` refusal only reaches the few apps that render it.
  * If the clip cannot be produced, the answer falls back to that refusal — a 200
  * carrying `RateLimitExceeded`, which the SDK turns into a PlaybackException.
  *
@@ -548,35 +546,6 @@ async function handlePlaybackInfo(event: RequestEvent): Promise<Response> {
         const allowed = await checkMediaAccess(sql, resolvedItemId, event.locals.user);
         if (!allowed) {
             return ApiResponses.notFound('Media item not found');
-        }
-
-        // Free tier: when OTHER live /j sessions already fill the server's stream
-        // cap, play a short "stream limit reached" clip instead of the media and
-        // start nothing real. The caller's own session for this item is not
-        // "other", so a playing stream that re-asks (seek, track switch) keeps
-        // its media. Licensed / enforcement-off installs have no cap and never
-        // get here. Races (two starts at once) are left to the teardown in
-        // enforceFreemiumStreamLimit.
-        const userUuid = event.locals.user?.userId;
-        const cap = userUuid ? await streamCapReachedByOthers(sql, userUuid, resolvedItemId) : null;
-        if (userUuid && cap !== null) {
-            const mediaType = mediaItem.media_type as string;
-            const clip =
-                isAudio(mediaType) || isAudiobook(mediaType)
-                    ? null
-                    : await buildStreamLimitPlaybackInfo({
-                          userId: userUuid,
-                          cap,
-                          lang: noticeLanguage(event.request),
-                          itemId: resolvedItemId,
-                      });
-            // Audio players get no video clip; they — and any client when the
-            // clip cannot be produced — get Jellyfin's own refusal shape, a 200
-            // whose ErrorCode the SDKs turn into a "playback restricted" message.
-            return json(
-                clip ??
-                    rateLimitedPlaybackInfo(await freshPlaySessionId(requestBody?.PlaySessionId)),
-            );
         }
 
         // LiveTV branch: tvchannel items use live HLS streaming

@@ -9,7 +9,6 @@ import { ticksToMs } from './constants';
 import {
     findActiveSession,
     createPlaySession,
-    getLiveJellyfinCompatSessions,
     type ActivePlaySessionRow,
     type CreateSessionParams,
 } from '$lib/server/database/queries/play-sessions.queries';
@@ -18,20 +17,15 @@ import {
     isPolicyError,
     type PolicyError,
 } from '$lib/server/services/play-sessions.service';
-import { getEffectiveEntitlements } from '$lib/server/licensing/entitlements';
 import { Logger } from '$lib/server/utils/logger';
 import { readBoundedJson, isPayloadTooLargeError } from '$lib/server/utils/bounded-body-reader';
 
 /** Playback reports are small; 1 MiB leaves ample room. */
 const MAX_PLAYBACK_BODY_BYTES = 1024 * 1024;
-import { revokePlayTokenBySession, markStreamLimitBan, isStreamLimitBanned } from './play-token';
 import { reportDeviceName } from '$lib/server/services/user-devices.service.js';
-import {
-    getPlaySessionLifecycleService,
-    reportMusicSessionStart,
-} from '$lib/server/services/play-session-lifecycle.service.js';
+import { reportMusicSessionStart } from '$lib/server/services/play-session-lifecycle.service.js';
 
-const logger = Logger.for('JellyfinCompat:Freemium');
+const logger = Logger.for('JellyfinCompat:Playback');
 
 /** Reserved prefix for the per-user fallback id; clients may not claim it. */
 const SYNTHETIC_PREFIX = 'jellyfin-compat-';
@@ -102,130 +96,6 @@ export function clampJellyfinDeviceId(raw: string | null | undefined): string {
 
     const digest = createHash('sha256').update(value).digest('hex').slice(0, 12);
     return `${value.slice(0, MAX_JELLYFIN_DEVICE_ID_LENGTH - digest.length - 1)}~${digest}`;
-}
-
-/** Grace a fresh extra stream gets before it is kicked (ms). */
-const FREEMIUM_GRACE_MS = 10_000;
-
-/**
- * Hard-enforce the free-tier concurrent-stream cap for /j.
- *
- * The cap is per SERVER, not per user: the free tier allows `cap` concurrent /j
- * streams across the whole install, whoever is watching. Only /j sessions count
- * (see getLiveJellyfinCompatSessions — stale/zombie rows are not counted). Playback in the web app and the native
- * Apple apps goes through /api/v1, is never counted and is never kicked here.
- * The count comes from the database, so every web replica sees the same set.
- *
- * The oldest `cap` /j sessions on the server are the allowed ones; any newer one
- * is an "extra". An extra is allowed a short grace from its start (zero grace
- * while its user is still banned from a recent kick), then it is torn down: the
- * play token is revoked (so direct / HLS byte requests stop validating), any
- * transcode job is stopped, the session row is closed, and its user is marked
- * over-limit for ~30s. We do NOT rely on the client honouring the response.
- *
- * Returns true when THIS session was kicked. Fail-safe: returns false (kicks
- * nothing) when unlimited (licensed / enforcement off) or the selection fails.
- * Once selected, teardown steps run independently even if row closure fails.
- * The allowed (oldest) session is never selected for teardown.
- */
-export async function enforceFreemiumStreamLimit(
-    sql: postgres.Sql,
-    userId: UserId,
-    sessionId: string,
-    positionMs: number,
-    playSessionId?: string,
-): Promise<boolean> {
-    try {
-        const { jellyfinMaxConcurrentStreams: cap } = await getEffectiveEntitlements();
-        if (cap === null) return false; // unlimited — licensed or enforcement off
-
-        // Server-wide, oldest first.
-        const sessions = await getLiveJellyfinCompatSessions(sql);
-        if (sessions.length <= cap) return false;
-
-        const allowed = new Set(sessions.slice(0, cap).map((s) => s.id));
-        if (allowed.has(sessionId)) return false;
-
-        // Not a /j session (e.g. a web row this request adopted) — not ours to kick.
-        const me = sessions.find((s) => s.id === sessionId);
-        if (!me) return false;
-
-        // Account-level admission backoff prevents fresh DeviceIds replaying grace.
-        // Byte routes exempt the account's allowed live playback (stream-limit-access.ts).
-        const grace = (await isStreamLimitBanned(userId)) ? 0 : FREEMIUM_GRACE_MS;
-        if (Date.now() - new Date(me.started_at).getTime() < grace) return false;
-
-        const clientSessionId = me.jellyfin_play_session_id ?? playSessionId;
-        try {
-            await getPlaySessionLifecycleService().update(sessionId, {
-                status: 'COMPLETED',
-                position_ms: positionMs,
-                stop_reason: 'license_stream_limit',
-                // /j has no elapsed counter, including clients with real DeviceIds.
-                session_elapsed_ms: positionMs,
-                event_seq: Math.max(Date.now(), Number(me.last_event_seq ?? 0) + 1),
-            });
-        } catch (err) {
-            logger.warn('Failed to close kicked Jellyfin playback', { sessionId }, err as Error);
-        } finally {
-            // A failed lifecycle write must not leave bytes flowing. Each operation
-            // is independent, including when one of the external services rejects.
-            const results = await Promise.allSettled([
-                clientSessionId ? revokePlayTokenBySession(clientSessionId) : Promise.resolve(),
-                stopTranscodeForSession(clientSessionId, me.media_id, me.username),
-                markStreamLimitBan(userId),
-            ]);
-            for (const result of results) {
-                if (result.status === 'rejected') {
-                    logger.warn('Failed Jellyfin kick teardown step', { sessionId }, result.reason);
-                }
-            }
-        }
-
-        logger.info('Jellyfin free-tier stream limit: kicked extra concurrent stream', {
-            userId,
-            sessionId,
-            cap,
-            active: sessions.length,
-        });
-        return true;
-    } catch (err) {
-        // Never interrupt a legitimate stream on error.
-        logger.warn('Freemium stream-limit enforcement failed; not kicking', err as Error);
-        return false;
-    }
-}
-
-/** Best-effort: stop a transcode job tied to a session (cuts HLS / transcoded bytes). */
-async function stopTranscodeForSession(
-    playSessionId: string | undefined,
-    mediaId: string,
-    username: string,
-): Promise<void> {
-    if (!playSessionId) {
-        // /j jobs use client PlaySessionId keys and share a synthetic transcode
-        // device id. Item + user cannot distinguish family devices watching the
-        // same movie. Leave ambiguous jobs alone; rely on row close + byte gating.
-        logger.debug('Kicked playback has no unambiguous transcode key', { mediaId, username });
-        return;
-    }
-    try {
-        const { getFFmpegTranscodeService } =
-            await import('$lib/server/services/ffmpeg-transcode.service.js');
-        await getFFmpegTranscodeService().stopJobForUser(
-            playSessionId,
-            username,
-            'license_stream_limit',
-        );
-    } catch (err) {
-        if (err instanceof Error && !err.message.includes('import')) {
-            logger.warn(
-                'Failed to stop transcode for kicked session',
-                { playSessionId, mediaId },
-                err,
-            );
-        }
-    }
 }
 
 export async function parsePlaybackBody(request: Request): Promise<{
@@ -356,11 +226,7 @@ export async function findOrCreateJellyfinSession(
     let createdMediaType: string | null = null;
 
     // No active session found — create one atomically.
-    // NOTE: the freemium license cap is NOT enforced here. PlaybackInfo already
-    // hands a client the "stream limit reached" clip when the cap is taken
-    // (stream-limit-notice.ts); a stream that still gets here over the cap (two
-    // starts racing) is kicked shortly after by enforceFreemiumStreamLimit,
-    // called from the progress reports.
+    // No /j concurrent-stream cap here or anywhere: Lumastra has no paid tier.
     const result = await sql.begin(async (rawTxSql) => {
         const txSql = rawTxSql as unknown as postgres.Sql;
 

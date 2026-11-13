@@ -3,20 +3,14 @@
 // Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
 
 /**
- * "Stream limit reached" at PLAYBACK START for the free tier's /j cap.
+ * "Stream limit reached" at PLAYBACK START for a Live TV provider's own stream
+ * limit (`kind: 'livetv_source'`, built from the PlaybackInfo and
+ * LiveStreams/Open routes when the stream proxy refuses a tune).
  *
- * The same clip mechanism also explains a Live TV provider's own stream limit
- * (`kind: 'livetv_source'`, built from the PlaybackInfo route when the stream
- * proxy refuses a tune); only the text differs.
- *
- * When a Jellyfin client asks for PlaybackInfo and the cap is already used by
- * OTHER live /j sessions, the client gets a MediaSource for a short explanation
- * clip (see stream-limit-clip.ts) instead of the real media, and no transcode is
- * started. A teardown after the fact (`enforceFreemiumStreamLimit`) only looks
- * like a playback error inside a Jellyfin app; the clip says what happened.
- *
- * The existing teardown stays the backstop for races (two clients passing this
- * check at the same moment both get real media; the newer one is torn down).
+ * The Jellyfin client gets a MediaSource for a short explanation clip (see
+ * stream-limit-clip.ts) instead of the real media, and no transcode is started.
+ * A bare refusal only looks like a playback error inside a Jellyfin app; the
+ * clip says what happened.
  *
  * Every clip PlaybackInfo mints a random notice id, stored in Valkey, that is
  * used as BOTH the PlaySessionId and the MediaSource.Id. That lets:
@@ -31,12 +25,8 @@
  */
 
 import { randomBytes, randomUUID } from 'node:crypto';
-import type postgres from 'postgres';
-import type { UserId } from '$lib/shared/user-id';
 import { cacheGet, cacheSet, hGetAll } from '$lib/server/cache/valkey';
 import { config } from '$lib/server/config';
-import { getEffectiveEntitlements } from '$lib/server/licensing/entitlements';
-import { getLiveJellyfinCompatSessions } from '$lib/server/database/queries/play-sessions.queries';
 import { serveFileWithRange } from '$lib/server/utils/http-range';
 import { Logger } from '$lib/server/utils/logger';
 import type { JellyfinMediaSourceInfo, JellyfinPlaybackInfoResponse } from './types';
@@ -60,8 +50,8 @@ const TICKS_PER_SECOND = 10_000_000;
 
 interface NoticeRecord {
     userId: string;
-    /** Absent on records minted before Live TV notices existed. */
-    kind?: NoticeKind;
+    /** Records of the removed /j cap clip carry `jellyfin_cap` (or no kind): ignored. */
+    kind?: string;
     lang: NoticeLanguage;
     cap: number;
 }
@@ -77,7 +67,9 @@ async function readNotice(id: string | null | undefined): Promise<NoticeRecord |
     if (!id || !NOTICE_ID_RE.test(id)) return null;
     try {
         const raw = await cacheGet(noticeKey(id));
-        return raw ? (JSON.parse(raw) as NoticeRecord) : null;
+        const record = raw ? (JSON.parse(raw) as NoticeRecord) : null;
+        // Notices minted by a pre-0.2 build for the removed /j cap are not served.
+        return record?.kind === 'livetv_source' ? record : null;
     } catch {
         return null;
     }
@@ -124,33 +116,6 @@ export async function freshPlaySessionId(clientId: string | undefined): Promise<
 }
 
 /**
- * The /j stream cap, when it is already taken by OTHER live /j sessions; null
- * when this request may start a real stream.
- *
- * "Other" excludes the caller's own live session for this item, so a stream that
- * is already playing re-requesting PlaybackInfo (seek, audio or subtitle switch,
- * version pick) keeps its media. Licensed / enforcement-off installs have no cap
- * and never get here. Fail-open: any error → null (real media; the teardown
- * backstop still applies).
- */
-export async function streamCapReachedByOthers(
-    sql: postgres.Sql,
-    userId: UserId,
-    itemId: string,
-): Promise<number | null> {
-    try {
-        const { jellyfinMaxConcurrentStreams: cap } = await getEffectiveEntitlements();
-        if (cap === null) return null;
-        const sessions = await getLiveJellyfinCompatSessions(sql);
-        const others = sessions.filter((s) => !(s.user_id === userId && s.media_id === itemId));
-        return others.length >= cap ? cap : null;
-    } catch (err) {
-        logger.warn('Stream-cap check failed; allowing real media', err as Error);
-        return null;
-    }
-}
-
-/**
  * English unless the server forces German or the client asks for German first.
  * Most Jellyfin apps send no Accept-Language at all, so FORCE_LOCALE is what
  * makes a German household see German.
@@ -176,16 +141,16 @@ export function rateLimitedPlaybackInfo(playSessionId: string): JellyfinPlayback
  * handed out always resolve.
  */
 export async function buildStreamLimitPlaybackInfo(params: {
-    /** Which limit the clip explains. Default: the free tier's /j cap. */
-    kind?: NoticeKind;
+    /** Which limit the clip explains. */
+    kind: NoticeKind;
     userId: string;
-    /** The limit being explained — the /j cap, or the provider's stream limit. */
+    /** The provider's stream limit. */
     cap: number;
     lang: NoticeLanguage;
     /** The item the client asked for (logged only). */
     itemId: string;
 }): Promise<JellyfinPlaybackInfoResponse | null> {
-    const kind = params.kind ?? 'jellyfin_cap';
+    const kind = params.kind;
     try {
         await ensureStreamLimitClip(kind, params.lang, params.cap);
     } catch (err) {
@@ -304,7 +269,7 @@ export async function serveStreamLimitClipFile(
 
     let clip;
     try {
-        clip = await ensureStreamLimitClip(notice.kind ?? 'jellyfin_cap', notice.lang, notice.cap);
+        clip = await ensureStreamLimitClip(notice.kind as NoticeKind, notice.lang, notice.cap);
     } catch (err) {
         logger.warn('Stream-limit clip unavailable at serve time', err as Error);
         return new Response('Clip unavailable', { status: 503 });

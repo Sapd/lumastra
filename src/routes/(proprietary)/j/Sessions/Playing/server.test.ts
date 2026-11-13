@@ -49,11 +49,9 @@ vi.mock('$lib/server/middleware/media-access.js', () => ({
 
 const mockParsePlaybackBody = vi.fn();
 const mockFindOrCreateJellyfinSession = vi.fn();
-const mockEnforceFreemiumStreamLimit = vi.fn();
 vi.mock('$lib/server/proprietary/jellyfin-compat/playback-utils', () => ({
     parsePlaybackBody: (...a: unknown[]) => mockParsePlaybackBody(...a),
     findOrCreateJellyfinSession: (...a: unknown[]) => mockFindOrCreateJellyfinSession(...a),
-    enforceFreemiumStreamLimit: (...a: unknown[]) => mockEnforceFreemiumStreamLimit(...a),
     isPolicyError: (x: unknown): boolean =>
         typeof x === 'object' && x !== null && 'kind' in (x as Record<string, unknown>),
 }));
@@ -132,7 +130,6 @@ beforeEach(() => {
         playSessionId: 'sess-1',
     });
     mockFindOrCreateJellyfinSession.mockResolvedValue({ id: 'play-session-1' });
-    mockEnforceFreemiumStreamLimit.mockResolvedValue(false);
     mockUpdate.mockResolvedValue(undefined);
 });
 
@@ -182,49 +179,16 @@ describe('POST /j/Sessions/Playing/Progress — silent-start detector', () => {
     });
 });
 
-// The free-tier cap is per SERVER. The counting itself lives in
-// enforceFreemiumStreamLimit (unit + integration tests next to it); this pins
-// the route's side of the contract: it asks about the /j session it just
-// created or adopted, and a kick ends the request before any progress write.
-describe('POST /j/Sessions/Playing — free-tier /j stream cap wiring', () => {
-    it('asks the cap about this /j session with the reported position and PlaySessionId', async () => {
-        mockParsePlaybackBody.mockResolvedValue({
-            itemId: ITEM_ID,
-            positionMs: 4200,
-            playSessionId: 'sess-1',
-        });
-        const res = await POST!(makeEvent({ peer: '198.51.100.9' }));
-
-        expect(res.status).toBe(204);
-        expect(mockEnforceFreemiumStreamLimit).toHaveBeenCalledWith(
-            expect.anything(),
-            'uid-alice',
-            'play-session-1',
-            4200,
-            'sess-1',
-        );
-        expect(mockUpdate).toHaveBeenCalled();
-    });
-
-    it('returns the kick response and writes no progress when the stream is the extra', async () => {
-        mockEnforceFreemiumStreamLimit.mockResolvedValue(true);
-        const res = await POST!(makeEvent({ peer: '198.51.100.9' }));
-
-        expect(res.status).toBe(403);
-        expect(mockUpdate).not.toHaveBeenCalled();
-    });
-});
-
-// The "stream limit reached" clip a capped PlaybackInfo hands out is not a
-// stream: its reports must not create a session, write progress onto the real
-// item, or take a slot in the cap.
+// The "stream limit reached" clip a PlaybackInfo hands out for a Live TV
+// provider's own limit is not a stream: its reports must not create a session or
+// write progress onto the real item.
 describe('POST /j/Sessions/Playing|Progress|Stopped — limit-clip reports are ignored', () => {
     const NOTICE = 'c0ffee'.padEnd(32, '0');
 
     beforeEach(() => {
         valkey.set(
             noticeInternals.noticeKey(NOTICE),
-            JSON.stringify({ userId: 'uid-alice', lang: 'en', cap: 2 }),
+            JSON.stringify({ userId: 'uid-alice', kind: 'livetv_source', lang: 'en', cap: 2 }),
         );
     });
 

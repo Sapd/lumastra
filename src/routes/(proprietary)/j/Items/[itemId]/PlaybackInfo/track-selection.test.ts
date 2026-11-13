@@ -69,7 +69,6 @@ vi.mock('$lib/server/proprietary/jellyfin-compat/play-token', () => ({
 }));
 
 vi.mock('$lib/server/proprietary/jellyfin-compat/stream-limit-notice', () => ({
-    streamCapReachedByOthers: vi.fn().mockResolvedValue(null),
     freshPlaySessionId: vi.fn(async (id?: string) => id ?? 'fresh-session'),
     buildStreamLimitPlaybackInfo: vi.fn(),
     noticeLanguage: vi.fn(() => 'en'),

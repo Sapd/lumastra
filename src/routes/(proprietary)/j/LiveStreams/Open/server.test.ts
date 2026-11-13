@@ -10,7 +10,6 @@ const h = vi.hoisted(() => ({
     getStreamInfo: vi.fn(),
     issuePlayToken: vi.fn(),
     revokePlayTokenBySession: vi.fn(),
-    streamCapReachedByOthers: vi.fn(),
     buildStreamLimitPlaybackInfo: vi.fn(),
     canStream: vi.fn(),
 }));
@@ -35,7 +34,6 @@ vi.mock('$lib/server/proprietary/jellyfin-compat/play-token', () => ({
 vi.mock('$lib/server/proprietary/jellyfin-compat/stream-limit-notice', () => ({
     freshPlaySessionId: vi.fn(async (id?: string) => id ?? 'fresh-session'),
     noticeLanguage: vi.fn(() => 'en'),
-    streamCapReachedByOthers: h.streamCapReachedByOthers,
     buildStreamLimitPlaybackInfo: h.buildStreamLimitPlaybackInfo,
 }));
 vi.mock('$lib/server/utils/logger', () => ({
@@ -75,7 +73,6 @@ describe('POST /j/LiveStreams/Open', () => {
         );
         h.getStreamInfo.mockResolvedValue({});
         h.issuePlayToken.mockResolvedValue(TOKEN);
-        h.streamCapReachedByOthers.mockResolvedValue(null);
         h.buildStreamLimitPlaybackInfo.mockResolvedValue(null);
         h.canStream.mockResolvedValue(true);
     });
@@ -155,14 +152,6 @@ describe('POST /j/LiveStreams/Open', () => {
         const res = await call(`?itemId=${CHANNEL}`);
         expect(res.status).toBe(503);
         expect((await res.json()).error).toBe('stream_limit_reached');
-    });
-
-    it('free-tier /j cap answers before any tune', async () => {
-        h.streamCapReachedByOthers.mockResolvedValue(1);
-        const res = await call(`?itemId=${CHANNEL}`);
-        expect(res.status).toBe(503);
-        expect(h.issuePlayToken).not.toHaveBeenCalled();
-        expect(h.getStreamInfo).not.toHaveBeenCalled();
     });
 
     it('a source that fails to start is a 502 and the token is revoked', async () => {

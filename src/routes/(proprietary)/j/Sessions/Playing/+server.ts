@@ -12,7 +12,6 @@ import { isUuid } from '$lib/server/utils/media-key-parser';
 import {
     parsePlaybackBody,
     findOrCreateJellyfinSession,
-    enforceFreemiumStreamLimit,
     isPolicyError,
 } from '$lib/server/proprietary/jellyfin-compat/playback-utils';
 import { getPlaySessionLifecycleService } from '$lib/server/services/play-session-lifecycle.service';
@@ -48,8 +47,8 @@ export const POST: RequestHandler = withJellyfinAuth(
                 playSessionId,
                 mediaSourceId,
             } = await parsePlaybackBody(request);
-            // The free-tier "stream limit reached" clip is not a stream: no
-            // session row, no progress on the real item, no slot in the cap.
+            // The Live TV "stream limit reached" clip is not a stream: no
+            // session row, no progress on the real item.
             if (await isStreamLimitNoticeReport({ playSessionId, mediaSourceId })) {
                 return new Response(null, { status: 204 });
             }
@@ -112,14 +111,6 @@ export const POST: RequestHandler = withJellyfinAuth(
                     policy: result.kind,
                 });
                 return ApiResponses.forbidden(`Stream policy: ${result.kind}`);
-            }
-
-            // Freemium concurrency: while a recent kick still bans the user, an
-            // extra stream is torn down immediately (zero grace) even at start.
-            if (
-                await enforceFreemiumStreamLimit(sql, userId, result.id, positionMs, playSessionId)
-            ) {
-                return ApiResponses.kicked(0);
             }
 
             const service = getPlaySessionLifecycleService();

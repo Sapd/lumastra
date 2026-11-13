@@ -93,7 +93,7 @@ export async function serveAudioStreamByContainer(
 
     // Library + age gate; 404 so a hidden track's existence doesn't leak.
     if (!(await checkMediaAccess(sql, trackId, user))) return ApiResponses.notFound('Media');
-    const kicked = await kickedResponse(user.username, user.userId, event);
+    const kicked = await kickedResponse(user.username);
     if (kicked) return kicked;
 
     const file = await pickAudioFile(sql, trackId, getParam(event.url, 'MediaSourceId'));

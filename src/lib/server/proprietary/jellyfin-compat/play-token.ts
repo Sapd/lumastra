@@ -22,11 +22,8 @@ const logger = Logger.for('JellyfinCompat:PlayToken');
 const TOKEN_PREFIX = 'directplay:token:';
 const SESSION_PREFIX = 'directplay:session:';
 const FILE_SESSION_PREFIX = 'directplay:session-files:v1:';
-const OVERLIMIT_PREFIX = 'directplay:overlimit:';
 const MIN_TTL_SECONDS = 4 * 60 * 60; // 4 h floor
 const RENEWAL_TTL_SECONDS = 4 * 60 * 60; // reset to 4 h on renewal
-/** How long an over-limit install is locked out from (re)authorising an extra stream. */
-const OVERLIMIT_BAN_SECONDS = 30;
 
 export interface PlayTokenData {
     /** Validation-only handle for looking up session indexes of pre-upgrade tokens. Never stored. */
@@ -191,28 +188,6 @@ export async function revokePlayTokenBySession(playSessionId: string): Promise<v
         await cacheDel(keys);
     } catch (err) {
         logger.warn('Failed to revoke play token', { playSessionId }, err as Error);
-    }
-}
-
-function overlimitKey(userId: string): string {
-    return `${OVERLIMIT_PREFIX}${userId}`;
-}
-
-/** Mark a user as over the free stream limit — used to lock out extra streams. */
-export async function markStreamLimitBan(userId: string): Promise<void> {
-    try {
-        await cacheSet(overlimitKey(userId), '1', OVERLIMIT_BAN_SECONDS);
-    } catch (err) {
-        logger.warn('Failed to set stream-limit ban', { userId }, err as Error);
-    }
-}
-
-/** True while a recent freemium kick still locks out extra streams for this user. */
-export async function isStreamLimitBanned(userId: string): Promise<boolean> {
-    try {
-        return (await cacheGet(overlimitKey(userId))) !== null;
-    } catch {
-        return false;
     }
 }
 

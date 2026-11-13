@@ -11,7 +11,6 @@ import { isUuid } from '$lib/server/utils/media-key-parser';
 import {
     parsePlaybackReport,
     findOrCreateJellyfinSession,
-    enforceFreemiumStreamLimit,
     isPolicyError,
 } from '$lib/server/proprietary/jellyfin-compat/playback-utils';
 import { getPlaySessionLifecycleService } from '$lib/server/services/play-session-lifecycle.service';
@@ -109,15 +108,6 @@ export const POST: RequestHandler = withJellyfinAuth(
                     policy: result.kind,
                 });
                 return ApiResponses.forbidden(`Stream policy: ${result.kind}`);
-            }
-
-            // Free-tier /j stream cap (one per server). Same call as
-            // /j/Sessions/Playing: this legacy endpoint creates the same /j
-            // session, so it must be able to kick it too.
-            if (
-                await enforceFreemiumStreamLimit(sql, userId, result.id, positionMs, playSessionId)
-            ) {
-                return ApiResponses.kicked(0);
             }
 
             const service = getPlaySessionLifecycleService();

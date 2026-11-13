@@ -60,8 +60,6 @@ import {
     defaultBitrateFor,
     mimeFor,
 } from '$lib/server/services/music-transcode/index';
-import { validatePlayToken } from '$lib/server/proprietary/jellyfin-compat/play-token';
-import { isStreamLimitRequestBanned } from '$lib/server/proprietary/jellyfin-compat/stream-limit-access';
 import { checkSessionKickCooldown } from '$lib/server/services/session-kill.service';
 import { streamMusicProgressive } from '$lib/server/proprietary/jellyfin-compat/music-progressive';
 
@@ -222,19 +220,6 @@ async function handleUniversal(event: RequestEvent, isHead: boolean): Promise<Re
             codec: source.codec,
             decision: decision.kind,
         });
-
-        if (
-            user?.userId &&
-            (await isStreamLimitRequestBanned(
-                event,
-                user.userId,
-                req.mediaSourceId
-                    ? ((await validatePlayToken(req.mediaSourceId)) ?? undefined)
-                    : undefined,
-            ))
-        ) {
-            return ApiResponses.kicked(0);
-        }
 
         // A user inside a kick cooldown gets no new stream. The HLS path is
         // checked by master.m3u8 itself (as the /Videos and /Audio stream routes do).

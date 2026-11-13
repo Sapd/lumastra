@@ -40,7 +40,6 @@ const mocks = vi.hoisted(() => ({ parse: vi.fn(), update: vi.fn().mockResolvedVa
 vi.mock('$lib/server/proprietary/jellyfin-compat/playback-utils', () => ({
     parsePlaybackBody: mocks.parse,
     findOrCreateJellyfinSession: async () => ({ id: 'one-session' }),
-    enforceFreemiumStreamLimit: async () => false,
     isPolicyError: () => false,
 }));
 vi.mock('$lib/server/services/play-session-lifecycle.service', () => ({

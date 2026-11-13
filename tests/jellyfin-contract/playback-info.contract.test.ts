@@ -4,45 +4,24 @@
 /**
  * /j PlaybackInfo against the jellyfin-sdk-kotlin contract, through the real route
  * handler (withJellyfinAuth included) over real PG + Valkey. Includes leon's shape
- * (episode with only a sidecar .srt) and the free-tier stream-limit clip / refusal.
+ * (episode with only a sidecar .srt).
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { randomUUID } from 'node:crypto';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type postgres from 'postgres';
 import { getTestDb, closeTestDb } from '../integration/setup/test-database.js';
 import { connectValkey, disconnectValkey } from '$lib/server/cache/valkey.js';
 import { truncateTables, TEST_TABLES } from '../integration/helpers/cleanup.js';
 import { ensureTestUser } from '../integration/fixtures/user.fixtures.js';
-import { toUserId } from '$lib/shared/user-id.js';
-import { isPolicyError } from '$lib/server/services/play-sessions.service.js';
-import { findOrCreateJellyfinSession } from '$lib/server/proprietary/jellyfin-compat/playback-utils.js';
 import { callAndCheck, jfEvent, mintJfSession } from './harness';
 import webDeviceProfile from '../../src/routes/(proprietary)/j/Items/[itemId]/PlaybackInfo/jellyfin-web-device-profile.fixture.json';
 import type { JellyfinPlaybackInfoResponse } from '$lib/server/proprietary/jellyfin-compat/types';
-import { seedEpisodeExternalSrt, seedMovieEmbeddedSubs, seedMusicTrack } from './seed';
+import { seedEpisodeExternalSrt, seedMovieEmbeddedSubs } from './seed';
 import {
     POST as playbackInfoPost,
     GET as playbackInfoGet,
 } from '../../src/routes/(proprietary)/j/Items/[itemId]/PlaybackInfo/+server';
 
-// The free-tier /j stream cap. null (no cap) except in the stream-limit cases; the
-// rest of the entitlement object stays real.
-const h = vi.hoisted(() => ({ cap: null as number | null }));
-vi.mock('$lib/server/licensing/entitlements', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('$lib/server/licensing/entitlements')>();
-    return {
-        ...actual,
-        getEffectiveEntitlements: async (
-            ...args: Parameters<typeof actual.getEffectiveEntitlements>
-        ) => {
-            const real = await actual.getEffectiveEntitlements(...args);
-            return h.cap === null ? real : { ...real, jellyfinMaxConcurrentStreams: h.cap };
-        },
-    };
-});
-
 const USER_ID = '00000000-0000-4000-8000-00000000c0de';
-const OTHER_USER_ID = '00000000-0000-4000-8000-00000000c0df';
 let sql: postgres.Sql;
 let token: string;
 let username: string;
@@ -73,27 +52,6 @@ const DEVICE_PROFILE = {
     ],
 };
 
-/** Another user's live /j stream, filling a cap of 1. */
-async function occupyStreamCap(): Promise<void> {
-    await ensureTestUser(sql, OTHER_USER_ID);
-    const [{ username: other }] = await sql<{ username: string }[]>`
-        SELECT username FROM users WHERE id = ${OTHER_USER_ID}`;
-    const { itemId } = await seedMovieEmbeddedSubs(sql);
-    const result = await findOrCreateJellyfinSession(sql, {
-        userId: toUserId(OTHER_USER_ID),
-        username: other,
-        itemId,
-        positionMs: 0,
-        ipAddress: '127.0.0.2',
-        device: {
-            deviceId: 'other-device',
-            deviceName: 'Other TV',
-            clientName: 'Jellyfin Android TV',
-        },
-    });
-    if (isPolicyError(result)) throw new Error(`policy blocked: ${result.kind}`);
-}
-
 beforeAll(async () => {
     sql = getTestDb();
     // /j sessions live in Valkey; the client connects only on demand.
@@ -104,7 +62,6 @@ afterAll(async () => {
     await closeTestDb();
 });
 beforeEach(async () => {
-    h.cap = null;
     await truncateTables(sql, [...TEST_TABLES.media, ...TEST_TABLES.userData]);
     await sql`
         UPDATE play_sessions SET status = 'COMPLETED', stopped_at = now()
@@ -189,46 +146,5 @@ describe('/j PlaybackInfo contract', () => {
                 body: { DeviceProfile: DEVICE_PROFILE },
             }),
         );
-    });
-
-    it('free-tier stream cap reached by another user: the limit clip (video)', async () => {
-        h.cap = 1;
-        await occupyStreamCap();
-        const { itemId } = await seedEpisodeExternalSrt(sql);
-        const body = (await callAndCheck(
-            'playbackinfo-stream-limit-clip',
-            'PlaybackInfoResponse',
-            playbackInfoPost,
-            jfEvent({
-                method: 'POST',
-                path: `/j/Items/${itemId}/PlaybackInfo`,
-                token,
-                params: { itemId },
-                body: { DeviceProfile: DEVICE_PROFILE, PlaySessionId: randomUUID() },
-            }),
-        )) as { PlaySessionId: string; MediaSources: { Id: string }[] };
-        // The clip, not the real media: its source id doubles as the PlaySessionId.
-        expect(body.MediaSources).toHaveLength(1);
-        expect(body.MediaSources[0].Id).toBe(body.PlaySessionId);
-    });
-
-    it('free-tier stream cap reached by another user: RateLimitExceeded refusal (audio)', async () => {
-        h.cap = 1;
-        await occupyStreamCap();
-        const { itemId } = await seedMusicTrack(sql);
-        const body = (await callAndCheck(
-            'playbackinfo-stream-limit-refusal',
-            'PlaybackInfoResponse',
-            playbackInfoPost,
-            jfEvent({
-                method: 'POST',
-                path: `/j/Items/${itemId}/PlaybackInfo`,
-                token,
-                params: { itemId },
-                body: { DeviceProfile: DEVICE_PROFILE },
-            }),
-        )) as { ErrorCode?: string; MediaSources: unknown[] };
-        expect(body.ErrorCode).toBe('RateLimitExceeded');
-        expect(body.MediaSources).toEqual([]);
     });
 });

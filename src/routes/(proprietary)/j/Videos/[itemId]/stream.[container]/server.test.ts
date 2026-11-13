@@ -50,7 +50,6 @@ vi.mock('$lib/server/proprietary/jellyfin-compat/stream-limit-notice', () => ({
     serveStreamLimitClipFile: vi.fn(async () => null),
 }));
 vi.mock('$lib/server/proprietary/jellyfin-compat/play-token', () => ({
-    isStreamLimitBanned: async () => false,
     validatePlayToken: vi.fn(async (t: string) => h.tokens.get(t) ?? null),
     renewPlayTokenBySession: vi.fn(async () => undefined),
 }));

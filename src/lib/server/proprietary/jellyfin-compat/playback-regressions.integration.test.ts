@@ -11,14 +11,11 @@ import { getTestDb, closeTestDb } from '../../../../../tests/integration/setup/t
 
 const h = vi.hoisted(() => ({
     sql: null as postgres.Sql | null,
-    cap: null as number | null,
     access: vi.fn(async () => true),
     stopJob: vi.fn(async () => true),
     stopByItem: vi.fn(async () => true),
     cleanup: vi.fn(async () => undefined),
     stoppedEvent: vi.fn(async () => undefined),
-    serveDownload: vi.fn(async () => new Response('download bytes', { status: 206 })),
-    serveBytes: vi.fn(async () => new Response('range bytes', { status: 206 })),
     username: '',
     userId: '',
 }));
@@ -58,26 +55,8 @@ vi.mock('$lib/server/services/watched-cache.service', () => ({
 vi.mock('$lib/server/plugins/runtime/integration-events', () => ({
     publishIntegrationEvent: h.stoppedEvent,
 }));
-vi.mock('$lib/server/proprietary/jellyfin-compat/stream-file-handler', () => ({
-    handleStreamFile: h.serveBytes,
-}));
-vi.mock('$lib/server/handlers/media-download-handler', () => ({
-    handleDownloadFile: h.serveDownload,
-}));
-vi.mock('$lib/server/proprietary/jellyfin-compat/play-token-user', () => ({
-    buildPlayTokenUserContext: async () => ({ userId: toUserId(h.userId), username: h.username }),
-    applyPlayTokenIdentity: (event: RequestEvent) => {
-        event.locals.user = {
-            userId: toUserId(h.userId),
-            username: h.username,
-        } as App.Locals['user'];
-    },
-}));
-vi.mock('$lib/server/licensing/entitlements', () => ({
-    getEffectiveEntitlements: async () => ({ jellyfinMaxConcurrentStreams: h.cap }),
-}));
 
-import { findOrCreateJellyfinSession, enforceFreemiumStreamLimit } from './playback-utils';
+import { findOrCreateJellyfinSession } from './playback-utils';
 import { findActiveSession } from '$lib/server/database/queries/play-sessions.queries';
 import { isPolicyError } from '$lib/server/services/play-sessions.service';
 import {
@@ -86,7 +65,6 @@ import {
     validatePlayToken,
     revokePlayTokenBySession,
     renewPlayTokenBySession,
-    markStreamLimitBan,
 } from './play-token';
 import { POST as playing } from '../../../../routes/(proprietary)/j/Sessions/Playing/+server';
 import { POST as progress } from '../../../../routes/(proprietary)/j/Sessions/Playing/Progress/+server';
@@ -96,10 +74,6 @@ import {
     DELETE as legacyStop,
 } from '../../../../routes/(proprietary)/j/Users/[userId]/PlayingItems/[itemId]/+server';
 import { POST as legacyProgress } from '../../../../routes/(proprietary)/j/Users/[userId]/PlayingItems/[itemId]/Progress/+server';
-import { GET as videoStream } from '../../../../routes/(proprietary)/j/Videos/[itemId]/stream/+server';
-import { GET as download } from '../../../../routes/(proprietary)/j/Items/[itemId]/Download/+server';
-import { GET as universal } from '../../../../routes/(proprietary)/j/Audio/[itemId]/universal/+server';
-import { GET as audioStream } from '../../../../routes/(proprietary)/j/Audio/[itemId]/stream/+server';
 
 const itemId = randomUUID();
 const channelId = randomUUID();
@@ -189,13 +163,10 @@ beforeAll(async () => {
 });
 beforeEach(async () => {
     vi.clearAllMocks();
-    h.cap = null;
     await h.sql!`DELETE FROM user_stream_policies WHERE user_id = ${username}`;
     await h.sql!`DELETE FROM play_sessions WHERE user_id = ${userId}`;
     await h.sql!`DELETE FROM user_media_state WHERE user_id = ${userId}`;
     await h.sql!`DELETE FROM user_media_events WHERE user_id = ${userId}`;
-    const { cacheDel } = await import('$lib/server/cache/valkey');
-    await cacheDel(`directplay:overlimit:${userId}`);
 });
 afterAll(async () => {
     await h.sql!`DELETE FROM user_stream_policies WHERE user_id = ${username}`;
@@ -325,7 +296,7 @@ describe('audio/subtitle switch report race', () => {
     }
 });
 
-describe('hard stream-limit teardown', () => {
+describe('play token revocation by session', () => {
     it('revokes all source tokens of a session while preserving another session', async () => {
         const sid = randomUUID();
         const other = await issueFileToken(itemId, files[0]!, username, 7200, {
@@ -343,83 +314,58 @@ describe('hard stream-limit teardown', () => {
         for (const token of tokens) expect(await validatePlayToken(token)).toBeNull();
         expect(await validatePlayToken(other)).not.toBeNull();
     });
-    it('kick saves durable progress, runs stop cleanup and emits playback.stopped', async () => {
-        h.cap = 0;
-        const sid = randomUUID();
-        const id = await start(sid);
-        await h.sql!`UPDATE play_sessions SET started_at = now() - interval '30 seconds' WHERE id = ${id}`;
-        expect(await enforceFreemiumStreamLimit(h.sql!, toUserId(userId), id, 120000, sid)).toBe(
-            true,
-        );
-        expect((await row(id)).stop_reason).toBe('license_stream_limit');
-        const [state] =
-            await h.sql!`SELECT resume_position_ms FROM user_media_state WHERE user_id = ${userId} AND media_id = ${itemId}`;
-        expect(Number(state?.resume_position_ms)).toBe(120000);
-        expect(h.cleanup).toHaveBeenCalledWith(userId);
-        expect(h.stoppedEvent).toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'org.lumastra.playback.stopped' }),
-        );
-        expect(h.stopJob).toHaveBeenCalledWith(sid, username, 'license_stream_limit');
-    });
-    it('kick revokes the client source token and refuses its next Range request', async () => {
-        const sid = randomUUID();
-        const id = await start(sid);
-        const token = await issueFileToken(itemId, files[0]!, username, 7200, {
-            playSessionId: sid,
-        });
-        const request = () => event(token, undefined, 'GET', 0, false);
-        expect((await videoStream(request() as never)).status).toBe(206);
-        h.cap = 0;
-        await h.sql!`UPDATE play_sessions SET started_at = now() - interval '30 seconds' WHERE id = ${id}`;
-        // The stored client id is sufficient even when a later report omits it.
-        expect(await enforceFreemiumStreamLimit(h.sql!, toUserId(userId), id, 0)).toBe(true);
-        expect(await validatePlayToken(token)).toBeNull();
-        h.serveBytes.mockClear();
-        expect((await videoStream(request() as never)).status).toBe(401);
-        expect(h.serveBytes).not.toHaveBeenCalled();
-        expect(h.stopJob).toHaveBeenCalledWith(sid, username, 'license_stream_limit');
-    });
-    it('without an identifiable client playback leaves other device transcodes alone', async () => {
-        h.cap = 0;
-        const id = await start();
-        await h.sql!`UPDATE play_sessions SET started_at = now() - interval '30 seconds' WHERE id = ${id}`;
-        expect(await enforceFreemiumStreamLimit(h.sql!, toUserId(userId), id, 0)).toBe(true);
-        expect(h.stopByItem).not.toHaveBeenCalled();
-    });
-    for (const [kind, handler] of [
-        ['video', videoStream],
-        ['audio', audioStream],
-    ] as const) {
-        for (const form of ['source', 'path', 'legacy', 'authenticated'] as const) {
-            it(`${kind} ${form}: the next Range request is refused after an over-limit kick`, async () => {
-                const sid = randomUUID();
-                const id = await start(sid);
-                // Leave this pre-existing/unmapped token alive to prove the ban gate independently.
-                const token = await issueFileToken(itemId, files[0]!, username, 7200);
-                function rangeEvent(): RequestEvent {
-                    const e = event(
-                        form === 'path' ? token : itemId,
-                        undefined,
-                        'GET',
-                        0,
-                        form === 'authenticated',
-                    );
-                    if (form === 'source') e.url.searchParams.set('mediaSourceId', token);
-                    if (form === 'legacy') e.url.searchParams.set('play_token', token);
-                    return e;
-                }
-                expect((await handler(rangeEvent() as never)).status).toBe(206);
-                h.cap = 0;
-                await h.sql!`UPDATE play_sessions SET started_at = now() - interval '30 seconds' WHERE id = ${id}`;
-                expect(
-                    await enforceFreemiumStreamLimit(h.sql!, toUserId(userId), id, 42000, sid),
-                ).toBe(true);
-                h.serveBytes.mockClear();
-                expect((await handler(rangeEvent() as never)).status).toBe(403);
-                expect(h.serveBytes).not.toHaveBeenCalled();
-            });
+});
+
+describe('no concurrent /j stream cap (no paid tier)', () => {
+    const others = Array.from({ length: 4 }, () => randomUUID());
+    beforeAll(async () => {
+        for (const id of others) {
+            await h.sql!`INSERT INTO users (id, username) VALUES (${id}, ${`jreg_${id.slice(0, 8)}`})`;
         }
-    }
+    });
+    afterAll(async () => {
+        await h.sql!`DELETE FROM play_sessions WHERE user_id = ANY(${others}::uuid[])`;
+        await h.sql!`DELETE FROM user_media_state WHERE user_id = ANY(${others}::uuid[])`;
+        await h.sql!`DELETE FROM user_media_events WHERE user_id = ANY(${others}::uuid[])`;
+        await h.sql!`DELETE FROM user_devices WHERE user_id = ANY(${others}::uuid[])`;
+        await h.sql!`DELETE FROM users WHERE id = ANY(${others}::uuid[])`;
+    });
+
+    it('five users stream at once through the real routes: none is kicked, all report fine', async () => {
+        const viewers = [{ id: userId, name: username }].concat(
+            others.map((id) => ({ id, name: `jreg_${id.slice(0, 8)}` })),
+        );
+        const sids = viewers.map(() => randomUUID());
+        function asViewer(index: number, positionMs: number): RequestEvent {
+            const e = event(itemId, sids[index]!, 'POST', positionMs);
+            e.locals.user = {
+                userId: toUserId(viewers[index]!.id),
+                username: viewers[index]!.name,
+            } as App.Locals['user'];
+            e.locals.jfDevice = {
+                deviceId: `cap-dev-${index}`,
+                deviceName: `Cap device ${index}`,
+                clientName: 'Jellyfin TV',
+                clientVersion: '1.0',
+            };
+            return e;
+        }
+        for (let round = 0; round < 2; round++) {
+            for (let i = 0; i < viewers.length; i++) {
+                expect((await playing(asViewer(i, 1_000) as never)).status).toBe(204);
+                expect((await progress(asViewer(i, 5_000 + round * 5_000) as never)).status).toBe(
+                    204,
+                );
+            }
+        }
+        const rows = await h.sql!`SELECT status, stop_reason FROM play_sessions
+            WHERE user_id = ANY(${viewers.map((v) => v.id)}::uuid[])`;
+        expect(rows).toHaveLength(5);
+        for (const r of rows) {
+            expect(r.status).toBe('ACTIVE');
+            expect(r.stop_reason).toBeNull();
+        }
+    });
 });
 
 describe('client session id adoption', () => {
@@ -440,10 +386,6 @@ describe('client session id adoption', () => {
             expect((await progress(event(itemId, sid) as never)).status).toBe(204);
             expect(await start(sid)).toBe(id);
             expect((await row(id)).jellyfin_play_session_id).toBe(sid);
-            h.cap = 1;
-            expect(await enforceFreemiumStreamLimit(h.sql!, toUserId(userId), id, 0, sid)).toBe(
-                false,
-            );
             expect(
                 await h.sql!`SELECT id FROM play_sessions WHERE user_id = ${userId}`,
             ).toHaveLength(1);
@@ -479,74 +421,6 @@ describe('client session id adoption', () => {
     });
 });
 
-describe('shared account stream scoping', () => {
-    for (const [kind, handler] of [
-        ['video', videoStream],
-        ['audio', audioStream],
-    ] as const) {
-        for (const form of ['source', 'path', 'legacy', 'authenticated'] as const) {
-            it(`${kind} ${form}: B is kicked while A keeps receiving Range bytes`, async () => {
-                const sidA = randomUUID();
-                const sidB = randomUUID();
-                const idA = await start(sidA, itemId, 'device-a');
-                const idB = await start(sidB, itemId, 'device-b');
-                const tokenA = await issueFileToken(itemId, files[0]!, username, 7200, {
-                    playSessionId: sidA,
-                });
-                const tokenB = await issueFileToken(itemId, files[0]!, username, 7200, {
-                    playSessionId: sidB,
-                });
-                function request(token: string, sid: string): RequestEvent {
-                    const e = event(
-                        form === 'path' ? token : itemId,
-                        form === 'authenticated' ? sid : undefined,
-                        'GET',
-                        0,
-                        form === 'authenticated',
-                    );
-                    if (form === 'source') e.url.searchParams.set('mediaSourceId', token);
-                    if (form === 'legacy') e.url.searchParams.set('play_token', token);
-                    return e;
-                }
-                await h.sql!`UPDATE play_sessions SET started_at = now() - interval '60 seconds' WHERE id = ${idA}`;
-                await h.sql!`UPDATE play_sessions SET started_at = now() - interval '30 seconds' WHERE id = ${idB}`;
-                h.cap = 1;
-                expect(
-                    await enforceFreemiumStreamLimit(h.sql!, toUserId(userId), idB, 0, sidB),
-                ).toBe(true);
-                expect((await handler(request(tokenA, sidA) as never)).status).toBe(206);
-                const refused = await handler(request(tokenB, sidB) as never);
-                expect([401, 403]).toContain(refused.status);
-                expect((await handler(request(tokenA, sidA) as never)).status).toBe(206);
-            });
-        }
-    }
-    for (const [kind, handler] of [
-        ['download', download],
-        ['universal', universal],
-    ] as const) {
-        it(`${kind} preserves A and refuses B with authenticated session URLs`, async () => {
-            const sidA = randomUUID();
-            const sidB = randomUUID();
-            const idA = await start(sidA, itemId, 'device-a');
-            const idB = await start(sidB, itemId, 'device-b');
-            await h.sql!`UPDATE play_sessions SET started_at = now() - interval '60 seconds' WHERE id = ${idA}`;
-            await h.sql!`UPDATE play_sessions SET started_at = now() - interval '30 seconds' WHERE id = ${idB}`;
-            h.cap = 1;
-            expect(await enforceFreemiumStreamLimit(h.sql!, toUserId(userId), idB, 0, sidB)).toBe(
-                true,
-            );
-            function request(sid: string): RequestEvent {
-                const e = event(itemId, sid, 'GET');
-                e.url.searchParams.set('container', 'mp3');
-                return e;
-            }
-            expect((await handler(request(sidA) as never)).status).toBe(206);
-            expect((await handler(request(sidB) as never)).status).toBe(403);
-        });
-    }
-});
-
 it('a shorter version cannot shorten the session token index TTL', async () => {
     const { getCoordinationClient } = await import('$lib/server/cache/valkey');
     const sid = randomUUID();
@@ -557,64 +431,6 @@ it('a shorter version cannot shorten the session token index TTL', async () => {
     expect(ttl).toBeGreaterThanOrEqual(30_000 + 7200 - 5);
     await revokePlayTokenBySession(sid);
     expect(await validatePlayToken(long)).toBeNull();
-});
-
-it('download token URLs preserve A and refuse the kicked B without a client id in the URL', async () => {
-    const sidA = randomUUID();
-    const sidB = randomUUID();
-    const idA = await start(sidA, itemId, 'device-a');
-    const idB = await start(sidB, itemId, 'device-b');
-    const tokenA = await issueFileToken(itemId, files[0]!, username, 7200, { playSessionId: sidA });
-    const tokenB = await issueFileToken(itemId, files[0]!, username, 7200, { playSessionId: sidB });
-    await h.sql!`UPDATE play_sessions SET started_at = now() - interval '60 seconds' WHERE id = ${idA}`;
-    await h.sql!`UPDATE play_sessions SET started_at = now() - interval '30 seconds' WHERE id = ${idB}`;
-    h.cap = 1;
-    await enforceFreemiumStreamLimit(h.sql!, toUserId(userId), idB, 0, sidB);
-    expect((await download(event(tokenA, undefined, 'GET') as never)).status).toBe(206);
-    expect((await download(event(tokenB, undefined, 'GET') as never)).status).toBe(403);
-});
-
-it('admission backoff rejects new starts and non-allowed live tokens without rearming on ranges', async () => {
-    const sidA = randomUUID();
-    const sidB = randomUUID();
-    const idA = await start(sidA, itemId, 'device-a');
-    const idB = await start(sidB, itemId, 'device-b');
-    await h.sql!`UPDATE play_sessions SET started_at = now() - interval '60 seconds' WHERE id = ${idA}`;
-    await h.sql!`UPDATE play_sessions SET started_at = now() - interval '30 seconds' WHERE id = ${idB}`;
-    const tokenB = await issueFileToken(itemId, files[0]!, username, 7200, { playSessionId: sidB });
-    h.cap = 1;
-    await markStreamLimitBan(userId);
-    // A raw device-authenticated Range request still belongs to A, even without an id.
-    const allowed = event(itemId, undefined, 'GET');
-    allowed.locals.jfDevice!.deviceId = 'device-a';
-    expect((await videoStream(allowed as never)).status).toBe(206);
-    // Neither B's live token nor a new client can borrow A's allowed id.
-    const extra = event(tokenB, sidA, 'GET', 0, false);
-    expect((await videoStream(extra as never)).status).toBe(403);
-    expect((await videoStream(event(itemId, randomUUID(), 'GET') as never)).status).toBe(403);
-    expect((await row(idA)).status).toBe('ACTIVE');
-    expect((await row(idB)).status).toBe('ACTIVE');
-});
-
-it('an allowed file token issued before playback identity was embedded keeps working', async () => {
-    const { cacheGet, cacheSet } = await import('$lib/server/cache/valkey');
-    const sidA = randomUUID();
-    const sidB = randomUUID();
-    const idA = await start(sidA);
-    const idB = await start(sidB);
-    await h.sql!`UPDATE play_sessions SET started_at = now() - interval '60 seconds' WHERE id = ${idA}`;
-    await h.sql!`UPDATE play_sessions SET started_at = now() - interval '30 seconds' WHERE id = ${idB}`;
-    const tokenA = await issueFileToken(itemId, files[0]!, username, 7200, { playSessionId: sidA });
-    const key = `directplay:token:${tokenA}`;
-    const oldData = JSON.parse((await cacheGet(key))!) as Record<string, unknown>;
-    delete oldData.playSessionId;
-    delete oldData.deviceId;
-    await cacheSet(key, JSON.stringify(oldData), 14400);
-    h.cap = 1;
-    await enforceFreemiumStreamLimit(h.sql!, toUserId(userId), idB, 0, sidB);
-    expect((await videoStream(event(tokenA, undefined, 'GET', 0, false) as never)).status).toBe(
-        206,
-    );
 });
 
 it('a simultaneous PlaySessionId claim cannot replace another token', async () => {

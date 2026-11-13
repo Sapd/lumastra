@@ -49,7 +49,6 @@ vi.mock('./music-progressive', () => ({
 
 const mockValidatePlayToken = vi.fn();
 vi.mock('./play-token', () => ({
-    isStreamLimitBanned: async () => false,
     validatePlayToken: (...a: unknown[]) => mockValidatePlayToken(...a),
     renewPlayTokenBySession: vi.fn(async () => undefined),
 }));

@@ -100,7 +100,6 @@ vi.mock('$lib/server/proprietary/jellyfin-compat/play-token', () => ({
 // The free-tier cap decision has its own suite (stream-limit.test.ts); here the
 // install is uncapped.
 vi.mock('$lib/server/proprietary/jellyfin-compat/stream-limit-notice', () => ({
-    streamCapReachedByOthers: vi.fn().mockResolvedValue(null),
     freshPlaySessionId: vi.fn(async (id?: string) => id ?? 'fresh-session'),
     buildStreamLimitPlaybackInfo: mockBuildStreamLimitPlaybackInfo,
     noticeLanguage: vi.fn(() => 'en'),

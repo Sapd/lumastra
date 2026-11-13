@@ -3,7 +3,6 @@
 // Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
 
 import { withErrorHandler } from '$lib/server/middleware/error-handler.js';
-import { isStreamLimitRequestBanned } from '$lib/server/proprietary/jellyfin-compat/stream-limit-access';
 import type { RequestHandler } from './$types';
 import { disarmSilentStart } from '$lib/server/proprietary/jellyfin-compat/silent-start';
 import { getParam } from '$lib/server/proprietary/jellyfin-compat/utils';
@@ -50,9 +49,6 @@ const authenticatedHandler = withJellyfinAuth(
     async (event) => {
         const username = event.locals.user?.username;
         const userId = event.locals.user?.userId;
-        if (userId && (await isStreamLimitRequestBanned(event, userId)))
-            return ApiResponses.kicked(0);
-
         const kickStatus = username ? await checkSessionKickCooldown(username) : null;
         if (kickStatus?.kicked) {
             return ApiResponses.kicked(kickStatus.remainingSeconds!);
@@ -120,8 +116,6 @@ export const GET: RequestHandler = withErrorHandler(async (event) => {
                     mintedByAdmin: tokenData.mintedByAdmin === true,
                 });
                 if (!user) return ApiResponses.notFound('Media');
-                if (await isStreamLimitRequestBanned(event, user.userId, tokenData))
-                    return ApiResponses.kicked(0);
                 const denied = await enforceTokenMediaAccess(tokenData.itemId, user);
                 if (denied) return denied;
                 applyPlayTokenIdentity(event, user);
@@ -155,8 +149,6 @@ export const GET: RequestHandler = withErrorHandler(async (event) => {
             mintedByAdmin: fileTokenData.mintedByAdmin === true,
         });
         if (!user) return ApiResponses.notFound('Media');
-        if (await isStreamLimitRequestBanned(event, user.userId, fileTokenData))
-            return ApiResponses.kicked(0);
         const denied = await enforceTokenMediaAccess(fileTokenData.itemId, user);
         if (denied) return denied;
         applyPlayTokenIdentity(event, user);
@@ -189,8 +181,6 @@ export const GET: RequestHandler = withErrorHandler(async (event) => {
                 mintedByAdmin: tokenData.mintedByAdmin === true,
             });
             if (!user) return ApiResponses.notFound('Media');
-            if (await isStreamLimitRequestBanned(event, user.userId, tokenData))
-                return ApiResponses.kicked(0);
             const denied = await enforceTokenMediaAccess(tokenData.itemId, user);
             if (denied) return denied;
             applyPlayTokenIdentity(event, user);

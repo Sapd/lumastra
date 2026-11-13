@@ -16,8 +16,6 @@ const ME = '00000000-0000-0000-0000-000000000001';
 
 const h = vi.hoisted(() => ({
     arm: vi.fn(),
-    cap: 2 as number | null,
-    sessions: [] as { id: string; user_id: string; media_id: string; started_at: Date }[],
     store: new Map<string, string>(),
     mediaType: 'movie',
     clipFails: false,
@@ -58,17 +56,11 @@ vi.mock('$lib/server/database/queries/media-streams.queries', () => ({
 vi.mock('$lib/server/database/queries/external-subtitles.queries', () => ({
     getExternalSubtitlesForFile: vi.fn().mockResolvedValue([]),
 }));
-vi.mock('$lib/server/database/queries/play-sessions.queries', () => ({
-    getLiveJellyfinCompatSessions: async () => h.sessions,
-}));
 vi.mock('$lib/server/middleware/media-access.js', () => ({
     checkMediaAccess: vi.fn().mockResolvedValue(true),
 }));
 vi.mock('$lib/server/services/livetv/index.js', () => ({
     getLiveTvProvider: vi.fn(),
-}));
-vi.mock('$lib/server/licensing/entitlements', () => ({
-    getEffectiveEntitlements: async () => ({ jellyfinMaxConcurrentStreams: h.cap }),
 }));
 vi.mock('$lib/server/proprietary/jellyfin-compat/video-attachments', () => ({
     mediaAttachmentsForSource: async () => [],
@@ -119,6 +111,7 @@ vi.mock('$lib/server/proprietary/jellyfin-compat/silent-start', () => ({
 
 import { GET, POST } from './+server';
 import { config } from '$lib/server/config';
+import { StreamLimitError } from '$lib/server/services/livetv/standalone-livetv-provider.js';
 
 async function call(
     opts: {
@@ -159,8 +152,6 @@ const PROFILE = { DeviceProfile: { Name: 'x' }, PlaySessionId: 'abc' };
 
 describe('PlaybackInfo — arms the silent-start detector', () => {
     beforeEach(() => {
-        h.cap = null;
-        h.sessions = [];
         h.store.clear();
         h.mediaType = 'movie';
         h.clipFails = false;
@@ -214,18 +205,28 @@ describe('PlaybackInfo — arms the silent-start detector', () => {
         expect(h.arm).not.toHaveBeenCalled();
     });
 
-    it('the stream-limit clip does not arm', async () => {
-        h.cap = 1;
-        h.sessions = [{ id: 'a', user_id: 'other', media_id: 'm1', started_at: new Date() }];
-        await call({ body: PROFILE });
+    async function capTvChannel(): Promise<void> {
+        vi.spyOn(config, 'FEATURE_LIVETV', 'get').mockReturnValue(true);
+        h.mediaType = 'tvchannel';
+        const { getLiveTvProvider } = await import('$lib/server/services/livetv/index.js');
+        vi.mocked(getLiveTvProvider).mockResolvedValue({
+            getChannel: vi.fn(),
+            getStreamInfo: vi.fn().mockRejectedValue(new StreamLimitError(1, [])),
+        } as never);
+    }
+
+    it('the Live TV source-limit clip does not arm', async () => {
+        await capTvChannel();
+        const res = await call({ body: PROFILE });
+        expect(((await res.json()) as { MediaSources: unknown[] }).MediaSources).toHaveLength(1);
         expect(h.arm).not.toHaveBeenCalled();
     });
 
-    it('the rate-limited refusal (audio) does not arm', async () => {
-        h.cap = 1;
-        h.mediaType = 'track';
-        h.sessions = [{ id: 'a', user_id: 'other', media_id: 'm1', started_at: new Date() }];
-        await call({ body: PROFILE });
+    it('the rate-limited refusal (clip cannot be produced) does not arm', async () => {
+        h.clipFails = true;
+        await capTvChannel();
+        const res = await call({ body: PROFILE });
+        expect(((await res.json()) as { ErrorCode?: string }).ErrorCode).toBe('RateLimitExceeded');
         expect(h.arm).not.toHaveBeenCalled();
     });
 
@@ -245,8 +246,6 @@ describe('PlaybackInfo — arms the silent-start detector', () => {
 
 describe('PlaybackInfo — play and file tokens record the issuing admin capability', () => {
     beforeEach(() => {
-        h.cap = null;
-        h.sessions = [];
         h.store.clear();
         h.mediaType = 'movie';
         h.clipFails = false;

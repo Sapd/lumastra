@@ -19,7 +19,6 @@ vi.mock('$lib/server/proprietary/jellyfin-compat/middleware', () => ({
     withJellyfinAuth: (handler: RequestHandler) => handler,
 }));
 vi.mock('$lib/server/proprietary/jellyfin-compat/play-token', () => ({
-    isStreamLimitBanned: async () => false,
     validatePlayToken: mockValidatePlayToken,
 }));
 vi.mock('$lib/server/database', () => ({ getDb: () => ({}) as never }));

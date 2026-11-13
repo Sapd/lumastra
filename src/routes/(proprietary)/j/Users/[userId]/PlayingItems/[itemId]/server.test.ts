@@ -6,9 +6,6 @@
  * The legacy playback-report endpoints (POST /j/Users/{userId}/PlayingItems/{itemId},
  * .../Progress, DELETE ...; also mounted userless at /j/PlayingItems/{itemId}).
  *
- * - They create the same /j session as /j/Sessions/Playing, so they must run the
- *   free-tier /j stream cap too (the counting lives in enforceFreemiumStreamLimit
- *   and is tested next to it; this pins that the routes call it and stop on a kick).
  * - Jellyfin sends positionTicks / isPaused / playSessionId as QUERY params on
  *   these routes. A body-only read saved position 0 on every stop. The real
  *   parsePlaybackReport runs here (not mocked): the query is the seam under test.
@@ -63,12 +60,9 @@ const mockRenewPlayToken = vi.fn(async () => undefined);
 vi.mock('$lib/server/proprietary/jellyfin-compat/play-token', () => ({
     renewPlayTokenBySession: (...a: unknown[]) => mockRenewPlayToken(...(a as [])),
     revokePlayTokenBySession: async () => undefined,
-    markStreamLimitBan: async () => undefined,
-    isStreamLimitBanned: async () => false,
 }));
 
 const mockFindOrCreateJellyfinSession = vi.fn();
-const mockEnforceFreemiumStreamLimit = vi.fn();
 vi.mock('$lib/server/proprietary/jellyfin-compat/playback-utils', async (importOriginal) => {
     const actual =
         await importOriginal<
@@ -78,7 +72,6 @@ vi.mock('$lib/server/proprietary/jellyfin-compat/playback-utils', async (importO
         parsePlaybackBody: actual.parsePlaybackBody,
         parsePlaybackReport: actual.parsePlaybackReport,
         findOrCreateJellyfinSession: (...a: unknown[]) => mockFindOrCreateJellyfinSession(...a),
-        enforceFreemiumStreamLimit: (...a: unknown[]) => mockEnforceFreemiumStreamLimit(...a),
         isPolicyError: (x: unknown): boolean =>
             typeof x === 'object' && x !== null && 'kind' in (x as Record<string, unknown>),
     };
@@ -127,7 +120,6 @@ function makeEvent(
 beforeEach(() => {
     vi.clearAllMocks();
     mockFindOrCreateJellyfinSession.mockResolvedValue({ id: 'play-session-1' });
-    mockEnforceFreemiumStreamLimit.mockResolvedValue(false);
     mockUpdate.mockResolvedValue(undefined);
     mockFindActiveSession.mockResolvedValue({ id: 'play-session-1' });
     mockCheckMediaAccess.mockResolvedValue(true);
@@ -144,8 +136,8 @@ describe('userless /j/PlayingItems routes', () => {
 describe.each([
     ['start', () => legacy.POST!],
     ['progress', () => legacyProgress.POST!],
-])('POST PlayingItems (%s) — free-tier /j stream cap', (_name, handler) => {
-    it('asks the cap about this /j session and writes progress when allowed', async () => {
+])('POST PlayingItems (%s)', (_name, handler) => {
+    it('writes progress for the /j session', async () => {
         const res = await handler()(
             makeEvent('POST', {
                 body: { PositionTicks: 4200 * TICKS_PER_MS, PlaySessionId: 'sess-1' },
@@ -153,22 +145,7 @@ describe.each([
         );
 
         expect(res.status).toBe(204);
-        expect(mockEnforceFreemiumStreamLimit).toHaveBeenCalledWith(
-            expect.anything(),
-            'uid-alice',
-            'play-session-1',
-            4200,
-            'sess-1',
-        );
         expect(mockUpdate).toHaveBeenCalled();
-    });
-
-    it('returns the kick response and writes no progress when the stream is the extra', async () => {
-        mockEnforceFreemiumStreamLimit.mockResolvedValue(true);
-        const res = await handler()(makeEvent('POST'));
-
-        expect(res.status).toBe(403);
-        expect(mockUpdate).not.toHaveBeenCalled();
     });
 
     it('reads position and session from the query (Jellyfin) and disarms the detector', async () => {
@@ -202,13 +179,6 @@ describe.each([
         expect(mockUpdate).toHaveBeenCalledWith(
             'play-session-1',
             expect.objectContaining({ position_ms: 5000 }),
-        );
-        expect(mockEnforceFreemiumStreamLimit).toHaveBeenCalledWith(
-            expect.anything(),
-            'uid-alice',
-            'play-session-1',
-            5000,
-            'body-sess',
         );
     });
 });

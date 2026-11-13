@@ -302,7 +302,7 @@ export async function ensureProprietaryLoaded(): Promise<void> {
  * This is what the /j and AI gates call. Always resolves; never throws.
  */
 export async function getEffectiveEntitlements(): Promise<Entitlements> {
-    return applyStreamCapTestOverride(await resolveEffectiveEntitlements());
+    return resolveEffectiveEntitlements();
 }
 
 async function resolveEffectiveEntitlements(): Promise<Entitlements> {
@@ -317,28 +317,6 @@ async function resolveEffectiveEntitlements(): Promise<Entitlements> {
         logger.warn('Entitlement resolution failed; degrading to free tier', err as Error);
         return FREE_TIER_ENTITLEMENTS;
     }
-}
-
-/**
- * Test knob: `LUMASTRA_TEST_JELLYFIN_STREAM_CAP=<n>` caps concurrent /j streams
- * at `n` whatever the licence says — so the free-tier limit (and its "stream
- * limit reached" clip) can be exercised on preprod or a dev box that holds a
- * real licence, without touching that licence.
- *
- * DOWNGRADE-ONLY: the result is `min(licensed cap, n)`, so it can never raise a
- * cap or lift one — setting it on any install only makes enforcement stricter.
- * That is why it may be read straight from the environment rather than being an
- * operator setting in config.ts / schema.ts: it is not a feature, nothing
- * documents it to operators, and it cannot weaken production enforcement.
- */
-function applyStreamCapTestOverride(ent: Entitlements): Entitlements {
-    const raw = process.env.LUMASTRA_TEST_JELLYFIN_STREAM_CAP?.trim();
-    if (!raw) return ent;
-    const n = Number(raw);
-    if (!Number.isInteger(n) || n < 0) return ent;
-    const current = ent.jellyfinMaxConcurrentStreams;
-    if (current !== null && current <= n) return ent;
-    return { ...ent, jellyfinMaxConcurrentStreams: n };
 }
 
 /**

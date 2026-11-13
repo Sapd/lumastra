@@ -10,7 +10,6 @@ import { ApiResponses } from '$lib/server/utils/api-responses';
 import { Logger } from '$lib/server/utils/logger';
 import { isUuid } from '$lib/server/utils/media-key-parser';
 import { isRecord } from '$lib/utils/data-extraction';
-import { getDb } from '$lib/server/database';
 import { getLiveTvProvider } from '$lib/server/services/livetv/index';
 import { canStreamLiveTvChannel } from '$lib/server/services/livetv/channel-access.js';
 import {
@@ -30,7 +29,6 @@ import {
     buildStreamLimitPlaybackInfo,
     freshPlaySessionId,
     noticeLanguage,
-    streamCapReachedByOthers,
 } from '$lib/server/proprietary/jellyfin-compat/stream-limit-notice';
 import { liveTvMediaSource } from '$lib/server/proprietary/jellyfin-compat/livetv-live-stream';
 import type { JellyfinPlaybackInfoResponse } from '$lib/server/proprietary/jellyfin-compat/types';
@@ -61,9 +59,8 @@ function limitResponse(clip: JellyfinPlaybackInfoResponse | null, limit: number)
  * sources is the channel id. Anything else is 404.
  *
  * The tune runs exactly like PlaybackInfo's Live TV branch: Live TV permission,
- * the free tier's /j stream cap, and the TV source's concurrent-stream cap
- * (joined under the play-token viewer key the live.m3u8 polls keep alive). A
- * cap reached answers with the "streams in use" clip as the media source, the
+ * and the TV source's concurrent-stream cap (joined under the play-token
+ * viewer key the live.m3u8 polls keep alive). A cap reached answers with the "streams in use" clip as the media source, the
  * way PlaybackInfo does; a stream the source cannot start is 502.
  */
 async function handleOpen(event: RequestEvent): Promise<Response> {
@@ -96,21 +93,6 @@ async function handleOpen(event: RequestEvent): Promise<Response> {
         // …nor one in a hidden category (the /api stream endpoints' access rule).
         if (!(await canStreamLiveTvChannel(locals, channelId))) {
             return ApiResponses.notFound('Live stream source not found');
-        }
-
-        // Free tier: OTHER live /j sessions already fill the server's stream cap.
-        const sql = getDb();
-        const freeCap = sql ? await streamCapReachedByOthers(sql, user.userId, channelId) : null;
-        if (freeCap !== null) {
-            return limitResponse(
-                await buildStreamLimitPlaybackInfo({
-                    userId: user.userId,
-                    cap: freeCap,
-                    lang: noticeLanguage(event.request),
-                    itemId: channelId,
-                }),
-                freeCap,
-            );
         }
 
         const playSessionId = await freshPlaySessionId(

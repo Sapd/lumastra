@@ -13,7 +13,7 @@ const DASHLESS_UUID_RE = /^[0-9a-f]{32}$/;
  * and the client's PlaySessionId only keys the transcode. So such a job's row is
  * written without the play_sessions stub `upsertJob` otherwise inserts —
  * a stub under the PlaySessionId would be a second ACTIVE session next to the
- * real one, counted against the user's stream limit and freemium cap.
+ * real one, counted against the user's stream limit.
  */
 export const JELLYFIN_COMPAT_DEVICE_ID = 'jellyfin-compat';
 

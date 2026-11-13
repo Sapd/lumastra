@@ -42,21 +42,7 @@ function probeBin(): string | null {
 const ffprobe = probeBin();
 
 describe('notice text', () => {
-    it('says what the brief asks, in English and German', () => {
-        const en = noticeText('jellyfin_cap', 'en', 2);
-        expect(en.paragraphs.join(' ')).toBe(
-            'Two streams are already playing through Jellyfin apps on this server. ' +
-                'The free tier allows two at a time. ' +
-                'Stop another stream, or watch in the Lumastra web or Apple apps, which have no limit. ' +
-                'If nothing else is playing, try again in a minute.',
-        );
-        expect(en.footer).toBe('More streams: Lumastra Supporter');
-        const de = noticeText('jellyfin_cap', 'de', 2);
-        expect(de.paragraphs[0]).toContain('zwei Streams');
-        expect(de.footer).toBe('Mehr Streams: Lumastra Supporter');
-    });
-
-    it('explains a Live TV provider limit without the licence wording', () => {
+    it('explains a Live TV provider limit, in English and German', () => {
         const en = noticeText('livetv_source', 'en', 2);
         expect(en.title).toBe('All TV streams in use');
         expect(en.paragraphs[0]).toBe(
@@ -74,15 +60,13 @@ describe('notice text', () => {
     });
 
     it('wraps text into lines no longer than the limit', () => {
-        const lines = wrapText(noticeText('jellyfin_cap', 'en', 2).paragraphs[2]!, 58);
+        const lines = wrapText(noticeText('livetv_source', 'en', 2).paragraphs[0]!, 58);
         expect(lines.length).toBeGreaterThan(1);
         for (const l of lines) expect(l.length).toBeLessThanOrEqual(58);
     });
 
     it('keeps every body line above the footer, in both languages', () => {
         for (const [kind, lang, n] of [
-            ['jellyfin_cap', 'en', 2],
-            ['jellyfin_cap', 'de', 2],
             ['livetv_source', 'en', 2],
             ['livetv_source', 'de', 5],
         ] as const) {
@@ -96,11 +80,8 @@ describe('notice text', () => {
                 expect(l.text.length * fontPx * 0.55).toBeLessThan(1280 - 2 * 80);
             }
         }
-        // English keeps the full size; German shrinks to fit.
-        expect(layoutNoticeText(noticeText('jellyfin_cap', 'en', 2).paragraphs).fontPx).toBe(34);
-        expect(
-            layoutNoticeText(noticeText('jellyfin_cap', 'de', 2).paragraphs).fontPx,
-        ).toBeLessThan(34);
+        // English keeps the full size.
+        expect(layoutNoticeText(noticeText('livetv_source', 'en', 2).paragraphs).fontPx).toBe(34);
     });
 
     it('escapes text into the SVG', () => {
@@ -117,7 +98,7 @@ describe.skipIf(!ffprobe)('rendered clip', () => {
         // Keep the render out of /config: the PREVIEW_CACHE_DIR parent is the cache root.
         const root = await fs.mkdtemp(join(tmpdir(), 'clip-test-'));
         process.env.PREVIEW_CACHE_DIR = join(root, 'preview');
-        const clip = await ensureStreamLimitClip('jellyfin_cap', 'en', 2);
+        const clip = await ensureStreamLimitClip('livetv_source', 'en', 2);
         dir = clip.dir;
         mp4 = clip.mp4Path;
     }, 120_000);
@@ -170,25 +151,22 @@ describe.skipIf(!ffprobe)('rendered clip', () => {
     });
 
     it('renders the German clip into its own cache entry', async () => {
-        const de = await ensureStreamLimitClip('jellyfin_cap', 'de', 2);
+        const de = await ensureStreamLimitClip('livetv_source', 'de', 2);
         expect(de.dir).not.toBe(dir);
         expect(de.mp4Bytes).toBeGreaterThan(10_000);
     }, 120_000);
 
-    it('renders the Live TV clip next to the /j one, each keeping its own file', async () => {
-        const live = await ensureStreamLimitClip('livetv_source', 'en', 2);
-        expect(live.dir).not.toBe(dir);
-        expect(live.dir).toContain('livetv_source-en-2-');
-        // A second provider with another limit gets its own clip; neither evicts the other.
+    it('a provider with another limit gets its own clip; neither evicts the other', async () => {
         const live1 = await ensureStreamLimitClip('livetv_source', 'en', 1);
-        expect((await fs.stat(live.mp4Path)).size).toBeGreaterThan(0);
+        expect(live1.dir).not.toBe(dir);
+        expect(live1.dir).toContain('livetv_source-en-1-');
         expect((await fs.stat(live1.mp4Path)).size).toBeGreaterThan(0);
         expect((await fs.stat(mp4)).size).toBeGreaterThan(0);
     }, 120_000);
 
     it('is rendered once: a second call reuses the files', async () => {
         const before = (await fs.stat(mp4)).mtimeMs;
-        const again = await ensureStreamLimitClip('jellyfin_cap', 'en', 2);
+        const again = await ensureStreamLimitClip('livetv_source', 'en', 2);
         expect(again.mp4Path).toBe(mp4);
         expect((await fs.stat(mp4)).mtimeMs).toBe(before);
     });
