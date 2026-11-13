@@ -48,8 +48,8 @@ import { currentPushTransportSelection } from './push-transport-selector.js';
 import {
     adoptRelayTokenIfFresher,
     hasLiveMintedRelayToken,
-    heldRelayTokenExpiresAtMs,
     onRelayTokenInvalidated,
+    relayTokenExpiryMs,
     relayTokenNeedsRenewal,
     setRelayToken,
 } from './relay-token.store.js';
@@ -91,6 +91,14 @@ const MIN_USABLE_LIFE_MS = 5 * 60 * 1000;
 const MAX_TOKEN_LIFE_MS = 24 * 60 * 60 * 1000 + MIN_USABLE_LIFE_MS;
 /** Another process is fetching the token: look at the shared slot again soon. */
 const BUSY_RETRY_MS = 5_000;
+/**
+ * `acquireLock` answers null both for "a sibling holds it" and for "the
+ * coordination Valkey is down" (it refuses an in-memory lock there). After this
+ * many 'busy' answers in a row, with no token appearing in the shared slot, the
+ * lock is taken to be unavailable and the request goes out without it: a few
+ * duplicate calls are better than no push token for as long as Valkey is down.
+ */
+const BUSY_BEFORE_LOCKLESS = 3;
 
 const CONTACT_KEY = 'LICENSE_SERVER_CONTACT_ENABLED';
 
@@ -180,6 +188,9 @@ interface EnrolState {
     shortRetryMs: number | null;
     needsRetry: boolean;
     loggedWaiting: boolean;
+    /** Consecutive 'busy' answers (the lock was not available). */
+    busyStreak: number;
+    loggedLocklessFetch: boolean;
 }
 
 const state: EnrolState = {
@@ -189,6 +200,8 @@ const state: EnrolState = {
     shortRetryMs: null,
     needsRetry: false,
     loggedWaiting: false,
+    busyStreak: 0,
+    loggedLocklessFetch: false,
 };
 
 function noteSuccess(): void {
@@ -246,7 +259,7 @@ async function mayCallNow(sql: NonNullable<ReturnType<typeof getDb>>): Promise<b
  * eligibility; this re-checks the contact switch because it is the one place a
  * request leaves (a switch flipped mid-tick must not slip past).
  */
-async function postRelayTokenRequest(installUuid: string): Promise<Response> {
+async function postRelayTokenRequest(installUuid: string, shutdown: AbortSignal): Promise<Response> {
     if (!config.LICENSE_SERVER_CONTACT_ENABLED) throw new ContactDisabledError();
     // RELAY_TOKEN_ENDPOINT is a hardcoded Lumastra-operated vendor endpoint, not
     // admin-configurable (see docs/dev/eslint-exceptions.md, same class as the
@@ -258,9 +271,12 @@ async function postRelayTokenRequest(installUuid: string): Promise<Response> {
         redirect: 'error',
         headers: { 'content-type': 'application/json', accept: 'application/json' },
         body: JSON.stringify({ install_uuid: installUuid, app_version: config.APP_VERSION }),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.any([AbortSignal.timeout(REQUEST_TIMEOUT_MS), shutdown]),
     });
 }
+
+/** Aborted by {@link stopRelayTokenEnrolLoop}; a fresh one is made on every stop. */
+let shutdownController = new AbortController();
 
 class ContactDisabledError extends Error {
     constructor() {
@@ -314,6 +330,13 @@ async function adoptSharedToken(): Promise<boolean> {
  * gets this far.
  */
 export async function enrolRelayTokenOnce(): Promise<EnrolOutcome> {
+    const outcome = await enrolAttempt();
+    if (outcome !== 'busy') state.busyStreak = 0;
+    return outcome;
+}
+
+async function enrolAttempt(): Promise<EnrolOutcome> {
+    const shutdown = shutdownController.signal;
     state.needsRetry = false;
     state.shortRetryMs = null;
     if (isIsolationWorker()) return 'ineligible';
@@ -346,19 +369,31 @@ export async function enrolRelayTokenOnce(): Promise<EnrolOutcome> {
 
         lock = await acquireEnrolLock();
         if (lock === null) {
-            // A sibling is fetching: look at the shared slot again in a few seconds.
-            state.needsRetry = !hasLiveMintedRelayToken();
-            state.shortRetryMs = BUSY_RETRY_MS;
-            return 'busy';
+            state.busyStreak += 1;
+            if (state.busyStreak <= BUSY_BEFORE_LOCKLESS) {
+                // A sibling is fetching: look at the shared slot again in a few seconds.
+                state.needsRetry = !hasLiveMintedRelayToken();
+                state.shortRetryMs = BUSY_RETRY_MS;
+                return 'busy';
+            }
+            // The lock never frees and the shared slot stays empty: the lock
+            // service is down. Fetch without it.
+            if (!state.loggedLocklessFetch) {
+                state.loggedLocklessFetch = true;
+                logger.warn(
+                    'The push relay token lock is unavailable (coordination Valkey down?); fetching the token without it',
+                );
+            }
+        } else {
+            // The holder before us may have stored a token while we waited for the lock.
+            if (await adoptSharedToken()) return 'fresh';
         }
-        // The holder before us may have stored a token while we waited for the lock.
-        if (await adoptSharedToken()) return 'fresh';
 
         // Without a live token a failure means push is down now: retry soon.
         const pushDownIfFails = !hasLiveMintedRelayToken();
         try {
             const installUuid = await getInstallUuid(sql);
-            const res = await postRelayTokenRequest(installUuid);
+            const res = await postRelayTokenRequest(installUuid, shutdown);
             if (!res.ok) {
                 state.needsRetry = pushDownIfFails;
                 state.retryAfterMs = parseRetryAfterMs(res.headers.get('retry-after'));
@@ -399,23 +434,25 @@ export async function enrolRelayTokenOnce(): Promise<EnrolOutcome> {
                     return 'failed';
                 }
             }
+            // Shut down while the request was in flight: keep nothing.
+            if (shutdown.aborted) return 'ineligible';
             // The switch may have been flipped while the request was in flight.
             if (relayTokenIneligibleReason() !== null) return 'ineligible';
 
-            setRelayToken(data.relayToken, claimedExpSeconds);
-            const expiresAtMs = heldRelayTokenExpiresAtMs();
-            if (expiresAtMs === null || expiresAtMs - Date.now() < MIN_USABLE_LIFE_MS) {
-                // Never keep or share a token that is already (nearly) dead.
-                setRelayToken(null);
+            // Judge the new token BEFORE it replaces the held one: a token that is
+            // (nearly) dead must never cost a still-valid held token.
+            const expiresAtMs = relayTokenExpiryMs(data.relayToken, claimedExpSeconds);
+            if (expiresAtMs - Date.now() < MIN_USABLE_LIFE_MS) {
                 state.needsRetry = true;
                 noteFailure('The push relay token from lumastra.org is not usable; will retry', {});
                 return 'failed';
             }
+            setRelayToken(data.relayToken, claimedExpSeconds);
             noteSuccess();
             await saveSharedRelayToken(data.relayToken, expiresAtMs);
             return 'minted';
         } catch (err) {
-            if (err instanceof ContactDisabledError) return 'ineligible';
+            if (err instanceof ContactDisabledError || shutdown.aborted) return 'ineligible';
             state.needsRetry = pushDownIfFails;
             noteFailure('Push relay token request failed (will retry later)', err as Error);
             return 'failed';
@@ -462,8 +499,22 @@ export function isRelayTokenEnrolLoopRunning(): boolean {
  */
 export function startRelayTokenEnrolLoop(): void {
     if (isIsolationWorker()) return;
+    // A stream-proxy-only node has no database: nothing to enrol, nobody to push for.
+    if (config.STREAM_PROXY_MODE) return;
     if (running) return;
     running = true;
+
+    // Pick up a token a sibling process or a previous boot already shared, now,
+    // so capabilities do not report `no_relay_credential` for the 5-30 s before
+    // the first tick. Adopting makes no request. Skipped when this install may
+    // not hold a minted token at all (contact off, own relay, ...).
+    void (async () => {
+        if (relayTokenIneligibleReason() !== null) return;
+        const shared = await loadSharedRelayToken();
+        if (shared && running && relayTokenIneligibleReason() === null) {
+            adoptRelayTokenIfFresher(shared.token, shared.expiresAtMs);
+        }
+    })();
 
     const scheduleNext = (ms: number): void => {
         if (!running) return;
@@ -573,6 +624,9 @@ export function startRelayTokenEnrolLoop(): void {
 /** Stop the loop and reset its state (tests, shutdown). */
 export function stopRelayTokenEnrolLoop(): void {
     running = false;
+    // Abort a request that is in flight; its answer is dropped.
+    shutdownController.abort();
+    shutdownController = new AbortController();
     for (const t of [loopTimer, retryTimer, switchOnTimer, earlyTimer]) if (t) clearTimeout(t);
     loopTimer = null;
     retryTimer = null;
@@ -591,5 +645,7 @@ export function stopRelayTokenEnrolLoop(): void {
     state.shortRetryMs = null;
     state.needsRetry = false;
     state.loggedWaiting = false;
+    state.busyStreak = 0;
+    state.loggedLocklessFetch = false;
     lastEligibilityNote = undefined;
 }

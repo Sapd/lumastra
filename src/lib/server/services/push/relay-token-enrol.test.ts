@@ -15,6 +15,7 @@ const h = vi.hoisted(() => ({
         PUSH_RELAY_TOKEN: '',
         PUSH_RELAY_URL: 'https://push.lumastra.org',
         APP_VERSION: '0.2.0-test',
+        STREAM_PROXY_MODE: false,
     },
     transport: 'relay' as 'relay' | 'direct',
     answered: true,
@@ -27,6 +28,9 @@ const h = vi.hoisted(() => ({
     cleared: 0,
     getDbCalls: 0,
     lockHeld: false,
+    /** The coordination Valkey is down: acquireLock answers null every time. */
+    lockUnavailable: false,
+    warn: vi.fn(),
     /** Runs when the lock is taken: a sibling storing a token just before us. */
     onAcquire: null as null | (() => void),
     info: vi.fn(),
@@ -85,7 +89,7 @@ vi.mock('./relay-token.shared.js', () => ({
         h.shared = null;
     },
     acquireEnrolLock: async () => {
-        if (h.lockHeld) return null;
+        if (h.lockHeld || h.lockUnavailable) return null;
         h.lockHeld = true;
         h.onAcquire?.();
         return 'lock-1';
@@ -95,7 +99,7 @@ vi.mock('./relay-token.shared.js', () => ({
     },
 }));
 vi.mock('$lib/server/utils/logger.js', () => ({
-    Logger: { for: () => ({ info: h.info, warn() {}, error() {}, debug() {} }) },
+    Logger: { for: () => ({ info: h.info, warn: h.warn, error() {}, debug() {} }) },
 }));
 
 import {
@@ -111,6 +115,7 @@ import {
     stopRelayTokenEnrolLoop,
 } from './relay-token-enrol.js';
 import {
+    adoptRelayTokenIfFresher,
     getRelayToken,
     hasLiveMintedRelayToken,
     invalidateRelayToken,
@@ -137,6 +142,7 @@ beforeEach(() => {
         LICENSE_SERVER_CONTACT_ENABLED: true,
         PUSH_RELAY_TOKEN: '',
         PUSH_RELAY_URL: 'https://push.lumastra.org',
+        STREAM_PROXY_MODE: false,
     });
     h.transport = 'relay';
     h.answered = true;
@@ -149,8 +155,10 @@ beforeEach(() => {
     h.cleared = 0;
     h.getDbCalls = 0;
     h.lockHeld = false;
+    h.lockUnavailable = false;
     h.onAcquire = null;
     h.info.mockClear();
+    h.warn.mockClear();
     h.configListeners = [];
     h.fetch.mockReset().mockImplementation(async () => answer());
     vi.stubGlobal('fetch', h.fetch);
@@ -542,5 +550,127 @@ describe('the loop', () => {
         await vi.advanceTimersByTimeAsync(FIRST_TICK_JITTER_MS + 1);
         expect(h.fetch.mock.calls.length).toBe(calls + 1);
         expect(hasLiveMintedRelayToken()).toBe(true);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Re-review fixes
+// ---------------------------------------------------------------------------
+
+describe('enrolRelayTokenOnce: the lock service is down', () => {
+    it('stays busy for a few attempts (a sibling may be fetching), then fetches without the lock', async () => {
+        h.lockUnavailable = true;
+        expect(await enrolRelayTokenOnce()).toBe('busy');
+        expect(await enrolRelayTokenOnce()).toBe('busy');
+        expect(await enrolRelayTokenOnce()).toBe('busy');
+        expect(h.fetch).not.toHaveBeenCalled();
+
+        expect(await enrolRelayTokenOnce()).toBe('minted');
+        expect(h.fetch).toHaveBeenCalledTimes(1);
+        expect(getRelayToken()).toBe(jwt());
+    });
+
+    it('says so once, not on every lockless fetch', async () => {
+        h.lockUnavailable = true;
+        for (let i = 0; i < 3; i++) await enrolRelayTokenOnce();
+        await enrolRelayTokenOnce();
+        setRelayToken(null);
+        await enrolRelayTokenOnce();
+        const lockNotes = h.warn.mock.calls.filter((c) => /lock/i.test(String(c[0])));
+        expect(lockNotes).toHaveLength(1);
+    });
+
+    it('a sibling that stores a token ends the busy streak: no lockless fetch', async () => {
+        h.lockUnavailable = true;
+        expect(await enrolRelayTokenOnce()).toBe('busy');
+        expect(await enrolRelayTokenOnce()).toBe('busy');
+        h.shared = { token: 'from-sibling', expiresAtMs: Date.now() + 23 * 3600 * 1000 };
+        expect(await enrolRelayTokenOnce()).toBe('fresh');
+        h.shared = null;
+        setRelayToken(null);
+        // The streak starts over: three more busy answers before any fetch.
+        expect(await enrolRelayTokenOnce()).toBe('busy');
+        expect(await enrolRelayTokenOnce()).toBe('busy');
+        expect(h.fetch).not.toHaveBeenCalled();
+    });
+});
+
+describe('startRelayTokenEnrolLoop: where it runs', () => {
+    it('does not start on a stream-proxy-only node (no database)', () => {
+        h.cfg.STREAM_PROXY_MODE = true;
+        startRelayTokenEnrolLoop();
+        expect(isRelayTokenEnrolLoopRunning()).toBe(false);
+        expect(h.configListeners).toHaveLength(0);
+    });
+
+    it('adopts the token a sibling shared right at start, not after the first tick delay', async () => {
+        vi.useFakeTimers();
+        h.shared = { token: 'from-sibling', expiresAtMs: Date.now() + 23 * 3600 * 1000 };
+        startRelayTokenEnrolLoop();
+        // No timer has fired: this is what capabilities would see right after boot.
+        await vi.advanceTimersByTimeAsync(0);
+        expect(getRelayToken()).toBe('from-sibling');
+        expect(h.fetch).not.toHaveBeenCalled();
+    });
+
+    it('does not adopt a shared token when the install may not use one (contact off)', async () => {
+        vi.useFakeTimers();
+        h.cfg.LICENSE_SERVER_CONTACT_ENABLED = false;
+        h.shared = { token: 'from-sibling', expiresAtMs: Date.now() + 23 * 3600 * 1000 };
+        startRelayTokenEnrolLoop();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(getRelayToken()).toBeNull();
+    });
+});
+
+describe('enrolRelayTokenOnce: a bad new token never costs the held one', () => {
+    const b64 = (o: unknown): string => Buffer.from(JSON.stringify(o)).toString('base64url');
+    const jwtExpiringIn = (ms: number): string =>
+        `${b64({ alg: 'ES256' })}.${b64({ exp: Math.floor((Date.now() + ms) / 1000) })}.sig`;
+
+    it('a token whose own exp is near, with no relayTokenExp, is refused and the held token stays', async () => {
+        // Held: still valid for 10 h, so a renewal is due (under 20 h left).
+        setRelayToken('held-and-valid', (Date.now() + 10 * 3600 * 1000) / 1000);
+        h.fetch.mockResolvedValueOnce(
+            new Response(JSON.stringify({ relayToken: jwtExpiringIn(60_000) }), { status: 200 }),
+        );
+
+        expect(await enrolRelayTokenOnce()).toBe('failed');
+
+        expect(getRelayToken()).toBe('held-and-valid');
+        expect(h.saved).toHaveLength(0);
+    });
+});
+
+describe('stopRelayTokenEnrolLoop: an in-flight request', () => {
+    it('is aborted on shutdown and its answer is not stored or shared', async () => {
+        let signal: AbortSignal | undefined;
+        let finish: (() => void) | null = null;
+        h.fetch.mockImplementation(
+            (_url: string, init: RequestInit) =>
+                new Promise<Response>((resolve) => {
+                    signal = init.signal as AbortSignal;
+                    // A server that answers anyway, after the abort: must still be ignored.
+                    finish = () => resolve(answer());
+                }),
+        );
+
+        const attempt = enrolRelayTokenOnce();
+        await vi.waitFor(() => expect(h.fetch).toHaveBeenCalledTimes(1));
+        expect(signal!.aborted).toBe(false);
+
+        stopRelayTokenEnrolLoop();
+        expect(signal!.aborted).toBe(true);
+        finish!();
+
+        expect(await attempt).not.toBe('minted');
+        expect(hasLiveMintedRelayToken()).toBe(false);
+        expect(h.saved).toHaveLength(0);
+        expect(h.lockHeld).toBe(false);
+    });
+
+    it('a stop does not poison the next start: later requests go out normally', async () => {
+        stopRelayTokenEnrolLoop();
+        expect(await enrolRelayTokenOnce()).toBe('minted');
     });
 });

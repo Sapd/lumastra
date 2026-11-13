@@ -76,11 +76,28 @@ function unverifiedExpMs(token: string): number | null {
 }
 
 /**
+ * When a minted token expires (epoch ms): the server's `relayTokenExp`; when
+ * absent the JWT's own `exp` (unverified — the relay verifies); failing that
+ * 24h from `now`. Always capped at 24h from `now`. Pure, so the enrolment loop
+ * can judge a new token BEFORE it replaces the one held.
+ */
+export function relayTokenExpiryMs(
+    token: string,
+    expiresAtEpochSeconds?: number,
+    now: number = Date.now(),
+): number {
+    const claimed =
+        typeof expiresAtEpochSeconds === 'number' && Number.isFinite(expiresAtEpochSeconds)
+            ? expiresAtEpochSeconds * 1000
+            : (unverifiedExpMs(token) ?? now + MAX_LIFETIME_MS);
+    return Math.min(claimed, now + MAX_LIFETIME_MS);
+}
+
+/**
  * Called by the enrolment loop when the server returns a relay token.
  *
- * @param expiresAtEpochSeconds the server's `relayTokenExp`; when absent the
- *   JWT's own `exp` is read (unverified — the relay verifies), and failing
- *   that the token is assumed to live 24h. Always capped at 24h from now.
+ * @param expiresAtEpochSeconds the server's `relayTokenExp`, see
+ *   {@link relayTokenExpiryMs}.
  */
 export function setRelayToken(
     token: string | null,
@@ -91,11 +108,7 @@ export function setRelayToken(
         held = null;
         return;
     }
-    const claimed =
-        typeof expiresAtEpochSeconds === 'number' && Number.isFinite(expiresAtEpochSeconds)
-            ? expiresAtEpochSeconds * 1000
-            : (unverifiedExpMs(token) ?? now + MAX_LIFETIME_MS);
-    held = { token, expiresAtMs: Math.min(claimed, now + MAX_LIFETIME_MS) };
+    held = { token, expiresAtMs: relayTokenExpiryMs(token, expiresAtEpochSeconds, now) };
 }
 
 /**
