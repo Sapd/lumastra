@@ -24,19 +24,12 @@ export const devFeaturesEnabled: boolean = dev || parseBoolEnv(process.env.ALLOW
 // do not advertise enterprise-only configuration that is not meant for them.
 export const enterpriseFeaturesBuildEnabled: boolean = false;
 
-// License-enforcement gate (the paywall). BUILD-TIME CONSTANT ON PURPOSE — read
-// from neither the environment nor ConfigService/settings.json, so no operator
-// can turn the paywall off by flipping a setting or an env var (same reasoning as
-// devFeaturesEnabled above, taken one step further: not even env-overridable).
-// The source is source-available, so a determined operator can still edit this and
-// rebuild — that is the accepted bar ("edit + rebuild", not "toggle").
-//
-// ON since the OSS launch (2026-10). The unlock comes from a signed license, not
-// from this default: an install with no key gets full access for a grace window
-// after the image build, fetches an early-access key from lumastra.org, and
-// degrades to the free tier (never a lockout) when neither applies. Shipping it
-// off would have made that release free forever — anyone could pin it.
-export const LICENSE_ENFORCEMENT_BUILD_DEFAULT: boolean = true;
+// License-enforcement gate. OFF: Lumastra is AGPL-3.0 with no paid parts, so an
+// install with no key (or any key) gets every feature: unlimited /j streams, the
+// AI assistant, operator branding. The gate machinery (entitlements registry,
+// licence module) is being removed step by step; this constant is the switch it
+// hangs off until it is gone. Guard: licensing/free-install.guard.test.ts.
+export const LICENSE_ENFORCEMENT_BUILD_DEFAULT: boolean = false;
 
 // ============================================================================
 // Config Service Integration
@@ -547,15 +540,8 @@ export const config = {
     },
     // Master gate for license verification + entitlement enforcement.
     //
-    // DELIBERATELY a BUILD-TIME CONSTANT — not an env var, not an admin/settings
-    // toggle. Enforcement is the paywall; a plain runtime switch would let any
-    // operator turn the paywall off in one line (the source is source-available,
-    // but the bar must be "edit + rebuild", not "flip a setting"). ON since the
-    // OSS launch (LICENSE_ENFORCEMENT_BUILD_DEFAULT); an install without a usable
-    // license degrades to the free tier (2 /j streams per server, AI off) — never blocking
-    // login, browsing, or free-tier playback. Kept in AGPL config (not the proprietary tree) so the entitlements
-    // shim can read it without crossing the open-core import boundary, preserving
-    // its fail-closed-to-free behaviour on any provider error. See LICENSING.md.
+    // Build-time constant, OFF (no paid parts, see LICENSE_ENFORCEMENT_BUILD_DEFAULT).
+    // With it off the entitlements shim returns UNLIMITED_ENTITLEMENTS.
     get LICENSE_ENFORCEMENT_ENABLED(): boolean {
         return LICENSE_ENFORCEMENT_BUILD_DEFAULT;
     },
