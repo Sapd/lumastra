@@ -7,12 +7,12 @@ import { advertisedBaseUrl } from '$lib/server/proprietary/jellyfin-compat/adver
 import type { RequestHandler } from './$types';
 import { getPublicSystemInfo } from '$lib/server/proprietary/jellyfin-compat/serializers/system';
 
-// nginx's `location ^~ /j/ { ... }` auto-redirects bare `/j` to `/j/` (a
-// built-in nginx behavior for any prefix location ending in "/", not
-// something declared in the config). SvelteKit's default `trailingSlash:
-// 'never'` would then redirect `/j/` straight back to `/j` — an infinite
-// loop, since nothing previously matched the bare route. `'always'` makes
-// `/j/` this route's canonical form so the ping-pong resolves in one hop.
+// `/j/` is this route's canonical path (`trailingSlash: 'always'`). Clients
+// may still be handed the base URL `/j` without a trailing slash: nginx's
+// `location ^~ /j/` redirects that to `/j/` (built-in behavior for prefix
+// locations ending in "/", not declared in the config). With SvelteKit's
+// default 'never', `/j/` would redirect back to `/j` in a loop, so 'always'
+// keeps the round trip to one hop.
 // Jellyfin clients (e.g. Streamyfin's reachability check) probe `HEAD {baseUrl}/`
 // before rendering their home screen — this endpoint is what they need to reach.
 export const trailingSlash = 'always';

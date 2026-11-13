@@ -364,7 +364,7 @@ export const STATION_INFO: Record<string, StationInfo> = {
     'music-analysis': {
         fullName: 'Music analysis',
         description:
-            'Extracts ReplayGain, BPM, and key from audio files so playback / EQ has the data it needs.',
+            'Measures loudness (LUFS), BPM, and key from audio files so playback / EQ has the data it needs.',
     },
     'album-enrichment': {
         fullName: 'Album enrichment',

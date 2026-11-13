@@ -1040,8 +1040,8 @@ export const config = {
 
     // Sonic embeddings — MSCLAP (Microsoft CLAP '2023', 1024-dim) audio-level
     // embedding pipeline for sound-based similarity ("sounds like"). Default OFF.
-    // Requires a GPU worker running the sonic-embedder Python CLI. When off, the
-    // backfill task no-ops and the /api/music/{albums,artists}/{id}/similar routes return 404 (tracks fall back to metadata).
+    // Requires the sonic-embedder Python CLI on a CPU or CUDA worker. When off, the
+    // backfill task no-ops and the /api/v1/music/{albums,artists}/{id}/similar routes return 404 (tracks fall back to metadata).
     get FEATURE_MUSIC_SONIC(): boolean {
         return getBool('FEATURE_MUSIC_SONIC', env.FEATURE_MUSIC_SONIC, false);
     },

@@ -268,7 +268,7 @@ const HANDLERS: Record<string, SubsonicHandler> = {
     getTranscodeDecision: handleGetTranscodeDecision,
     getTranscodeStream: handleGetTranscodeStream,
 
-    // OpenSubsonic sonic-similarity (not implemented)
+    // OpenSubsonic sonic-similarity (served by handlers/search.ts)
     getSonicSimilarTracks: handleGetSonicSimilarTracks,
     findSonicPath: handleFindSonicPath,
 };

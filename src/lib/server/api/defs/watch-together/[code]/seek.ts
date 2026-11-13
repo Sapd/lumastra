@@ -7,7 +7,7 @@
  *   POST /watch-together/{code}/seek → 204 No Content
  *
  * Broadcasts a seek event to all session participants.
- * Participant-only: host or any participant may seek.
+ * Host only: participants who are not the host are refused.
  *
  * Auth: feature(FEATURE_WATCH_TOGETHER) → user
  */

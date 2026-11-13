@@ -13030,7 +13030,7 @@
     "admin_provider_calls_note": "Web and worker HTTP attempts, including retries. Current hour is partial. Errors include all 4xx, 5xx and network failures; 429s are also errors. Counters start when enabled and may lose a small number of calls during outages or restarts.",
     "admin_provider_calls_unavailable": "Provider call counters are unavailable.",
     "admin_provider_calls_calls": "Calls",
-    "admin_library_detail_age_limit_hint": "Applies to audiobooks only: an audiobook in this library counts as at least this age, so users with a lower age limit do not see it, and the library itself disappears from their library list. Movies and series always use their own age rating (national certification or MDBList), not this value.",
+    "admin_library_detail_age_limit_hint": "Hides this library from users below this age; also sets the minimum rating for its audiobooks.",
     "admin_users_age_unrated_count_hidden": "{unrated} of {total} library titles have no age rating, so age-limited users cannot see them. The Age Rating Backfill task fills them in from the national rating.",
     "admin_users_age_unrated_count_visible": "{unrated} of {total} library titles have no age rating. Age-limited users can see them because unrated content is allowed.",
     "admin_task_desc_age_rating_backfill": "Looks up the national age rating (FSK, MPAA, BBFC and so on) of titles that have none or only an MDBList rating, and replaces the MDBList age with it. Runs in small batches, so it can take a while on a large library.",
