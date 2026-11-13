@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * The boot loader fills every registry the licence module's `init.ts` used to
- * fill (besides licensing), once per process, never inside a plugin-isolation
- * worker, and starts the relay token enrolment loop.
+ * The boot loader fills every registry once per process, never inside a
+ * plugin-isolation worker, and starts the relay token enrolment loop only for
+ * the processes that ask for it.
  *
  * "Process types" here: web (hooks.server.ts), worker / task runtime
  * (task-runtime/index.ts, executor-child.ts), a stream-proxy-only node, and the
@@ -97,8 +97,8 @@ describe('ensureCompatLoaded', () => {
     it('web / task runtime: registers every provider and starts the enrolment loop, once', async () => {
         const { ensureCompatLoaded } = await load();
 
-        await ensureCompatLoaded();
-        await ensureCompatLoaded();
+        await ensureCompatLoaded({ enrolRelayToken: true });
+        await ensureCompatLoaded({ enrolRelayToken: true });
 
         expect(h.registerAiAssistantProvider).toHaveBeenCalledTimes(1);
         const provider = h.registerAiAssistantProvider.mock.calls[0]![0] as {
@@ -119,22 +119,32 @@ describe('ensureCompatLoaded', () => {
         expect(h.registerJellyfinReportBuilder).toHaveBeenCalledTimes(1);
         expect(h.startSilentStartSweeper).toHaveBeenCalledTimes(1);
         expect(h.registerJellyfinRemoteControl).toHaveBeenCalledTimes(1);
-        expect(h.startRelayTokenEnrolLoop).toHaveBeenCalledTimes(1);
+        // The loop's own idempotence handles the repeat call; the loader asks for it.
+        expect(h.startRelayTokenEnrolLoop).toHaveBeenCalled();
     });
 
     it('starts the enrolment loop synchronously, before any registration finishes', async () => {
         const { ensureCompatLoaded } = await load();
-        const pending = ensureCompatLoaded();
-        // No await yet: the legacy licence loop must already see the loop as active.
+        const pending = ensureCompatLoaded({ enrolRelayToken: true });
         expect(h.startRelayTokenEnrolLoop).toHaveBeenCalledTimes(1);
         await pending;
     });
 
-    it('plugin-isolation worker: complete no-op', async () => {
-        h.worker = true;
+    it('executor child, revocation fan-out and plugin ctx.ai: registrations only, no enrolment loop', async () => {
         const { ensureCompatLoaded } = await load();
 
         await ensureCompatLoaded();
+
+        expect(h.registerAiAssistantProvider).toHaveBeenCalledTimes(1);
+        expect(h.registerJellyfinCompatRevocationProvider).toHaveBeenCalledTimes(1);
+        expect(h.startRelayTokenEnrolLoop).not.toHaveBeenCalled();
+    });
+
+    it('plugin-isolation worker: complete no-op, even when asked for the loop', async () => {
+        h.worker = true;
+        const { ensureCompatLoaded } = await load();
+
+        await ensureCompatLoaded({ enrolRelayToken: true });
 
         expect(h.registerAiAssistantProvider).not.toHaveBeenCalled();
         expect(h.registerJellyfinCompatRevocationProvider).not.toHaveBeenCalled();
@@ -145,17 +155,19 @@ describe('ensureCompatLoaded', () => {
         expect(h.startRelayTokenEnrolLoop).not.toHaveBeenCalled();
     });
 
-    it('stream-proxy-only node: no sweeper, no remote control; the rest still registers', async () => {
+    it('stream-proxy-only node: no enrolment loop and nothing that needs the database', async () => {
         h.streamProxyMode = true;
         const { ensureCompatLoaded } = await load();
 
-        await ensureCompatLoaded();
+        await ensureCompatLoaded({ enrolRelayToken: true });
 
+        expect(h.startRelayTokenEnrolLoop).not.toHaveBeenCalled();
         expect(h.startSilentStartSweeper).not.toHaveBeenCalled();
         expect(h.registerJellyfinRemoteControl).not.toHaveBeenCalled();
-        expect(h.registerAiAssistantProvider).toHaveBeenCalledTimes(1);
-        expect(h.registerJellyfinCompatRevocationProvider).toHaveBeenCalledTimes(1);
-        expect(h.startRelayTokenEnrolLoop).toHaveBeenCalledTimes(1);
+        expect(h.registerAiAssistantProvider).not.toHaveBeenCalled();
+        expect(h.registerJellyfinCompatRevocationProvider).not.toHaveBeenCalled();
+        expect(h.registerJellyfinReportBuilder).not.toHaveBeenCalled();
+        expect(h.registerJellyfinResponseObserver).toHaveBeenCalledTimes(1);
     });
 
     it('a broken registration is logged and never blocks the others, never rejects', async () => {
@@ -171,13 +183,34 @@ describe('ensureCompatLoaded', () => {
         expect(h.registerJellyfinRemoteControl).toHaveBeenCalledTimes(1);
     });
 
+    it('a failed registration is retried by the next call; steps that worked are not run again', async () => {
+        h.registerJellyfinCompatRevocationProvider.mockImplementationOnce(() => {
+            throw new Error('revocation broke');
+        });
+        const { ensureCompatLoaded, pendingCompatSteps } = await load();
+
+        await ensureCompatLoaded();
+        expect(pendingCompatSteps()).toEqual(['/j session revocation']);
+
+        await ensureCompatLoaded();
+
+        expect(h.registerJellyfinCompatRevocationProvider).toHaveBeenCalledTimes(2);
+        expect(h.registerAiAssistantProvider).toHaveBeenCalledTimes(1);
+        expect(h.registerJellyfinResponseObserver).toHaveBeenCalledTimes(1);
+        expect(h.startSilentStartSweeper).toHaveBeenCalledTimes(1);
+        expect(pendingCompatSteps()).toEqual([]);
+
+        await ensureCompatLoaded();
+        expect(h.registerJellyfinCompatRevocationProvider).toHaveBeenCalledTimes(2);
+    });
+
     it('an enrolment loop that throws on start does not stop the registrations', async () => {
         h.startRelayTokenEnrolLoop.mockImplementationOnce(() => {
             throw new Error('boom');
         });
         const { ensureCompatLoaded } = await load();
 
-        await ensureCompatLoaded();
+        await ensureCompatLoaded({ enrolRelayToken: true });
 
         expect(h.registerAiAssistantProvider).toHaveBeenCalledTimes(1);
         expect(h.registerJellyfinCompatRevocationProvider).toHaveBeenCalledTimes(1);
@@ -199,7 +232,27 @@ describe('every process entry point loads it', () => {
     it.each(entries)('%s (%s) calls ensureCompatLoaded from boot/compat-init', (file) => {
         const source = readFileSync(file, 'utf8');
         expect(source).toMatch(/boot\/compat-init\.js/);
-        expect(source).toMatch(/ensureCompatLoaded\(\)/);
+        expect(source).toMatch(/ensureCompatLoaded\(/);
+    });
+
+    it('only the web server and the task runtime main process start the enrolment loop', () => {
+        const asks = (file: string): boolean =>
+            /ensureCompatLoaded\(\{\s*enrolRelayToken:\s*true\s*\}\)/.test(readFileSync(file, 'utf8'));
+        expect(asks('src/hooks.server.ts')).toBe(true);
+        expect(asks('src/task-runtime/index.ts')).toBe(true);
+        for (const file of [
+            'src/task-runtime/executor-child.ts',
+            'src/lib/server/services/credential-revocation.service.ts',
+            'src/lib/server/tasks/plugin-ai-surface.ts',
+        ]) {
+            expect(asks(file), file).toBe(false);
+        }
+    });
+
+    it('both long-running processes stop the enrolment loop on shutdown', () => {
+        for (const file of ['src/hooks.server.ts', 'src/task-runtime/index.ts']) {
+            expect(readFileSync(file, 'utf8'), file).toMatch(/stopRelayTokenEnrolLoop\(\)/);
+        }
     });
 
     it('nobody loads the registrations through the removed licence shim any more', () => {

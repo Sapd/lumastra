@@ -140,6 +140,11 @@ async function main(): Promise<void> {
                     silenceGlideLoggerForShutdown();
                 },
                 async () => {
+                    const { stopRelayTokenEnrolLoop } =
+                        await import('$lib/server/services/push/relay-token-enrol.js');
+                    stopRelayTokenEnrolLoop();
+                },
+                async () => {
                     if (consumerSampler) clearInterval(consumerSampler);
                 },
                 async () => {
@@ -364,7 +369,7 @@ async function main(): Promise<void> {
         );
         lifecycle.signal.throwIfAborted();
         const { ensureCompatLoaded } = await import('$lib/server/boot/compat-init.js');
-        await ensureCompatLoaded();
+        await ensureCompatLoaded({ enrolRelayToken: true });
         lifecycle.signal.throwIfAborted();
         const { startJellyfinConnectionLifecycle } =
             await import('$lib/server/jellyfin/connection-lifecycle.js');

@@ -1709,15 +1709,15 @@ if (!building) {
     // token enrolment loop. Without this the registries stay empty until some
     // request happens to need them.
     void (async () => {
-        try {
-            await ensureDatabaseMigration();
-            const { ensureCompatLoaded } = await import('$lib/server/boot/compat-init.js');
-            await ensureCompatLoaded();
-        } catch (err) {
-            startupLogger.warn('Failed to run the boot registrations', {
-                error: String(err),
-            });
-        }
+        const { runBootRegistrations } = await import('$lib/server/boot/run-boot-registrations.js');
+        await runBootRegistrations({
+            migrate: ensureDatabaseMigration,
+            loadCompat: async () => {
+                const { ensureCompatLoaded } = await import('$lib/server/boot/compat-init.js');
+                await ensureCompatLoaded({ enrolRelayToken: true });
+            },
+            warn: (message, meta) => startupLogger.warn(message, meta),
+        });
     })();
 
     // Route WebSocket upgrades (e.g. /j/socket) to handlers registered via
@@ -2029,6 +2029,15 @@ const gracefulShutdown = createWebShutdown({
         {
             name: 'sessions cache',
             run: () => sessionsCacheService.stopCaching(),
+        },
+        {
+            // No new call to lumastra.org while the process drains.
+            name: 'push relay token enrolment',
+            run: async () => {
+                const { stopRelayTokenEnrolLoop } =
+                    await import('$lib/server/services/push/relay-token-enrol.js');
+                stopRelayTokenEnrolLoop();
+            },
         },
         {
             name: 'web task subsystem',

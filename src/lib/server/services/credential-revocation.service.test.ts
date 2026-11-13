@@ -163,12 +163,15 @@ describe('revokeAllCredentialsForUser', () => {
         expect(mockSessionRevokeAllForUser).not.toHaveBeenCalled();
     });
 
-    it('is a no-op for the /j store (no failure) when no proprietary provider is registered (AGPL-only build)', async () => {
+    it('fails closed: no /j provider registered after the boot load is a failed store, not a success', async () => {
         mockGetJellyfinCompatRevocationProvider.mockReturnValue(null);
 
         const result = await revokeAllCredentialsForUser(sqlStub, USER_ID, USERNAME);
 
-        expect(result.failedStores).toEqual([]);
+        expect(result.failedStores).toEqual(['jellyfin_compat_sessions']);
+        // the other stores were still revoked
+        expect(mockSessionRevokeAllForUser).toHaveBeenCalled();
+        expect(mockPatRevokeAllForUser).toHaveBeenCalled();
     });
 
     it('continues revoking every other store when one store throws, and reports it in failedStores', async () => {

@@ -64,7 +64,7 @@ interface HeldToken {
 }
 
 let held: HeldToken | null = null;
-const invalidationListeners = new Set<() => void>();
+const invalidationListeners = new Set<(rejectedToken: string | null) => void>();
 
 function unverifiedExpMs(token: string): number | null {
     try {
@@ -185,12 +185,13 @@ export function hasLiveMintedRelayToken(now: number = Date.now()): boolean {
  * logs. That is the correct signal: the operator has to fix the value.
  */
 export function invalidateRelayToken(): void {
+    const rejected = held?.token ?? null;
     const hadMinted = held !== null;
     held = null;
     if (!hadMinted || configuredToken()) return;
     for (const listener of invalidationListeners) {
         try {
-            listener();
+            listener(rejected);
         } catch {
             // A listener's failure must not break the transport that called us.
         }
@@ -202,7 +203,9 @@ export function invalidateRelayToken(): void {
  * proprietary licence refresh loop (proprietary → core, the permitted
  * direction) to schedule an early refresh. Returns an unsubscribe function.
  */
-export function onRelayTokenInvalidated(listener: () => void): () => void {
+export function onRelayTokenInvalidated(
+    listener: (rejectedToken: string | null) => void,
+): () => void {
     invalidationListeners.add(listener);
     return () => invalidationListeners.delete(listener);
 }

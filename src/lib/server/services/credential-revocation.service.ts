@@ -155,17 +155,18 @@ export async function revokeAllCredentialsForUser(
 
     // /j (Jellyfin-compat) live session store — reached through the registry
     // (never a direct import; see the file header). ensureCompatLoaded() makes
-    // sure the boot registrations ran in this process. A null provider is a
-    // no-op, not a failure.
+    // sure the boot registrations ran in this process. A provider that is still
+    // missing afterwards is a FAILED store, never a success: reporting "revoked 0"
+    // would tell an admin that a disabled user's live /j sessions are gone when
+    // they were never looked at.
     try {
         const { ensureCompatLoaded } = await import('$lib/server/boot/compat-init.js');
         await ensureCompatLoaded();
         const { getJellyfinCompatRevocationProvider } =
             await import('$lib/server/auth/jellyfin-compat-revocation.js');
         const provider = getJellyfinCompatRevocationProvider();
-        counts.jellyfin_compat_sessions = provider
-            ? await provider.revokeSessionsForUser(userId)
-            : 0;
+        if (!provider) throw new Error('the /j session revocation is not registered');
+        counts.jellyfin_compat_sessions = await provider.revokeSessionsForUser(userId);
     } catch (error) {
         logger.warn('revokeAllCredentialsForUser: /j compat sessions failed', {
             userId,

@@ -367,6 +367,54 @@ describe('no concurrent /j stream cap (no paid tier)', () => {
     });
 });
 
+describe('the admin per-user concurrent stream limit still applies to /j playback', () => {
+    function onDevice(item: string, sessionId: string, device: string): RequestEvent {
+        const e = event(item, sessionId);
+        e.locals.jfDevice = {
+            deviceId: device,
+            deviceName: device,
+            clientName: 'Jellyfin TV',
+            clientVersion: '1.0',
+        };
+        return e;
+    }
+    const activeRows = () =>
+        h.sql!`SELECT id, status FROM play_sessions WHERE user_id = ${userId} AND status = 'ACTIVE'`;
+
+    it('control: with no limit set, two devices play at once', async () => {
+        expect((await playing(onDevice(itemId, randomUUID(), 'dev-a') as never)).status).toBe(204);
+        expect(
+            (await playing(onDevice(shortMovieId, randomUUID(), 'dev-b') as never)).status,
+        ).toBe(204);
+        expect(await activeRows()).toHaveLength(2);
+    });
+
+    it('Sessions/Playing: a second device is refused at the limit, the first keeps its session', async () => {
+        await h.sql!`INSERT INTO user_stream_policies (user_id, max_concurrent_streams) VALUES (${username}, 1)`;
+        expect((await playing(onDevice(itemId, randomUUID(), 'dev-a') as never)).status).toBe(204);
+        const refused = await playing(onDevice(shortMovieId, randomUUID(), 'dev-b') as never);
+        expect(refused.status).toBe(403);
+        const rows = await activeRows();
+        expect(rows).toHaveLength(1);
+    });
+
+    it('legacy PlayingItems route: the same limit applies', async () => {
+        await h.sql!`INSERT INTO user_stream_policies (user_id, max_concurrent_streams) VALUES (${username}, 1)`;
+        expect((await playing(onDevice(itemId, randomUUID(), 'dev-a') as never)).status).toBe(204);
+        const legacy = onDevice(shortMovieId, randomUUID(), 'dev-b');
+        legacy.params = { ...legacy.params, userId };
+        const refused = await legacyStart(legacy as never);
+        expect(refused.status).toBe(403);
+        expect(await activeRows()).toHaveLength(1);
+    });
+
+    it('a limit of 0 blocks all /j playback for that user', async () => {
+        await h.sql!`INSERT INTO user_stream_policies (user_id, max_concurrent_streams) VALUES (${username}, 0)`;
+        expect((await playing(onDevice(itemId, randomUUID(), 'dev-a') as never)).status).toBe(403);
+        expect(await activeRows()).toHaveLength(0);
+    });
+});
+
 describe('client session id adoption', () => {
     for (const origin of ['pre-migration row', 'Started without PlaySessionId']) {
         it(`adopts ${origin} without adding a concurrent stream`, async () => {

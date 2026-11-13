@@ -71,7 +71,14 @@
             { label: 'Bitrate', value: activity.bitrate ? formatBitrate(activity.bitrate) : null },
             { label: 'Subtitles', value: activity.subtitleMethod },
             { label: 'Delivery path', value: activity.deliveryPath },
-            { label: 'Stop reason', value: activity.stopReason },
+            {
+                label: 'Stop reason',
+                // Rows written by 0.1.x for the removed /j stream cap keep a readable label.
+                value:
+                    activity.stopReason === 'license_stream_limit'
+                        ? 'Stream limit (removed)'
+                        : activity.stopReason,
+            },
             { label: 'Plan reasons', value: activity.planReasons?.join(', '), wide: true },
         ]),
     );

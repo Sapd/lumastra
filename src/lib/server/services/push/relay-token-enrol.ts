@@ -54,8 +54,11 @@ import {
     setRelayToken,
 } from './relay-token.store.js';
 import {
+    acquireEnrolLock,
     clearSharedRelayToken,
+    clearSharedRelayTokenIfEquals,
     loadSharedRelayToken,
+    releaseEnrolLock,
     saveSharedRelayToken,
 } from './relay-token.shared.js';
 
@@ -80,6 +83,14 @@ const INTERVAL_JITTER = 0.1;
 const RETRY_JITTER = 0.2;
 const FAILURE_WARN_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 10_000;
+/** The answer is a token and an expiry: anything bigger is not from the real endpoint. */
+const MAX_RESPONSE_BYTES = 16 * 1024;
+/** A token must have at least this much life left to be worth storing or sharing. */
+const MIN_USABLE_LIFE_MS = 5 * 60 * 1000;
+/** The server mints at most 24 h; allow a little clock skew on top. */
+const MAX_TOKEN_LIFE_MS = 24 * 60 * 60 * 1000 + MIN_USABLE_LIFE_MS;
+/** Another process is fetching the token: look at the shared slot again soon. */
+const BUSY_RETRY_MS = 5_000;
 
 const CONTACT_KEY = 'LICENSE_SERVER_CONTACT_ENABLED';
 
@@ -105,20 +116,42 @@ function contactAnswered(): boolean {
 }
 
 /**
- * Whether this install should get a relay token from lumastra.org at all, ignoring
- * whether one is held: push on, relay delivery, default relay, no own token,
- * contact switched on. Pure config, no I/O.
+ * Why this install must not ask lumastra.org for a relay token, or null when it
+ * may: push on, relay delivery, default relay, no own token, contact switched
+ * on. Pure config, no I/O.
  */
-export function relayTokenEnrolEligible(): boolean {
-    if (!config.FEATURE_PUSH_NOTIFICATIONS) return false;
-    if (!config.LICENSE_SERVER_CONTACT_ENABLED) return false;
-    if (config.PUSH_RELAY_TOKEN.trim().length > 0) return false;
-    if (currentPushTransportSelection().kind !== 'relay') return false;
+export function relayTokenIneligibleReason(): string | null {
+    if (!config.FEATURE_PUSH_NOTIFICATIONS) return 'push notifications are off';
+    if (!config.LICENSE_SERVER_CONTACT_ENABLED) return 'contact with lumastra.org is switched off';
+    if (config.PUSH_RELAY_TOKEN.trim().length > 0) return 'an own PUSH_RELAY_TOKEN is set';
+    if (currentPushTransportSelection().kind !== 'relay') return 'push is delivered with an own Apple key';
     try {
-        return new URL(config.PUSH_RELAY_URL).origin === new URL(DEFAULT_RELAY_ORIGIN).origin;
+        if (new URL(config.PUSH_RELAY_URL).origin !== new URL(DEFAULT_RELAY_ORIGIN).origin) {
+            return 'an own relay URL is set';
+        }
     } catch {
-        return false;
+        return 'the relay URL is not valid';
     }
+    return null;
+}
+
+/** Whether this install should get a relay token from lumastra.org at all. */
+export function relayTokenEnrolEligible(): boolean {
+    return relayTokenIneligibleReason() === null;
+}
+
+let lastEligibilityNote: string | null | undefined;
+
+/** Log a change of the answer once (info), not on every tick. */
+function noteEligibility(reason: string | null): void {
+    if (reason === lastEligibilityNote) return;
+    const first = lastEligibilityNote === undefined;
+    lastEligibilityNote = reason;
+    if (reason === null) {
+        if (!first) logger.info('Asking lumastra.org for the push relay token is allowed again');
+        return;
+    }
+    logger.info(`Not asking lumastra.org for a push relay token: ${reason}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -128,6 +161,8 @@ export function relayTokenEnrolEligible(): boolean {
 export type EnrolOutcome =
     /** Not eligible (push off, contact off, own relay or own token). Nothing sent. */
     | 'ineligible'
+    /** Another process holds the call lock and is fetching the token. Nothing sent. */
+    | 'busy'
     /** A live token is held or was adopted from a sibling process. Nothing sent. */
     | 'fresh'
     /** Eligible but the operator has not answered the contact question yet. Nothing sent. */
@@ -141,6 +176,8 @@ interface EnrolState {
     failureStreak: number;
     lastFailureWarnAt: number;
     retryAfterMs: number | null;
+    /** A shorter retry than the usual 30 minutes (another process is fetching). */
+    shortRetryMs: number | null;
     needsRetry: boolean;
     loggedWaiting: boolean;
 }
@@ -149,6 +186,7 @@ const state: EnrolState = {
     failureStreak: 0,
     lastFailureWarnAt: 0,
     retryAfterMs: null,
+    shortRetryMs: null,
     needsRetry: false,
     loggedWaiting: false,
 };
@@ -212,10 +250,12 @@ async function postRelayTokenRequest(installUuid: string): Promise<Response> {
     if (!config.LICENSE_SERVER_CONTACT_ENABLED) throw new ContactDisabledError();
     // RELAY_TOKEN_ENDPOINT is a hardcoded Lumastra-operated vendor endpoint, not
     // admin-configurable (see docs/dev/eslint-exceptions.md, same class as the
-    // former licence endpoint).
+    // former licence endpoint). A redirect is never followed: the answer must come
+    // from this exact endpoint.
     // eslint-disable-next-line callback-safety/no-bare-fetch-in-server
     return fetch(RELAY_TOKEN_ENDPOINT, {
         method: 'POST',
+        redirect: 'error',
         headers: { 'content-type': 'application/json', accept: 'application/json' },
         body: JSON.stringify({ install_uuid: installUuid, app_version: config.APP_VERSION }),
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -234,20 +274,64 @@ interface RelayTokenResponse {
     relayTokenExp?: unknown;
 }
 
+/** The response body as text, or null when it is bigger than `max` bytes. */
+async function readBodyCapped(res: Response, max: number): Promise<string | null> {
+    const declared = Number(res.headers.get('content-length'));
+    if (Number.isFinite(declared) && declared > max) return null;
+    const reader = res.body?.getReader();
+    if (!reader) {
+        const text = await res.text();
+        return text.length > max ? null : text;
+    }
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (total > max) {
+            await reader.cancel().catch(() => {});
+            return null;
+        }
+        chunks.push(value);
+    }
+    return Buffer.concat(chunks).toString('utf8');
+}
+
+/** Adopt what a sibling shared; true when this process now holds a token that needs no renewal. */
+async function adoptSharedToken(): Promise<boolean> {
+    const shared = await loadSharedRelayToken();
+    if (shared) adoptRelayTokenIfFresher(shared.token, shared.expiresAtMs);
+    return !relayTokenNeedsRenewal();
+}
+
 /**
  * One enrolment attempt: at most ONE request to lumastra.org, none when
- * ineligible, when a live token is held (own or adopted from a sibling), or
- * while the contact question is unanswered. Never throws.
+ * ineligible, when a live token is held (own or adopted from a sibling), while
+ * the contact question is unanswered, or while another process holds the call
+ * lock (it re-reads the shared slot after taking the lock, so two processes with
+ * an empty slot make one request). Never throws. A plugin-isolation worker never
+ * gets this far.
  */
 export async function enrolRelayTokenOnce(): Promise<EnrolOutcome> {
     state.needsRetry = false;
+    state.shortRetryMs = null;
+    if (isIsolationWorker()) return 'ineligible';
+    let lock: string | null = null;
     try {
-        if (!relayTokenEnrolEligible()) return 'ineligible';
+        const reason = relayTokenIneligibleReason();
+        noteEligibility(reason);
+        if (reason !== null) {
+            if (!config.LICENSE_SERVER_CONTACT_ENABLED) {
+                // An opt-out leaves no token behind, in this process or in the shared slot.
+                setRelayToken(null);
+                await clearSharedRelayToken();
+            }
+            return 'ineligible';
+        }
 
         // A restart or a sibling process may already hold a fresh token.
-        const shared = await loadSharedRelayToken();
-        if (shared) adoptRelayTokenIfFresher(shared.token, shared.expiresAtMs);
-        if (!relayTokenNeedsRenewal()) return 'fresh';
+        if (await adoptSharedToken()) return 'fresh';
 
         const sql = getDb();
         if (!sql) {
@@ -260,6 +344,16 @@ export async function enrolRelayTokenOnce(): Promise<EnrolOutcome> {
             return 'waiting-for-answer';
         }
 
+        lock = await acquireEnrolLock();
+        if (lock === null) {
+            // A sibling is fetching: look at the shared slot again in a few seconds.
+            state.needsRetry = !hasLiveMintedRelayToken();
+            state.shortRetryMs = BUSY_RETRY_MS;
+            return 'busy';
+        }
+        // The holder before us may have stored a token while we waited for the lock.
+        if (await adoptSharedToken()) return 'fresh';
+
         // Without a live token a failure means push is down now: retry soon.
         const pushDownIfFails = !hasLiveMintedRelayToken();
         try {
@@ -271,22 +365,54 @@ export async function enrolRelayTokenOnce(): Promise<EnrolOutcome> {
                 noteFailure('Push relay token request was not OK', { status: res.status });
                 return 'failed';
             }
-            const data = (await res.json()) as RelayTokenResponse;
+            const text = await readBodyCapped(res, MAX_RESPONSE_BYTES);
+            let data: RelayTokenResponse = {};
+            if (text !== null) {
+                try {
+                    data = JSON.parse(text) as RelayTokenResponse;
+                } catch {
+                    data = {};
+                }
+            }
             if (typeof data.relayToken !== 'string' || data.relayToken.length === 0) {
                 state.needsRetry = pushDownIfFails;
-                noteFailure(
-                    'lumastra.org returned no push relay token; push stays unavailable',
-                    {},
-                );
+                noteFailure('lumastra.org returned no push relay token; push stays unavailable', {});
+                return 'failed';
+            }
+            // A claimed expiry must be a real time, in the future, at most about a day away.
+            const claimedExpSeconds =
+                typeof data.relayTokenExp === 'number' && Number.isFinite(data.relayTokenExp)
+                    ? data.relayTokenExp
+                    : undefined;
+            if (data.relayTokenExp !== undefined && claimedExpSeconds === undefined) {
+                state.needsRetry = pushDownIfFails;
+                noteFailure('lumastra.org returned a push relay token with an invalid expiry', {});
+                return 'failed';
+            }
+            if (claimedExpSeconds !== undefined) {
+                const lifeMs = claimedExpSeconds * 1000 - Date.now();
+                if (lifeMs < MIN_USABLE_LIFE_MS || lifeMs > MAX_TOKEN_LIFE_MS) {
+                    state.needsRetry = pushDownIfFails;
+                    noteFailure('lumastra.org returned a push relay token with an unusable expiry', {
+                        lifeSeconds: Math.round(lifeMs / 1000),
+                    });
+                    return 'failed';
+                }
+            }
+            // The switch may have been flipped while the request was in flight.
+            if (relayTokenIneligibleReason() !== null) return 'ineligible';
+
+            setRelayToken(data.relayToken, claimedExpSeconds);
+            const expiresAtMs = heldRelayTokenExpiresAtMs();
+            if (expiresAtMs === null || expiresAtMs - Date.now() < MIN_USABLE_LIFE_MS) {
+                // Never keep or share a token that is already (nearly) dead.
+                setRelayToken(null);
+                state.needsRetry = true;
+                noteFailure('The push relay token from lumastra.org is not usable; will retry', {});
                 return 'failed';
             }
             noteSuccess();
-            setRelayToken(
-                data.relayToken,
-                typeof data.relayTokenExp === 'number' ? data.relayTokenExp : undefined,
-            );
-            const expiresAtMs = heldRelayTokenExpiresAtMs();
-            if (expiresAtMs !== null) await saveSharedRelayToken(data.relayToken, expiresAtMs);
+            await saveSharedRelayToken(data.relayToken, expiresAtMs);
             return 'minted';
         } catch (err) {
             if (err instanceof ContactDisabledError) return 'ineligible';
@@ -298,6 +424,8 @@ export async function enrolRelayTokenOnce(): Promise<EnrolOutcome> {
         state.needsRetry = true;
         logger.warn('Push relay token enrolment tick failed', err as Error);
         return 'failed';
+    } finally {
+        if (lock !== null) await releaseEnrolLock(lock);
     }
 }
 
@@ -309,6 +437,7 @@ let running = false;
 let loopTimer: ReturnType<typeof setTimeout> | null = null;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 let switchOnTimer: ReturnType<typeof setTimeout> | null = null;
+let earlyTimer: ReturnType<typeof setTimeout> | null = null;
 let inFlight: Promise<unknown> | null = null;
 let rerunAfterInFlight = false;
 let lastEarlyRefreshAt = 0;
@@ -367,10 +496,13 @@ export function startRelayTokenEnrolLoop(): void {
                 // than in 6 h, jittered, never sooner than the server's Retry-After
                 // (capped at the regular interval).
                 if (state.needsRetry && running && !retryTimer) {
-                    const delay = Math.max(
-                        jittered(RETRY_INTERVAL_MS, RETRY_JITTER),
-                        Math.min(state.retryAfterMs ?? 0, REFRESH_INTERVAL_MS),
-                    );
+                    const delay =
+                        state.shortRetryMs !== null
+                            ? jittered(state.shortRetryMs, RETRY_JITTER)
+                            : Math.max(
+                                  jittered(RETRY_INTERVAL_MS, RETRY_JITTER),
+                                  Math.min(state.retryAfterMs ?? 0, REFRESH_INTERVAL_MS),
+                              );
                     retryTimer = unrefTimer(() => {
                         retryTimer = null;
                         tick();
@@ -380,15 +512,28 @@ export function startRelayTokenEnrolLoop(): void {
     };
 
     // The relay rejected the minted token (a 401, e.g. it rotated its key): fetch
-    // a new one now instead of at the next tick, rate-limited so a relay that
-    // rejects every token cannot turn this into a request loop. The shared copy
-    // is dropped first, or the tick would adopt it right back.
-    unsubscribeInvalidation = onRelayTokenInvalidated(() => {
-        const now = Date.now();
-        if (now - lastEarlyRefreshAt < EARLY_REFRESH_MIN_INTERVAL_MS) return;
-        lastEarlyRefreshAt = now;
-        logger.info('Push relay rejected the relay token; renewing it early');
-        void clearSharedRelayToken().finally(tick);
+    // a new one now instead of at the next tick, at most every 15 minutes so a
+    // relay that rejects every token cannot turn this into a request loop. A 401
+    // inside that window is not lost: a timer runs it when the window ends. The
+    // shared copy is dropped first, but only if it is the token that was rejected
+    // (a sibling may already have stored a newer one), or the tick would adopt it
+    // right back.
+    unsubscribeInvalidation = onRelayTokenInvalidated((rejectedToken) => {
+        const runEarlyRefresh = (): void => {
+            lastEarlyRefreshAt = Date.now();
+            logger.info('Push relay rejected the relay token; renewing it early');
+            void clearSharedRelayTokenIfEquals(rejectedToken).finally(tick);
+        };
+        const waitMs = EARLY_REFRESH_MIN_INTERVAL_MS - (Date.now() - lastEarlyRefreshAt);
+        if (waitMs <= 0) {
+            runEarlyRefresh();
+            return;
+        }
+        if (earlyTimer || !running) return;
+        earlyTimer = unrefTimer(() => {
+            earlyTimer = null;
+            if (running) runEarlyRefresh();
+        }, waitMs);
     });
 
     // Contact switched back on (or the first answer saved): fetch now rather than
@@ -408,7 +553,7 @@ export function startRelayTokenEnrolLoop(): void {
         if (!enabled) {
             logger.info('Contact with lumastra.org switched off; dropping the push relay token');
             setRelayToken(null);
-            void clearSharedRelayToken().catch(() => {});
+            void clearSharedRelayToken();
             return;
         }
         logger.info('Contact with lumastra.org switched on; fetching the push relay token soon');
@@ -428,10 +573,11 @@ export function startRelayTokenEnrolLoop(): void {
 /** Stop the loop and reset its state (tests, shutdown). */
 export function stopRelayTokenEnrolLoop(): void {
     running = false;
-    for (const t of [loopTimer, retryTimer, switchOnTimer]) if (t) clearTimeout(t);
+    for (const t of [loopTimer, retryTimer, switchOnTimer, earlyTimer]) if (t) clearTimeout(t);
     loopTimer = null;
     retryTimer = null;
     switchOnTimer = null;
+    earlyTimer = null;
     unsubscribeInvalidation?.();
     unsubscribeInvalidation = null;
     unsubscribeConfigChange?.();
@@ -442,6 +588,8 @@ export function stopRelayTokenEnrolLoop(): void {
     state.failureStreak = 0;
     state.lastFailureWarnAt = 0;
     state.retryAfterMs = null;
+    state.shortRetryMs = null;
     state.needsRetry = false;
     state.loggedWaiting = false;
+    lastEligibilityNote = undefined;
 }
