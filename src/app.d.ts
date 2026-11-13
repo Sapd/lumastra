@@ -104,14 +104,14 @@ interface AppFeatures {
      * config-key spread and has to be declared here by hand.
      */
     musicRadio?: boolean;
-    /** Enterprise training assignments (config.trainingAssignments) */
+    /** Training assignments (config.trainingAssignments) */
     trainingAssignments?: boolean;
     /**
      * Admin-only: an enabled library of an uploadable type exists, so the
      * Library → Upload nav tab applies. Set by the admin `+layout.server.ts`.
      */
     libraryUpload?: boolean;
-    /** Enterprise assessment — native quiz + certificate layer (config.assessment) */
+    /** Assessment — native quiz + certificate layer (config.assessment) */
     assessment?: boolean;
     /** Per-session video-preview gating on hover cards (config.videoPreviewSessionEnabled) */
     videoPreviewSessionEnabled?: boolean;

@@ -113,7 +113,7 @@ describe('every admin route has search metadata', () => {
     });
 
     it('has a meta for every nav page outside the protected tier', () => {
-        const hasEnterprise = existsSync(join(adminRoutesRoot, PROTECTED_TIER_DIR));
+        const hasPrivateTree = existsSync(join(adminRoutesRoot, PROTECTED_TIER_DIR));
         const routePaths = new Set(routes.map((r) => r.route));
         const protectedRoutes = new Set(
             routes.filter((r) => isProtectedTier(r.file)).map((r) => r.route),
@@ -123,7 +123,7 @@ describe('every admin route has search metadata', () => {
                 // Core keeps gated enterprise nav definitions, but the public tree
                 // has neither their pages nor search metadata. In a private tree,
                 // still require each page so a missing route cannot hide a gap.
-                if (page.enterpriseOnly && !hasEnterprise) {
+                if (page.privateModule && !hasPrivateTree) {
                     expect(routePaths.has(page.path), page.path).toBe(false);
                     continue;
                 }
@@ -152,7 +152,7 @@ describe('every admin route has search metadata', () => {
                 if (!meta) continue;
                 const permission = meta.permission;
                 expect(permission?.devOnly ?? false, page.path).toBe(page.devOnly ?? false);
-                expect(permission?.enterpriseOnly, page.path).toBe(page.enterpriseOnly);
+                expect(permission?.privateModule, page.path).toBe(page.privateModule);
                 expect(permission?.featureFlag, page.path).toBe(page.featureFlag);
             }
         }

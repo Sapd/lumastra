@@ -113,7 +113,7 @@ export const NON_BROWSABLE_TYPES: readonly string[] = [
     // Owned by /admin/livetv.
     'tvchannel',
     'radio',
-    // Enterprise showcase catalog, published via its own surface; no writer for
+    // Showcase catalog, published via its own surface; no writer for
     // these lives in this tree.
     'product',
     // Reading formats with no ingest path here yet — nothing ever writes a row.

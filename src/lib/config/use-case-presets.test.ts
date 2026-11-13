@@ -71,7 +71,7 @@ describe('applyUseCasePreset', () => {
         expect(v.patch.FEATURE_TRAINING_ASSIGNMENTS).toBe(false);
     });
 
-    it('enable-wins: VOD+Enterprise re-enables external', () => {
+    it('enable-wins: VOD+Training re-enables external', () => {
         const r = applyUseCasePreset(['vod', 'enterprise'], NO_CAPS);
         expect(r.patch.FEATURE_AI_RECOMMENDATIONS).toBe(true);
         expect(r.patch.PLUGIN_LUMASTRA_INTRO_ANALYZER_ENABLED).toBe(true);

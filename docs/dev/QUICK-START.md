@@ -406,9 +406,7 @@ from this repository's tree) go to `ghcr.io/lumastra/lumastra` and
 | pull request           | nothing pushed (build + checks only)   | `linux/amd64`           |
 
 Release builds carry provenance and SBOM attestations. Before anything is pushed, the
-workflow lists the built image's filesystem and fails if any path under `/app` looks like
-the Enterprise tier (`scripts/check-image-enterprise-free.sh <image>` runs the same check
-locally). The sidecar rebuilds on every release, and on `main` only when
+workflow checks that the image carries the third-party notices and license texts. The sidecar rebuilds on every release, and on `main` only when
 `workers/sonic-embedder/` changed.
 
 **`package.json`'s `version` is the tarball fallback only** — nothing else reads it

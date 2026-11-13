@@ -19,7 +19,7 @@ import { base } from '$app/paths';
 import { Logger } from '$lib/server/utils/logger.js';
 import { tasksRegistry } from '$lib/server/tasks/metrics.js';
 import {
-    isEnterpriseRouteId,
+    isPrivateRouteId,
     normalizeRouteId,
     policyForMethod,
     type RoutePolicy,
@@ -337,7 +337,7 @@ function record(
 
 function compare(event: RequestEvent, o: Outcome, deps: ShadowDeps): void {
     const routeId = event.route.id;
-    if (!routeId || isEnterpriseRouteId(routeId)) return;
+    if (!routeId || isPrivateRouteId(routeId)) return;
     const s = states.get(event);
     // Identity as the gates judged it; when resolveAuth answered, nothing was set.
     const who = s?.identity ?? snapshotIdentity(event);

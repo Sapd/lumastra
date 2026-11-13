@@ -19,10 +19,10 @@ export const dev: boolean = process.env.NODE_ENV !== 'production';
 // can never be flipped on through stored admin config in production.
 export const devFeaturesEnabled: boolean = dev || parseBoolEnv(process.env.ALLOW_DEV_FEATURES);
 
-// Enterprise/showcase training surfaces are only exposed in enterprise builds.
+// Training/showcase surfaces are only exposed in builds that include the private modules.
 // This is deliberately build-time, not an admin/env setting, so standard builds
 // do not advertise enterprise-only configuration that is not meant for them.
-export const enterpriseFeaturesBuildEnabled: boolean = false;
+export const privateModulesBuildEnabled: boolean = false;
 
 // ============================================================================
 // Config Service Integration
@@ -1268,7 +1268,7 @@ export const config = {
     },
     // ───────────────────────────────────────────────────────────────────────────
 
-    // ─────────────────── Enterprise: Training Assignments ─────────────────────
+    // ─────────────────── Training Assignments ─────────────────────
     // Master switch for the training assignment + completion-tracking layer.
     // When OFF, /my/trainings 404s, /admin/trainings 404s, and the nav entries
     // are hidden. Default OFF for non-enterprise installs.
@@ -1277,7 +1277,7 @@ export const config = {
     },
     // ───────────────────────────────────────────────────────────────────────────
 
-    // ─────────────────────── Enterprise: Assessment ───────────────────────────
+    // ─────────────────────── Assessment ───────────────────────────
     // Master switch for the native quiz + certificate-of-completion layer
     // (Phase A). When OFF, /learn 404s, /admin/courses 404s, certificate
     // routes 404, and the nav "Learn" entry is hidden. Default OFF for
@@ -5912,7 +5912,7 @@ export const features = {
     },
 
     /**
-     * Enterprise training assignment + completion-tracking layer.
+     * Training assignment + completion-tracking layer.
      * True only when FEATURE_TRAINING_ASSIGNMENTS=true. Default OFF.
      * Gates /my/trainings, /admin/trainings, and the Sidebar nav entries.
      */
@@ -5921,7 +5921,7 @@ export const features = {
     },
 
     /**
-     * Enterprise assessment — native quiz + certificate layer (Phase A).
+     * Assessment — native quiz + certificate layer (Phase A).
      * True only when FEATURE_ASSESSMENT=true. Default OFF.
      * Gates /learn, /admin/courses, /certificates, and the Sidebar "Learn" entry.
      */

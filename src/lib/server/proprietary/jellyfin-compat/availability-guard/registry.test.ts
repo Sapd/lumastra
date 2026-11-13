@@ -22,7 +22,7 @@ import { surfaces, subsonicSurfaces } from './surfaces.js';
 
 const root = resolve(__dirname, '../../../../../..');
 const methods = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'fallback']);
-const isEnterpriseRoute = (route: string): boolean => route.split('/').includes('(enterprise)');
+const isPrivateRoute = (route: string): boolean => route.split('/').includes('(enterprise)');
 
 function exportedMethods(source: string): string[] {
     const file = ts.createSourceFile('route.ts', source, ts.ScriptTarget.Latest, true);
@@ -102,9 +102,9 @@ describe('cross-surface availability inventory', () => {
             .sort();
         const enterpriseInventory = {
             endpointDefs: endpointDefs.filter((def) => def.startsWith('enterprise/')),
-            otherRoutes: otherRoutes.filter(isEnterpriseRoute),
+            otherRoutes: otherRoutes.filter(isPrivateRoute),
             reviewedExternalArtwork: reviewedExternalArtwork.filter(([route]) =>
-                isEnterpriseRoute(route),
+                isPrivateRoute(route),
             ),
         };
         // Preserve the complete reviewed private inventory. Only an entirely
@@ -179,7 +179,7 @@ describe('cross-surface availability inventory', () => {
         }
         expect({
             reviewedExternalArtwork: reviewedExternalArtwork.filter(
-                ([route]) => !isEnterpriseRoute(route),
+                ([route]) => !isPrivateRoute(route),
             ),
             // A route added inside the fallback dispatcher creates no new
             // +server file. Require an inventory review for those edits too.
@@ -189,7 +189,7 @@ describe('cross-surface availability inventory', () => {
             guarded: [...guarded]
                 .sort()
                 .map((route) => `${route}: ${exportedMethods(routes.get(route)!).join(',')}`),
-            otherRoutes: otherRoutes.filter((route) => !isEnterpriseRoute(route)),
+            otherRoutes: otherRoutes.filter((route) => !isPrivateRoute(route)),
             endpointDefs: endpointDefs.filter((def) => !def.startsWith('enterprise/')),
             guardedSubsonic: [...guardedSubsonic].sort(),
             otherSubsonic: subsonic.filter((method) => !guardedSubsonic.has(method)),

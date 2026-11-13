@@ -15,6 +15,4 @@ contact_links:
     - name: 🔒 Security vulnerability
       url: https://github.com/Sapd/lumastra/security/advisories/new
       about: Report privately via a GitHub security advisory. Do NOT open a public issue.
-    - name: 💼 Commercial / Enterprise license
-      url: mailto:git@sapd.eu
-      about: Commercial licensing and the Enterprise tier are handled by email.
+

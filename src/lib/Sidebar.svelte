@@ -346,7 +346,7 @@
     // For all other modes ('vod', 'mixed') the existing order is preserved unchanged.
     let defaultMenuItems = $derived.by((): MenuItem[] => {
         if (primaryMode === 'enterprise') {
-            // Enterprise / Home & Training: libraries + playlists for everyone;
+            // Home & Training: libraries + playlists for everyone;
             // entertainment/discovery demoted to admins (full nav per CLAUDE.md).
             const firstNonEnt = nonEntertainmentLibraries
                 .slice()

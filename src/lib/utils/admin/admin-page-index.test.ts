@@ -60,8 +60,8 @@ describe('isGateOpen', () => {
         expect(isGateOpen(undefined, NONE)).toBe(true);
         expect(isGateOpen({ devOnly: true }, NONE)).toBe(false);
         expect(isGateOpen({ devOnly: true }, ALL)).toBe(true);
-        expect(isGateOpen({ enterpriseOnly: 'assessment' }, NONE)).toBe(false);
-        expect(isGateOpen({ enterpriseOnly: 'assessment' }, ALL)).toBe(true);
+        expect(isGateOpen({ privateModule: 'assessment' }, NONE)).toBe(false);
+        expect(isGateOpen({ privateModule: 'assessment' }, ALL)).toBe(true);
         expect(isGateOpen({ featureFlag: 'libraryUpload' }, NONE)).toBe(false);
         expect(isGateOpen({ featureFlag: 'libraryUpload' }, ALL)).toBe(true);
     });

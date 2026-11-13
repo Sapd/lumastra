@@ -189,17 +189,17 @@ describe('route existence', () => {
     it('every ADMIN_NAV path has a matching route directory under src/routes', () => {
         const adminRoutesRoot = join(dirname(fileURLToPath(import.meta.url)), '../../routes/admin');
         const validPaths = new Set(collectPagePaths(adminRoutesRoot, '/admin'));
-        // Enterprise pages live under routes/admin/(enterprise), which the public tree does
+        // Some pages live under routes/admin/(enterprise), which the public tree does
         // not ship. Their nav entries stay hidden there (the module is never enabled), so
         // only require their routes when that route group is present.
-        const hasEnterprise = existsSync(join(adminRoutesRoot, '(enterprise)'));
+        const hasPrivateTree = existsSync(join(adminRoutesRoot, '(enterprise)'));
         const enterprisePaths = new Set(
             ADMIN_NAV.flatMap((s) => s.pages)
-                .filter((p) => 'enterpriseOnly' in p && p.enterpriseOnly)
+                .filter((p) => 'privateModule' in p && p.privateModule)
                 .map((p) => p.path),
         );
         for (const path of allNavPaths()) {
-            if (!hasEnterprise && enterprisePaths.has(path)) continue;
+            if (!hasPrivateTree && enterprisePaths.has(path)) continue;
             expect(validPaths.has(path), `no route directory backs manifest path ${path}`).toBe(
                 true,
             );

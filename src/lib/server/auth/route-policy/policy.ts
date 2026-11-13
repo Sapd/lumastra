@@ -78,7 +78,7 @@ export function normalizeRouteId(id: string): string {
 }
 
 /** True for a route id inside an `(enterprise)` group — never matched by the AGPL rules. */
-export function isEnterpriseRouteId(id: string): boolean {
+export function isPrivateRouteId(id: string): boolean {
     return /\/\(enterprise\)(\/|$)/.test(id);
 }
 

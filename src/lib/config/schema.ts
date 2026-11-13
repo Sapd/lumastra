@@ -745,7 +745,7 @@ Configure these settings in your \`config/settings.json\` file:
     },
     {
         id: 'enterprise',
-        label: 'Enterprise & Showcase',
+        label: 'Training & Showcase',
         description: 'Training, assessment, and public showcase feature flags',
         icon: 'AcademicCap',
         order: 23,
@@ -6990,7 +6990,7 @@ export const configSchema: SettingDefinition[] = [
                 { value: 'vod', label: 'VOD (film/TV-first)' },
                 { value: 'music', label: 'Music-first' },
                 { value: 'mixed', label: 'Mixed (balanced)' },
-                { value: 'enterprise', label: 'Enterprise / Home & Training' },
+                { value: 'enterprise', label: 'Home & Training' },
                 { value: 'showcase', label: 'Product Showcase (public + internal)' },
             ],
         },
@@ -7026,7 +7026,7 @@ export const configSchema: SettingDefinition[] = [
         section: 'enterprise',
         uiHints: { hidden: true },
     },
-    // ─────────────────── Enterprise: Native Quiz & Assessment ────────────────
+    // ─────────────────── Native Quiz & Assessment ────────────────
     {
         key: 'FEATURE_ASSESSMENT',
         type: 'boolean',
@@ -7037,7 +7037,7 @@ export const configSchema: SettingDefinition[] = [
         section: 'enterprise',
         requiresRestart: false,
     },
-    // ─────────────────── Enterprise: Training Assignments ─────────────────────
+    // ─────────────────── Training Assignments ─────────────────────
     {
         key: 'FEATURE_TRAINING_ASSIGNMENTS',
         type: 'boolean',

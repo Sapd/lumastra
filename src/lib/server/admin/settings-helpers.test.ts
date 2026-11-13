@@ -34,7 +34,7 @@ vi.mock('$lib/server/config/index.js', () => ({
 }));
 vi.mock('$lib/server/config', () => ({
     devFeaturesEnabled: false,
-    enterpriseFeaturesBuildEnabled: false,
+    privateModulesBuildEnabled: false,
 }));
 vi.mock('$lib/server/utils/audit-log', () => ({
     auditLog: vi.fn((...args: unknown[]) => state.audits.push(args)),

@@ -180,12 +180,12 @@ export const EXPORT_TABLE_ALLOWLIST: ReadonlyArray<string> = [
     'user_push_tokens',
     // OAuth device-flow authorization records — metadata only; device_code/user_code excluded (FK → users.id ON DELETE CASCADE)
     'oauth_device_codes',
-    // Enterprise assessment tables — optional (guarded at query time with to_regclass)
+    // Assessment tables — optional (guarded at query time with to_regclass)
     'certificates',
     'course_enrollments',
     'quiz_attempts',
     'training_acknowledgements',
-    // Enterprise training assignments — target_user_id is personal data (who was assigned what)
+    // Training assignments — target_user_id is personal data (who was assigned what)
     'training_assignments',
     // Access group memberships — admin-managed, but the subject's group list is personal data
     'user_access_groups',

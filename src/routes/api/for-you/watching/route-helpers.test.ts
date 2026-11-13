@@ -46,7 +46,7 @@ describe('/api/for-you/watching sequential live fallback helpers', () => {
             title: 'Die Ladung',
             mediaType: 'episode',
             seriesId: 'series-enterprise',
-            seriesName: 'Star Harbor: Enterprise',
+            seriesName: 'Star Harbor: Voyager',
             seasonNumber: 3,
             episodeNumber: 7,
             lastEventSource: 'jellyfin-session',
@@ -62,7 +62,7 @@ describe('/api/for-you/watching sequential live fallback helpers', () => {
         expect(out.id).toBe('ep-s3e8');
         expect(out.seriesId).toBe('series-enterprise');
         expect(out).not.toHaveProperty('jellyfinSeriesId');
-        expect(out.seriesName).toBe('Star Harbor: Enterprise');
+        expect(out.seriesName).toBe('Star Harbor: Voyager');
         expect(out.watchProgress).toBe(0);
         expect(out.updatedAt).toBe('2026-04-26T18:30:00.000Z');
         expect(out.itemType).toBe('nextup');
@@ -84,7 +84,7 @@ describe('/api/for-you/watching sequential live fallback helpers', () => {
                 title: 'Die Ladung',
                 mediaType: 'episode',
                 seriesId: 'series-enterprise',
-                seriesName: 'Star Harbor: Enterprise',
+                seriesName: 'Star Harbor: Voyager',
                 seasonNumber: 3,
                 episodeNumber: 7,
             }),
@@ -117,7 +117,7 @@ describe('/api/for-you/watching sequential live fallback helpers', () => {
                 title: 'Die Ladung',
                 mediaType: 'episode',
                 seriesId: 'series-enterprise',
-                seriesName: 'Star Harbor: Enterprise',
+                seriesName: 'Star Harbor: Voyager',
                 seasonNumber: 3,
                 episodeNumber: 7,
             }),

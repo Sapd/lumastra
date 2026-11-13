@@ -872,7 +872,7 @@ exports[`cross-surface availability inventory > accounts for every route, endpoi
     "search2",
     "search3",
   ],
-  "jellyfinFallback": "cdbee8cb22a9ea46f440c49db899baccaa81cb2cd46287ca086c25e4d7ba921d",
+  "jellyfinFallback": "c52661d52fc30f53675e1dedda52c22fa35bd9685ee95bfbf66a09e180a59ffd",
   "otherRoutes": [
     "(proprietary)/j/Artists/[name]/Images/[imageType]/[imageIndex]: GET",
     "(proprietary)/j/Artists/[name]/Images/[imageType]: GET",

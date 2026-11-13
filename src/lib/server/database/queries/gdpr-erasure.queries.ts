@@ -233,7 +233,7 @@ export const ERASURE_TABLE_REGISTRY: readonly ErasureTableEntry[] = [
         note: 'assigned_by FK → users(id) NO ACTION, NOT NULL. Re-attribute assignments before erasure. (target_user_id cascades.)',
     },
 
-    // ── Enterprise training/access tables — direct FK CASCADE ─────────────────
+    // ── Training/access tables — direct FK CASCADE ─────────────────
     { table: 'certificates', keyColumn: 'user_id', keyType: 'uuid', strategy: 'cascade' },
     { table: 'course_enrollments', keyColumn: 'user_id', keyType: 'uuid', strategy: 'cascade' },
     { table: 'quiz_attempts', keyColumn: 'user_id', keyType: 'uuid', strategy: 'cascade' },

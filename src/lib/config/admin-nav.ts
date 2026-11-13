@@ -65,7 +65,7 @@ import type { AdminSectionId } from '$lib/schemas/api-admin-status-payload.js';
 export type { AdminSectionId };
 
 /** Which enterprise module a page belongs to (all default OFF / unlicensed). */
-export type EnterpriseModule = 'trainingAssignments' | 'assessment' | 'showcase';
+export type PrivateModule = 'trainingAssignments' | 'assessment' | 'showcase';
 
 /** How the admin nav renders — user preference, live-switchable (spec §4). */
 export type AdminNavStyle = 'sidebar' | 'mega';
@@ -85,7 +85,7 @@ export interface AdminNavPage {
     /** Developer-only page — hidden unless developer tools are enabled. */
     devOnly?: boolean;
     /** Visible only when the given enterprise module is licensed/enabled. */
-    enterpriseOnly?: EnterpriseModule;
+    privateModule?: PrivateModule;
     /**
      * Visible only when this key in layout `data.features` is truthy.
      * Keyed to `AppFeatures` so a typo'd flag name fails to compile instead of
@@ -167,7 +167,7 @@ export const ADMIN_NAV: readonly AdminNavSection[] = [
                 // Showcase module. Gated by the layout on the showcase master
                 // switch (FEATURE_PUBLIC_SHOWCASE, default OFF) → hidden+unbadged by
                 // default, shown+badged when the operator turns showcase on.
-                enterpriseOnly: 'showcase',
+                privateModule: 'showcase',
             },
             {
                 path: '/admin/library/insights',
@@ -329,28 +329,28 @@ export const ADMIN_NAV: readonly AdminNavSection[] = [
                 title: m.admin_nav_page_users_trainings,
                 description: m.admin_nav_desc_users_trainings,
                 icon: BookOpen,
-                enterpriseOnly: 'trainingAssignments',
+                privateModule: 'trainingAssignments',
             },
             {
                 path: '/admin/reporting',
                 title: m.admin_nav_page_users_reporting,
                 description: m.admin_nav_desc_users_reporting,
                 icon: ClipboardDocumentList,
-                enterpriseOnly: 'trainingAssignments',
+                privateModule: 'trainingAssignments',
             },
             {
                 path: '/admin/courses',
                 title: m.admin_nav_page_users_courses,
                 description: m.admin_nav_desc_users_courses,
                 icon: BookOpen,
-                enterpriseOnly: 'assessment',
+                privateModule: 'assessment',
             },
             {
                 path: '/admin/quizzes',
                 title: m.admin_nav_page_users_quizzes,
                 description: m.admin_nav_desc_users_quizzes,
                 icon: BookOpen,
-                enterpriseOnly: 'assessment',
+                privateModule: 'assessment',
             },
         ],
     },
@@ -559,22 +559,22 @@ export interface NavGateContext {
     devToolsEnabled: boolean;
     /** Layout `data.features` — the SSR feature matrix. */
     features: NonNullable<App.PageData['features']>;
-    /** Enterprise training-assignments module enabled. */
+    /** Training-assignments module enabled. */
     trainingAssignments: boolean;
-    /** Enterprise assessment (courses/quizzes) module enabled. */
+    /** Assessment (courses/quizzes) module enabled. */
     assessment: boolean;
-    /** Enterprise product-showcase module licensed/enabled. */
+    /** Product-showcase module enabled. */
     showcase: boolean;
 }
 
 /** The gating fields shared by nav pages and search metadata. */
 export interface NavGatePermission {
     devOnly?: boolean;
-    enterpriseOnly?: EnterpriseModule;
+    privateModule?: PrivateModule;
     featureFlag?: keyof NonNullable<App.PageData['features']>;
 }
 
-function enterpriseModuleOpen(module: EnterpriseModule, ctx: NavGateContext): boolean {
+function privateModuleOpen(module: PrivateModule, ctx: NavGateContext): boolean {
     switch (module) {
         case 'trainingAssignments':
             return ctx.trainingAssignments;
@@ -583,7 +583,7 @@ function enterpriseModuleOpen(module: EnterpriseModule, ctx: NavGateContext): bo
         case 'showcase':
             return ctx.showcase;
         default: {
-            // A new EnterpriseModule fails to compile here until it is handled.
+            // A new PrivateModule fails to compile here until it is handled.
             void (module satisfies never);
             return false;
         }
@@ -600,7 +600,7 @@ export function isGateOpen(
 ): boolean {
     if (!permission) return true;
     if (permission.devOnly && !ctx.devToolsEnabled) return false;
-    if (permission.enterpriseOnly && !enterpriseModuleOpen(permission.enterpriseOnly, ctx)) {
+    if (permission.privateModule && !privateModuleOpen(permission.privateModule, ctx)) {
         return false;
     }
     if (permission.featureFlag && !ctx.features[permission.featureFlag]) return false;

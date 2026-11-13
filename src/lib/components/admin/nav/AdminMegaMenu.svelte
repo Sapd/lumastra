@@ -17,7 +17,7 @@
     import * as m from '$lib/paraglide/messages.js';
     import type { AdminNavSection } from '$lib/config/admin-nav.js';
     import { sectionDot } from './nav-status.js';
-    import EnterpriseBadge from './EnterpriseBadge.svelte';
+    import ModuleBadge from './ModuleBadge.svelte';
     import {
         resolveActiveNavPath,
         resolveSectionLandingPath,
@@ -297,8 +297,8 @@
                                         <div class="mega-item-text">
                                             <span class="mega-item-titlerow">
                                                 <span class="mega-item-label">{item.title()}</span>
-                                                {#if item.enterpriseOnly}
-                                                    <EnterpriseBadge compact />
+                                                {#if item.privateModule}
+                                                    <ModuleBadge compact />
                                                 {/if}
                                             </span>
                                             {#if item.description}

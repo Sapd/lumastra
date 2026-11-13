@@ -13,7 +13,7 @@
     import type { AdminNavSection } from '$lib/config/admin-nav.js';
     import type { NavStatusDot } from './nav-status.js';
     import { sectionPageGroups } from '../admin-nav.utils.js';
-    import EnterpriseBadge from './EnterpriseBadge.svelte';
+    import ModuleBadge from './ModuleBadge.svelte';
     import { adminNavHover } from '$lib/stores/admin-nav-hover.svelte.js';
 
     interface Props {
@@ -101,8 +101,8 @@
                                 data-flyout-link
                                 aria-current={p.path === activePath ? 'page' : undefined}>
                                 <span class="flyout-label">{p.title()}</span>
-                                {#if p.enterpriseOnly}
-                                    <EnterpriseBadge compact />
+                                {#if p.privateModule}
+                                    <ModuleBadge compact />
                                 {/if}
                                 {#if dot?.show}
                                     <span class="page-dot {dot.colorClass}" aria-hidden="true"

@@ -18,7 +18,7 @@
     import type { AdminNavSection } from '$lib/config/admin-nav.js';
     import { resolveActiveNavPath } from '../admin-nav.utils.js';
     import AdminSettingsNavigation from './AdminSettingsNavigation.svelte';
-    import EnterpriseBadge from './EnterpriseBadge.svelte';
+    import ModuleBadge from './ModuleBadge.svelte';
     import { adminNavHover } from '$lib/stores/admin-nav-hover.svelte.js';
 
     interface Props {
@@ -95,8 +95,8 @@
                         <Icon src={p.icon} class="tab-icon" />
                     {/if}
                     <span>{p.title()}</span>
-                    {#if p.enterpriseOnly}
-                        <EnterpriseBadge compact />
+                    {#if p.privateModule}
+                        <ModuleBadge compact />
                     {/if}
                 </a>
             {/each}

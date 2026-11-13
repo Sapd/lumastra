@@ -13,7 +13,7 @@
     import * as m from '$lib/paraglide/messages.js';
     import type { AdminNavSection } from '$lib/config/admin-nav.js';
     import { sectionDot } from './nav-status.js';
-    import EnterpriseBadge from './EnterpriseBadge.svelte';
+    import ModuleBadge from './ModuleBadge.svelte';
     import { resolveActiveNavPath, isPinActive, type AdminNavPin } from '../admin-nav.utils.js';
 
     interface Props {
@@ -107,8 +107,8 @@
                                     class:drawer-link-active={pageActive(p.path)}
                                     onclick={onclose}>
                                     <span class="drawer-link-label">{p.title()}</span>
-                                    {#if p.enterpriseOnly}
-                                        <EnterpriseBadge compact />
+                                    {#if p.privateModule}
+                                        <ModuleBadge compact />
                                     {/if}
                                 </a>
                             </li>

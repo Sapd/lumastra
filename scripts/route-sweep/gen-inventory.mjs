@@ -471,8 +471,8 @@ function renderMatrix() {
     out.push('---');
     out.push('');
     out.push(
-        '`public*` = `(proprietary)` tree: ships in the public repo but is not AGPL. ' +
-            'Only `(enterprise)` is stripped.',
+        '`public*` = `(proprietary)` tree (the `/j` and assistant routes). ' +
+            '`ent` = not in the public repo.',
     );
     out.push('');
     return out.join('\n');

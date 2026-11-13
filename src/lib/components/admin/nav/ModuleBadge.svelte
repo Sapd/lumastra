@@ -2,10 +2,10 @@
   SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
   SPDX-License-Identifier: AGPL-3.0-only
 
-  Small "Enterprise" pill for admin-nav entries whose page carries the manifest's
-  `enterpriseOnly` flag (admin-nav.ts / LICENSING.md §3.2). Marks a commercial
-  Enterprise-tier module in the nav renderers (mega-menu, mobile drawer,
-  breadcrumb). Amber/bronze tint reads "premium" and stays distinct from the
+  Small "Private" pill for admin-nav entries whose page carries the manifest's
+  `privateModule` flag (admin-nav.ts). Marks a private module in the nav
+  renderers (mega-menu, mobile drawer, breadcrumb). Amber/bronze tint stays
+  distinct from the
   gold active-link colour and the indigo developer-tools accent.
 -->
 <script lang="ts">
@@ -21,8 +21,8 @@
 <span
     class="ent-badge"
     class:ent-badge-compact={compact}
-    title={m.admin_nav_enterprise_badge_title()}>
-    {m.admin_nav_enterprise_badge()}
+    title={m.admin_nav_module_badge_title()}>
+    {m.admin_nav_module_badge()}
 </span>
 
 <style>

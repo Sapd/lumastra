@@ -101,7 +101,7 @@ describe('applyLiveOverlay', () => {
             title: 'Anomalie',
             mediaType: 'episode',
             seriesId: 'series-internal-enterprise',
-            seriesName: 'Star Harbor: Enterprise',
+            seriesName: 'Star Harbor: Voyager',
             seasonNumber: 3,
             episodeNumber: 2,
             updatedAt: '2026-04-25T10:00:00.000Z',
@@ -127,7 +127,7 @@ describe('applyLiveOverlay', () => {
         const [row] = result.continueWatching;
         expect(row.id).toBe('ep-s3e7');
         expect(row.seriesId).toBe('series-internal-enterprise');
-        expect(row.seriesName).toBe('Star Harbor: Enterprise');
+        expect(row.seriesName).toBe('Star Harbor: Voyager');
         expect(row.lastEventSource).toBe('lumastra-player');
         expect(row.livePlaybackState).toBe('playing');
         expect(row.updatedAt).toBe(NOW_ISO);
@@ -196,7 +196,7 @@ describe('applyLiveOverlay', () => {
             title: 'Anomalie',
             mediaType: 'episode',
             seriesId: 'series-internal-enterprise',
-            seriesName: 'Star Harbor: Enterprise',
+            seriesName: 'Star Harbor: Voyager',
             updatedAt: '2026-04-26T16:03:00.000Z',
         });
         const nearComplete = makeSession({
@@ -391,7 +391,7 @@ describe('applyLiveOverlay', () => {
             title: 'Anomaly',
             mediaType: 'episode',
             seriesId: 'series-enterprise',
-            seriesName: 'Star Harbor: Enterprise',
+            seriesName: 'Star Harbor: Voyager',
             seasonNumber: 3,
             episodeNumber: 2,
             updatedAt: '2026-04-25T10:00:00.000Z',
@@ -406,7 +406,7 @@ describe('applyLiveOverlay', () => {
             title: 'Mirror Image',
             seasonNumber: 3,
             episodeNumber: 10,
-            seriesName: 'Star Harbor: Enterprise',
+            seriesName: 'Star Harbor: Voyager',
         });
 
         const result = applyLiveOverlay({
@@ -423,7 +423,7 @@ describe('applyLiveOverlay', () => {
         expect(row.title).toBe('Mirror Image');
         expect(row.seasonNumber).toBe(3);
         expect(row.episodeNumber).toBe(10);
-        expect(row.seriesName).toBe('Star Harbor: Enterprise');
+        expect(row.seriesName).toBe('Star Harbor: Voyager');
         expect(row.seriesId).toBe('series-enterprise');
     });
 

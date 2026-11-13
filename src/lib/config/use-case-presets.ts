@@ -179,7 +179,7 @@ export const USE_CASE_PRESETS: Record<UseCaseId, UseCasePreset> = {
     },
     enterprise: {
         id: 'enterprise',
-        label: 'Home Videos / Training / Enterprise',
+        label: 'Home Videos / Training',
         primaryModeCandidate: 'enterprise',
         primaryRank: 2,
         landingPath: '/library/home_video',

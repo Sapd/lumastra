@@ -654,7 +654,7 @@ export async function findSeriesByName(
 
         if (results.length > 0) {
             // Require a minimum similarity of 0.5 to avoid false matches
-            // (e.g., "Star Harbor: Starfleet Academy" should not match "Raumschiff Enterprise" at 0.41)
+            // (e.g., "Star Harbor: Starfleet Academy" should not match "Raumschiff Voyager" at 0.41)
             const MIN_SIMILARITY = 0.5;
             if (results[0].similarity_score < MIN_SIMILARITY) {
                 logger.debug('Series match rejected due to low similarity', {

@@ -74,7 +74,7 @@ describe('Watch State Queries', () => {
         await ensureTestUser(sql, userId);
 
         const series = await createAndInsertPlayableTestSeries(sql, {
-            title: 'Star Harbor: Enterprise',
+            title: 'Star Harbor: Voyager',
             seasonCount: 1,
             episodesPerSeason: 5,
             episodeRuntimeSeconds: 45 * 60,

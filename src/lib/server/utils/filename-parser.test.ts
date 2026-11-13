@@ -487,10 +487,10 @@ describe('Comprehensive anime filename formats', () => {
     });
 
     it('reads an SxxEyy held in a leading bracket instead of dropping it as a group tag', () => {
-        const r = parseMediaFilename('[S04.E05] Star Harbor Enterprise - Cold Station 12.mp4');
+        const r = parseMediaFilename('[S04.E05] Star Harbor Voyager - Cold Station 12.mp4');
         expect(r.season).toBe(4);
         expect(r.episodeStart).toBe(5);
-        expect(r.title).toBe('Star Harbor Enterprise Cold Station 12');
+        expect(r.title).toBe('Star Harbor Voyager Cold Station 12');
         // A real group tag is still stripped
         expect(parseMediaFilename('[SubsPlease] Meralen - 05 (1080p).mkv').title).toBe('Meralen');
     });

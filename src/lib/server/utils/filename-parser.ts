@@ -976,7 +976,7 @@ export function parseMediaFilename(
     let working = raw;
 
     // 1. Strip [group] prefix (anime) — unless the bracket IS the episode token
-    //    ("[S04.E05] Star Harbor Enterprise - Cold Station 12"), which is unwrapped.
+    //    ("[S04.E05] Star Harbor Voyager - Cold Station 12"), which is unwrapped.
     working = working.replace(/^\[([^\]]*)\]\s*/, (_m, inner: string) =>
         S_E_PATTERN.test(inner) || S_SEP_E_PATTERN.test(inner) ? `${inner} ` : '',
     );

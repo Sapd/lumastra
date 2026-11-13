@@ -24,7 +24,7 @@
     import { sectionDot, sectionAttentionCount, pageAttentionDots } from './nav-status.js';
     import AdminNavFlyout from './AdminNavFlyout.svelte';
     import { adminNavHover } from '$lib/stores/admin-nav-hover.svelte.js';
-    import EnterpriseBadge from './EnterpriseBadge.svelte';
+    import ModuleBadge from './ModuleBadge.svelte';
     import {
         resolveSectionLandingPath,
         resolveActiveNavPath,
@@ -493,8 +493,8 @@
                                                 onpointerleave={() => adminNavHover.leave(p.path)}
                                                 aria-current={isCurrent ? 'page' : undefined}>
                                                 <span class="page-label">{p.title()}</span>
-                                                {#if p.enterpriseOnly}
-                                                    <EnterpriseBadge compact />
+                                                {#if p.privateModule}
+                                                    <ModuleBadge compact />
                                                 {/if}
                                                 {#if pageDot?.show}
                                                     <span

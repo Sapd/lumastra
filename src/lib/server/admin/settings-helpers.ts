@@ -19,7 +19,7 @@ import {
     type ConfigStorageStatus,
 } from '$lib/server/config/index.js';
 import { configSchema, type SectionDefinition, type SettingDefinition } from '$lib/config/schema';
-import { devFeaturesEnabled, enterpriseFeaturesBuildEnabled } from '$lib/server/config';
+import { devFeaturesEnabled, privateModulesBuildEnabled } from '$lib/server/config';
 import { Logger } from '$lib/server/utils/logger';
 import { isRecord } from '$lib/utils/data-extraction';
 import { auditLog, auditActorFromLocals } from '$lib/server/utils/audit-log';
@@ -37,13 +37,13 @@ import {
 const logger = Logger.for('AdminSettings');
 const ENTERPRISE_SECTION_ID = 'enterprise';
 
-function filterEnterpriseBuildSections<T extends { id: string }>(sections: T[]): T[] {
-    if (enterpriseFeaturesBuildEnabled) return sections;
+function filterPrivateBuildSections<T extends { id: string }>(sections: T[]): T[] {
+    if (privateModulesBuildEnabled) return sections;
     return sections.filter((section) => section.id !== ENTERPRISE_SECTION_ID);
 }
 
-function filterEnterpriseBuildSettings<T extends { section: string }>(settings: T[]): T[] {
-    if (enterpriseFeaturesBuildEnabled) return settings;
+function filterPrivateBuildSettings<T extends { section: string }>(settings: T[]): T[] {
+    if (privateModulesBuildEnabled) return settings;
     return settings.filter((setting) => setting.section !== ENTERPRISE_SECTION_ID);
 }
 
@@ -95,10 +95,10 @@ export async function loadSettingsForSections(sectionIds: string[]): Promise<Set
     }
 
     const sectionIdSet = new Set(sectionIds);
-    const filteredSections = filterEnterpriseBuildSections(
+    const filteredSections = filterPrivateBuildSections(
         configData.schema.sections.filter((s) => sectionIdSet.has(s.id)),
     );
-    const filteredSettings = filterEnterpriseBuildSettings(
+    const filteredSettings = filterPrivateBuildSettings(
         configData.schema.settings.filter((s) => sectionIdSet.has(s.section)),
     );
 
@@ -131,8 +131,8 @@ export function loadAllSectionsForSearch(): {
         return { sections: [], settings: [] };
     }
     return {
-        sections: filterEnterpriseBuildSections(configData.schema.sections),
-        settings: filterEnterpriseBuildSettings(configData.schema.settings),
+        sections: filterPrivateBuildSections(configData.schema.sections),
+        settings: filterPrivateBuildSettings(configData.schema.settings),
     };
 }
 

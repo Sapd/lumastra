@@ -518,7 +518,7 @@ describe('SessionReadModel', () => {
                 season_number: 3,
                 episode_number: 10,
                 series_id: 'series-enterprise',
-                series_title: 'Star Harbor: Enterprise',
+                series_title: 'Star Harbor: Voyager',
             });
 
             const [view] = await buildModel([row]).getAllActive();
@@ -526,7 +526,7 @@ describe('SessionReadModel', () => {
             expect(view?.title).toBe('Mirror Image');
             expect(view?.seasonNumber).toBe(3);
             expect(view?.episodeNumber).toBe(10);
-            expect(view?.seriesName).toBe('Star Harbor: Enterprise');
+            expect(view?.seriesName).toBe('Star Harbor: Voyager');
         });
 
         it('surfaces undefined for episode metadata columns when null in DB', async () => {

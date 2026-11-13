@@ -11,7 +11,7 @@ import { appPath } from '$lib/shared/api-urls.js';
  * redesign, spec §3.7: the Developer section is "hidden" behind the "Show
  * developer tools" setting). `devOnly` in `$lib/config/admin-nav.ts` only
  * hides the section from the nav renderers — it does not stop a direct URL
- * from rendering the page, unlike `enterpriseOnly` pages which each have a
+ * from rendering the page, unlike `privateModule` pages which each have a
  * real per-route server check on the route itself. This
  * layout closes that gap for the whole section in one place rather than
  * requiring every current and future Developer route to remember its own

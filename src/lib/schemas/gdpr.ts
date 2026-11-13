@@ -264,7 +264,7 @@ export const UserDataExportSchema = z
             "user_notification_webhooks rows — the outbound notification endpoint the subject configured (url, created_at, updated_at). The URL is the subject's own personal data (it can name their host or carry a provider topic id). Excludes secret_encrypted.",
         ),
 
-        // ── Enterprise assessment (optional — empty section on non-enterprise installs)
+        // ── Assessment (optional — empty section where the module is not installed)
         certificates: TruncatedSectionSchema.describe(
             'certificates rows — issued course completion certificates (serial, issued_at, revoked_at).',
         ),

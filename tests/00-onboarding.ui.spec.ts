@@ -189,7 +189,7 @@ test.describe('onboarding: first-run setup wizard', () => {
         await expect(page.getByText(/what is this instance for/i)).toBeVisible({ timeout: 10000 });
 
         // The VOD tile is pre-selected (useCaseSelection default = ['vod']).
-        // Toggle VOD OFF, then toggle Enterprise ON — we want enterprise only.
+        // Toggle VOD OFF, then toggle Home videos & training ON — we want that preset only.
         // The tiles are toggle buttons: aria-pressed carries the state.
         const vodCard = page.getByRole('button', { name: /^movies & tv$/i });
         await vodCard.click(); // deselects vod

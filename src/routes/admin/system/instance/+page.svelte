@@ -68,10 +68,9 @@
         discardPreview();
     }
 
-    // The 'enterprise' preset's data label ("Home Videos / Training / Enterprise")
-    // reads as enterprise-only vocabulary on an open-core, home-user install —
-    // the preset itself (LMS/training toggles) is fully usable here. Relabel just
-    // that one preset for display; the other presets' labels are plain data.
+    // The 'enterprise' preset id is stored in existing profiles, so it stays.
+    // Its display label comes from the messages, like a translated name; the
+    // other presets' labels are plain data.
     function presetLabel(preset: { id: string; label: string }): string {
         return preset.id === 'enterprise'
             ? m.admin_instance_preset_enterprise_label()

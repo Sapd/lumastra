@@ -24,7 +24,7 @@ import { dirname, join, resolve } from 'node:path';
 import { listRouteFiles } from '../route-tree.test-helpers.js';
 import {
     createPolicyTable,
-    isEnterpriseRouteId,
+    isPrivateRouteId,
     normalizeRouteId,
     policyForMethod,
     strictness,
@@ -132,7 +132,7 @@ interface Row {
 }
 
 const table = createPolicyTable(ROUTE_POLICY_RULES);
-const routeFiles = listRouteFiles().filter((f) => !isEnterpriseRouteId(f.id));
+const routeFiles = listRouteFiles().filter((f) => !isPrivateRouteId(f.id));
 
 const rows: Row[] = [];
 const unmatched: string[] = [];

@@ -11,7 +11,7 @@
     import { resolve } from '$lib/paths';
     import * as m from '$lib/paraglide/messages.js';
     import { findNavPage } from '$lib/config/admin-nav.js';
-    import EnterpriseBadge from './EnterpriseBadge.svelte';
+    import ModuleBadge from './ModuleBadge.svelte';
 
     let hit = $derived(findNavPage($page.url.pathname));
     let sectionLanding = $derived(hit ? hit.section.pages[0].path : '/admin');
@@ -28,8 +28,8 @@
             <span class="sep" aria-hidden="true">/</span>
         {/if}
         <span class="crumb crumb-current" aria-current="page">{hit.page.title()}</span>
-        {#if hit.page.enterpriseOnly}
-            <EnterpriseBadge compact />
+        {#if hit.page.privateModule}
+            <ModuleBadge compact />
         {/if}
     </nav>
 {/if}
