@@ -41,9 +41,12 @@ Live TV proxy: no update needed.
 - The license check, the weekly check-in, the `LICENSE_KEY` setting and the license panel under
   System → Instance are gone. A stored `LICENSE_KEY` is ignored.
 - Push notifications: the relay token now comes from one call to lumastra.org
-  (`POST /api/push/relay-token`, install ID and version only). **Contact lumastra.org for the
-  push relay token** (Settings → General → Push relay, stored as `LICENSE_SERVER_CONTACT_ENABLED`)
-  switches it off. Your own Apple key or relay still work without it.
+  (`POST /api/push/relay-token`, install ID and version only). **Contact lumastra.org** (Settings
+  → General → Contact lumastra.org, stored as `LICENSE_SERVER_CONTACT_ENABLED`) switches it off.
+  Your own Apple key or relay still work without it.
+- The daily update check asks lumastra.org first, sending only the version; it counts checks per
+  day and version, with no ID. Turn it off with the Contact lumastra.org setting; then it asks
+  GitHub directly as before.
 
 ### Upgrade note
 
