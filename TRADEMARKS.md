@@ -6,8 +6,8 @@ mark application filed with the EUIPO in July 2026 (Nice classes 9 and 42; regis
 pending).
 
 This repository's code licenses do **not** grant trademark rights: neither the AGPL, nor
-the commercial license, nor any other license in `LICENSES/` (see `LICENSING.md` §6). The
-brand-asset **files** (logos, icons, official artwork under the §6 branding paths) are
+any other license in `LICENSES/` (see `LICENSING.md`). The
+brand-asset **files** (logos, icons, official artwork under the branding paths) are
 additionally licensed `LicenseRef-Lumastra-Branding`, all rights reserved; see
 [`LICENSES/LicenseRef-Lumastra-Branding.txt`](./LICENSES/LicenseRef-Lumastra-Branding.txt).
 

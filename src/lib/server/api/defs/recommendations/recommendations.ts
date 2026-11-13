@@ -272,7 +272,7 @@ export const def = defineEndpoint({
                 'Returns personalized recommendations based on the selected `?type` strategy. ' +
                 'Each item is the MediaPreview with an opaque id handle, catalogId and ImageSet; ' +
                 '`reason.kind` reflects the active strategy. ' +
-                'The `ai` strategy requires the AI supporter module and a configured Voyage key. ' +
+                'The `ai` strategy requires a configured Voyage key. ' +
                 'Other strategies are rule-based and work without AI. ' +
                 'Pass `?availableOnly=true` to restrict results to ' +
                 'library-available items only — the per-request counterpart to the server-wide ' +

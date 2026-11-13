@@ -53,9 +53,8 @@ provides **forward authentication** (Authentik, Authelia, etc.); see
 (including `FORWARD_AUTH_ENABLED` and `TRUSTED_PROXY_IPS`). Reports about authentication bypass, identity
 header trust, token handling, SSRF, injection, or data exposure are especially welcome.
 
-Note that some components (the Jellyfin-compatible `/j` API and the AI assistant) are
-proprietary and source-available. They are in scope for security reports just like the rest
-of the codebase.
+The Jellyfin-compatible `/j` API and the AI assistant are in scope for security reports just
+like the rest of the codebase.
 
 ## Out of scope
 

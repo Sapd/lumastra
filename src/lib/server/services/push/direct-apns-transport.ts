@@ -4,11 +4,9 @@
 /**
  * `DirectApnsTransport` — the operator bring-your-own-certificate path.
  *
- * This is the AGPL core's unpaid route to push, and the reason gating the
- * Lumastra relay closes nothing that was open: an operator who signs and
- * distributes their own iOS build puts their own Apple `.p8` in config and this
- * server talks to `api.push.apple.com` itself, with no Lumastra service in the
- * path and no licence involved.
+ * An operator who signs and distributes their own iOS build puts their own
+ * Apple `.p8` in config and this server talks to `api.push.apple.com` itself,
+ * with no Lumastra service in the path.
  *
  * 🔴 **APNs has no batch endpoint.** One notification to N devices is N
  * separate HTTP/2 requests to `POST /3/device/<deviceToken>`; there is no array

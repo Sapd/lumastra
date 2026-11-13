@@ -50,8 +50,8 @@ export class PluginDefinitionError extends Error {
 }
 
 /**
- * Thrown by `ctx.ai.ask(...)` when the proprietary AI assistant module is
- * absent (OSS build) or the `aiAssistant` entitlement is off. Plugins should
+ * Thrown by `ctx.ai.ask(...)` when the AI assistant module is absent from
+ * the build or the assistant is not usable (for example no AI provider key). Plugins should
  * guard with `ctx.ai?` and treat this as "AI feature unavailable".
  */
 export class AiUnavailableError extends Error {

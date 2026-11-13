@@ -10,9 +10,8 @@
   own 30-day compat session. They used to be invisible here, with no lever short
   of deleting the whole client password (which signs out every client at once).
 
-  Loaded client-side on purpose. The page loader is AGPL and may not statically
-  import the proprietary /j tree (LICENSING.md §3) — going over HTTP keeps the
-  boundary intact. It also keeps the section entirely self-contained: nothing to
+  Loaded client-side on purpose. The page loader does not import the /j tree;
+  going over HTTP keeps that separation. It also keeps the section entirely self-contained: nothing to
   add to the loader, and a Valkey hiccup degrades to an empty list instead of
   failing the whole page.
 -->

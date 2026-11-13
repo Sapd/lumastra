@@ -75,8 +75,7 @@ additional terms; it will not be used to make such a Contribution proprietary-on
 binds any successor Project Owner (see §8).
 
 **Exception:** a Contribution to, or a modification of, files that LICENSING.md designates as
-licensed under a source-available or proprietary license (for example
-`LicenseRef-Lumastra-Proprietary`) is distributed under that license and under commercial terms,
+licensed under a source-available or proprietary license is distributed under that license and under commercial terms,
 as LICENSING.md and that license state. You accept that such a Contribution is not made
 available under an open-source license.
 

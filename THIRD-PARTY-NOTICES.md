@@ -5,11 +5,10 @@ Lumastra Docker image, together with their licenses and — where the license re
 (GPL/LGPL/AGPL) — how to obtain the corresponding source.
 
 It exists to satisfy the attribution and "corresponding source" obligations of the
-copyleft components Lumastra ships. It is referenced by [`LICENSING.md`](./LICENSING.md) §5.
+copyleft components Lumastra ships. It is referenced by [`LICENSING.md`](./LICENSING.md).
 
 > **Scope.** Lumastra's own code is licensed per its per-file `SPDX-License-Identifier`
-> (`AGPL-3.0-only` by default; `LicenseRef-Lumastra-Proprietary` for the `/j` and AI-assistant
-> trees — see [`LICENSING.md`](./LICENSING.md)). The third-party components below are **separate
+> (`AGPL-3.0-only`; Apache-2.0 for the SDK and samples — see [`LICENSING.md`](./LICENSING.md)). The third-party components below are **separate
 > works**, each under its own license. The copyleft binaries (Essentia, ffmpeg, fpcalc) are
 > invoked by Lumastra **as separate processes** (CLI/subprocess), which is mere aggregation, not
 > derivation — they do not place Lumastra's code under their licenses.
@@ -158,7 +157,7 @@ Unlicense and 1 0BSD (`npm run licenses`, 2026-10-06, linux-x64). The copyleft /
   relink/replace right is preserved because each WASM binary is a discrete, runtime-loaded file a
   user can rebuild from upstream and substitute. Corresponding source for the exact bundle: the
   akarisub release it was built from (1.1.3, submodule pins above), and on request per §4. See
-  the commercial-track caveat in §5.
+  the notes in §5.
 - **Source:** <https://github.com/altqx/akarisub>
 
 ### rvfc-polyfill — not used
@@ -265,7 +264,7 @@ Several navigation icons in `static/icons/` (e.g. `home.svg`, `movies.svg`, `bro
   `src/lib/assets/back12-blurred.webp`):
   first-party works created by the copyright holder, partly with generative tools, who holds
   all rights in them to the extent they are protectable — **no third-party assets**. They are
-  covered by the repository's normal path-based licensing (LICENSING.md §1), not by this
+  covered by the repository's normal path-based licensing (LICENSING.md), not by this
   notices file; they are listed here only to document their provenance. (Holiday background
   images of uncertain provenance were removed on 2026-09-12; the holiday themes now use
   colours only.)
@@ -310,22 +309,19 @@ distribution.
 
 ---
 
-## 5. Commercial-license caveats
+## 5. Notes on specific components
 
 The notes above describe the **AGPL** distribution, under which GPL/LGPL components are fully
-compatible. The separate commercial license (see [`LICENSING.md`](./LICENSING.md) §2) removes the
-AGPL's source-disclosure obligations. The bundled third-party components remain compatible with
-that track:
+compatible. Notes on the bundled third-party components:
 
 - **rvfc-polyfill:** not used at all — `akarisub` needs no `requestVideoFrameCallback`
   polyfill, so the GPL-3.0 upstream package is absent from every build.
 - **akarisub / fribidi / FreeType:** Lumastra elects the **FreeType License (FTL)** branch and
   satisfies the LGPL-2.1 attribution/relink terms for **fribidi** (the LGPL component of the
   akarisub WASM — libass itself is ISC) via this notice, the license texts in `LICENSES/`, and
-  the written source offer in §4. These obligations apply equally under both tracks.
+  the written source offer in §4. These obligations apply to every distribution.
 - **Essentia (AGPL-3.0), jellyfin-ffmpeg (GPL-3.0), `fpcalc` (GPL-2.0):** invoked as separate
-  processes (mere aggregation), so they impose no copyleft on Lumastra's own code under either
-  track. Their binaries remain under their respective licenses, and the notice / corresponding-source
+  processes (mere aggregation), so they impose no copyleft on Lumastra's own code. Their binaries remain under their respective licenses, and the notice / corresponding-source
   obligations in this file still apply when those binaries are redistributed.
 
 ---

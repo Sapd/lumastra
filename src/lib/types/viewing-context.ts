@@ -7,7 +7,7 @@
  * The server resolves this from query params + library-type fallback and passes it
  * into page data. The page component renders the matching AGPL shell.
  *
- * Proprietary use cases (lesson, showcase) never reach /watch — they have their own
+ * Other use cases (lesson, showcase) never reach /watch — they have their own
  * routes (/learn/[slug]/lesson/[moduleId] and /showcase/[id]).
  */
 

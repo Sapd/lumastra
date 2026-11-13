@@ -875,11 +875,9 @@ export {
     type ErasureTableEntry,
 } from './gdpr-erasure.queries.js';
 
-// NOTE: the training-assignments and compliance-reporting query re-exports were
-// REMOVED from this AGPL core barrel — those query modules are ENTERPRISE-tier
-// (LICENSING.md §3.2) and are not part of the public tree. They are imported
-// directly by their own enterprise routes, so the open-core invariant (AGPL core
-// must not statically import a protected tree) stays intact.
+// NOTE: the training-assignments and compliance-reporting query re-exports are
+// not part of this barrel: those modules are private and are imported directly
+// by their own routes, so nothing here depends on them.
 
 export {
     getTrackFeedback,

@@ -134,8 +134,8 @@ maintainer directly, with thanks in the PR, instead of being merged as they are.
 1. Fork the repo and create a feature branch from `main`.
 2. Make focused commits with short, imperative, sentence-cased messages
    (e.g. "Fix player back-button behavior").
-3. Keep each source file's `SPDX-License-Identifier` header intact. New files default to
-   `AGPL-3.0-only` unless they belong to a proprietary tree (see [Licensing](#licensing-of-contributions)).
+3. Keep each source file's `SPDX-License-Identifier` header intact. New files use
+   `AGPL-3.0-only` (see [Licensing](#licensing-of-contributions)).
 4. Ensure lint, type-check, and tests pass. Add tests for new behavior; add E2E coverage when
    changing user-facing behavior.
 5. Open a pull request using the template: what it does, the prior discussion (for features),
@@ -208,29 +208,22 @@ For **security vulnerabilities**, do **not** open a public issue. Follow
 
 ## Licensing of contributions
 
-Lumastra is **open core** (see [`LICENSING.md`](https://github.com/Sapd/lumastra/blob/main/LICENSING.md)):
-
-- Most of the codebase is **AGPL-3.0-only**.
-- A few clearly-marked trees are **proprietary and source-available**. The authoritative list of
-  paths is in [`LICENSING.md` §3](https://github.com/Sapd/lumastra/blob/main/LICENSING.md). Contributions to those trees are covered by the
-  same CLA and, once merged, are distributed under the proprietary license.
+Lumastra is licensed under the **AGPL-3.0-only** (see
+[`LICENSING.md`](https://github.com/Sapd/lumastra/blob/main/LICENSING.md)). The plugin SDK and
+sample plugins are Apache-2.0.
 
 Contributions are accepted under the project's [Contributor License Agreement (CLA)](https://github.com/Sapd/lumastra/blob/main/.github/CLA.md).
-You keep copyright in your work, but grant the rights needed to license it under the AGPL and,
-alongside it, a commercial license, so the project's **single licensing authority** (and the
-open-core dual-licensing model) is preserved. This is a common setup: Kubernetes, the Apache
+You keep copyright in your work and grant the rights the CLA describes. Kubernetes, the Apache
 Software Foundation projects, Python and Go also ask contributors to sign a CLA.
 
-What the CLA does **not** change: contributions to the AGPL core stay available under the AGPL
-(or another OSI-approved open-source license; the CLA promises this), and anyone can fork the
-AGPL core at any time. Contributions to the source-available trees are distributed under their
-license, as stated above. The CLA only lets the project offer the same code under additional
-terms, a commercial license and the supporter features, next to the AGPL. By submitting a
-contribution you agree to the CLA; the CLA Assistant bot records your agreement on your first PR
-(reply to its comment with the sentence it asks for, once per GitHub account, never again; the
-same record covers every Lumastra repository, including the docs). The bot stores only your
-GitHub username and user id, the repository and PR number, the id of your signing comment and a
-timestamp; see the CLA's GDPR notice (§11) for controller, retention and your rights.
+What the CLA does **not** change: contributions stay available under the AGPL (or another
+OSI-approved open-source license; the CLA promises this), and anyone can fork the project at any
+time. By submitting a contribution you agree to the CLA; the CLA Assistant bot records your
+agreement on your first PR (reply to its comment with the sentence it asks for, once per GitHub
+account, never again; the same record covers every Lumastra repository, including the docs). The
+bot stores only your GitHub username and user id, the repository and PR number, the id of your
+signing comment and a timestamp; see the CLA's GDPR notice (§11) for controller, retention and
+your rights.
 
 A few practical points:
 

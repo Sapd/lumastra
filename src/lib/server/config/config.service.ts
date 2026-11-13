@@ -1108,7 +1108,7 @@ async function doSaveConfig(updates: ConfigValues, options: SaveConfigOptions): 
     }
 
     // Build JSON content ADDITIVELY. saveConfig is frequently called with a
-    // SINGLE key (license key, TMDB key, native-login flag, image settings); if
+    // SINGLE key (TMDB key, native-login flag, image settings); if
     // we wrote only this call's keys we'd clobber every other previously-saved
     // setting in the file. So we seed from the existing file content first, then
     // overlay this call's updates. Setting a value back to its default removes

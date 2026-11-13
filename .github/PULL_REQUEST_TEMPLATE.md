@@ -26,8 +26,7 @@ and confirm the strings render. -->
 - [ ] I **understand and can explain every line**. If a reviewer asks about any change, I can answer it myself.
 - [ ] I **tested it end to end on a running instance**, AI-assisted or not, no exceptions (see CONTRIBUTING-AI.md).
 - [ ] I'll answer each finding of the AI code review that runs before merge (fix it, or explain why it doesn't apply).
-- [ ] This PR is focused. If it is a feature, larger than a focused fix, or touches a complicated area (auth, playback, task system, migrations, license boundary), the accepted discussion is linked above where needed **and I have hands-on software development experience** (larger changes are reviewed on that assumption, see CONTRIBUTING.md).
-- [ ] I did **not** touch `(proprietary)` / `enterprise` paths, or I did so intentionally and explained why above.
+- [ ] This PR is focused. If it is a feature, larger than a focused fix, or touches a complicated area (auth, playback, task system, migrations), the accepted discussion is linked above where needed **and I have hands-on software development experience** (larger changes are reviewed on that assumption, see CONTRIBUTING.md).
 - [ ] I agree to the project's [CLA](https://github.com/Sapd/lumastra/blob/main/.github/CLA.md) (the bot will prompt on your first PR).
 
 ## AI assistance (required disclosure)

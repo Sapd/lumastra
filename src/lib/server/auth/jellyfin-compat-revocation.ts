@@ -14,10 +14,9 @@
  *
  * Registered in `boot/compat-init.ts` (`ensureCompatLoaded()`), together with the
  * AI-assistant provider.
- * When the proprietary tree is absent (an AGPL-only build — anyone may delete
- * the proprietary dirs and rebuild, per LICENSING.md §3), nothing registers
+ * When the /j tree is absent (a build with it deleted), nothing registers
  * and {@link getJellyfinCompatRevocationProvider} returns `null` — a safe
- * no-op, since an AGPL-only build has no /j sessions to revoke in the first
+ * no-op, since such a build has no /j sessions to revoke in the first
  * place.
  */
 

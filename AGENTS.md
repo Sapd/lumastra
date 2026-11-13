@@ -122,7 +122,6 @@ npm run lint -- --fix        # Auto-fix
 npm run lint:prettier        # Prettier check only
 npm run format               # Prettier write
 node scripts/license-headers.mjs --check    # SPDX headers
-node scripts/check-license-boundary.mjs     # core vs protected-tier imports
 ```
 
 **Run `npm run lint` one instance at a time**, never in parallel (for example from several
@@ -490,12 +489,10 @@ Media and image-sync invariants worth remembering:
 - **A request field must not give `null` a different meaning from "absent".** The Swift client
   collapses both into one optional and never sends `null`. Give "clear this value" its own
   endpoint (for example `DELETE .../rating`) or a non-null sentinel.
-- **Core (AGPL) code must not import protected-tier code in any form.** That includes `import()`
-  and `import.meta.glob`. Core calls it through a registry: a core module exposes
-  `registerXProvider()` plus a getter and the licensing init registers the implementation. Run
-  `node scripts/check-license-boundary.mjs` and `node scripts/license-headers.mjs --check` before
-  you commit; the image build runs both and stops when either fails. Tests under `src/` ship with
-  the tree, so a test of protected code lives next to that code, never in a core folder.
+- **Core code does not import the `/j` and assistant trees.** Core calls them through a registry: a
+  core module exposes `registerXProvider()` plus a getter, and `src/lib/server/boot/compat-init.ts`
+  registers the implementation. Run `node scripts/license-headers.mjs --check` before you commit;
+  the image build runs it and stops when it fails.
 
 ### Common mistakes
 

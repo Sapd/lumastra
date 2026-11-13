@@ -24,7 +24,7 @@ const PERMISSIVE_SPDX = 'Apache-2.0';
 
 // Permissive (Apache-2.0) — the plugin SDK packages and the sample
 // plugins third-party authors copy. Kept permissive (not AGPL) so a plugin author who only
-// touches these trees never inherits AGPL obligations. See LICENSING.md §4.
+// touches these trees never inherits AGPL obligations. See LICENSING.md.
 const PERMISSIVE = ['packages/@sapd/', 'examples/plugins/'];
 
 const SCAN_DIRS = ['src', 'scripts', 'tests', 'packages', 'plugins', 'examples', 'native'];

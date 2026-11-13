@@ -202,14 +202,10 @@ describe('every process entry point loads it', () => {
         expect(source).toMatch(/ensureCompatLoaded\(\)/);
     });
 
-    it('nothing but the legacy licence module still loads the registrations through the old shim', () => {
+    it('nobody loads the registrations through the removed licence shim any more', () => {
         for (const [file] of entries) {
             const source = readFileSync(file, 'utf8');
-            const stillOld = /ensureProprietaryLoaded\(\)/.test(source);
-            // hooks.server.ts and task-runtime/index.ts keep the legacy call next to
-            // the new one until the licence module is deleted.
-            if (file === 'src/hooks.server.ts' || file === 'src/task-runtime/index.ts') continue;
-            expect(stillOld, file).toBe(false);
+            expect(/server\/licensing\//.test(source), file).toBe(false);
         }
     });
 });

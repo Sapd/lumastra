@@ -16,6 +16,29 @@ health → Cluster also warns when the running proxy is behind.
 The iPhone, iPad and Apple TV apps have their own version numbers. Their notes are on
 [lumastra.org/about/changelog/](https://lumastra.org/about/changelog/).
 
+## Unreleased
+
+Live TV proxy: no update needed.
+
+### Changed
+
+- Everything is licensed AGPL-3.0-only. The Jellyfin-compatible `/j` API and the AI assistant
+  are no longer source-available; the earlier releases of these two parts are also available
+  under AGPL-3.0-only. There are no paid parts, license keys or stream limits.
+- `/j` has no limit on concurrent streams. The per-user stream limit an admin sets still
+  applies. The AI assistant and your own name and logos need no license.
+- The license check, the weekly check-in, the `LICENSE_KEY` setting and the license panel under
+  System → Instance are gone. A stored `LICENSE_KEY` is ignored.
+- Push notifications: the relay token now comes from one call to lumastra.org
+  (`POST /api/push/relay-token`, install ID and version only). **Contact lumastra.org for the
+  push relay token** (Settings → General → Push relay, stored as `LICENSE_SERVER_CONTACT_ENABLED`)
+  switches it off. Your own Apple key or relay still work without it.
+
+### Upgrade note
+
+- Update to keep push and unlimited `/j` streams. Older versions stop renewing the relay
+  token, and fall back to two `/j` streams and no AI assistant when their stored key expires.
+
 ## 0.1.4 - 2026-11-13
 
 Live TV proxy: update needed (its Rust dependencies were updated).

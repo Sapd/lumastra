@@ -1795,7 +1795,7 @@ export interface PluginContext {
     };
 
     /**
-     * Optional, proprietary-backed AI assistant. Undefined in OSS builds.
+     * Optional AI assistant. Undefined when the assistant is absent from the build.
      *
      * SECURITY: RAG retrieval is scoped to the request's AUTHENTICATED viewer
      * (`ctx.user`), bound host-side. There is deliberately NO caller-supplied

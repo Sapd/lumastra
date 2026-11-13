@@ -1743,17 +1743,15 @@ export const config = {
         return getBool('FEATURE_PUSH_NOTIFICATIONS', env.FEATURE_PUSH_NOTIFICATIONS, true);
     },
 
-    // Base URL of the push relay. Configurable ON PURPOSE, unlike
-    // LICENSE_SERVER_URL which is hardcoded — a self-hoster running their own
-    // signed iOS build must be able to point at their own relay. This costs no
-    // revenue: the official relay's entitlement check is the gate, not URL secrecy.
+    // Base URL of the push relay. Configurable ON PURPOSE: a self-hoster running
+    // their own signed iOS build must be able to point at their own relay.
     get PUSH_RELAY_URL(): string {
         return getString('PUSH_RELAY_URL', env.PUSH_RELAY_URL, 'https://push.lumastra.org');
     },
 
     // Bearer credential for a SELF-HOSTED relay. Empty on a stock install: the
-    // default relay is authenticated with the licence-minted ≤24h relay token
-    // that `maybeRefreshLicense()` renews every 6h. Set this only when
+    // default relay is authenticated with the ≤24h relay token that
+    // `relay-token-enrol.ts` renews every 6h. Set this only when
     // PUSH_RELAY_URL points at your own relay; it always wins over the minted
     // token (see `getRelayToken()`).
     get PUSH_RELAY_TOKEN(): string {
@@ -1762,12 +1760,10 @@ export const config = {
 
     // ── Operator bring-your-own Apple signing key (DirectApnsTransport) ──────
     //
-    // The unpaid path that does not involve Lumastra at all: an operator who
-    // signs and distributes their own iOS build puts their own Apple `.p8`
-    // here, and this server talks to api.push.apple.com directly. Without it
-    // the only route is a relay — ours (paid) or one they run themselves —
-    // which is honest but leaves "run a second service" as the price of an
-    // AGPL capability.
+    // The path that does not involve Lumastra at all: an operator who signs
+    // and distributes their own iOS build puts their own Apple `.p8` here, and
+    // this server talks to api.push.apple.com directly. Without it the only
+    // route is a relay: ours or one they run themselves.
     //
     // PKCS#8 PEM contents of the `.p8`, inline. Secret managers and compose
     // files routinely flatten newlines to the two-character sequence `\n`, so

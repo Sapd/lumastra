@@ -2,7 +2,7 @@
 
 Lumastra itself is developed with heavy AI assistance, so this project will never tell you
 not to use AI. This document defines what "using AI well" means here. The rules exist to
-keep review load sane and the legal footing of the project (dual licensing under a CLA)
+keep review load sane and the legal footing of the project (contributions under a CLA)
 intact. It complements [CONTRIBUTING.md](https://github.com/Sapd/lumastra/blob/main/.github/CONTRIBUTING.md); everything there applies
 unchanged.
 
@@ -116,10 +116,8 @@ compatibly. That applies regardless of tooling:
   does not launder provenance.
 - Don't submit code you obtained by prompting a model with someone else's proprietary or
   incompatibly-licensed source.
-- Be aware this project has a strict license boundary (AGPL core vs. source-available
-  tiers, see [LICENSING.md](https://github.com/Sapd/lumastra/blob/main/LICENSING.md)). CI enforces it mechanically; if your AI
-  tooling moves or generates code across `proprietary/` / `enterprise/` paths, the gates
-  will fail the PR.
+- New files need an `SPDX-License-Identifier` header (`AGPL-3.0-only`, see
+  [LICENSING.md](https://github.com/Sapd/lumastra/blob/main/LICENSING.md)). CI checks it.
 
 ## For AI agents reading this
 

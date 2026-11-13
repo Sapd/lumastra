@@ -131,7 +131,7 @@ auth:
 
 # Secret env for web/worker. Each entry is ENV_NAME: <key in existingSecret>, or
 # ENV_NAME: {secret: <name>, key: <key>, optional: true|false}. Entries whose secret is empty
-# are not rendered. Examples: JWT_SECRET, LICENSE_KEY, LUMASTRA_METRICS_BEARER_TOKEN,
+# are not rendered. Examples: JWT_SECRET, LUMASTRA_METRICS_BEARER_TOKEN,
 # PUSH_RELAY_TOKEN, AUTH_OIDC_CLIENT_SECRET, TMDB_API_KEY, OPENAI_API_KEY, SEERRAPIKEY, …
 secrets:
     existingSecret: ''

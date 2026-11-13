@@ -102,7 +102,7 @@ It simulates selected workflows; it isn't a hosted media service.
 | **Native iPhone and iPad apps**       | Built for Lumastra, including offline downloads. Available through [public TestFlight](https://testflight.apple.com/join/m8EUbgJQ).                                                                                     |
 | **Native Apple TV app**               | Lumastra on the big screen, with music, audiobooks, Watch Together and Top Shelf. Available through [public TestFlight](https://testflight.apple.com/join/QCfrcmZn).                                                    |
 | **Web app**                           | Browse and play in your browser; install as a PWA on desktop or mobile.                                                                                                                                                 |
-| **Jellyfin-compatible clients**       | Connect clients such as Jellyfin and Streamyfin directly to Lumastra through its compatibility API. No Jellyfin server is required. Two concurrent bridge streams are free; additional streams are a supporter feature. |
+| **Jellyfin-compatible clients**       | Connect clients such as Jellyfin and Streamyfin directly to Lumastra through its compatibility API. No Jellyfin server is required.                                                                                           |
 | **Subsonic-compatible music clients** | Connect your preferred music app through the (Open)Subsonic API, included in the free core.                                                                                                                             |
 
 See [connecting third-party apps](https://lumastra.org/using/third-party-players/)
@@ -128,55 +128,36 @@ assistant key) is optional and skipped quietly when unset; see
 may be sent to the providers you configure; self-hosting doesn't make an external AI or
 metadata service local.
 
-## Free core and supporter features
+## What is included
 
-| Feature                           | Licence                                   | Availability                                                           |
-| --------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------- |
-| Movies & series                   | AGPL-3.0-only                             | Library management, playback and hardware transcoding                  |
-| Music                             | AGPL-3.0-only                             | Playback, mixes and music discovery                                    |
-| Audiobooks via Audiobookshelf     | AGPL-3.0-only (Lumastra integration)      | Requires an Audiobookshelf server                                      |
-| Live TV                           | AGPL-3.0-only                             | Programme guide and playback; no DVR                                   |
-| Jellyfin app compatibility (`/j`) | Source-available proprietary              | Two concurrent streams free per server; more with supporter access     |
-| Subsonic / OpenSubsonic           | AGPL-3.0-only                             | Connect compatible music apps                                          |
-| Watch Together                    | AGPL-3.0-only                             | Synchronized sessions between web and Apple TV                         |
-| AI recommendations                | AGPL-3.0-only                             | Recommendations and semantic search; configured providers may charge   |
-| AI chat assistant                 | Source-available proprietary              | Supporter feature (free during early access); needs an AI provider key |
-| Apple apps                        | Closed source                             | iPhone, iPad and Apple TV; separate from the server                    |
-| Plugins                           | AGPL-3.0-only; SDK and samples Apache-2.0 | Bundled plugins are AGPL; third-party plugins have their own licences  |
+All of the server is free and licensed **AGPL-3.0-only**. There are no paid parts, license
+keys or stream limits.
 
-The `/j` Jellyfin compatibility surface and AI chat assistant ship in this repository as
-**source-available, licence-gated proprietary components** under
-[`LicenseRef-Lumastra-Proprietary`](./LICENSES/LicenseRef-Lumastra-Proprietary.txt).
-Recommendations and their shared data/query layer remain AGPL; see
-[`LICENSING.md` §3.1](./LICENSING.md#31-proprietary-tier--licenseref-lumastra-proprietary) and
-[§3a](./LICENSING.md#3a-what-stays-agpl-and-the-one-directional-invariant).
+| Feature                           | Licence                                   | Notes                                                                 |
+| --------------------------------- | ----------------------------------------- | --------------------------------------------------------------------- |
+| Movies & series                   | AGPL-3.0-only                             | Library management, playback and hardware transcoding                 |
+| Music                             | AGPL-3.0-only                             | Playback, mixes and music discovery                                   |
+| Audiobooks via Audiobookshelf     | AGPL-3.0-only                             | Requires an Audiobookshelf server                                     |
+| Live TV                           | AGPL-3.0-only                             | Programme guide and playback; no DVR                                  |
+| Jellyfin app compatibility (`/j`) | AGPL-3.0-only                             | Connect Jellyfin-compatible apps                                      |
+| Subsonic / OpenSubsonic           | AGPL-3.0-only                             | Connect compatible music apps                                         |
+| Watch Together                    | AGPL-3.0-only                             | Synchronized sessions between web and Apple TV                        |
+| AI recommendations                | AGPL-3.0-only                             | Recommendations and semantic search; configured providers may charge  |
+| AI chat assistant                 | AGPL-3.0-only                             | Needs an AI provider key; the provider bills its usage                |
+| Apple apps                        | Closed source                             | iPhone, iPad and Apple TV; separate from the server                   |
+| Plugins                           | AGPL-3.0-only; SDK and samples Apache-2.0 | Bundled plugins are AGPL; third-party plugins have their own licences |
 
-The **AGPL-3.0-only core is free**. SSO will never be a paid feature.
+### The Apple apps
 
-The **AI chat assistant** and **additional simultaneous streams through the
-Jellyfin-compatible client bridge** are source-available supporter features.
-Two bridge streams at a time stay free for the whole server, whoever is watching.
-The web app and the iPhone, iPad and Apple TV apps don't use the bridge, so they
-aren't limited. Supporter features are currently free during early access; pricing
-has not been published. AI provider credentials and usage are separate.
-
-### Why a few parts are source-available
-
-The free core includes hardware transcoding, Live TV, SSO and remote access. The `/j`
-bridge takes extra maintenance to follow another project's API; I'd rather new apps use
-the fully open, documented `/api/v1`. Donations rarely cover costs, and I hope supporter
-features help offset development and hosting. **The iPhone, iPad and Apple TV apps are
-closed source.** They're free for now; some features, such as offline downloads, will
+**The iPhone, iPad and Apple TV apps are closed source.** They're free for now; some features, such as offline downloads, will
 probably become paid later. They talk to the server only through the same open `/api/v1`
 any other app can use ([building a player](https://lumastra.org/developers/building-a-player/)),
 and the LGPL libraries they include are published at
 [Lumastra/lgpl-source](https://github.com/Lumastra/lgpl-source). What's open source today
 stays open source and maintained; I won't move existing features behind a licence, and
 most future features will be open source too (the likely exception is DVR). Contributions
-need a Contributor License Agreement; why, and what you keep, is in
-[CONTRIBUTING.md](.github/CONTRIBUTING.md) and [LICENSING.md](LICENSING.md). See
-[editions and licensing](https://lumastra.org/guides/licensing/) for the current
-offering; for licensing or CLA questions, contact <git@sapd.eu>.
+need a Contributor License Agreement; what you keep is in
+[CONTRIBUTING.md](.github/CONTRIBUTING.md) and [LICENSING.md](LICENSING.md).
 
 ## Quick start
 
@@ -245,9 +226,8 @@ are served by every instance at `/api-docs` and `/llms.txt` (after sign-in).
 - **Playback decisions and HLS remuxing:** per-client direct play, remux or transcode,
   based on codecs, HDR, subtitles and detected encoders; video is re-encoded only when
   needed. ([Playback decisions](https://lumastra.org/architecture/playback-decisions/))
-- **Versioned public API and enforced licence boundaries:** more than 300 `/api/v1`
-  operations in an OpenAPI spec checked in CI; the open core never imports
-  source-available modules.
+- **Versioned public API:** more than 300 `/api/v1` operations in an OpenAPI spec
+  checked in CI.
 
 [Architecture decisions](https://lumastra.org/developers/architecture-decisions/)
 explain the choices and tradeoffs.
@@ -324,25 +304,15 @@ The full list of third-party components and their licenses is in
 
 ## License
 
-Lumastra is **open core**. The core is **GNU AGPL-3.0-only** ([`LICENSE`](./LICENSE)).
-The plugin SDK (`packages/@sapd/lumastra-plugin-sdk*`) and sample plugins
-(`examples/plugins/`) are **Apache-2.0** ([`LICENSING.md` §4](./LICENSING.md#4-plugin-sdk-and-sample-plugin-license)).
-
-The same AGPL core is also available under a **separate, negotiated commercial license**
-without the AGPL's copyleft and source-disclosure obligations, including §13. This requires
-an individual agreement; it is not a free alternative licence choice. Contact <git@sapd.eu>;
-see [`LICENSING.md` §2](./LICENSING.md#2-commercial-license-also-available-dual-licensing).
-
-The `/j` compatibility API and AI assistant are **source-available, licence-gated proprietary
-components**, governed by their [own terms](./LICENSES/LicenseRef-Lumastra-Proprietary.txt).
-The separate **Enterprise tier** (LMS, compliance reporting and product showcase) is excluded
-from this public distribution; its source is supplied only to licensees under a negotiated
-agreement ([`LICENSING.md` §3.2](./LICENSING.md#32-enterprise-tier--licenseref-lumastra-enterprise-not-in-this-repository)).
+Lumastra is licensed under the **GNU AGPL-3.0-only** ([`LICENSE`](./LICENSE)). That covers
+everything in the server, including the Jellyfin compatibility API and the AI assistant. The
+plugin SDK (`packages/@sapd/lumastra-plugin-sdk*`) and sample plugins (`examples/plugins/`) are
+**Apache-2.0** ([`LICENSING.md`](./LICENSING.md)).
 
 The Lumastra name, logos and brand assets have separate trademark and asset terms; see
-[`TRADEMARKS.md`](./TRADEMARKS.md) and [`LICENSING.md` §6](./LICENSING.md#6-trademark--affiliation).
+[`TRADEMARKS.md`](./TRADEMARKS.md) and [`LICENSING.md`](./LICENSING.md#trademark).
 Forks must use their own name and branding.
 
 Every source file carries an `SPDX-License-Identifier` header indicating its license.
-Contributions are accepted under a Contributor License Agreement (CLA) that preserves the
-project's ability to offer the commercial license.
+Contributions are accepted under a Contributor License Agreement (CLA); see
+[`CONTRIBUTING.md`](.github/CONTRIBUTING.md).

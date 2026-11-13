@@ -39,7 +39,7 @@ the `act_as_user` impersonation lookup and the non-impersonating token's
 `owner_user_id` owner, checked by id in `validate()`), the JWT bearer
 path in `forward-auth.ts` (via its `isUsernameDisabled()` helper, cache-first
 with a DB fallback), the device-code and refresh-token grants in
-`routes/oauth/token/+server.ts`, and the proprietary `/j` and Subsonic compat
+`routes/oauth/token/+server.ts`, and the `/j` and Subsonic compat
 auth paths (`jellyfin-client-passwords.queries.ts` `getPasswordByUsername`,
 `subsonic-client-passwords.queries.ts` `getTokenByUsername`/`getTokenByValue`,
 and the `/j` middleware's live re-check). A new token type or resolution path
