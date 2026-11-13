@@ -59,7 +59,6 @@ import {
 } from './stream-limit-notice';
 import type { UserId } from '$lib/shared/user-id';
 
-const SQL = {} as never;
 const ME = 'me-uuid' as UserId;
 
 beforeEach(async () => {

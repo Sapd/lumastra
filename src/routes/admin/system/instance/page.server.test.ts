@@ -44,8 +44,6 @@ vi.mock('$lib/server/utils/audit-log.js', () => ({
 import { actions, load } from './+page.server.js';
 import { applyUseCasePreset, serializeAppliedProfile } from '$lib/config/use-case-presets';
 
-const locals = { user: { username: 'admin', isAdmin: true }, principal: { isAdmin: true } };
-
 beforeEach(() => {
     auditLog.mockReset();
 });

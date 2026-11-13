@@ -16,15 +16,12 @@ import {
     isPolicyError,
     type PolicyError,
 } from '$lib/server/services/play-sessions.service';
-import { Logger } from '$lib/server/utils/logger';
 import { readBoundedJson, isPayloadTooLargeError } from '$lib/server/utils/bounded-body-reader';
 
 /** Playback reports are small; 1 MiB leaves ample room. */
 const MAX_PLAYBACK_BODY_BYTES = 1024 * 1024;
 import { reportDeviceName } from '$lib/server/services/user-devices.service.js';
 import { reportMusicSessionStart } from '$lib/server/services/play-session-lifecycle.service.js';
-
-const logger = Logger.for('JellyfinCompat:Playback');
 
 /** Reserved prefix for the per-user fallback id; clients may not claim it. */
 const SYNTHETIC_PREFIX = 'jellyfin-compat-';

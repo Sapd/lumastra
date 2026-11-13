@@ -22,7 +22,7 @@ import { ApiResponses } from '$lib/server/utils/api-responses';
 import { checkMediaAccess } from '$lib/server/middleware/media-access.js';
 import { toLibraryAccessUser } from '$lib/server/cache/library-group-permissions-cache.js';
 import { checkSessionKickCooldown } from '$lib/server/services/session-kill.service';
-import { validatePlayToken, renewPlayTokenBySession, type PlayTokenData } from './play-token';
+import { validatePlayToken, renewPlayTokenBySession } from './play-token';
 import { applyPlayTokenIdentity, buildPlayTokenUserContext } from './play-token-user';
 import type { UserContext } from '$lib/server/types';
 

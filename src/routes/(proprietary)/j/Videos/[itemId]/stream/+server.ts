@@ -47,7 +47,6 @@ async function enforceTokenMediaAccess(
 const authenticatedHandler = withJellyfinAuth(
     async (event) => {
         const username = event.locals.user?.username;
-        const userId = event.locals.user?.userId;
         const kickStatus = username ? await checkSessionKickCooldown(username) : null;
         if (kickStatus?.kicked) {
             return ApiResponses.kicked(kickStatus.remainingSeconds!);

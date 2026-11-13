@@ -33,10 +33,7 @@ import { Logger } from '$lib/server/utils/logger.js';
 import { apnsSigningKeyConfigured, getApnsCredential } from './apns-credential.js';
 import { DirectApnsTransport } from './direct-apns-transport.js';
 import { RelayTransport } from './relay-transport.js';
-import {
-    hasRelayCredential,
-    relayTokenNeedsRenewal,
-} from './relay-token.store.js';
+import { hasRelayCredential } from './relay-token.store.js';
 import {
     PushTransportError,
     type PushRequest,
