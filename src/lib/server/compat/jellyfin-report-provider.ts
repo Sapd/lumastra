@@ -3,9 +3,8 @@
 
 /**
  * AGPL-core registry for the redacted GitHub-report builder of Jellyfin-client
- * diagnostics. The builder lives in the proprietary jellyfin-compat tree; the
- * core never imports it (license boundary, `scripts/check-license-boundary.mjs`).
- * The proprietary licensing init registers it here; without one registered the
+ * diagnostics. The builder lives in the jellyfin-compat tree; the core never
+ * imports it. `boot/compat-init.ts` registers it here; without one registered the
  * admin endpoint answers 404 "not available in this build".
  */
 

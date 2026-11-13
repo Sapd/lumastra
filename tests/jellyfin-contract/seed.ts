@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Minimal media fixtures for the contract suite: items with real media_files,
  * media_streams and sidecar subtitles (the shared factories insert none of these).

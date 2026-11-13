@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Jellyfin Compatibility Layer — Client Password Auth Service
 // Manages short human-readable passwords and Valkey-backed session tokens
@@ -232,9 +231,8 @@ function sealForDisplay(userId: string, password: string): string | null {
  * new one.
  *
  * The SQL sweep itself is `rotateJellyfinClientPasswords()` in the AGPL tree:
- * the rotation handler (`admin/secrets-rotate.handler.ts`) is AGPL core and
- * `scripts/check-license-boundary.mjs` forbids it importing this tier in any
- * form, while `jellyfin_client_passwords` is core schema. This wrapper exists
+ * the rotation handler (`admin/secrets-rotate.handler.ts`) is core and does not
+ * import this tree, while `jellyfin_client_passwords` is core schema. This wrapper exists
  * so the store's OWN file still names its rotation entry point — keep it a pure
  * delegation so the two can never disagree.
  */

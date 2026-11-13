@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Expected values follow Jellyfin's StreamBuilder.GetSubtitleProfile — see the
 // module comment in subtitle-delivery.ts for where we deliberately differ.

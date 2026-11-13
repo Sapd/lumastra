@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Validates a /j JSON response against the jellyfin-sdk-kotlin contract digest.
  * Severity follows ApiSerializer: coerceInputValues rescues null/unknown-enum only

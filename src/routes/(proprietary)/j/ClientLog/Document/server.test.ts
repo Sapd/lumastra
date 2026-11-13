@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // jellyfin-androidtv uploads its log every ~70 minutes and retries ~15 times
 // when the upload fails. With no route here that was 510 × 404 in a single day

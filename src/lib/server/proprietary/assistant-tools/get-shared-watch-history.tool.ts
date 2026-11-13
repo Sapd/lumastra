@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
+// SPDX-License-Identifier: AGPL-3.0-only
 
 /** Consent-gated household watch history for the AI assistant. */
 

@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Contract-suite harness: mint a real /j session (Valkey), build a RequestEvent the
  * real route handler (incl. withJellyfinAuth) accepts, and check the JSON it returns

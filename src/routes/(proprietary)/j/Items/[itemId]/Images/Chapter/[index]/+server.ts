@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // authz: Jellyfin session (withJellyfinAuth) — a chapter image is a frame cut from the
 // user's own video file, so it is not public like poster art. Returns 404 (not a

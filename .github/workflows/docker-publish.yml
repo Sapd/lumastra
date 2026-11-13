@@ -16,10 +16,9 @@ name: Docker
 # their names stay the same if the repository moves to that organization later (image names
 # don't redirect the way repository URLs do). Pushing across owners needs a classic personal
 # access token (GHCR supports no fine-grained tokens): the GHCR_TOKEN secret, with
-# write:packages (+ delete:packages for ghcr-cleanup.yml). The commercial image
-# (open-core + the Enterprise tier) is built elsewhere and never pushed to this package —
-# see LICENSING.md §3.2. Releases are cut by pushing a `v*` tag by hand; nothing here creates
-# tags, and `git describe` derives the version the app reports.
+# write:packages (+ delete:packages for ghcr-cleanup.yml). Releases are cut by pushing a
+# `v*` tag by hand; nothing here creates tags, and `git describe` derives the version the
+# app reports.
 #
 # GitHub-hosted runners only. Never attach a self-hosted runner to a public repository.
 
@@ -43,8 +42,6 @@ on:
             - 'scripts/fetch-ffmpeg.sh'
             - 'scripts/ffmpeg/**'
             - 'scripts/prepare-husky.mjs'
-            - 'scripts/check-image-enterprise-free.sh'
-            - 'scripts/check-license-boundary.mjs'
             - 'tsconfig.scripts.json'
             - 'workers/sonic-embedder/**'
             - '.github/workflows/docker-publish.yml'
@@ -76,16 +73,12 @@ jobs:
               with:
                   node-version: 22
 
-            # Open-core invariant gates (LICENSING.md §3a). Dependency-free node; they fail the
-            # run before any image exists.
-            - name: License boundary check
-              run: node scripts/check-license-boundary.mjs
-
+            # Dependency-free node; fails the run before any image exists.
             - name: SPDX header check
               run: node scripts/license-headers.mjs --check
 
             # The hosted runner has ~14 GB free; the image build + a loaded copy for the
-            # enterprise-free check needs more. These preinstalled toolchains are unused here.
+            # legal-artifact check needs more. These preinstalled toolchains are unused here.
             - name: Free disk space
               run: |
                   sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
@@ -191,12 +184,6 @@ jobs:
                       APP_BRANCH=${{ steps.meta.outputs.branch }}
                   cache-from: type=gha,scope=lumastra
                   cache-to: type=gha,scope=lumastra,mode=max
-
-            # Belt-and-braces: the image is built from the filtered public tree, so it cannot
-            # carry Enterprise code — this proves it on the shipped artifact. Every platform is
-            # built from the same source tree; the amd64 listing stands for all of them.
-            - name: Assert the image is Enterprise-free
-              run: bash scripts/check-image-enterprise-free.sh lumastra:ci-check
 
             - name: Assert the image contains third-party legal artifacts
               run: |

@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 /**
  * Admin Jellyfin Connect Password Management API
@@ -11,9 +10,8 @@
  * /api/jellyfin-connect/password but resolves the target from the route param
  * and is admin-gated + audit-logged.
  *
- * Lives under the proprietary jellyfin-connect tree (not /api/admin) because it
- * statically imports the proprietary jellyfin-compat auth module — AGPL core may
- * not. See scripts/check-license-boundary.mjs.
+ * Lives under the jellyfin-connect tree (not /api/admin) because it statically
+ * imports the jellyfin-compat auth module, which core does not.
  *
  * GET    - Whether the target user has a client password configured
  * POST   - Generate/reset the target's password, returning it once for the admin to relay

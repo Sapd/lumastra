@@ -2,13 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * AGPL-core registry for the optional, PROPRIETARY /j (Jellyfin-compat) live
- * session store. Mirrors `ai/assistant-provider.ts`: the core NEVER imports the proprietary
- * `jellyfin-compat` tree (the `check-license-boundary` CI gate forbids it, in
- * any import form — static, dynamic, or computed). Instead the proprietary
- * module, when present (official build), registers itself here via
- * {@link registerJellyfinCompatRevocationProvider} — proprietary → core, the
- * direction the boundary permits.
+ * AGPL-core registry for the optional /j (Jellyfin-compat) live
+ * session store. Mirrors `ai/assistant-provider.ts`: the core never imports the
+ * `jellyfin-compat` tree. Instead that module registers itself here via
+ * {@link registerJellyfinCompatRevocationProvider}, at boot.
  *
  * Consumed by `credential-revocation.service.ts` so disabling / resetting the
  * password of / deleting a user also tears down their live /j Valkey sessions

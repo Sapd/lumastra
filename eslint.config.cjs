@@ -616,11 +616,11 @@ module.exports = [
     // =========================================================================
     // Viewing-boundary rule (§2.4 of the adaptive-viewing-page spec).
     //
-    // AGPL player primitives and AGPL viewing shells must NEVER import the
-    // proprietary tree. The existing check-license-boundary.mjs script catches
-    // this at the module level; this ESLint rule gives inline IDE feedback.
+    // Player primitives and viewing shells must NOT import the `proprietary/`
+    // trees (the /j API and the AI assistant; the folders are renamed later).
+    // Keeping that edge one-way keeps the player independent of both.
     //
-    // Direction that IS permitted: proprietary → AGPL (e.g. LessonShell imports
+    // Direction that IS permitted: proprietary → player (e.g. LessonShell imports
     // PlayerSurface, LessonRail — those files are excluded from this rule).
     // =========================================================================
     {

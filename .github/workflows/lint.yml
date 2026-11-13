@@ -1,7 +1,7 @@
 name: Lint
 
 # ESLint (the full `npm run lint`: tier check, callback-safety rules, fast + type-aware ESLint,
-# licence boundary, operator-copy check), the Svelte component type check, and the guard that
+# SPDX header check, operator-copy check), the Svelte component type check, and the guard that
 # every action in .github/workflows is pinned by commit SHA. The type-aware ESLint pass peaks
 # near 5 GB of memory; the 16 GB GitHub-hosted runners for public repositories have room for it.
 #

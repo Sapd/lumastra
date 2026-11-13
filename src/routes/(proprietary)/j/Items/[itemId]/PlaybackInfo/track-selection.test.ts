@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Track selection in /j/Items/[itemId]/PlaybackInfo (found 2026-10-02 in the GPU
 // transcode tests). jellyfin-web sends AudioStreamIndex / SubtitleStreamIndex in

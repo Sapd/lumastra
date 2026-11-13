@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // GET /j/Items/{itemId}/Collections — new in Jellyfin 12.x (LibraryController.GetItemCollections):
 // the BoxSets that contain the item. Lumastra has no user-curated collections / BoxSets, so

@@ -3,9 +3,8 @@
 
 /**
  * AGPL-core registry for an optional observer of /j (Jellyfin-compat) responses.
- * The core never imports the proprietary jellyfin-compat tree (license boundary,
- * enforced by `scripts/check-license-boundary.mjs`); the proprietary licensing
- * init registers its implementation here instead. Without one registered the
+ * The core never imports the jellyfin-compat tree; `boot/compat-init.ts`
+ * registers its implementation here instead. Without one registered the
  * handle is a pass-through.
  *
  * The observer must never throw and must not delay the response.

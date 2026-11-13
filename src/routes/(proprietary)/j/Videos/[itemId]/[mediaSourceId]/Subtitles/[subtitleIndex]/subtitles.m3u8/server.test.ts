@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // GET /Videos/{id}/{mediaSourceId}/Subtitles/{index}/subtitles.m3u8 — Jellyfin's
 // HLS subtitle playlist over the media source's runtime.

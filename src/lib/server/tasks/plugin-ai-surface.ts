@@ -4,13 +4,12 @@
 /**
  * Optional `ctx.ai` bridge.
  *
- * The AI assistant pipeline is PROPRIETARY (`proprietary/assistant-service.ts`).
- * This file is AGPL core, so — per the license-boundary gate — it must NEVER
- * import the proprietary tree (in any form, including dynamic `import()`).
- * Instead it reaches the assistant through the AGPL-core registry
- * (`ai/assistant-provider.ts`), into which the proprietary module registers
+ * The AI assistant pipeline lives in `proprietary/assistant-service.ts`. This
+ * file is core and does not import that tree (not even through a dynamic
+ * `import()`). It reaches the assistant through the registry
+ * (`ai/assistant-provider.ts`), into which the assistant module registers
  * itself at boot (`boot/compat-init.ts`).
- * In an AGPL-only build the proprietary tree is absent, nothing registers, the
+ * In a build without that tree nothing registers, the
  * registry returns `null`, and `buildAiSurface` returns `undefined` so `ctx.ai`
  * is simply not offered.
  */
@@ -36,7 +35,7 @@ const MAX_HISTORY_CONTENT_CHARS = 6000;
 /**
  * Default loader: make sure the boot registrations ran in this process (so the
  * provider is registered), then read it from the registry. No `proprietary/`
- * import here — that would trip the license-boundary gate.
+ * import here.
  */
 async function defaultLoader(): Promise<AiAssistantProvider | null> {
     // Dynamic: the loader pulls in the push and cache graph; this file must stay light.

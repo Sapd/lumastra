@@ -41,7 +41,7 @@
 'area:licensing':
     - changed-files:
           - any-glob-to-any-file:
-                ['src/lib/server/licensing/**', 'src/lib/server/proprietary/licensing/**']
+                ['LICENSING.md', 'LICENSES/**', 'TRADEMARKS.md', 'THIRD-PARTY-NOTICES.md']
 'area:docker':
     - changed-files:
           - any-glob-to-any-file: ['Dockerfile*', 'docker-compose*.yml', 'deploy/**']

@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // PlaybackInfo hands out sidecar URLs in the client's SubtitleProfile format
 // (Stream.ass for JASSUB, Stream.pgssub for jellyfin-web's PGS renderer). The

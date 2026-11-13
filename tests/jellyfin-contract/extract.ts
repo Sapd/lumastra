@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Regenerates tests/jellyfin-contract/jellyfin-contract.json from the exact
  * openapi.json each jellyfin-sdk-kotlin release was generated from. The file is a

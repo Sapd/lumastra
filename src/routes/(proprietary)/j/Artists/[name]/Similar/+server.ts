@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // GET /Artists/{itemId}/Similar — artists that sound like this one. The segment is
 // `[name]` because it shares its level with `GET /Artists/{name}`; here it is an id.

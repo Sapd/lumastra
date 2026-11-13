@@ -65,8 +65,8 @@ const SEALING_SITES: Record<string, string> = {
     'src/lib/server/tasks/webhook-outbox.ts': 'rotateWebhookSecrets',
 
     // jellyfin_client_passwords.password_sealed. The sweep itself lives in the
-    // AGPL tree (the handler may not import this tier — see
-    // scripts/check-license-boundary.mjs); this module delegates to it.
+    // AGPL tree (the handler does not import this tree); this module
+    // delegates to it.
     'src/lib/server/proprietary/jellyfin-compat/auth.ts': 'rotateJellyfinClientPasswords',
 
     // livetv_sources.xtream_username / .xtream_password (security review C8).

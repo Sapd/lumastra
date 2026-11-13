@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 import { describe, it, expect } from 'vitest';
 import { QC_SECRET_PREFIX, QC_CODE_PREFIX, QC_TTL_SECONDS } from './quick-connect-utils';

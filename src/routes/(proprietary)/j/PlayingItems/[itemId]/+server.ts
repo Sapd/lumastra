@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // POST /PlayingItems/{itemId} (playback started) and DELETE /PlayingItems/{itemId}
 // (stopped): Jellyfin 10.9+'s userless spelling of the legacy

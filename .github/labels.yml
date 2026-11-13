@@ -29,7 +29,7 @@
 - { name: 'area:compat-j', color: '5319e7', description: Jellyfin-compat /j surface }
 - { name: 'area:subsonic', color: '5319e7', description: Subsonic-compat surface }
 - { name: 'area:plugins', color: '5319e7', description: Plugins / SDK }
-- { name: 'area:licensing', color: '5319e7', description: Licensing / entitlements }
+- { name: 'area:licensing', color: '5319e7', description: Licensing / notices }
 - { name: 'area:docker', color: '5319e7', description: Docker / deploy }
 - { name: 'area:docs', color: '5319e7', description: Docs }
 - { name: 'area:ios-app', color: '5319e7', description: iPhone and iPad app }
@@ -66,7 +66,7 @@
 - {
       name: 'licensing',
       color: 'e99695',
-      description: Touches the AGPL/proprietary boundary — review with care,
+      description: Touches licensing, trademarks or third-party notices — review with care,
   }
 - { name: 'synced', color: 'c2e0c6', description: 'Merged, waiting for the next release' }
 - { name: 'status:released', color: '0e8a16', description: 'Included in a published release' }

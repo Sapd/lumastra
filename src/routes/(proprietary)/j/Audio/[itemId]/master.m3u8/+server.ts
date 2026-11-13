@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
-// SPDX-License-Identifier: LicenseRef-Lumastra-Proprietary
-// Proprietary and source-available — not licensed under AGPL. See LICENSING.md.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // GET /Audio/{itemId}/master.m3u8 — audio HLS master playlist (one AAC variant
 // pointing at main.m3u8). See jellyfin-compat/audio-hls.ts.

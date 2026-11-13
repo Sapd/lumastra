@@ -17,9 +17,8 @@
  * all of which this file's callers — `admin-user.service.ts` /
  * `native-auth.service.ts` — sit alongside) and wrapped in its own try/catch
  * so one store's failure never skips the rest. The /j store is reached
- * through the license-boundary registry (`jellyfin-compat-revocation.ts`),
- * never imported directly — `jellyfin-compat/auth.ts` is proprietary and
- * this file is AGPL core.
+ * through a registry (`jellyfin-compat-revocation.ts`), never imported
+ * directly: `jellyfin-compat/auth.ts` sits in the /j tree, which core does not import.
  *
  * `narrowAdminScopedCredentialsForUser()` (below) is a narrower sibling for
  * the admin-demotion / unpin paths (security review 2026-09-15, C4): it

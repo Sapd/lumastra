@@ -7,7 +7,8 @@
 //   node scripts/license-headers.mjs --check     # CI gate: exit 1 if any file lacks a header
 //                                                 # (or, under a permissive path, still says AGPL)
 //   node scripts/license-headers.mjs             # apply
-// Idempotent: skips files that already have their tier's correct SPDX header. The one exception
+// Every file is AGPL-3.0-only except the plugin SDK and sample plugins (Apache-2.0).
+// Idempotent: skips files that already have an SPDX header. The one exception
 // is the AGPL→Apache-2.0 transition for PERMISSIVE paths (packages/@sapd/, examples/plugins/) —
 // a file there still carrying the old AGPL-3.0-only tag gets that one line rewritten. Fully
 // git-revertible.
@@ -18,23 +19,10 @@ const CHECK = process.argv.includes('--check');
 const DRY = process.argv.includes('--dry-run') || CHECK;
 const ROOT = process.cwd();
 const HOLDER = '2026 Denis Arnst (Sapd)';
-// Option A (recommended): open files carry only the open license; commercial offered via LICENSING.md.
-// Option B (machine-readable dual): set OPEN_SPDX = 'AGPL-3.0-only OR LicenseRef-Lumastra-Commercial'
 const OPEN_SPDX = 'AGPL-3.0-only';
-const PROP_SPDX = 'LicenseRef-Lumastra-Proprietary';
-const ENT_SPDX = 'LicenseRef-Lumastra-Enterprise';
 const PERMISSIVE_SPDX = 'Apache-2.0';
 
-// Two protected, source-available tiers (must match LICENSING.md §3 + check-license-boundary.mjs).
-// Lib trees live under proprietary/ resp. enterprise/; URL-bound route entrypoints are clustered
-// into SvelteKit `(proprietary)` / `(enterprise)` route GROUPS (invisible to the URL), so a single
-// marker identifies each tier:
-//   • PROPRIETARY (LicenseRef-Lumastra-Proprietary) — /j (Jellyfin-compat) + the AI assistant.
-//   • ENTERPRISE  (LicenseRef-Lumastra-Enterprise)  — LMS, compliance reporting, product showcase.
-const PROPRIETARY = ['src/lib/server/proprietary/', 'src/lib/proprietary/'];
-const ENTERPRISE = ['src/lib/server/enterprise/', 'src/lib/enterprise/'];
-
-// Fourth classification: permissive (Apache-2.0) — the plugin SDK packages and the sample
+// Permissive (Apache-2.0) — the plugin SDK packages and the sample
 // plugins third-party authors copy. Kept permissive (not AGPL) so a plugin author who only
 // touches these trees never inherits AGPL obligations. See LICENSING.md §4.
 const PERMISSIVE = ['packages/@sapd/', 'examples/plugins/'];
@@ -66,23 +54,11 @@ const STYLE = {
     '.css': 'css',
 };
 
-const isProp = (rel) =>
-    rel.includes('/(proprietary)/') || PROPRIETARY.some((p) => rel.startsWith(p));
-const isEnt = (rel) => rel.includes('/(enterprise)/') || ENTERPRISE.some((p) => rel.startsWith(p));
 const isPermissive = (rel) => PERMISSIVE.some((p) => rel.startsWith(p));
 
 function headerFor(rel, style) {
-    const ent = isEnt(rel);
-    const prop = !ent && isProp(rel);
-    const permissive = !ent && !prop && isPermissive(rel);
-    const spdx = ent ? ENT_SPDX : prop ? PROP_SPDX : permissive ? PERMISSIVE_SPDX : OPEN_SPDX;
+    const spdx = isPermissive(rel) ? PERMISSIVE_SPDX : OPEN_SPDX;
     const body = [`SPDX-FileCopyrightText: ${HOLDER}`, `SPDX-License-Identifier: ${spdx}`];
-    if (ent)
-        body.push(
-            'Enterprise — source-available; commercial use requires a negotiated license. See LICENSING.md.',
-        );
-    else if (prop)
-        body.push('Proprietary and source-available — not licensed under AGPL. See LICENSING.md.');
     if (style === 'c') return body.map((l) => `// ${l}`).join('\n') + '\n\n';
     if (style === 'css') return '/*\n' + body.map((l) => ` * ${l}`).join('\n') + '\n */\n\n';
     if (style === 'html') return '<!--\n' + body.map((l) => `  ${l}`).join('\n') + '\n-->\n\n';
@@ -104,7 +80,7 @@ for (const d of SCAN_DIRS) {
     if (fs.existsSync(p)) collect(p, files);
 }
 
-const stats = { agpl: 0, prop: 0, ent: 0, permissive: 0, already: 0, rewritten: 0, byExt: {} };
+const stats = { agpl: 0, permissive: 0, already: 0, rewritten: 0, byExt: {} };
 const changed = [];
 const rewritten = [];
 // Existing-file transition: a PERMISSIVE-path file already stamped AGPL-3.0-only (from before
@@ -149,9 +125,7 @@ for (const abs of files) {
     if (!DRY) fs.writeFileSync(abs, next);
     changed.push(rel);
     stats.byExt[ext] = (stats.byExt[ext] || 0) + 1;
-    if (isEnt(rel)) stats.ent++;
-    else if (isProp(rel)) stats.prop++;
-    else if (isPermissive(rel)) stats.permissive++;
+    if (isPermissive(rel)) stats.permissive++;
     else stats.agpl++;
 }
 
@@ -170,20 +144,17 @@ if (CHECK) {
         process.exit(1);
     }
     console.log(
-        `SPDX header check OK — all ${stats.already} scanned files carry their tier's correct SPDX header.`,
+        `SPDX header check OK — all ${stats.already} scanned files carry an SPDX header.`,
     );
     process.exit(0);
 }
 
 console.log(
-    `${DRY ? '[DRY RUN] ' : ''}stamped ${changed.length} files  (AGPL ${stats.agpl} | proprietary ${stats.prop} | enterprise ${stats.ent} | permissive ${stats.permissive})`,
+    `${DRY ? '[DRY RUN] ' : ''}stamped ${changed.length} files  (AGPL ${stats.agpl} | permissive ${stats.permissive})`,
 );
 console.log(`rewritten AGPL→Apache-2.0 under permissive paths: ${rewritten.length}`);
 console.log(`already had a correct header (skipped): ${stats.already}`);
 console.log('by extension:', JSON.stringify(stats.byExt));
-const propSample = changed.filter(isProp);
-console.log(`proprietary files (${propSample.length}), sample:`);
-propSample.slice(0, 6).forEach((f) => console.log('   ', f));
 const permissiveSample = changed.filter(isPermissive);
 console.log(`permissive (Apache-2.0) files newly stamped (${permissiveSample.length}), sample:`);
 permissiveSample.slice(0, 6).forEach((f) => console.log('   ', f));

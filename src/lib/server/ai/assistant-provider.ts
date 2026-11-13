@@ -2,18 +2,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * AGPL-core registry for the optional, PROPRIETARY AI assistant.
+ * AGPL-core registry for the optional AI assistant.
  *
- * This is the clean license boundary between the AGPL core and the proprietary
- * assistant pipeline (`src/lib/server/proprietary/assistant-service.ts`),
- * mirroring `auth/jellyfin-compat-revocation.ts`: the core NEVER imports the proprietary
- * tree (the `check-license-boundary` CI gate forbids it, in any import form).
- * Instead the proprietary module, when present (official build), registers
- * itself here via {@link registerAiAssistantProvider} — proprietary → core,
- * the direction the boundary permits.
+ * This is the seam between the core and the assistant pipeline
+ * (`src/lib/server/proprietary/assistant-service.ts`), mirroring
+ * `auth/jellyfin-compat-revocation.ts`: the core never imports the assistant
+ * tree. Instead the assistant module registers itself here via
+ * {@link registerAiAssistantProvider}, at boot.
  *
- * When the proprietary tree is absent (an AGPL-only build — anyone may delete
- * the proprietary dirs and rebuild, per LICENSING.md §3), nothing registers and
+ * When the assistant tree is absent (a build with it deleted), nothing registers and
  * {@link getAiAssistantProvider} returns `null`, so `ctx.ai` is simply not
  * offered to plugins.
  *
