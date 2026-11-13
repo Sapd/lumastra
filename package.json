@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "private": true,
     "description": "Self-hosted media platform — movies, series, music and audiobooks from your existing services behind one UI.",
-    "license": "SEE LICENSE IN LICENSING.md",
+    "license": "AGPL-3.0-only",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/Sapd/lumastra.git"

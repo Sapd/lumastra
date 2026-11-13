@@ -2,8 +2,8 @@ Lumastra Branding Assets
 SPDX-License-Identifier: LicenseRef-Lumastra-Branding
 Copyright (c) 2026 Denis Arnst (Sapd). All rights reserved.
 
-This covers the Lumastra brand assets — the "Lumastra" name, logos, icons, and
-official artwork — located under the branding paths listed in LICENSING.md §6.
+This covers the Lumastra brand assets (logos, icons and official artwork) located under the
+branding paths listed in the "Brand assets" section of LICENSING.md.
 
 These assets are NOT licensed under the AGPL or any other open-source license,
 and no license to use, copy, modify, or redistribute them is granted, except:
@@ -14,9 +14,9 @@ and no license to use, copy, modify, or redistribute them is granted, except:
     published by the Licensor) or a third-party package/image of Lumastra (e.g. a
     community container image) — so the packaged software ships with its own
     branding; and
-  - nominative/descriptive reference is permitted as described in LICENSING.md §6
-    (e.g. naming a plugin "lumastra-…" or "for Lumastra"), provided it does not
+  - nominative/descriptive reference is permitted as described in the "Trademark"
+    section of LICENSING.md (e.g. naming a plugin "lumastra-…" or "for Lumastra"), provided it does not
     imply endorsement, affiliation, or official status.
 
 A fork or competing distribution must replace these assets with its own branding.
-This document grants no trademark rights; see LICENSING.md §6 and TRADEMARKS.md.
+This document grants no trademark rights; see the "Trademark" section of LICENSING.md and TRADEMARKS.md.

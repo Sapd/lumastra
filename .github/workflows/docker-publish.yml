@@ -1,6 +1,6 @@
 name: Docker
 
-# Builds the OPEN-CORE image from this repository's tree and publishes it to GHCR.
+# Builds the image from this repository's tree and publishes it to GHCR.
 #
 # Channels (ghcr.io/lumastra/lumastra, and -sonic-embedder for the ML sidecar):
 #   push to main  → :edge, :sha-<short>                       linux/amd64

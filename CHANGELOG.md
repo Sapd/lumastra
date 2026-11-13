@@ -22,13 +22,22 @@ Live TV proxy: no update needed.
 
 ### Changed
 
-- The CLA is version 1.3. It no longer mentions a commercial or source-available tier; the grants are
-  unchanged. README and CONTRIBUTING are shorter, and `CONTRIBUTING-AI.md` is folded into CONTRIBUTING.
+- The CLA is version 1.3. There is no commercial or source-available tier any more, so the
+  wording about one is removed. The Project Owner's promise to keep merged contributions open
+  stays, and the right to license contributions under other terms is stated plainly in §3. The
+  licenses a contributor grants are unchanged. README and CONTRIBUTING are shorter, and
+  `CONTRIBUTING-AI.md` is folded into CONTRIBUTING.
 - Everything is licensed AGPL-3.0-only. The Jellyfin-compatible `/j` API and the AI assistant
-  are no longer source-available; the earlier releases of these two parts are also available
-  under AGPL-3.0-only. There are no paid parts, license keys or stream limits.
+  are no longer source-available. There are no paid parts, license keys or stream limits.
+- Releases before 0.2.0: in the 0.1.x releases the `/j` API and the AI assistant were
+  source-available (files with a source-available license identifier in their headers, in `src/lib/server/proprietary/`,
+  `src/lib/proprietary/`, `src/routes/(proprietary)/`, `src/routes/api/(proprietary)/`,
+  `src/lib/server/api/defs/integrations/jellyfin-quick-connect*` and `tests/jellyfin-contract/`).
+  The copyright holder, Denis Arnst, also licenses those files, as published in every 0.1.x
+  release, under `AGPL-3.0-only`. The old release tags are not rewritten; this statement applies
+  to them. Brand assets are excluded. See LICENSING.md.
 - `/j` has no limit on concurrent streams. The per-user stream limit an admin sets still
-  applies. The AI assistant and your own name and logos need no license.
+  applies. The AI assistant and your own name and logos need no license key.
 - The license check, the weekly check-in, the `LICENSE_KEY` setting and the license panel under
   System → Instance are gone. A stored `LICENSE_KEY` is ignored.
 - Push notifications: the relay token now comes from one call to lumastra.org
@@ -38,8 +47,11 @@ Live TV proxy: no update needed.
 
 ### Upgrade note
 
-- Update to keep push and unlimited `/j` streams. Older versions stop renewing the relay
-  token, and fall back to two `/j` streams and no AI assistant when their stored key expires.
+- License keys were never sold; 0.2.0 needs none. 0.1.x installs depend on the old license
+  endpoints at lumastra.org, which will be switched off after 0.2.0 [date]. After that a 0.1.x
+  install keeps working until its stored key expires, then falls back to its built-in limits (two
+  `/j` streams, no assistant), and push through the standard relay stops. 0.2.0 has none of these
+  limits. <!-- DATE: set at release -->
 
 ## 0.1.4 - 2026-11-13
 

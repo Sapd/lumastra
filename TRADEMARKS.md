@@ -3,7 +3,7 @@
 "Lumastra", the Lumastra logo, and the Lumastra icon (together, the "Lumastra marks") are
 trademarks of **Denis Arnst (Sapd)**. "Lumastra" is the subject of a European Union trade
 mark application filed with the EUIPO in July 2026 (Nice classes 9 and 42; registration
-pending).
+pending). <!-- CHECK at release: is the registration status still "pending"? -->
 
 This repository's code licenses do **not** grant trademark rights: neither the AGPL, nor
 any other license in `LICENSES/` (see `LICENSING.md`). The
@@ -22,6 +22,12 @@ build on Lumastra freely, while nobody is misled about what is official and what
   with the bundled brand assets intact, for example a community container image
   (`linuxserver/lumastra`) or a distro package, provided the packaging does not imply it
   is official or endorsed. That is identification of what is packaged, not a competing use.
+  Packaging changes (paths, build flags, dependency versions, security backports) do not make a
+  package a fork.
+- **Fork to contribute**: a fork on a hosting platform made to prepare a contribution may keep the
+  name and assets. Changes you make to your own installation and do not distribute need no rename.
+- **Say what you forked from**: say truthfully that your project is "a fork of Lumastra" or "based
+  on Lumastra", in text, not in its name or logo.
 - **Name a plugin, extension, or integration descriptively**: `lumastra-<something>`,
   "<something> for Lumastra", as long as it does not present itself as official.
 

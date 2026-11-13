@@ -662,7 +662,7 @@ email is rejected on cost.**
 
 This was recorded as out of scope on the grounds that "a self-hosted server cannot send
 APNs without either the operator's own certificates or Lumastra operating a push relay.
-That is an open-core product decision, not an architecture one." The decision was
+That is a product decision, not an architecture one." The decision was
 subsequently made: **Lumastra operates a relay.**
 
 Push now rides the same `'inserted'` gate as the per-user webhook — see
