@@ -367,7 +367,16 @@ describe('no concurrent /j stream cap (no paid tier)', () => {
     });
 });
 
-describe('the admin per-user concurrent stream limit still applies to /j playback', () => {
+// Where the admin per-user limit (user_stream_policies) is enforced for /j: the
+// moment a stream claims its play session (findOrCreateJellyfinSession), which
+// every session-reporting route goes through: Sessions/Playing, a first
+// Sessions/Playing/Progress from a client that skips Playing, and the legacy
+// PlayingItems routes. Streams that never report a session (plain stream
+// requests, PlaybackInfo, Download, LiveStreams/Open) are not counted here, and
+// a limit lowered mid-stream does not kick a /j session (the grace-then-kick
+// reconciler runs on the native heartbeat only). The tests below pin what is
+// enforced and that an already-playing stream is left alone.
+describe('the admin per-user concurrent stream limit at /j session claim', () => {
     function onDevice(item: string, sessionId: string, device: string): RequestEvent {
         const e = event(item, sessionId);
         e.locals.jfDevice = {
@@ -394,6 +403,27 @@ describe('the admin per-user concurrent stream limit still applies to /j playbac
         expect((await playing(onDevice(itemId, randomUUID(), 'dev-a') as never)).status).toBe(204);
         const refused = await playing(onDevice(shortMovieId, randomUUID(), 'dev-b') as never);
         expect(refused.status).toBe(403);
+        const rows = await activeRows();
+        expect(rows).toHaveLength(1);
+    });
+
+    it('Sessions/Playing/Progress from a client that never sent Playing is refused at the limit too', async () => {
+        await h.sql!`INSERT INTO user_stream_policies (user_id, max_concurrent_streams) VALUES (${username}, 1)`;
+        expect((await playing(onDevice(itemId, randomUUID(), 'dev-a') as never)).status).toBe(204);
+        const refused = await progress(onDevice(shortMovieId, randomUUID(), 'dev-b') as never);
+        expect(refused.status).toBe(403);
+        expect(await activeRows()).toHaveLength(1);
+    });
+
+    it('the stream that is already playing keeps reporting after a second device was refused', async () => {
+        await h.sql!`INSERT INTO user_stream_policies (user_id, max_concurrent_streams) VALUES (${username}, 1)`;
+        const sid = randomUUID();
+        expect((await playing(onDevice(itemId, sid, 'dev-a') as never)).status).toBe(204);
+        expect((await playing(onDevice(shortMovieId, randomUUID(), 'dev-b') as never)).status).toBe(
+            403,
+        );
+        // Heartbeats of the admitted session are not counted against it again.
+        expect((await progress(onDevice(itemId, sid, 'dev-a') as never)).status).toBe(204);
         const rows = await activeRows();
         expect(rows).toHaveLength(1);
     });

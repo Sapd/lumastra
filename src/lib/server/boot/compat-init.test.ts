@@ -260,6 +260,16 @@ describe('ensureCompatLoaded', () => {
     });
 });
 
+/** Source with comments removed, so a mention in a comment cannot satisfy a check. */
+function stripComments(text: string): string {
+    return text
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/(^|[^:'"`])\/\/.*$/gm, '$1');
+}
+function codeOf(file: string): string {
+    return stripComments(readFileSync(file, 'utf8'));
+}
+
 describe('every process entry point loads it', () => {
     // [file, what it must import]. The web server, the task runtime and its
     // executor children each boot their own process; the other two reach it lazily
@@ -273,14 +283,28 @@ describe('every process entry point loads it', () => {
     ];
 
     it.each(entries)('%s (%s) calls ensureCompatLoaded from boot/compat-init', (file) => {
-        const source = readFileSync(file, 'utf8');
+        const source = codeOf(file);
         expect(source).toMatch(/boot\/compat-init\.js/);
         expect(source).toMatch(/ensureCompatLoaded\(/);
     });
 
+    it('hooks.server.ts runs the boot registrations at startup, through runBootRegistrations', () => {
+        const source = codeOf('src/hooks.server.ts');
+        expect(source).toMatch(/import\('\$lib\/server\/boot\/run-boot-registrations\.js'\)/);
+        expect(source).toMatch(/await runBootRegistrations\(\{/);
+        expect(source).toMatch(/loadCompat:[\s\S]*?ensureCompatLoaded\(\{\s*enrolRelayToken:\s*true\s*\}\)/);
+    });
+
+    it('the comment stripper really drops comments (so the checks above mean something)', () => {
+        const probe = `// ensureCompatLoaded({ enrolRelayToken: true })\n/* runBootRegistrations( */ const x = 'https://a.b';`;
+        const code = stripComments(probe);
+        expect(code).not.toMatch(/ensureCompatLoaded|runBootRegistrations/);
+        expect(code).toContain('https://a.b');
+    });
+
     it('only the web server and the task runtime main process start the enrolment loop', () => {
         const asks = (file: string): boolean =>
-            /ensureCompatLoaded\(\{\s*enrolRelayToken:\s*true\s*\}\)/.test(readFileSync(file, 'utf8'));
+            /ensureCompatLoaded\(\{\s*enrolRelayToken:\s*true\s*\}\)/.test(codeOf(file));
         expect(asks('src/hooks.server.ts')).toBe(true);
         expect(asks('src/task-runtime/index.ts')).toBe(true);
         for (const file of [
@@ -294,7 +318,7 @@ describe('every process entry point loads it', () => {
 
     it('both long-running processes stop the enrolment loop on shutdown', () => {
         for (const file of ['src/hooks.server.ts', 'src/task-runtime/index.ts']) {
-            expect(readFileSync(file, 'utf8'), file).toMatch(/stopRelayTokenEnrolLoop\(\)/);
+            expect(codeOf(file), file).toMatch(/stopRelayTokenEnrolLoop\(\)/);
         }
     });
 
