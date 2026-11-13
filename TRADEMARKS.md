@@ -1,9 +1,9 @@
 # Lumastra Trademark Policy
 
 "Lumastra", the Lumastra logo, and the Lumastra icon (together, the "Lumastra marks") are
-trademarks of **Denis Arnst (Sapd)**. "Lumastra" is the subject of a European Union trade
-mark application filed with the EUIPO in July 2026 (Nice classes 9 and 42; registration
-pending). <!-- CHECK at release: is the registration status still "pending"? -->
+trademarks of **Denis Arnst (Sapd)**. "Lumastra" is a registered European Union trade
+mark, No. 019401107 (EUIPO, Nice classes 9 and 42, registered 8 November 2026). The logos
+are not registered.
 
 This repository's code licenses do **not** grant trademark rights: neither the AGPL, nor
 any other license in `LICENSES/` (see `LICENSING.md`). The
