@@ -24,7 +24,7 @@ const {
     mockPatRevokeAllForUser,
     mockJellyfinTokenRevokeAllForUser,
     mockServiceTokenRevokeAllImpersonating,
-    mockEnsureProprietaryLoaded,
+    mockEnsureCompatLoaded,
     mockGetJellyfinCompatRevocationProvider,
     mockJfCompatRevokeSessionsForUser,
     mockDeleteUserToken,
@@ -37,7 +37,7 @@ const {
     mockPatRevokeAllForUser: vi.fn(),
     mockJellyfinTokenRevokeAllForUser: vi.fn(),
     mockServiceTokenRevokeAllImpersonating: vi.fn(),
-    mockEnsureProprietaryLoaded: vi.fn(),
+    mockEnsureCompatLoaded: vi.fn(),
     mockGetJellyfinCompatRevocationProvider: vi.fn(),
     mockJfCompatRevokeSessionsForUser: vi.fn(),
     mockDeleteUserToken: vi.fn(),
@@ -71,8 +71,8 @@ vi.mock('$lib/server/oauth/service-token.service.js', () => ({
         revokeAllImpersonating: (...a: unknown[]) => mockServiceTokenRevokeAllImpersonating(...a),
     }),
 }));
-vi.mock('$lib/server/licensing/entitlements.js', () => ({
-    ensureProprietaryLoaded: (...a: unknown[]) => mockEnsureProprietaryLoaded(...a),
+vi.mock('$lib/server/boot/compat-init.js', () => ({
+    ensureCompatLoaded: (...a: unknown[]) => mockEnsureCompatLoaded(...a),
 }));
 vi.mock('$lib/server/auth/jellyfin-compat-revocation.js', () => ({
     getJellyfinCompatRevocationProvider: (...a: unknown[]) =>
@@ -105,7 +105,7 @@ beforeEach(() => {
     mockPatRevokeAllForUser.mockResolvedValue(1);
     mockJellyfinTokenRevokeAllForUser.mockResolvedValue(1);
     mockServiceTokenRevokeAllImpersonating.mockResolvedValue(1);
-    mockEnsureProprietaryLoaded.mockResolvedValue(undefined);
+    mockEnsureCompatLoaded.mockResolvedValue(undefined);
     mockJfCompatRevokeSessionsForUser.mockResolvedValue(1);
     mockGetJellyfinCompatRevocationProvider.mockReturnValue({
         revokeSessionsForUser: (...a: unknown[]) => mockJfCompatRevokeSessionsForUser(...a),
@@ -125,7 +125,7 @@ describe('revokeAllCredentialsForUser', () => {
         expect(mockPatRevokeAllForUser).toHaveBeenCalledWith(USER_ID, sqlStub);
         expect(mockJellyfinTokenRevokeAllForUser).toHaveBeenCalledWith(USER_ID, sqlStub);
         expect(mockServiceTokenRevokeAllImpersonating).toHaveBeenCalledWith(USER_ID, sqlStub);
-        expect(mockEnsureProprietaryLoaded).toHaveBeenCalled();
+        expect(mockEnsureCompatLoaded).toHaveBeenCalled();
         expect(mockJfCompatRevokeSessionsForUser).toHaveBeenCalledWith(USER_ID);
         expect(mockDeleteUserToken).toHaveBeenCalledWith(USER_ID, sqlStub);
         expect(mockInvalidateCacheForUser).toHaveBeenCalledWith(USERNAME);

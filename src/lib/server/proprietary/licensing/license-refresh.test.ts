@@ -115,7 +115,8 @@ vi.mock('./diagnostics.js', () => ({
 vi.mock('$lib/server/services/push/push-transport-selector.js', async () => {
     const store = await import('$lib/server/services/push/relay-token.store.js');
     return {
-        wantsLicenceMintedRelayToken: () => push.relayRoute && store.relayTokenNeedsRenewal(),
+        wantsLicenceMintedRelayToken: () =>
+            !store.isRelayEnrolLoopActive() && push.relayRoute && store.relayTokenNeedsRenewal(),
     };
 });
 vi.mock('$lib/server/services/push/relay-token.shared.js', () => ({
@@ -546,6 +547,29 @@ describe('maybeRefreshLicense: the push relay token', () => {
             install_uuid: '11111111-2222-4333-8444-555555555555',
             app_version: 'v0.1.3-4-gabc1234',
         });
+    });
+
+    it('with the relay-token enrolment loop running in this process, never mints a token itself (one minter)', async () => {
+        const { setRelayEnrolLoopActive } =
+            await import('$lib/server/services/push/relay-token.store.js');
+        cfg.LICENSE_ENFORCEMENT_ENABLED = false;
+        push.relayRoute = true;
+        const fetchSpy = vi
+            .spyOn(globalThis, 'fetch')
+            .mockResolvedValue(
+                okJson({ license_key: 'k', relayToken: 'relay-dup', relayTokenExp: RELAY_EXP() }),
+            );
+        setRelayEnrolLoopActive(true);
+        try {
+            expect(await maybeRefreshLicense()).toBe(false);
+            getStatus.mockResolvedValue({ validity: 'valid' });
+            cfg.LICENSE_ENFORCEMENT_ENABLED = true;
+            expect(await maybeRefreshLicense()).toBe(false);
+        } finally {
+            setRelayEnrolLoopActive(false);
+        }
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(getRelayToken()).toBeNull();
     });
 
     it('stores both the new license and the relay token on a license renewal', async () => {

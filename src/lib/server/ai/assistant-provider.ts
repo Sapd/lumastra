@@ -17,10 +17,8 @@
  * {@link getAiAssistantProvider} returns `null`, so `ctx.ai` is simply not
  * offered to plugins.
  *
- * The registration is triggered lazily through the SAME sanctioned optional-load
- * path as entitlements: `entitlements.ensureProprietaryLoaded()` runs
- * `proprietary/licensing/init.ts`, whose `initProprietaryLicensing()` registers
- * both the entitlements provider AND (via this module) the AI provider.
+ * The registration happens in `boot/compat-init.ts` (`ensureCompatLoaded()`),
+ * which every process that needs the assistant calls.
  */
 import type postgres from 'postgres';
 

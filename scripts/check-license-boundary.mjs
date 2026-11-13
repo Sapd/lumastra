@@ -82,6 +82,10 @@ const isBranding = (rel) => BRANDING_PREFIXES.some((p) => rel.startsWith(p));
 // (AGPL → proprietary). Any OTHER `import.meta.glob` whose pattern reaches a forbidden
 // tree is a violation — globs are otherwise an unbounded side door around the import rules.
 const SANCTIONED_GLOB_FILE = 'src/lib/server/licensing/entitlements.ts';
+// The boot loader fills the registries with the /j and assistant modules through
+// dynamic imports; it is the one AGPL file allowed to reach the proprietary tier
+// (the whole check goes away with the proprietary tier).
+const SANCTIONED_BOOT_LOADER = 'src/lib/server/boot/compat-init.ts';
 const SANCTIONED_GLOB_PATTERN = '/src/lib/server/proprietary/licensing/init.{ts,js}';
 
 // Match BOTH the lib-tree form (`…/proprietary/…`) and the SvelteKit route-GROUP form
@@ -180,7 +184,9 @@ for (const abs of files) {
     // public typecheck on 2026-09-12. Such a test belongs next to the code it tests.
     if (tier === 'enterprise') continue;
     const forbidden =
-        tier === 'agpl' && !isTest ? [PROP_SPECIFIER, ENT_SPECIFIER] : [ENT_SPECIFIER];
+        tier === 'agpl' && !isTest && rel !== SANCTIONED_BOOT_LOADER
+            ? [PROP_SPECIFIER, ENT_SPECIFIER]
+            : [ENT_SPECIFIER];
     const reaches = (s) => forbidden.some((re) => re.test(s));
     const why = isTest
         ? 'shipped test → enterprise (stripped from the public tree)'

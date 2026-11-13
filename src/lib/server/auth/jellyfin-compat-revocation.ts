@@ -16,10 +16,8 @@
  * (`jellyfin-compat/auth.ts` `revokeSessionsForUser`), which otherwise survive
  * every AGPL-core revoke primitive.
  *
- * Loaded lazily through the SAME sanctioned optional-load path as
- * entitlements/AI: `entitlements.ensureProprietaryLoaded()` runs
- * `proprietary/licensing/init.ts`, whose `initProprietaryLicensing()`
- * registers this provider alongside the entitlements + AI-assistant ones.
+ * Registered in `boot/compat-init.ts` (`ensureCompatLoaded()`), together with the
+ * AI-assistant provider.
  * When the proprietary tree is absent (an AGPL-only build — anyone may delete
  * the proprietary dirs and rebuild, per LICENSING.md §3), nothing registers
  * and {@link getJellyfinCompatRevocationProvider} returns `null` — a safe

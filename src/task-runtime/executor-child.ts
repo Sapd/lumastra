@@ -70,8 +70,8 @@ async function main(): Promise<void> {
     const { loadProviderConfigFromDb } =
         await import('$lib/server/providers/provider-config-loader.js');
     await loadProviderConfigFromDb(sql);
-    const { ensureProprietaryLoaded } = await import('$lib/server/licensing/entitlements.js');
-    await ensureProprietaryLoaded();
+    const { ensureCompatLoaded } = await import('$lib/server/boot/compat-init.js');
+    await ensureCompatLoaded();
     const { loadBuiltins } = await import('$lib/server/tasks/builtin/index.js');
     const { loadAllPlugins } = await import('$lib/server/plugins/index.js');
     await loadBuiltins();

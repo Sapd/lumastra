@@ -154,15 +154,13 @@ export async function revokeAllCredentialsForUser(
         failedStores.push('jellyfin_oauth_tokens');
     }
 
-    // /j (Jellyfin-compat) proprietary live session store — reached ONLY
-    // through the license-boundary registry (never a direct import; see the
-    // file header). ensureProprietaryLoaded() forces the optional tree to
-    // register even when license enforcement is off (getEffectiveEntitlements
-    // would otherwise never trigger the load). A null provider (AGPL-only
-    // build) is a no-op, not a failure.
+    // /j (Jellyfin-compat) live session store — reached through the registry
+    // (never a direct import; see the file header). ensureCompatLoaded() makes
+    // sure the boot registrations ran in this process. A null provider is a
+    // no-op, not a failure.
     try {
-        const { ensureProprietaryLoaded } = await import('$lib/server/licensing/entitlements.js');
-        await ensureProprietaryLoaded();
+        const { ensureCompatLoaded } = await import('$lib/server/boot/compat-init.js');
+        await ensureCompatLoaded();
         const { getJellyfinCompatRevocationProvider } =
             await import('$lib/server/auth/jellyfin-compat-revocation.js');
         const provider = getJellyfinCompatRevocationProvider();

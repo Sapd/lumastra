@@ -23,7 +23,7 @@ vi.mock('$lib/server/services/user-identity.service.js', () => ({
     PROVIDER_FORWARD_AUTH: 'forward-auth',
 }));
 // Core-only deployment: the /j implementation is tested in its own licensed tree.
-vi.mock('$lib/server/licensing/entitlements.js', () => ({ ensureProprietaryLoaded: vi.fn() }));
+vi.mock('$lib/server/boot/compat-init.js', () => ({ ensureCompatLoaded: vi.fn() }));
 import { connectValkey, disconnectValkey } from '$lib/server/cache/valkey.js';
 import { hashPassword, verifyPassword } from '../crypto/password.js';
 import { resetPassword } from './admin-user.service.js';

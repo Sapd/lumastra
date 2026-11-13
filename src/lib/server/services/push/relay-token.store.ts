@@ -20,6 +20,11 @@
  * the licence itself needs renewing. That is what makes push work out of the box
  * on every install, free tier included.
  *
+ * Since the licence removal the token is requested by `relay-token-enrol.ts`
+ * (`POST https://lumastra.org/api/push/relay-token`). Until the licence module is
+ * deleted the licence refresh response is a second, legacy source; while the
+ * enrolment loop runs in a process the licence loop does not mint.
+ *
  * ## Why a separate short-lived token, not the license JWT
  *
  * The license JWT's `exp` is the license term, the relay is stateless so
@@ -69,6 +74,7 @@ interface HeldToken {
 }
 
 let held: HeldToken | null = null;
+let enrolLoopActive = false;
 const invalidationListeners = new Set<() => void>();
 
 function unverifiedExpMs(token: string): number | null {
@@ -176,6 +182,21 @@ export function relayTokenNeedsRenewal(now: number = Date.now()): boolean {
 /** Whether a minted (not configured) token is currently usable. */
 export function hasLiveMintedRelayToken(now: number = Date.now()): boolean {
     return liveMintedToken(now) !== null;
+}
+
+/**
+ * Set by the relay-token enrolment loop (relay-token-enrol.ts) while it runs in
+ * this process. The legacy licence refresh loop checks it (through
+ * `wantsLicenceMintedRelayToken()`) and does not mint a token itself then, so the
+ * two loops never both call lumastra.org for the same token.
+ */
+export function setRelayEnrolLoopActive(active: boolean): void {
+    enrolLoopActive = active;
+}
+
+/** Whether the enrolment loop runs in this process. */
+export function isRelayEnrolLoopActive(): boolean {
+    return enrolLoopActive;
 }
 
 /**

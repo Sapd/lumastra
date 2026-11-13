@@ -33,7 +33,11 @@ import { Logger } from '$lib/server/utils/logger.js';
 import { apnsSigningKeyConfigured, getApnsCredential } from './apns-credential.js';
 import { DirectApnsTransport } from './direct-apns-transport.js';
 import { RelayTransport } from './relay-transport.js';
-import { hasRelayCredential, relayTokenNeedsRenewal } from './relay-token.store.js';
+import {
+    hasRelayCredential,
+    isRelayEnrolLoopActive,
+    relayTokenNeedsRenewal,
+} from './relay-token.store.js';
 import {
     PushTransportError,
     type PushRequest,
@@ -108,8 +112,13 @@ export function hasUsablePushCredential(): boolean {
  * Push off, or the operator's own Apple key in use, means no relay token is
  * ever requested — the install then makes no relay-driven call to the
  * licensing server at all.
+ *
+ * Always false while the relay-token enrolment loop (relay-token-enrol.ts) runs
+ * in this process: it owns minting, so the legacy licence loop must not mint a
+ * second token.
  */
 export function wantsLicenceMintedRelayToken(now: number = Date.now()): boolean {
+    if (isRelayEnrolLoopActive()) return false;
     if (!config.FEATURE_PUSH_NOTIFICATIONS) return false;
     if (currentPushTransportSelection().kind !== 'relay') return false;
     return relayTokenNeedsRenewal(now);

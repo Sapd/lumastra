@@ -40,7 +40,8 @@ const {
 const { _resetApnsCredentialCache } = await import('./apns-credential.js');
 const { DirectApnsTransport } = await import('./direct-apns-transport.js');
 const { RelayTransport } = await import('./relay-transport.js');
-const { setRelayToken } = await import('./relay-token.store.js');
+const { setRelayToken, setRelayEnrolLoopActive } = await import('./relay-token.store.js');
+const { wantsLicenceMintedRelayToken } = await import('./push-transport-selector.js');
 const { PushTransportError } = await import('./push-transport.js');
 
 const KEY_ID = 'ABCDE12345';
@@ -276,5 +277,20 @@ describe('createLivePushTransport', () => {
             directSend.mockRestore();
             closeSpy.mockRestore();
         }
+    });
+});
+
+describe('wantsLicenceMintedRelayToken: one minter per process', () => {
+    afterEach(() => setRelayEnrolLoopActive(false));
+
+    it('relay delivery with no token wants one, until the enrolment loop runs in this process', () => {
+        configure({ FEATURE_PUSH_NOTIFICATIONS: true });
+        expect(wantsLicenceMintedRelayToken()).toBe(true);
+
+        setRelayEnrolLoopActive(true);
+        expect(wantsLicenceMintedRelayToken()).toBe(false);
+
+        setRelayEnrolLoopActive(false);
+        expect(wantsLicenceMintedRelayToken()).toBe(true);
     });
 });

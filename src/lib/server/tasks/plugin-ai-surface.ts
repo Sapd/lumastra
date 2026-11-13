@@ -9,8 +9,7 @@
  * import the proprietary tree (in any form, including dynamic `import()`).
  * Instead it reaches the assistant through the AGPL-core registry
  * (`ai/assistant-provider.ts`), into which the proprietary module registers
- * itself at boot via the sanctioned optional-load path
- * (`entitlements.ensureProprietaryLoaded()` → `proprietary/licensing/init.ts`).
+ * itself at boot (`boot/compat-init.ts`).
  * In an AGPL-only build the proprietary tree is absent, nothing registers, the
  * registry returns `null`, and `buildAiSurface` returns `undefined` so `ctx.ai`
  * is simply not offered.
@@ -22,7 +21,6 @@ import {
     getAiAssistantProvider,
     type AiAssistantProvider,
 } from '$lib/server/ai/assistant-provider.js';
-import { ensureProprietaryLoaded } from '$lib/server/licensing/entitlements.js';
 
 /**
  * Same bounds the HTTP entry point enforces via `chatMessageBodySchema`
@@ -36,13 +34,14 @@ const MAX_HISTORY_TURNS = 20;
 const MAX_HISTORY_CONTENT_CHARS = 6000;
 
 /**
- * Default loader: trigger the sanctioned proprietary optional-load (so
- * `init.ts` registers the provider if the tree is present), then read it from
- * the AGPL registry. Returns `null` in AGPL-only builds. No `proprietary/`
+ * Default loader: make sure the boot registrations ran in this process (so the
+ * provider is registered), then read it from the registry. No `proprietary/`
  * import here — that would trip the license-boundary gate.
  */
 async function defaultLoader(): Promise<AiAssistantProvider | null> {
-    await ensureProprietaryLoaded();
+    // Dynamic: the loader pulls in the push and cache graph; this file must stay light.
+    const { ensureCompatLoaded } = await import('$lib/server/boot/compat-init.js');
+    await ensureCompatLoaded();
     return getAiAssistantProvider();
 }
 

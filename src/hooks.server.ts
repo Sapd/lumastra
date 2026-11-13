@@ -1704,19 +1704,22 @@ if (!building) {
         }
     })();
 
-    // Load the optional proprietary licensing module at boot. Its refresh loop
-    // enrols a fresh install (first attempt ~5s after load) — without this the
-    // module only loaded on the first request that resolved entitlements, so an
-    // idle install could sit unlicensed indefinitely. A no-op in a tree without
-    // the proprietary dirs (the AGPL shim's glob matches nothing).
+    // Boot registrations (AI assistant provider, /j revocation, response observer,
+    // report builder, silent-start sweeper, /j remote control) and the push relay
+    // token enrolment loop. Without this the registries stay empty until some
+    // request happens to need them.
     void (async () => {
         try {
             await ensureDatabaseMigration();
+            const { ensureCompatLoaded } = await import('$lib/server/boot/compat-init.js');
+            await ensureCompatLoaded();
+            // The legacy licence module is still present until it is removed; it
+            // leaves the relay token to the enrolment loop started above.
             const { ensureProprietaryLoaded } =
                 await import('$lib/server/licensing/entitlements.js');
             await ensureProprietaryLoaded();
         } catch (err) {
-            startupLogger.warn('Failed to load the licensing module at boot', {
+            startupLogger.warn('Failed to run the boot registrations', {
                 error: String(err),
             });
         }
