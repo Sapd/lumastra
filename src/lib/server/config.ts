@@ -1838,17 +1838,9 @@ export const config = {
         return getBool('UPDATE_CHECK_ENABLED', env.UPDATE_CHECK_ENABLED, true);
     },
 
-    // The weekly licence check-in to lumastra.org (license-check-in.ts). Off
-    // skips only that call: renewals near expiry and the push relay token keep
-    // contacting the licensing server when they need to.
-    get LICENSE_CHECK_IN_ENABLED(): boolean {
-        return getBool('LICENSE_CHECK_IN_ENABLED', env.LICENSE_CHECK_IN_ENABLED, true);
-    },
-
-    // Every call to the licensing server (license-refresh.ts): enrolment,
-    // renewal, the weekly check-in and the push relay token. Off: no call at
-    // all, and an install without a key runs on the free tier at once (no
-    // no-key grace window). A stored key keeps working until its `exp`.
+    // The one call to lumastra.org: the push relay token (relay-token-enrol.ts).
+    // Off: no call at all. The stored key keeps its historical name so every
+    // existing opt-out keeps working.
     get LICENSE_SERVER_CONTACT_ENABLED(): boolean {
         return getBool('LICENSE_SERVER_CONTACT_ENABLED', env.LICENSE_SERVER_CONTACT_ENABLED, true);
     },

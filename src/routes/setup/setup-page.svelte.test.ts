@@ -79,7 +79,6 @@ function preferences(
             jellyfinCompat: true,
             subsonicCompat: false,
             publicApi: true,
-            licenseCheckIn: true,
             licenseServerContact: true,
             ...overrides.values,
         },
@@ -975,7 +974,7 @@ describe('/setup — a resumed wizard keeps what an earlier pass saved', () => {
             unratedContentVisible: true,
             gravatar: true,
             trickplayEnabled: true,
-            licenseCheckIn: false,
+            licenseServerContact: false,
         },
         envLocked: ['trickplayEnabled'],
     });
@@ -996,7 +995,7 @@ describe('/setup — a resumed wizard keeps what an earlier pass saved', () => {
             metadataStorageLocation: 'alongside',
             unratedContentVisible: true,
             gravatar: true,
-            licenseCheckIn: false,
+            licenseServerContact: false,
         });
         // An env var owns TRICKPLAY_ENABLED: the server would skip it anyway.
         expect('trickplayEnabled' in prefs).toBe(false);
@@ -1021,49 +1020,19 @@ describe('/setup — a resumed wizard keeps what an earlier pass saved', () => {
             defaultActivitySharing: true,
             metadataStorageLocation: 'central',
             unratedContentVisible: false,
-            // ...except the licence check-in opt-out, which always shows (and
-            // re-sends) the value in force: a fresh pass must not write ON
-            // over an earlier OFF.
-            licenseCheckIn: false,
+            // ...except the contact opt-out, which always shows (and re-sends)
+            // the value in force: a fresh pass must not write ON over an
+            // earlier OFF.
+            licenseServerContact: false,
         });
     });
 
-    it('the licence check-in is on by default, can be switched off, and is locked when env owns it', async () => {
-        const { unmount } = render(SetupPage, {
-            props: { data: pageData({ resume: true }) as never },
-        });
-        const toggle = await screen.findByRole('switch', { name: /weekly licence check-in/i });
-        expect(toggle.getAttribute('aria-checked')).toBe('true');
-        // On the main step, not inside a collapsed section.
-        expect(toggle.closest('details')).toBeNull();
-        await fireEvent.click(toggle);
-        await fireEvent.click(screen.getByRole('button', { name: /save & continue/i }));
-        await waitFor(() => expect(postedTo('/api/setup/preferences')).toHaveLength(1));
-        expect(postedTo('/api/setup/preferences')[0]).toMatchObject({ licenseCheckIn: false });
-        unmount();
-
-        render(SetupPage, {
-            props: {
-                data: pageData({
-                    resume: true,
-                    preferences: preferences({
-                        values: { licenseCheckIn: false },
-                        envLocked: ['licenseCheckIn'],
-                    }),
-                }) as never,
-            },
-        });
-        const locked = await screen.findByRole('switch', { name: /weekly licence check-in/i });
-        expect((locked as HTMLButtonElement).disabled).toBe(true);
-        expect(locked.getAttribute('aria-checked')).toBe('false');
-    });
-
-    it('contact with lumastra.org: off explains the free tier, locks the check-in, and is saved', async () => {
+    it('contact with lumastra.org: on by default, off explains the push relay and is saved', async () => {
         render(SetupPage, {
             props: { data: pageData({ resume: true }) as never },
         });
         const contact = await screen.findByRole('switch', {
-            name: /contact lumastra\.org for the licence/i,
+            name: /contact lumastra\.org for the push relay token/i,
         });
         expect(contact.getAttribute('aria-checked')).toBe('true');
         expect(contact.closest('details')).toBeNull();
@@ -1072,47 +1041,15 @@ describe('/setup — a resumed wizard keeps what an earlier pass saved', () => {
         await fireEvent.click(contact);
 
         const warning = await screen.findByTestId('setup-license-contact-off');
-        expect(warning.textContent).toMatch(/free tier/i);
-        expect(warning.textContent).toMatch(/2 streams at a time/);
-        expect(warning.textContent).toMatch(/no AI assistant/);
-        expect(warning.textContent).toMatch(/push notifications/);
-        expect(warning.textContent).toMatch(/branding removal/);
-        const checkIn = screen.getByRole('switch', { name: /weekly licence check-in/i });
-        expect((checkIn as HTMLButtonElement).disabled).toBe(true);
-        expect(checkIn.getAttribute('aria-checked')).toBe('false');
+        expect(warning.textContent).toMatch(/push notifications/i);
+        expect(warning.textContent).toMatch(/standard relay/i);
+        expect(screen.queryByRole('switch', { name: /check-in/i })).toBeNull();
 
         await fireEvent.click(screen.getByRole('button', { name: /save & continue/i }));
         await waitFor(() => expect(postedTo('/api/setup/preferences')).toHaveLength(1));
-        // The check-in choice itself is kept; it applies again once contact is back.
-        expect(postedTo('/api/setup/preferences')[0]).toMatchObject({
-            licenseServerContact: false,
-            licenseCheckIn: true,
-        });
-    });
-
-    it('contact with lumastra.org: switched back on, the weekly check-in is on again', async () => {
-        render(SetupPage, {
-            props: {
-                data: pageData({
-                    resume: true,
-                    preferences: preferences({
-                        values: { licenseServerContact: false, licenseCheckIn: false },
-                    }),
-                }) as never,
-            },
-        });
-        const contact = await screen.findByRole('switch', {
-            name: /contact lumastra\.org for the licence/i,
-        });
-        await fireEvent.click(contact);
-        const checkIn = screen.getByRole('switch', { name: /weekly licence check-in/i });
-        expect(checkIn.getAttribute('aria-checked')).toBe('true');
-        await fireEvent.click(screen.getByRole('button', { name: /save & continue/i }));
-        await waitFor(() => expect(postedTo('/api/setup/preferences')).toHaveLength(1));
-        expect(postedTo('/api/setup/preferences')[0]).toMatchObject({
-            licenseServerContact: true,
-            licenseCheckIn: true,
-        });
+        const body = postedTo('/api/setup/preferences')[0];
+        expect(body).toMatchObject({ licenseServerContact: false });
+        expect('licenseCheckIn' in body).toBe(false);
     });
 
     it('contact with lumastra.org: a saved OFF is shown, and an env lock disables it', async () => {
@@ -1128,7 +1065,7 @@ describe('/setup — a resumed wizard keeps what an earlier pass saved', () => {
             },
         });
         const contact = await screen.findByRole('switch', {
-            name: /contact lumastra\.org for the licence/i,
+            name: /contact lumastra\.org for the push relay token/i,
         });
         expect(contact.getAttribute('aria-checked')).toBe('false');
         expect((contact as HTMLButtonElement).disabled).toBe(true);

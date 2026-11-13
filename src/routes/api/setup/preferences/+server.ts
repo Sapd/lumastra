@@ -230,17 +230,12 @@ export const POST: RequestHandler = requireAdmin(
             // writes back what is already in force.
             updates[SETUP_PREFERENCE_KEYS.publicApi] = toBooleanOr(body.publicApi, true);
         }
-        if (typeof body.licenseCheckIn === 'boolean') {
-            // Weekly licence check-in to lumastra.org. Only a real boolean is
-            // written: this is a privacy opt-out, so a malformed value must
+        if (typeof body.licenseServerContact === 'boolean') {
+            // The push relay token request to lumastra.org. Only a real boolean
+            // is written: this is a privacy opt-out, so a malformed value must
             // neither turn it back on nor off — it keeps what is in force.
             // Symmetric: the wizard hydrates the toggle from the effective
             // value on every run, like publicApi.
-            updates[SETUP_PREFERENCE_KEYS.licenseCheckIn] = body.licenseCheckIn;
-        }
-        if (typeof body.licenseServerContact === 'boolean') {
-            // Every call to lumastra.org (licence, check-in, push relay token).
-            // Same rule as licenseCheckIn: only a real boolean is written.
             updates[SETUP_PREFERENCE_KEYS.licenseServerContact] = body.licenseServerContact;
         }
         // OIDC back-channel logout cascade — only offered in the wizard when OIDC is
@@ -264,9 +259,9 @@ export const POST: RequestHandler = requireAdmin(
         // today's default, as the projection does, so a later release changing
         // that default cannot undo the answer (or the profile's pin before it).
         const pinKeys: string[] = WIZARD_PREFERENCE_OVERLAP_KEYS.filter((k) => k in updates);
-        // The licence-contact answer is kept even when it is the default (on):
-        // a stored answer is what lets a new install make its first call to
-        // lumastra.org (license-refresh.ts waits for it).
+        // The contact answer is kept even when it is the default (on): a stored
+        // answer is what lets a new install make its first call to lumastra.org
+        // (relay-token-enrol.ts waits for it).
         if (SETUP_PREFERENCE_KEYS.licenseServerContact in updates) {
             pinKeys.push(SETUP_PREFERENCE_KEYS.licenseServerContact);
         }

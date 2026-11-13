@@ -791,9 +791,8 @@ Configure these settings in your \`config/settings.json\` file:
     },
     {
         id: 'licensing',
-        label: 'Licensing',
-        description:
-            'Commercial license key for the licensed modules (the Jellyfin-compatible /j API and the AI assistant), and whether this server contacts lumastra.org',
+        label: 'Push relay',
+        description: 'Whether this server contacts lumastra.org for the push relay token',
         icon: 'Key',
         order: 25,
     },
@@ -1232,22 +1231,12 @@ export const configSchema: SettingDefinition[] = [
     {
         key: 'LICENSE_SERVER_CONTACT_ENABLED',
         type: 'boolean',
-        label: 'Contact lumastra.org for the licence',
+        label: 'Contact lumastra.org for the push relay token',
         description:
-            'Lets this server fetch and renew its licence key, check in once a week, and get the token for iPhone and Apple TV push notifications through the standard relay. Off: this server never contacts lumastra.org and runs on the free tier right away, with no 30 day trial period. You lose: Jellyfin apps are limited to 2 streams at a time, no AI assistant, no iPhone or Apple TV push notifications through the standard relay, and no branding removal. A licence key that is already stored keeps working until it expires, but it is not renewed.',
+            'Lets this server ask lumastra.org for the token that iPhone and Apple TV push notifications need when they go through the standard relay. Only the install ID and the Lumastra version are sent. Off: this server never contacts lumastra.org and push through the standard relay does not work. Your own Apple key or your own relay are not affected.',
         defaultValue: true,
         section: 'licensing',
-        requiresRestart: false,
-    },
-    {
-        key: 'LICENSE_CHECK_IN_ENABLED',
-        type: 'boolean',
-        label: 'Weekly licence check-in (contacts lumastra.org once a week)',
-        description:
-            'About once a week, send the install ID, the Lumastra version and the licence status code to lumastra.org, so the project can count running installs. lumastra.org keeps only pseudonymised counts, which hold no IP address. Turning it off stops only this weekly call: licence renewal, and the push relay token while iOS notifications use the standard relay, still contact lumastra.org when they need to. With "Contact lumastra.org for the licence" off there is no check-in either.',
-        defaultValue: true,
-        section: 'licensing',
-        dependsOn: 'LICENSE_SERVER_CONTACT_ENABLED',
+        showWhen: { key: 'FEATURE_PUSH_NOTIFICATIONS', equals: true },
         requiresRestart: false,
     },
     {

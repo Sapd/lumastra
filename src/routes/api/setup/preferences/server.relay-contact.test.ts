@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * The setup wizard's weekly licence check-in toggle. It is a privacy opt-out,
- * so only a real boolean is written: a malformed value keeps what is in force
- * instead of quietly turning the check-in back on (or off).
+ * The setup wizard's "contact lumastra.org" toggle (the push relay token). It
+ * is a privacy opt-out, so only a real boolean is written: a malformed value
+ * keeps what is in force instead of quietly turning it back on (or off).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -37,23 +37,12 @@ function saved(): Record<string, unknown> {
     return (mockSaveConfig.mock.calls.at(-1)?.[0] ?? {}) as Record<string, unknown>;
 }
 
-describe('POST /api/setup/preferences — licenseCheckIn', () => {
-    beforeEach(() => {
+describe('POST /api/setup/preferences — the retired check-in field', () => {
+    it('is ignored: nothing is written for it', async () => {
         vi.clearAllMocks();
+        await call({ licenseCheckIn: false, gravatar: true });
+        expect(Object.keys(saved())).not.toContain('LICENSE_CHECK_IN_ENABLED');
     });
-
-    it.each([true, false])('writes LICENSE_CHECK_IN_ENABLED=%s', async (value) => {
-        await call({ licenseCheckIn: value });
-        expect(saved()).toEqual({ LICENSE_CHECK_IN_ENABLED: value });
-    });
-
-    it.each(['false', 'yes', 0, null])(
-        'leaves the setting alone for a non-boolean value (%s)',
-        async (value) => {
-            await call({ licenseCheckIn: value, gravatar: true });
-            expect('LICENSE_CHECK_IN_ENABLED' in saved()).toBe(false);
-        },
-    );
 });
 
 describe('POST /api/setup/preferences — licenseServerContact', () => {

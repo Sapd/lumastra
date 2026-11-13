@@ -92,7 +92,6 @@ describe('POST /api/setup/preferences', () => {
                 jellyfinCompat: false,
                 subsonicCompat: true,
                 publicApi: false,
-                licenseCheckIn: false,
                 licenseServerContact: false,
             };
             expect(Object.keys(values).sort()).toEqual([...SETUP_PREFERENCE_FIELDS].sort());

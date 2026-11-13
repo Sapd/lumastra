@@ -31,7 +31,6 @@ export const SETUP_PREFERENCE_KEYS = {
     jellyfinCompat: 'FEATURE_JELLYFIN_COMPAT',
     subsonicCompat: 'FEATURE_SUBSONIC_COMPAT',
     publicApi: 'FEATURE_DEVICE_AUTH',
-    licenseCheckIn: 'LICENSE_CHECK_IN_ENABLED',
     licenseServerContact: 'LICENSE_SERVER_CONTACT_ENABLED',
 } as const;
 
@@ -57,7 +56,6 @@ export interface SetupPreferenceValues {
     jellyfinCompat: boolean;
     subsonicCompat: boolean;
     publicApi: boolean;
-    licenseCheckIn: boolean;
     licenseServerContact: boolean;
 }
 
@@ -104,7 +102,6 @@ export function preferencesFromConfig(cfg: Record<string, unknown>): SetupPrefer
         subsonicCompat: bool('subsonicCompat'),
         publicApi: bool('publicApi'),
         // Default ON: only an explicit `false` reads back as off.
-        licenseCheckIn: cfg[SETUP_PREFERENCE_KEYS.licenseCheckIn] !== false,
         licenseServerContact: cfg[SETUP_PREFERENCE_KEYS.licenseServerContact] !== false,
     };
 }

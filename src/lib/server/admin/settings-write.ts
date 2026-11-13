@@ -48,16 +48,6 @@ export function planSettingsUpdates(submitted: Record<string, unknown>): Setting
         }
         updates[key] = value as ConfigValues[string];
     }
-    // Contact with lumastra.org switched back on: the weekly check-in comes back
-    // on with it (its default), unless this same save changes it explicitly.
-    if (
-        updates.LICENSE_SERVER_CONTACT_ENABLED === true &&
-        !('LICENSE_CHECK_IN_ENABLED' in updates) &&
-        current.LICENSE_CHECK_IN_ENABLED === false &&
-        !isEnvOverridden('LICENSE_CHECK_IN_ENABLED')
-    ) {
-        updates.LICENSE_CHECK_IN_ENABLED = true;
-    }
     return { updates, envLocked };
 }
 
@@ -67,9 +57,9 @@ export async function commitSettingsUpdates(
     locals: Parameters<typeof auditActorFromLocals>[0],
 ): Promise<void> {
     if (Object.keys(updates).length === 0) return;
-    // A saved licence-contact switch is an answer to "contact lumastra.org?",
-    // kept even when it is the default (on): a new install's first call to the
-    // licensing server waits for that answer (license-refresh.ts).
+    // A saved contact switch is an answer to "contact lumastra.org?", kept even
+    // when it is the default (on): a new install's first call to lumastra.org
+    // waits for that answer (relay-token-enrol.ts).
     if ('LICENSE_SERVER_CONTACT_ENABLED' in updates) {
         await saveConfig(updates, { pinKeys: ['LICENSE_SERVER_CONTACT_ENABLED'] });
     } else {

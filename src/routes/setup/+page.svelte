@@ -841,14 +841,9 @@
     const showUnavailableMedia = $derived(
         showUnavailableMediaOverride ?? presetPrefs.SHOW_UNAVAILABLE_MEDIA,
     );
-    // Weekly licence check-in to lumastra.org (default on; renewal is unaffected).
-    // Always seeded from the value in force, not only on resume: it is a
-    // privacy opt-out, and a fresh pass must not write ON over an earlier OFF.
-    let licenseCheckIn = $state(savedPrefs().licenseCheckIn ?? true);
-    const licenseCheckInEnvLocked = $derived(data.preferences.envLocked.includes('licenseCheckIn'));
-    // Every call to lumastra.org (licence, check-in, push relay token). Off runs
-    // the install on the free tier at once. Seeded from the value in force, like
-    // the check-in, so a fresh pass never writes ON over an earlier OFF.
+    // The push relay token request to lumastra.org (default on). Seeded from the
+    // value in force, not only on resume: it is a privacy opt-out, and a fresh
+    // pass must not write ON over an earlier OFF.
     let licenseServerContact = $state(savedPrefs().licenseServerContact ?? true);
     const licenseServerContactEnvLocked = $derived(
         data.preferences.envLocked.includes('licenseServerContact'),
@@ -1318,7 +1313,6 @@
                         jellyfinCompat: jellyfinCompatEnabled,
                         subsonicCompat: subsonicEnabled,
                         publicApi: publicApiEnabled,
-                        licenseCheckIn,
                         licenseServerContact,
                         // Blank (deliberately cleared) keeps the effective TMDB_LANGUAGE
                         // instead of writing an empty value over it.
@@ -3429,9 +3423,9 @@
                         {/if}
                     </div>
 
-                    <!-- Lumastra licence — contact with lumastra.org at all, and the weekly
-                         check-in. Visible, not collapsed: these are the default-on calls
-                         to the project itself, so the operator decides them at first start. -->
+                    <!-- Contact with lumastra.org: the push relay token. Visible, not
+                         collapsed: it is a default-on call to the project itself, so the
+                         operator decides it at first start. -->
                     <div class="setup-pref-group" id="setup-sec-license">
                         <p class="setup-pref-group-label">{m.setup_license_group()}</p>
                         <div class="setup-pref-row">
@@ -3445,10 +3439,6 @@
                                 labelledby="setup-pref-license-contact-name"
                                 describedby="setup-pref-license-contact-desc"
                                 bind:checked={licenseServerContact}
-                                onchange={({ checked }) => {
-                                    // Back on: the weekly check-in is on again too (its default).
-                                    if (checked && !licenseCheckInEnvLocked) licenseCheckIn = true;
-                                }}
                                 disabled={finishing || licenseServerContactEnvLocked} />
                         </div>
                         {#if !licenseServerContact}
@@ -3460,31 +3450,6 @@
                                 <span>{m.setup_license_contact_off_warning()}</span>
                             </div>
                         {/if}
-                        <div class="setup-pref-row">
-                            <div class="setup-pref-text">
-                                <span class="setup-pref-name" id="setup-pref-license-check-in-name"
-                                    >{m.setup_pref_license_check_in()}</span>
-                                <span class="setup-pref-desc" id="setup-pref-license-check-in-desc"
-                                    >{licenseServerContact
-                                        ? m.setup_pref_license_check_in_desc()
-                                        : m.setup_pref_license_check_in_contact_off()}</span>
-                            </div>
-                            {#if licenseServerContact}
-                                <Toggle
-                                    labelledby="setup-pref-license-check-in-name"
-                                    describedby="setup-pref-license-check-in-desc"
-                                    bind:checked={licenseCheckIn}
-                                    disabled={finishing || licenseCheckInEnvLocked} />
-                            {:else}
-                                <!-- No contact, no check-in: shown off and locked. The saved
-                                     choice is kept and applies again if contact comes back. -->
-                                <Toggle
-                                    labelledby="setup-pref-license-check-in-name"
-                                    describedby="setup-pref-license-check-in-desc"
-                                    checked={false}
-                                    disabled />
-                            {/if}
-                        </div>
                     </div>
 
                     <!-- Hardware transcoding — conditional/advanced; collapsed by default.

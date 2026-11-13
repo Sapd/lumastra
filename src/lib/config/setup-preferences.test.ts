@@ -49,14 +49,6 @@ describe('preferencesFromConfig', () => {
         ).toBe('central');
     });
 
-    it('reads the weekly licence check-in as on unless explicitly off', () => {
-        expect(preferencesFromConfig({}).licenseCheckIn).toBe(true);
-        expect(preferencesFromConfig({ LICENSE_CHECK_IN_ENABLED: true }).licenseCheckIn).toBe(true);
-        expect(preferencesFromConfig({ LICENSE_CHECK_IN_ENABLED: false }).licenseCheckIn).toBe(
-            false,
-        );
-    });
-
     it('reads contact with lumastra.org as on unless explicitly off', () => {
         expect(preferencesFromConfig({}).licenseServerContact).toBe(true);
         expect(

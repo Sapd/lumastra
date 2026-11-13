@@ -143,7 +143,7 @@ describe('/setup load — resumed wizard', () => {
         vi.spyOn(config, 'METADATA_STORAGE_LOCATION', 'get').mockReturnValue('alongside');
         vi.spyOn(config, 'TRICKPLAY_ENABLED', 'get').mockReturnValue(true);
         vi.spyOn(config, 'GPU_ACCELERATION', 'get').mockReturnValue('vaapi');
-        vi.spyOn(config, 'LICENSE_CHECK_IN_ENABLED', 'get').mockReturnValue(false);
+        vi.spyOn(config, 'LICENSE_SERVER_CONTACT_ENABLED', 'get').mockReturnValue(false);
         envLocked.add('TRICKPLAY_ENABLED');
 
         const data = (await load(resumedAdminEvent())) as Record<string, unknown>;
@@ -159,7 +159,7 @@ describe('/setup load — resumed wizard', () => {
                 gpuAcceleration: 'vaapi',
                 // Read through the real getter: a renamed getter would read
                 // undefined, and `!== false` would show a saved OFF as ON.
-                licenseCheckIn: false,
+                licenseServerContact: false,
             },
         });
     });
