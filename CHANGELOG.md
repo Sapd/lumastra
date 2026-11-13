@@ -16,6 +16,36 @@ health → Cluster also warns when the running proxy is behind.
 The iPhone, iPad and Apple TV apps have their own version numbers. Their notes are on
 [lumastra.org/about/changelog/](https://lumastra.org/about/changelog/).
 
+## 0.1.4 - 2026-11-13
+
+Live TV proxy: update needed (its Rust dependencies were updated).
+
+### Security
+
+- The Docker images use Node.js 24.22.3, Node's November security release. npm and Rust
+  dependencies are updated within their version ranges.
+
+### Fixed
+
+- Browse: the search box in the A-Z and Recently-added views also finds titles in the viewer's
+  language and original titles (from 3 characters on), as global search already did.
+- Search: an exact or prefix match on a title in the viewer's language now ranks first, instead of
+  other titles that only look similar. Exact matches ignore case.
+- Jellyfin apps: the Quick Connect QR code that Moonfin shows opens the approve dialog with the
+  code filled in, instead of the home page.
+- Jellyfin apps: `/j`, `/j/System/Info` and `/j/System/Info/Public` report the same server
+  address (`PUBLIC_BASE_URL`, else the request address plus the base path). Before, an install on
+  a sub-path lost its base path, and behind a proxy the server could report an internal address.
+- Setup wizard: the library step offers every library type, including home videos, training,
+  educational and personal.
+
+### Changed
+
+- When the Jellyfin-compatible API is on, the default home screen shows a "Set up a Jellyfin app"
+  button that opens Settings → Connections. Admins can remove it in the home screen editor; "Load
+  defaults" there includes it. The setup wizard says that apps connect through Settings →
+  Connections.
+
 ## 0.1.3 - 2026-11-05
 
 Live TV proxy: no update needed.
