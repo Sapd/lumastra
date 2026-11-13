@@ -44,11 +44,10 @@ addition to the standard above.
 - **Security reports go through the private reporting process**, never a public issue,
   discussion or Discord channel. See [SECURITY.md](https://github.com/Sapd/lumastra/blob/main/.github/SECURITY.md).
 - **Reports and PRs must be verified by a human.** Unverified AI-generated bug reports,
-  security reports and PRs are closed. See [CONTRIBUTING-AI.md](https://github.com/Sapd/lumastra/blob/main/.github/CONTRIBUTING-AI.md).
+  security reports and PRs are closed. See [CONTRIBUTING.md](https://github.com/Sapd/lumastra/blob/main/.github/CONTRIBUTING.md).
 - **No contribution farming, no taking other people's work.** Opening PRs just to have
   opened them, and submitting code, translations or other work copied from someone else
-  without the right to do so, get the author banned without warning. See
-  [CONTRIBUTING-AI.md](https://github.com/Sapd/lumastra/blob/main/.github/CONTRIBUTING-AI.md).
+  without the right to do so, get the author banned without warning.
 - **Stay on topic.** Discord help channels are for informal troubleshooting, with one thread
   per question. Lasting support questions and answers belong in the matching GitHub
   Discussions category; bugs in issues; features in the Features category. Maintainers move or

@@ -22,6 +22,8 @@ Live TV proxy: no update needed.
 
 ### Changed
 
+- The CLA is version 1.3. It no longer mentions a commercial or source-available tier; the grants are
+  unchanged. README and CONTRIBUTING are shorter, and `CONTRIBUTING-AI.md` is folded into CONTRIBUTING.
 - Everything is licensed AGPL-3.0-only. The Jellyfin-compatible `/j` API and the AI assistant
   are no longer source-available; the earlier releases of these two parts are also available
   under AGPL-3.0-only. There are no paid parts, license keys or stream limits.

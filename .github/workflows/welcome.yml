@@ -25,12 +25,12 @@ jobs:
 
                       A few pointers so it gets looked at quickly:
                       - Questions and setup help belong in [Q&A](https://github.com/Sapd/lumastra/discussions/categories/q-a), and feature ideas in [Features](https://github.com/Sapd/lumastra/discussions/categories/features), where others can upvote them.
-                      - For a bug, the diagnostics export (**Admin → System → Diagnostics → Export Diagnostics → Copy for GitHub**) answers most follow-up questions in one go.
+                      - For a bug, the debug report (**Admin → System → Debug report → Copy report**) answers most follow-up questions in one go.
                       - Lumastra is an early release (v0.1), so please also check [known limitations](https://lumastra.org/reference/known-limitations/).
                   pr_message: |
                       Thanks for your first pull request!
 
                       Before review:
-                      - Please read [CONTRIBUTING.md](https://github.com/Sapd/lumastra/blob/main/.github/CONTRIBUTING.md) and, if you used AI tools, [CONTRIBUTING-AI.md](https://github.com/Sapd/lumastra/blob/main/.github/CONTRIBUTING-AI.md). In short: you are the author, so you need to understand and have run what you submit.
+                      - Please read [CONTRIBUTING.md](https://github.com/Sapd/lumastra/blob/main/.github/CONTRIBUTING.md). In short: you are the author, so you need to understand and have run what you submit. If AI tools wrote part of it, say so in the PR.
                       - The CLA bot will ask you to sign the [Contributor License Agreement](https://github.com/Sapd/lumastra/blob/main/.github/CLA.md) with a comment. That's needed once.
                       - Larger features need an accepted idea in [Features](https://github.com/Sapd/lumastra/discussions/categories/features) first.

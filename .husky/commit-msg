@@ -1,6 +1,6 @@
 # Strips "Co-Authored-By: Claude <...>" trailers from the message file ($1).
 # This repo records AI assistance in the pull request instead (the disclosure in
-# .github/CONTRIBUTING-AI.md), not in commit trailers.
+# the pull request template), not in commit trailers.
 msg="$1"
 tmp="$msg.tmp.$$"
 awk '

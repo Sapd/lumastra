@@ -18,7 +18,7 @@ Skipping this is the most common way to break a module's invariants.
 ## How changes reach this repository
 
 Changes arrive as pull requests from a fork, following `.github/CONTRIBUTING.md`. AI-assisted
-work also follows `.github/CONTRIBUTING-AI.md`, including the disclosure in the PR template.
+work says so in the PR, using the disclosure in the PR template.
 
 - Branch from `main` in your fork; one focused change per PR.
 - Stage only the files you changed (`git add <path>`, never `-A` or `.`). The working tree
@@ -30,7 +30,7 @@ work also follows `.github/CONTRIBUTING-AI.md`, including the disclosure in the 
 
 ## Before you open a pull request
 
-This section follows `.github/CONTRIBUTING.md` and `.github/CONTRIBUTING-AI.md`; read both. Do
+This section follows `.github/CONTRIBUTING.md`; read it. Do
 these in order and say in the PR what you did.
 
 1. **Run the checks.** `npm run lint && npm run typecheck && npm run check:svelte-types && npm test`
@@ -49,8 +49,7 @@ these in order and say in the PR what you did.
    `_bmad/`, `_bmad-output/` and your tool's skill folders (such as `.claude/`) are local
    tooling: never commit them. `.gitignore` already ignores `_bmad/`, `_bmad-output/` and
    `.claude/`.
-5. **Expect another review.** A maintainer also runs an AI review on every PR, as
-   `.github/CONTRIBUTING-AI.md` describes. You must answer each finding: fix it, or explain why
+5. **Expect another review.** A maintainer also runs an AI review on every PR. You must answer each finding: fix it, or explain why
    it does not apply.
 
 You are the author of what you submit: you must understand every line and be able to explain it

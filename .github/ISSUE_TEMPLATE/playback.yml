@@ -57,7 +57,7 @@ body:
       attributes:
           label: Playback incidents
           description: |
-              **Admin → Users → Playback incidents** lists the errors, reconnects and terminal failures your clients reported. Open the incident for this session, click **Copy for GitHub**, and paste (with nothing open it copies the visible list instead). The copy is redacted: user, device and media names are left out, so say which client it was if several show up.
+              **Admin → Users → Client diagnostics** lists the errors, reconnects and terminal failures your clients reported. Open the incident for this session, click **Copy for GitHub**, and paste (with nothing open it copies the visible list instead). The copy is redacted: user, device and media names are left out, so say which client it was if several show up.
           render: text
     - type: textarea
       id: transcode
@@ -69,9 +69,9 @@ body:
     - type: textarea
       id: diagnostics
       attributes:
-          label: Diagnostics export
+          label: Debug report
           description: |
-              **Admin → System → Diagnostics → Export Diagnostics → Copy for GitHub**, then paste. Covers version, platform, hardware-acceleration setup and feature flags. Skim it for anything you consider sensitive before pasting.
+              **Admin → System → Debug report → Copy report**, then paste. Covers version, platform, hardware-acceleration setup and feature flags. Skim it for anything you consider sensitive before pasting.
           render: markdown
       validations:
           required: true

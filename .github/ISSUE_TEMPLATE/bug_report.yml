@@ -71,9 +71,9 @@ body:
     - type: textarea
       id: diagnostics
       attributes:
-          label: Diagnostics export
+          label: Debug report
           description: |
-              **Admin → System → Diagnostics → Export Diagnostics → Copy for GitHub**, then paste here. It captures version, platform, feature flags, integrations and recent errors in one go and replaces most back-and-forth. Skim it for anything you consider sensitive before pasting.
+              **Admin → System → Debug report → Copy report**, then paste here. It captures version, platform, feature flags, integrations and recent errors in one go and replaces most back-and-forth. Skim it for anything you consider sensitive before pasting.
           render: markdown
       validations:
           required: true
