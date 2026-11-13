@@ -31,9 +31,9 @@ AI tools are fine; most of this project was written with them. Say so in the PR 
 
 ### The CLA
 
-You accept the [CLA](CLA.md) once. The CLA Assistant bot asks on your first pull request. You keep the copyright in your work and give the project a licence to use it.
+You accept the [CLA](CLA.md) once. The CLA Assistant bot asks on your first pull request. You keep your copyright and give the project owner a broad licence, including the right to license your contribution under other terms. The CLA also promises that merged contributions stay available in the public repository under AGPL-3.0 or another OSI-approved licence.
 
-Why there is a CLA: I am the sole maintainer, the Apple apps are closed source, and I want to keep my options open. What is published under AGPL-3.0 stays AGPL-3.0, and anyone can fork it.
+Why there is a CLA: I am the sole maintainer, the Apple apps are closed source, and I want to keep my options open, which includes licensing future versions differently. Every version already published under AGPL-3.0 stays available under AGPL-3.0, and anyone can fork it. The CLA cannot take that back.
 
 ## Running it locally
 

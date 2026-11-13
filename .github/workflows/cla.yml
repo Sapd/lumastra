@@ -39,7 +39,7 @@ jobs:
                   # CREATES signatures/v1/cla.json in the signatures repo and fails in that same
                   # run; the next run passes. Expect that once, not on every new contributor.)
                   allowlist: 'Sapd,dependabot*'
-                  custom-notsigned-prcomment: 'Thank you for the contribution! Before it can be merged you need to sign the [Contributor License Agreement](https://github.com/Sapd/lumastra/blob/main/.github/CLA.md). You keep your copyright; it gives the project a licence to use your contribution. Please read it and reply with the sentence below.'
+                  custom-notsigned-prcomment: 'Thank you for the contribution! Before it can be merged you need to sign the [Contributor License Agreement](https://github.com/Sapd/lumastra/blob/main/.github/CLA.md). You keep your copyright and give the project owner a broad licence, including the right to license your contribution under other terms. Please read it and reply with the sentence below.'
                   custom-pr-sign-comment: 'I have read the CLA Document and I hereby sign the CLA'
                   custom-allsigned-prcomment: 'All contributors have signed the CLA. Thank you!'
                   lock-pullrequest-aftermerge: false

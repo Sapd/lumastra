@@ -1,13 +1,16 @@
 # Lumastra Contributor License Agreement (Individual)
 
-_Version 1.3 — November 2026._ Version 1.3 removes the wording about a separate commercial or
-proprietary tier from §3, because Lumastra is now AGPL-3.0-only throughout. The grants are unchanged. The revision of this file that is current in the Project's public
+_Version 1.3 — November 2026._ Lumastra no longer has a commercial or source-available tier, so
+the wording about one is removed (mainly §3, with matching edits in §1 and §5). The Project
+Owner's promise to keep merged Contributions open (§3, §8) stays. The licenses you grant are
+unchanged. The revision of this file that is current in the Project's public
 repository when you submit a Contribution governs that Contribution. A later revision applies
 only to Contributions you submit after it is published.
 
 Thank you for contributing to Lumastra. This Contributor License Agreement (the "Agreement")
 records the rights you grant when you contribute. It is adapted from the widely-used Apache
-Software Foundation Individual CLA.
+Software Foundation Individual CLA, with changes: §3 (licensing under other terms), §5
+(AI-assisted and third-party material) and §9 to §12.
 
 Each time you submit a Contribution (for example, by opening a pull request) you accept these
 terms for that Contribution. They also apply to any Contribution you submitted before you first
@@ -55,13 +58,23 @@ Project, constitutes direct or contributory patent infringement, then any patent
 granted to that entity under this Agreement for that Contribution or the Project terminate as of
 the date such litigation is filed.
 
-## 3. Licenses
+## 3. Licensing by the Project Owner, including under other terms
 
-The Project Owner may license, sublicense, and distribute your Contributions, and works derived
-from them, under the GNU Affero General Public License v3.0, under the license that
-LICENSING.md designates for the file or package concerned (currently AGPL-3.0-only and
-Apache-2.0, and MIT-0 for the documentation repository), or under other license terms the
-Project Owner chooses.
+The Project Owner publishes your Contributions under the license that LICENSING.md designates
+for the file or package concerned (currently AGPL-3.0-only; Apache-2.0 for the plugin SDK and
+samples; MIT-0 for the documentation repository). The Project Owner may also license them, and
+works derived from them, under any other terms, including non-open-source terms. This is the
+difference from a contribution made under the same license the project uses.
+
+**In return, the Project Owner promises** that a Contribution you submit to a part of the
+Project that is published under an open-source license (the files that LICENSING.md designates
+as licensed under an open-source license, currently AGPL-3.0-only and Apache-2.0, and the
+documentation repository, currently MIT-0) will, in the form in which it is merged, remain
+available in the Project's public repository (or a successor public repository) under that
+license or another license approved by the Open Source Initiative, for as long as the Project
+Owner distributes the Project. The right to license under other terms lets the Project be
+offered under additional terms; it will not be used to make such a Contribution
+proprietary-only. This promise binds any successor Project Owner (see §8).
 
 **You retain all right, title, and interest in your Contributions.** This Agreement grants
 licenses; it is not an assignment of copyright. Nothing in this Agreement grants rights in the
@@ -90,10 +103,11 @@ reproduce third-party material.
 
 If a Contribution includes material that is not your original creation (third-party code, text,
 images, screenshots, data or other assets), you must identify it in the submission together with
-its source and license. Such material may be included only if its license permits distribution
-under the licenses the Project distributes under (see §3). Permissive licenses such as MIT, MIT-0, BSD, ISC, 0BSD or Apache-2.0 usually qualify;
-copyleft licenses such as GPL, AGPL, LGPL or CC BY-SA, and "non-commercial" terms, generally do
-not. This concerns material copied into the Project; a dependency you add keeps its own license
+its source and license. Such material may be included only if its license lets the Project Owner
+distribute it under the Project's current licenses and under other terms (§3). That is why
+copyleft material (GPL, AGPL, LGPL, CC BY-SA) and "non-commercial" material is generally not
+accepted, even where it would be compatible with AGPL-3.0. Permissive licenses such as MIT,
+MIT-0, BSD, ISC, 0BSD or Apache-2.0 usually qualify. This concerns material copied into the Project; a dependency you add keeps its own license
 and is reviewed separately. If you are unsure, ask before you submit.
 
 If a Contribution includes work by another person (for example a co-author), you represent that
@@ -113,7 +127,8 @@ would make these representations inaccurate in any respect.
 ## 8. Assignment
 
 The Project Owner may assign or transfer this Agreement and all licenses granted under it, in whole
-or in part, including in connection with a sale or transfer of the Project.
+or in part, including in connection with a sale or transfer of the Project. An assignee takes the
+Agreement subject to the promise in §3.
 
 ## 9. Moral rights
 
@@ -164,10 +179,11 @@ purpose. This English version is the only binding version; translations are for 
 
 ---
 
-_Changes in 1.3 (November 2026): §3 is now "Licenses". The wording about a separate commercial or
-proprietary tier, and the promise and exception that went with it, are gone. §1, §5 and §8 are
-adjusted to match. The copyright grant, copyright retention, patent grant, §4 and governing law
-are unchanged._
+_Changes in 1.3 (November 2026): the wording about a commercial, source-available or "protected
+component" tier is removed, together with the exception for source-available files. §3 is
+retitled and states the right to license under other terms plainly; the promise from 1.2 is kept
+unchanged in substance, and §8 is as in 1.2. §1 and §5 no longer refer to the removed tier. The
+copyright grant, copyright retention, patent grant, §4 and governing law are unchanged._
 
 _Changes in 1.2 (October 2026): "Project" is defined, so one agreement covers every Lumastra
 repository, code and documentation; §1 states how recipients are licensed, including the
