@@ -184,8 +184,10 @@ it.each(
                       },
                   }
                 : { itemsProcessed: 7 };
+            // started_at sits just before the fixed completed_at: with NOW() the generated
+            // int4 duration_ms overflowed once the fixture date was ~25 days in the past.
             await sql`INSERT INTO task_history (id, task_id, label, state, input, trigger, actor, processing_version, started_at, completed_at, error)
-                VALUES (${runId}, ${id}, 'Result fixture', 'failed', '{}', '{"kind":"manual"}', '{"type":"system"}', 1, NOW(), ${completedAt}, '{"message":"mirror"}')`;
+                VALUES (${runId}, ${id}, 'Result fixture', 'failed', '{}', '{"kind":"manual"}', '{"type":"system"}', 1, ${completedAt}::timestamptz - interval '1 second', ${completedAt}, '{"message":"mirror"}')`;
             const job = await queue.add(id, { runId }, { jobId: id });
             await until(async () => (await job.getState()) === 'failed');
             expect(attempt).toBeDefined();
