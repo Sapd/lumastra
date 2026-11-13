@@ -1484,8 +1484,12 @@ export const CACHE_NAMESPACES = {
      */
     pushRelayToken: {
         name: 'push-relay-token-v1',
-        l1TTL: 60 * 1000, // 1 minute in-memory
+        l1TTL: 60 * 1000, // unused: L1 is off for this namespace
         l2TTL: 24 * 60 * 60 * 1000, // ceiling; each write passes the token's remaining life
+        // L2 only. The lock re-read and the compare-and-delete must see what a
+        // sibling process wrote; a per-process copy would serve a stale or
+        // already-removed token for up to l1TTL.
+        enableL1: false,
         description: 'Minted push relay token shared across processes and restarts',
     },
 

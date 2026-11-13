@@ -506,6 +506,8 @@ export class CacheManager {
                     namespace: config.name,
                     l1TTL: config.l1TTL,
                     l2TTL: config.l2TTL,
+                    // A namespace that must always read Valkey declares it.
+                    enableL1: 'enableL1' in config ? config.enableL1 !== false : true,
                     // Declared on the namespace, so only namespaces that
                     // actually write per-entry TTLs pay the extra round-trip.
                     promoteWithRemainingTtl:

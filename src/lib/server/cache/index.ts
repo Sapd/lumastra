@@ -92,5 +92,6 @@ for (const config of getAllNamespaceConfigs()) {
     cacheManager.getCache(config.name, {
         l1TTL: config.l1TTL,
         l2TTL: config.l2TTL,
+        enableL1: 'enableL1' in config ? config.enableL1 !== false : true,
     });
 }
