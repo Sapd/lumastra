@@ -13030,7 +13030,7 @@
     "admin_provider_calls_note": "HTTP-Versuche aus Web- und Worker-Prozessen, einschließlich Wiederholungen. Die aktuelle Stunde ist noch nicht vollständig. Fehler umfassen alle 4xx, 5xx und Netzwerkfehler; 429 zählen ebenfalls als Fehler. Die Zählung beginnt mit der Aktivierung; bei Ausfällen oder Neustarts können einzelne Aufrufe verloren gehen.",
     "admin_provider_calls_unavailable": "Die Zähler für Anbieteraufrufe sind nicht verfügbar.",
     "admin_provider_calls_calls": "Aufrufe",
-    "admin_library_detail_age_limit_hint": "Blendet diese Mediathek für Benutzer unter diesem Alter aus; legt außerdem die Mindestfreigabe für ihre Hörbücher fest.",
+    "admin_library_detail_age_limit_hint": "Benutzer unter diesem Alter sehen diese Mediathek nicht. Hörbücher darin gelten als mindestens ab diesem Alter freigegeben. Filme und Serien behalten ihre eigene Altersfreigabe.",
     "admin_users_age_unrated_count_hidden": "{unrated} von {total} Titeln der Mediathek haben keine Altersfreigabe und sind für Benutzer mit Altersgrenze unsichtbar. Die Aufgabe „Altersfreigaben nachtragen“ ergänzt sie aus der nationalen Freigabe.",
     "admin_users_age_unrated_count_visible": "{unrated} von {total} Titeln der Mediathek haben keine Altersfreigabe. Benutzer mit Altersgrenze sehen sie, weil Inhalte ohne Freigabe erlaubt sind.",
     "admin_task_desc_age_rating_backfill": "Sucht die nationale Altersfreigabe (FSK, MPAA, BBFC usw.) für Titel ohne Altersfreigabe oder mit einer reinen MDBList-Altersangabe und ersetzt die MDBList-Angabe damit. Läuft in kleinen Paketen und kann bei großen Mediatheken eine Weile dauern.",

@@ -208,9 +208,8 @@
                         maxAgeRating = val === '' || isNaN(parsed) ? null : parsed;
                     }} />
                 <p class="text-xs text-surface-500 mt-1">
-                    Applies to audiobooks only: an audiobook in this library counts as at least this
-                    age, so users with a lower age limit do not see it, and the library itself disappears from their library list. Movies and series always use
-                    their own age rating, not this value. Leave empty for no restriction.
+                    Users below this age don't see this library. Audiobooks in it count as at least
+                    this age. Movies and series keep their own age rating. Leave empty for no restriction.
                 </p>
             </div>
         </div>
