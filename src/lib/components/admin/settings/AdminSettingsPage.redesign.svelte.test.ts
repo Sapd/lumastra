@@ -85,7 +85,11 @@ vi.mock('$lib/config/schema', () => ({
         fixture.settings.filter((s) => s.section === id),
     getVisibleSettingsBySection: (id: string): SettingDefinition[] =>
         fixture.settings.filter((s) => s.section === id),
-    isSettingVisible: (): boolean => true,
+    // Same rule as the real one for showWhen, enough for the empty-section test.
+    isSettingVisible: (
+        setting: { showWhen?: { key: string; equals?: unknown } },
+        values: Record<string, unknown>,
+    ): boolean => !setting.showWhen || values[setting.showWhen.key] === setting.showWhen.equals,
     isSettingEnabled: (): boolean => true,
 }));
 // Use actual section/input/save/dialog components, without importing the whole admin barrel.
@@ -200,6 +204,52 @@ describe('settings workspace redesign', () => {
         await fireEvent.click(screen.getByRole('button', { name: /General category/ }));
         expect((screen.getByLabelText('Site name') as HTMLInputElement).value).toBe('Pending name');
         expect(pendingValues().SITE_NAME).toBe('Pending name');
+    });
+
+    it('lists no category whose only rows are hidden by a showWhen condition (no empty card)', () => {
+        const relay: SectionDefinition = {
+            id: 'relay',
+            label: 'Relay category',
+            description: 'Only row depends on another setting',
+            order: 3,
+        };
+        const hiddenRow: SettingDefinition = {
+            key: 'RELAY_SWITCH',
+            type: 'boolean',
+            label: 'Relay switch',
+            description: 'Needs the site name to be "on"',
+            defaultValue: true,
+            section: 'relay',
+            showWhen: { key: 'SITE_NAME', equals: 'on' },
+        };
+        // The schema mock answers from the fixture arrays, so the extra category lives there.
+        fixture.sections.push(relay);
+        fixture.settings.push(hiddenRow);
+        const renderWith = (siteName: string): void => {
+            render(AdminSettingsPage, {
+                data: {
+                    values: { SITE_NAME: siteName, PLAYER_NAME: 'x', RELAY_SWITCH: true },
+                    envOverrides: [],
+                    schema: { sections: fixture.sections, settings: fixture.settings },
+                    configPath: '/config/settings.json',
+                    storageStatus: null,
+                },
+                form: null,
+                icon: Cog6Tooth,
+                heading: 'Settings',
+                description: 'Configure My Media',
+            });
+        };
+        try {
+            renderWith('off');
+            expect(screen.queryByRole('button', { name: /Relay category/ })).toBeNull();
+            cleanup();
+            renderWith('on');
+            expect(screen.getByRole('button', { name: /Relay category/ })).toBeTruthy();
+        } finally {
+            fixture.sections.pop();
+            fixture.settings.pop();
+        }
     });
 
     it('includes snippet-owned changes from the global schema in the review', async () => {

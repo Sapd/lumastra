@@ -37,7 +37,11 @@
     import { adminWorkspaceUrl, writeAdminWorkspaceUrl } from '../admin-workspace-url';
     import { beforeNavigate, goto } from '$app/navigation';
     import { resolve } from '$lib/paths';
-    import { getSettingsBySection, getVisibleSettingsBySection } from '$lib/config/schema';
+    import {
+        getSettingsBySection,
+        getVisibleSettingsBySection,
+        isSettingVisible,
+    } from '$lib/config/schema';
     import type { SectionDefinition, SettingDefinition } from '$lib/config/schema';
 
     const MAX_CROSS_PAGE_PER_GROUP = 8;
@@ -204,7 +208,11 @@
     function sectionHasVisibleContent(section: SectionDefinition): boolean {
         if (section.featureFlag) return true;
         if (getSettingsBySection(section.id).length === 0) return true;
-        return getVisibleSettingsBySection(section.id, visibilityFlags).length > 0;
+        // A row whose showWhen condition is not met is not rendered either: a section
+        // whose only rows are such rows would be an empty card.
+        return getVisibleSettingsBySection(section.id, visibilityFlags).some((setting) =>
+            isSettingVisible(setting, currentValues),
+        );
     }
 
     // svelte-ignore state_referenced_locally
