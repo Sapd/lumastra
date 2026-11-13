@@ -33,7 +33,7 @@ const fixture = vi.hoisted(() => ({
             defaultValue: 'Default player',
             section: 'playback',
         },
-    ] satisfies SettingDefinition[],
+    ] as SettingDefinition[],
     beforeNavigate: undefined as ((navigation: BeforeNavigate) => void) | undefined,
     goto: vi.fn(),
     enhanceCallbacks: new Map<string, SubmitFunction>(),

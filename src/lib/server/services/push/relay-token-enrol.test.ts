@@ -115,7 +115,6 @@ import {
     stopRelayTokenEnrolLoop,
 } from './relay-token-enrol.js';
 import {
-    adoptRelayTokenIfFresher,
     getRelayToken,
     hasLiveMintedRelayToken,
     invalidateRelayToken,
