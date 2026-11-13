@@ -83,11 +83,10 @@ export async function clearSharedRelayToken(): Promise<void> {
  * Drop the shared copy only if it is the token the relay rejected. A sibling
  * process may already have stored a newer one; that one must survive. Never throws.
  */
-export async function clearSharedRelayTokenIfEquals(rejectedToken: string | null): Promise<void> {
+export async function clearSharedRelayTokenIfEquals(rejectedToken: string): Promise<void> {
     try {
         const value = await sharedCache().get<SharedRelayToken>(KEY);
-        if (!value) return;
-        if (rejectedToken !== null && value.token !== rejectedToken) return;
+        if (!value || value.token !== rejectedToken) return;
         await sharedCache().delete(KEY);
     } catch {
         // Best-effort: the TTL removes it at the token's expiry anyway.

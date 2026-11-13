@@ -78,9 +78,9 @@ vi.mock('./relay-token.shared.js', () => ({
         h.cleared += 1;
         h.shared = null;
     },
-    clearSharedRelayTokenIfEquals: async (rejected: string | null) => {
+    clearSharedRelayTokenIfEquals: async (rejected: string) => {
         if (!h.shared) return;
-        if (rejected !== null && h.shared.token !== rejected) return;
+        if (h.shared.token !== rejected) return;
         h.cleared += 1;
         h.shared = null;
     },
@@ -454,7 +454,7 @@ describe('the loop', () => {
         expect(h.fetch).toHaveBeenCalledTimes(1);
         h.shared = { token: jwt(), expiresAtMs: Date.now() + 23 * 3600 * 1000 };
 
-        invalidateRelayToken(); // what RelayTransport does on a 401
+        invalidateRelayToken(getRelayToken()!); // what RelayTransport does on a 401
         await vi.advanceTimersByTimeAsync(10);
         // The shared copy was the rejected token, so it was dropped first and the
         // tick did not adopt it back.
@@ -463,7 +463,7 @@ describe('the loop', () => {
 
         // A relay that keeps rejecting cannot turn this into a request loop.
         setRelayToken(jwt(), Math.floor(Date.now() / 1000) + 24 * 3600);
-        invalidateRelayToken();
+        invalidateRelayToken(getRelayToken()!);
         await vi.advanceTimersByTimeAsync(10);
         expect(h.fetch).toHaveBeenCalledTimes(2);
     });
@@ -472,12 +472,12 @@ describe('the loop', () => {
         vi.useFakeTimers();
         startRelayTokenEnrolLoop();
         await firstTick();
-        invalidateRelayToken();
+        invalidateRelayToken(getRelayToken()!);
         await vi.advanceTimersByTimeAsync(10);
         expect(h.fetch).toHaveBeenCalledTimes(2);
 
         setRelayToken(jwt(), Math.floor(Date.now() / 1000) + 24 * 3600);
-        invalidateRelayToken();
+        invalidateRelayToken(getRelayToken()!);
         await vi.advanceTimersByTimeAsync(EARLY_REFRESH_MIN_INTERVAL_MS - 60_000);
         expect(h.fetch).toHaveBeenCalledTimes(2);
         await vi.advanceTimersByTimeAsync(61_000);
@@ -490,7 +490,7 @@ describe('the loop', () => {
         await firstTick();
         // A sibling already stored a newer token than the one this process was rejected on.
         h.shared = { token: 'newer-from-sibling', expiresAtMs: Date.now() + 23 * 3600 * 1000 };
-        invalidateRelayToken();
+        invalidateRelayToken(getRelayToken()!);
         await vi.advanceTimersByTimeAsync(10);
         expect(h.cleared).toBe(0);
         // ...and the tick adopted it instead of calling lumastra.org again.

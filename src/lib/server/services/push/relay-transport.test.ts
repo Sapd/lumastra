@@ -3,7 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RelayTransport } from './relay-transport.js';
-import { setRelayToken, getRelayToken } from './relay-token.store.js';
+import { setRelayToken, getRelayToken, adoptRelayTokenIfFresher } from './relay-token.store.js';
 import { buildPushPayload } from './push-payload.js';
 
 vi.mock('$lib/server/config.js', async (importOriginal) => {
@@ -119,6 +119,17 @@ describe('RelayTransport', () => {
         await expect(transport.send(req())).rejects.toMatchObject({ kind: 'unauthenticated' });
         expect(fetchMock).toHaveBeenCalledTimes(2);
         expect(getRelayToken()).toBeNull();
+    });
+
+    it('a 401 on the token that was sent does not discard a newer token a sibling stored meanwhile', async () => {
+        fetchMock.mockImplementation(async () => {
+            // While the request is in flight another process hands us a newer token.
+            adoptRelayTokenIfFresher('relay-token-newer', Date.now() + 23 * 3_600_000);
+            return jsonResponse(401, { error: 'expired' });
+        });
+
+        await expect(transport.send(req())).rejects.toMatchObject({ kind: 'unauthenticated' });
+        expect(getRelayToken()).toBe('relay-token-newer');
     });
 
     it('throws not_entitled on 403 without retrying', async () => {

@@ -64,7 +64,7 @@ interface HeldToken {
 }
 
 let held: HeldToken | null = null;
-const invalidationListeners = new Set<(rejectedToken: string | null) => void>();
+const invalidationListeners = new Set<(rejectedToken: string) => void>();
 
 function unverifiedExpMs(token: string): number | null {
     try {
@@ -174,9 +174,13 @@ export function hasLiveMintedRelayToken(now: number = Date.now()): boolean {
 }
 
 /**
- * Called on a 401 so the next refresh replaces the minted token, and
- * tells listeners (the enrolment loop) to fetch one soon rather than at the next
- * 6-hour tick.
+ * Called on a 401 with the token that was actually sent, so the next refresh
+ * replaces the minted token, and tells listeners (the enrolment loop) to fetch
+ * one soon rather than at the next 6-hour tick.
+ *
+ * Only the token that was rejected is dropped. The held token may by now be a
+ * newer one (a sibling process stored it while this request was in flight, or
+ * the 401 was on the operator-configured token), and that one must survive.
  *
  * Deliberately does NOT clear `config.PUSH_RELAY_TOKEN` — an operator-supplied
  * credential is not ours to discard, and nothing would ever put it back. A
@@ -184,14 +188,13 @@ export function hasLiveMintedRelayToken(now: number = Date.now()): boolean {
  * riding the ladder and dying `max_attempts`, with the relay's rejection in the
  * logs. That is the correct signal: the operator has to fix the value.
  */
-export function invalidateRelayToken(): void {
-    const rejected = held?.token ?? null;
-    const hadMinted = held !== null;
+export function invalidateRelayToken(sentToken: string): void {
+    if (!held || held.token !== sentToken) return;
     held = null;
-    if (!hadMinted || configuredToken()) return;
+    if (configuredToken()) return;
     for (const listener of invalidationListeners) {
         try {
-            listener(rejected);
+            listener(sentToken);
         } catch {
             // A listener's failure must not break the transport that called us.
         }
@@ -204,7 +207,7 @@ export function invalidateRelayToken(): void {
  * direction) to schedule an early refresh. Returns an unsubscribe function.
  */
 export function onRelayTokenInvalidated(
-    listener: (rejectedToken: string | null) => void,
+    listener: (rejectedToken: string) => void,
 ): () => void {
     invalidationListeners.add(listener);
     return () => invalidationListeners.delete(listener);

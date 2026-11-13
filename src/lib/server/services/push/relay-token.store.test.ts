@@ -82,14 +82,31 @@ describe('relay credential source', () => {
         // minted token. An operator-supplied value has no such replacement
         // path — dropping it would silently disable push until a restart.
         cfg.relayToken = 'operator-supplied';
-        invalidateRelayToken();
+        invalidateRelayToken('operator-supplied');
         expect(getRelayToken()).toBe('operator-supplied');
     });
 
     it('does discard a licence-minted token on a 401', () => {
         setRelayToken('licence-minted');
-        invalidateRelayToken();
+        invalidateRelayToken('licence-minted');
         expect(getRelayToken()).toBeNull();
+    });
+
+    it('keeps a different minted token held now: only the token that was sent is rejected', () => {
+        // A sibling process stored a newer token while this send was in flight;
+        // the 401 belongs to the old one.
+        setRelayToken('sent-and-rejected', (Date.now() + 10 * 3_600_000) / 1000);
+        adoptRelayTokenIfFresher('newer-from-sibling', Date.now() + 23 * 3_600_000);
+        invalidateRelayToken('sent-and-rejected');
+        expect(getRelayToken()).toBe('newer-from-sibling');
+    });
+
+    it('a 401 on the operator token does not discard the minted token held beside it', () => {
+        cfg.relayToken = 'operator-supplied';
+        setRelayToken('minted');
+        invalidateRelayToken('operator-supplied');
+        cfg.relayToken = '';
+        expect(getRelayToken()).toBe('minted');
     });
 });
 
@@ -147,16 +164,24 @@ describe('licence-minted token lifetime', () => {
         const unsubscribe = onRelayTokenInvalidated(listener);
         try {
             setRelayToken('minted');
-            invalidateRelayToken();
+            invalidateRelayToken('minted');
             expect(listener).toHaveBeenCalledTimes(1);
+            // The listener learns which token was rejected.
+            expect(listener).toHaveBeenLastCalledWith('minted');
 
             // Nothing held → nothing was rejected.
-            invalidateRelayToken();
+            invalidateRelayToken('minted');
             expect(listener).toHaveBeenCalledTimes(1);
+
+            // A newer token is held than the one rejected → nothing to renew.
+            setRelayToken('newer');
+            invalidateRelayToken('older');
+            expect(listener).toHaveBeenCalledTimes(1);
+            expect(getRelayToken()).toBe('newer');
 
             cfg.relayToken = 'operator-supplied';
             setRelayToken('minted');
-            invalidateRelayToken();
+            invalidateRelayToken('operator-supplied');
             expect(listener).toHaveBeenCalledTimes(1);
         } finally {
             unsubscribe();

@@ -144,7 +144,7 @@ export class RelayTransport implements PushTransport {
         }
 
         if (res.status === 401) {
-            invalidateRelayToken();
+            invalidateRelayToken(token);
             if (allowRetry) {
                 return this.attempt(req, token, false);
             }
