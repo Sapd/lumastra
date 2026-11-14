@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Artifact Hub repository metadata. helm-publish.yml pushes this file to
+# ghcr.io/lumastra/charts/lumastra:artifacthub.io on every release.
+#
+# After adding the repository on artifacthub.io, add the lines Artifact Hub shows for the
+# Verified Publisher badge and the owners list:
+#   repositoryID: <uuid from the Artifact Hub control panel>
+#   owners:
+#     - name: <name>
+#       email: <email>
+# Until then the list below stays empty (it hides no charts).
+ignore: []

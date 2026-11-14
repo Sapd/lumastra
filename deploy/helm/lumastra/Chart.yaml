@@ -12,4 +12,33 @@ kubeVersion: '>=1.29.0-0'
 home: https://lumastra.org
 sources:
     - https://github.com/Sapd/lumastra
-keywords: [media, streaming, hls, jellyfin]
+icon: https://lumastra.org/brand/icon.svg
+keywords: [media-server, kubernetes, jellyfin-compatible, music, iptv, streaming, hls, self-hosted]
+maintainers:
+    - name: Denis Arnst
+      url: https://github.com/Sapd
+annotations:
+    artifacthub.io/license: AGPL-3.0-only
+    artifacthub.io/category: streaming-messaging
+    artifacthub.io/prerelease: 'false'
+    artifacthub.io/links: |
+        - name: Documentation
+          url: https://lumastra.org/kubernetes/
+        - name: Source
+          url: https://github.com/Sapd/lumastra
+        - name: support
+          url: https://github.com/Sapd/lumastra/issues
+    artifacthub.io/images: |
+        - name: lumastra
+          image: ghcr.io/lumastra/lumastra:0.2.0
+          platforms:
+            - linux/amd64
+            - linux/arm64
+        - name: lumastra-sonic-embedder
+          image: ghcr.io/lumastra/lumastra-sonic-embedder:0.2.0
+    artifacthub.io/changes: |
+        - kind: changed
+          description: Lumastra is open source under AGPL-3.0-only; no license key needed
+          links:
+            - name: Changelog
+              url: https://github.com/Sapd/lumastra/blob/main/CHANGELOG.md
