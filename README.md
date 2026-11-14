@@ -14,7 +14,7 @@ Made for homelabs and clusters. Instead of one big process, Lumastra runs as sep
 
 Sign-in works on every device: the built-in login, any OIDC provider, or forward auth (Authentik, Authelia, oauth2-proxy). The iPhone, iPad and Apple TV apps sign in with a code you approve in a browser, so nobody types a password with the TV remote.
 
-Everything lives in one server: films and series next to music with a smart queue, gapless playback and DJ crossfades, audiobooks, and Live TV with backup feeds and one shared upstream stream per channel. Subtitles such as ASS, PGS and VobSub are drawn over the video without burn-in.
+Everything lives in one server: films and series next to music with a smart queue, sound-alike discovery and DJ crossfades, audiobooks, and Live TV with backup feeds and one shared upstream stream per channel. Subtitles such as ASS, PGS and VobSub are drawn over the video without burn-in.
 
 Your Jellyfin apps keep working. Lumastra answers the Jellyfin API under `/j`, with no Jellyfin server behind it. Tested apps: Streamyfin, Moonfin and Jellyfin Android TV. Music apps connect through the OpenSubsonic API.
 
