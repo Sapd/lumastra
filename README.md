@@ -18,6 +18,8 @@ Everything lives in one server: films and series next to music with a smart queu
 
 Your Jellyfin apps keep working. Lumastra answers the Jellyfin API under `/j`, with no Jellyfin server behind it. Tested apps: Streamyfin, Moonfin and Jellyfin Android TV. Music apps connect through the OpenSubsonic API.
 
+You can also run Jellyfin alongside it on the same media folders. Optional two-way sync keeps watched status and playback position in step, so you can try Lumastra without giving anything up.
+
 ## Requirements
 
 Compose starts five containers (web, worker, PostgreSQL, two Valkey); 8 GB of RAM is recommended. Lumastra needs its own domain, not a subpath, and the Apple apps need HTTPS with a certificate the device trusts. For a small single box such as a Raspberry Pi, Jellyfin is the lighter choice.
