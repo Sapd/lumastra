@@ -20,6 +20,19 @@ vi.mock('$lib/server/config.js', () => ({ config: cfg }));
 
 vi.mock('$lib/server/database/connection.js', () => ({ getDb: () => ({}) }));
 
+/** The setup answer the consent rule reads (same rule as the push relay token). */
+const consent = vi.hoisted(() => ({ answered: true, setupOld: true, setupThrows: false }));
+vi.mock('$lib/server/config/index.js', () => ({
+    getConfigState: () => ({ jsonOverrides: { has: () => consent.answered } }),
+    isEnvOverridden: () => false,
+}));
+vi.mock('$lib/server/database/queries/onboarding.queries.js', () => ({
+    isFirstRunSetupOlderThan: async () => {
+        if (consent.setupThrows) throw new Error('db down');
+        return consent.setupOld;
+    },
+}));
+
 let stored: Record<string, unknown> = {};
 vi.mock('$lib/server/database/queries/task-settings.queries.js', () => ({
     getTaskSettings: vi.fn(async () => ({ ...stored })),
@@ -54,6 +67,9 @@ beforeEach(() => {
     stored = {};
     cfg.UPDATE_CHECK_ENABLED = true;
     cfg.LICENSE_SERVER_CONTACT_ENABLED = false;
+    consent.answered = true;
+    consent.setupOld = true;
+    consent.setupThrows = false;
     pinnedFetch.mockReset();
 });
 
@@ -154,6 +170,35 @@ describe('lumastra-update-check task', () => {
                 /^https:\/\/api\.github\.com\/repos\/Sapd\/lumastra\/releases/,
             );
             expect(calls.join(' ')).not.toContain('lumastra.org');
+            expect(out.result?.securityFixedIn).toBe('0.1.1');
+        });
+
+        it('contact on, no answer to the contact question, setup under a day old: GitHub only', async () => {
+            cfg.LICENSE_SERVER_CONTACT_ENABLED = true;
+            consent.answered = false;
+            consent.setupOld = false;
+            const out = await lumastraUpdateCheckTask.execute(ctx());
+            expect(calls).toHaveLength(1);
+            expect(calls[0]).toMatch(/^https:\/\/api\.github\.com\/repos\/Sapd\/lumastra\/releases/);
+            expect(calls.join(' ')).not.toContain('lumastra.org');
+            expect(out.result?.securityFixedIn).toBe('0.1.1');
+        });
+
+        it('no answer, but setup finished more than a day ago: lumastra.org is used', async () => {
+            cfg.LICENSE_SERVER_CONTACT_ENABLED = true;
+            consent.answered = false;
+            consent.setupOld = true;
+            await lumastraUpdateCheckTask.execute(ctx());
+            expect(calls).toEqual(['https://lumastra.org/api/update-check?v=v0.1.0']);
+        });
+
+        it('the database cannot say how old setup is: GitHub only, the run still succeeds', async () => {
+            cfg.LICENSE_SERVER_CONTACT_ENABLED = true;
+            consent.answered = false;
+            consent.setupThrows = true;
+            const out = await lumastraUpdateCheckTask.execute(ctx());
+            expect(calls.join(' ')).not.toContain('lumastra.org');
+            expect(out.success).toBe(true);
             expect(out.result?.securityFixedIn).toBe('0.1.1');
         });
 

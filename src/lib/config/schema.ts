@@ -793,7 +793,7 @@ Configure these settings in your \`config/settings.json\` file:
     {
         id: 'licensing',
         label: 'Push relay',
-        description: 'Whether this server contacts lumastra.org for the push relay token',
+        description: 'Whether this server contacts lumastra.org (update check and push relay token)',
         icon: 'Key',
         order: 25,
     },
@@ -1234,7 +1234,7 @@ export const configSchema: SettingDefinition[] = [
         type: 'boolean',
         label: 'Contact lumastra.org (update check, push relay)',
         description:
-            'Once a day the update check asks lumastra.org for the latest release instead of GitHub. The request carries only the Lumastra version; lumastra.org counts it by version and country and stores no IP address or ID. With push notifications on, this server also asks lumastra.org for the token that iPhone and Apple TV push needs through the standard relay (install ID and version are sent). Off: this server never contacts lumastra.org, the update check reads GitHub directly, and push through the standard relay does not work. Your own Apple key or your own relay are not affected.',
+            'Once a day the update check asks lumastra.org for the latest release instead of GitHub. The request carries only the Lumastra version; lumastra.org counts it by version and country and stores no IP address or ID. With push notifications on, this server also asks lumastra.org for the token that iPhone and iPad push needs through the standard relay (install ID and version are sent). Off: no update check or token request goes to lumastra.org. The update check reads GitHub directly, and push through the standard relay does not work. Your own Apple key or your own relay are not affected.',
         defaultValue: true,
         section: 'licensing',
         requiresRestart: false,

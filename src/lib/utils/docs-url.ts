@@ -3,9 +3,9 @@
 
 /**
  * The one deliberate seam between the admin UI and the published docs at
- * lumastra.org. Every app→docs link goes through `docsUrl()` so the whole app
- * tags its referrals identically (`?ref=app&v=<version>`) and so the origin
- * lives in exactly one place if it ever moves.
+ * lumastra.org. Every app→docs link goes through `docsUrl()` so the origin
+ * lives in exactly one place if it ever moves. The links carry no tracking or
+ * version parameters: a path and an optional anchor, nothing else.
  *
  * Two rules this module exists to enforce:
  *
@@ -18,23 +18,10 @@
  *    `transcode-failure-classifier.ts`); those links are untagged, unclickable
  *    and invisible to this module. Don't grow that pattern — render a real
  *    anchor built here instead.
- *
- * Version source: `version` from `$app/environment` is SvelteKit's build-time
- * version string, baked into both the server and client bundles, so it needs
- * no page data, no store and no component context — which is what lets this
- * stay a plain `docsUrl(path)` function callable from module scope. It is
- * `config.kit.version.name` from `svelte.config.js`, i.e. `APP_VERSION` with a
- * `-<buildTimestamp>` suffix appended to bust the client's version-poll cache;
- * that suffix is a build artifact rather than a release identity, so it is
- * stripped here to leave the same string `config.APP_VERSION` reports.
  */
-
-import { version } from '$app/environment';
 
 /** Public docs site. Origin only — paths are passed to `docsUrl()`. */
 export const DOCS_ORIGIN = 'https://lumastra.org';
-
-const APP_VERSION = version.replace(/-\d+$/, '');
 
 /** The task-system debugging guide. */
 export const TASK_TROUBLESHOOTING_PATH = 'guides/task-troubleshooting/';
@@ -58,20 +45,12 @@ export const TASK_TROUBLESHOOTING = {
 } as const;
 
 /**
- * Absolute URL to a page on the docs site.
- *
- * `path` is site-relative and may carry a `#fragment` (and, rarely, a query of
- * its own). The tracking params are inserted before the fragment, since a
- * fragment must be last for the browser to scroll to it.
+ * Absolute URL to a page on the docs site. `path` is site-relative and may
+ * carry a `#fragment`, which is kept as it is.
  *
  * @example docsUrl(TASK_TROUBLESHOOTING.stuckItems)
- * // https://lumastra.org/guides/task-troubleshooting/?ref=app&v=1.2.3#recipe-1--stuck-items-panel-shows-entries
+ * // https://lumastra.org/guides/task-troubleshooting/#recipe-1--stuck-items-panel-shows-entries
  */
 export function docsUrl(path: string): string {
-    const relative = path.replace(/^\/+/, '');
-    const hashAt = relative.indexOf('#');
-    const fragment = hashAt === -1 ? '' : relative.slice(hashAt);
-    const beforeFragment = hashAt === -1 ? relative : relative.slice(0, hashAt);
-    const separator = beforeFragment.includes('?') ? '&' : '?';
-    return `${DOCS_ORIGIN}/${beforeFragment}${separator}ref=app&v=${encodeURIComponent(APP_VERSION)}${fragment}`;
+    return `${DOCS_ORIGIN}/${path.replace(/^\/+/, '')}`;
 }

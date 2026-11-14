@@ -17,8 +17,10 @@
  * check, plus a random 0–5 min delay — so installs spread over the day rather
  * than all calling at the same bucket boundary. A manual run checks at once.
  * The admin switch `UPDATE_CHECK_ENABLED` turns it off: no request is made.
- * `LICENSE_SERVER_CONTACT_ENABLED` (the push relay's opt-out) off means GitHub
- * only: lumastra.org is not contacted. One run per day across all processes:
+ * lumastra.org is asked only when `LICENSE_SERVER_CONTACT_ENABLED` is on AND the
+ * operator answered the contact question or setup is a day old (the rule the
+ * push relay token uses, see `services/lumastra-org-consent.ts`). Otherwise the
+ * check reads GitHub only. One run per day across all processes:
  * the task is a global singleton and `runUpdateCheck` takes an atomic claim.
  *
  * Failures (offline box, GitHub down, rate limit, the repo 404ing before its
@@ -31,6 +33,7 @@ import { defineTask } from '@sapd/lumastra-plugin-sdk';
 import { registry } from '../../registry.js';
 import { getDb } from '$lib/server/database/connection.js';
 import { config } from '$lib/server/config.js';
+import { setupAllowsLumastraOrgContact } from '$lib/server/services/lumastra-org-consent.js';
 import { runUpdateCheck } from '$lib/server/services/lumastra-update/check.js';
 import { fetchReleasesPreferringLumastraOrg } from '$lib/server/services/lumastra-update/lumastra-org-releases.js';
 
@@ -131,13 +134,25 @@ export const lumastraUpdateCheckTask = defineTask<
             fetchReleases: async (opts) => {
                 if (!manual) await abortableDelay(Math.random() * MAX_START_DELAY_MS, signal);
                 if (signal.aborted) throw new Error('aborted');
+                // The same consent as the push relay token: the operator answered the
+                // contact question, or setup is a day old. Read now, after the start
+                // delay, like the switch below: an answer or an opt-out given meanwhile
+                // is respected. A manual run obeys it too.
+                let answered = false;
+                try {
+                    answered = await setupAllowsLumastraOrgContact(sql);
+                } catch (err) {
+                    logger.debug('Setup state unknown; the update check reads GitHub', {
+                        error: err instanceof Error ? err.message : String(err),
+                    });
+                }
                 return fetchReleasesPreferringLumastraOrg({
                     version: runningVersion,
                     etag: opts.etag,
                     signal: opts.signal,
                     // Read now, after the start delay: an opt-out switched in the
                     // meantime is respected.
-                    contact: () => config.LICENSE_SERVER_CONTACT_ENABLED,
+                    contact: () => config.LICENSE_SERVER_CONTACT_ENABLED && answered,
                     contactAllowed: opts.contactAllowed ?? true,
                     onContact: opts.onContact,
                 });

@@ -13,9 +13,9 @@
  *  -> { "relayToken": "<ES256 JWT>", "relayTokenExp": <unix seconds> }
  *
  * Only the install UUID and the app version are sent. No licence key, no
- * status code, no check-in, no library data. There is no licence any more;
- * this is the one call to lumastra.org that remains, and it is documented in
- * the data-flow reference.
+ * status code, no check-in, no library data. There is no licence any more.
+ * Together with the update check's release list this is one of the two calls
+ * to lumastra.org; both are documented in the data-flow reference.
  *
  * It runs only while ALL of these hold (checked on every tick):
  * - `FEATURE_PUSH_NOTIFICATIONS` is on,
@@ -38,10 +38,13 @@
  */
 
 import { config } from '$lib/server/config.js';
-import { getConfigState, isEnvOverridden, onConfigChange } from '$lib/server/config/index.js';
+import { onConfigChange } from '$lib/server/config/index.js';
 import { getDb } from '$lib/server/database';
 import { getInstallUuid } from '$lib/server/database/queries/install-identity.queries.js';
-import { isFirstRunSetupOlderThan } from '$lib/server/database/queries/onboarding.queries.js';
+import {
+    contactQuestionAnswered,
+    setupAllowsLumastraOrgContact,
+} from '$lib/server/services/lumastra-org-consent.js';
 import { isIsolationWorker } from '$lib/server/tasks/isolation/isolation-context.js';
 import { Logger } from '$lib/server/utils/logger.js';
 import { currentPushTransportSelection } from './push-transport-selector.js';
@@ -77,8 +80,6 @@ export const FIRST_TICK_DELAY_MS = 5_000;
 export const FIRST_TICK_JITTER_MS = 25_000;
 /** A relay 401 triggers an early renewal at most this often. */
 export const EARLY_REFRESH_MIN_INTERVAL_MS = 15 * 60 * 1000;
-/** An install without a stored answer to the contact question waits this long after setup. */
-export const ENROL_SETUP_FALLBACK_MS = 24 * 60 * 60 * 1000;
 const INTERVAL_JITTER = 0.1;
 const RETRY_JITTER = 0.2;
 const FAILURE_WARN_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -100,8 +101,6 @@ const BUSY_RETRY_MS = 5_000;
  */
 const BUSY_BEFORE_LOCKLESS = 3;
 
-const CONTACT_KEY = 'LICENSE_SERVER_CONTACT_ENABLED';
-
 /** `base` spread by +-`fraction`, uniformly. */
 export function jittered(base: number, fraction: number, rand: () => number = Math.random): number {
     return Math.round(base * (1 - fraction + 2 * fraction * rand()));
@@ -114,13 +113,6 @@ export function parseRetryAfterMs(value: string | null, now: number = Date.now()
     if (/^\d+$/.test(trimmed)) return Number(trimmed) * 1000;
     const at = Date.parse(trimmed);
     return Number.isFinite(at) ? Math.max(0, at - now) : null;
-}
-
-/** The operator answered the contact question (environment, wizard or admin save). */
-function contactAnswered(): boolean {
-    return (
-        isEnvOverridden(CONTACT_KEY) || getConfigState()?.jsonOverrides.has(CONTACT_KEY) === true
-    );
 }
 
 /**
@@ -232,16 +224,14 @@ function noteFailure(message: string, meta: Record<string, unknown> | Error): vo
 }
 
 async function mayCallNow(sql: NonNullable<ReturnType<typeof getDb>>): Promise<boolean> {
-    let allowed = contactAnswered();
-    if (!allowed) {
-        try {
-            allowed = await isFirstRunSetupOlderThan(sql, ENROL_SETUP_FALLBACK_MS);
-        } catch (err) {
-            logger.debug('Setup state unknown; not contacting lumastra.org yet', {
-                error: err instanceof Error ? err.message : String(err),
-            });
-            allowed = false;
-        }
+    let allowed: boolean;
+    try {
+        allowed = await setupAllowsLumastraOrgContact(sql);
+    } catch (err) {
+        logger.debug('Setup state unknown; not contacting lumastra.org yet', {
+            error: err instanceof Error ? err.message : String(err),
+        });
+        allowed = false;
     }
     if (allowed) {
         state.loggedWaiting = false;
@@ -592,10 +582,10 @@ export function startRelayTokenEnrolLoop(): void {
     // all call at once. Switched off: drop the minted token and its shared copy,
     // so push through the standard relay stops now rather than within 24 h.
     let contactWasEnabled = config.LICENSE_SERVER_CONTACT_ENABLED;
-    let contactWasAnswered = contactAnswered();
+    let contactWasAnswered = contactQuestionAnswered();
     unsubscribeConfigChange = onConfigChange(() => {
         const enabled = config.LICENSE_SERVER_CONTACT_ENABLED;
-        const answered = contactAnswered();
+        const answered = contactQuestionAnswered();
         const changed = enabled !== contactWasEnabled;
         const newlyAnswered = answered && !contactWasAnswered;
         contactWasEnabled = enabled;

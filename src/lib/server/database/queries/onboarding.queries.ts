@@ -240,7 +240,7 @@ export async function getLatestScanMetadataProblem(
 
 /**
  * Whether first-run setup completed (the first admin exists) at least
- * `minAgeMs` ago. The licence loop uses it as the fallback for installs that
+ * `minAgeMs` ago. `services/lumastra-org-consent` uses it as the fallback for installs that
  * never answer the setup wizard's "contact lumastra.org" question. No
  * completed setup (no `setup_lock` row) never qualifies.
  */

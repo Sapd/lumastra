@@ -1829,15 +1829,17 @@ export const config = {
         return getBool('FEATURE_AUTO_LYRICS', env.FEATURE_AUTO_LYRICS, true);
     },
 
-    // Daily check for new Lumastra releases on GitHub (`lumastra-update-check`
-    // task, admin notice). The only request it makes is to api.github.com.
+    // Daily check for new Lumastra releases (`lumastra-update-check` task, admin
+    // notice). Asks lumastra.org once the contact question is answered (or setup
+    // is a day old) and the switch below is on; otherwise api.github.com.
     get UPDATE_CHECK_ENABLED(): boolean {
         return getBool('UPDATE_CHECK_ENABLED', env.UPDATE_CHECK_ENABLED, true);
     },
 
-    // The one call to lumastra.org: the push relay token (relay-token-enrol.ts).
-    // Off: no call at all. The stored key keeps its historical name so every
-    // existing opt-out keeps working.
+    // The switch for the calls to lumastra.org: the push relay token
+    // (relay-token-enrol.ts) and the update check's release list. Off: neither
+    // goes to lumastra.org, the update check reads GitHub. The stored key keeps
+    // its historical name so every existing opt-out keeps working.
     get LICENSE_SERVER_CONTACT_ENABLED(): boolean {
         return getBool('LICENSE_SERVER_CONTACT_ENABLED', env.LICENSE_SERVER_CONTACT_ENABLED, true);
     },

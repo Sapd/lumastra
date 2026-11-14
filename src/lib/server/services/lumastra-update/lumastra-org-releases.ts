@@ -19,8 +19,10 @@
  *
  * Anything but a well-formed 200 (outage, 429, redirect, garbage) is an error
  * here; `fetchReleasesPreferringLumastraOrg` then reads GitHub in the same
- * run. The switch is `LICENSE_SERVER_CONTACT_ENABLED` (the push relay's
- * opt-out): off means GitHub only, and lumastra.org is not contacted at all.
+ * run. The caller decides whether lumastra.org may be asked at all: the switch
+ * `LICENSE_SERVER_CONTACT_ENABLED` on and the setup answer (see
+ * `services/lumastra-org-consent.ts`). Otherwise GitHub only, and lumastra.org
+ * is not contacted.
  */
 
 import {
@@ -136,7 +138,7 @@ export interface PreferringLumastraOrgOpts {
     /** GitHub's ETag from the stored state; never sent to lumastra.org. */
     etag: string | null;
     signal?: AbortSignal;
-    /** The stored `LICENSE_SERVER_CONTACT_ENABLED`, read when the request is made. */
+    /** Switch on and the setup answer given, read when the request is made. */
     contact: boolean | (() => boolean);
     /** False once lumastra.org was already asked today: go straight to GitHub. */
     contactAllowed: boolean;
