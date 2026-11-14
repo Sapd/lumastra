@@ -125,14 +125,24 @@ const result = await esbuild.build({
         '$app/paths': path.join(projectRoot, 'scripts/sandbox-stubs/app-paths.js'),
         // `$env/dynamic/private` is reached through config.service's env read;
         // outside SvelteKit that read is process.env anyway.
-        '$env/dynamic/private': path.join(projectRoot, 'scripts/sandbox-stubs/env-dynamic-private.js'),
+        '$env/dynamic/private': path.join(
+            projectRoot,
+            'scripts/sandbox-stubs/env-dynamic-private.js',
+        ),
+        // $app/environment and $env/dynamic/public reach the graph through credential
+        // revocation -> boot/compat-init -> the assistant (dynamic imports, still bundled).
+        '$app/environment': path.join(projectRoot, 'scripts/sandbox-stubs/app-environment.js'),
+        '$env/dynamic/public': path.join(
+            projectRoot,
+            'scripts/sandbox-stubs/env-dynamic-public.js',
+        ),
     },
     plugins: [stripConfigStartupTla, rawTextLoader, externalizeNpm],
-    // `$app/paths` and `$env/dynamic/private` are aliased to stubs above. Every OTHER SvelteKit virtual
-    // module stays externalized on purpose, so a future leak fails the
-    // prod-import guard below (loud) instead of silently bundling something
-    // that cannot work in a worker thread.
-    external: ['$app/environment', '$app/stores', '$app/navigation', '$app/forms', '$env/*'],
+    // `$app/paths`, `$app/environment` and `$env/dynamic/*` (private, public) are
+    // aliased to stubs above. Every OTHER SvelteKit virtual module stays externalized
+    // on purpose, so a future leak fails the prod-import guard below (loud) instead
+    // of silently bundling something that cannot work in a worker thread.
+    external: ['$app/stores', '$app/navigation', '$app/forms', '$env/*'],
     // Calls the SAME helper as svelte.config.js:37 (`base: resolveUrlBasePath()`)
     // so the worker bundle and the server bundle can't disagree about `base`.
     // Evaluated at BUILD time — see scripts/resolve-url-base-path.js for why this
