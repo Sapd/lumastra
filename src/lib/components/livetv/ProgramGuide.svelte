@@ -499,7 +499,7 @@
 
     // -------------------------------------------------------------------------
     // Program details popover — clicking a program block opens details instead
-    // of tuning immediately; "Watch channel" inside the popover is the tune path.
+    // of tuning immediately; "Watch now" (shown while it airs) is the tune path.
     // -------------------------------------------------------------------------
     function openProgramDetails(prog: LiveTvAiring, channel: LiveTvStation): void {
         modals.open(
@@ -508,6 +508,10 @@
                 program: prog,
                 channelName: channel.name,
                 channelLogoUrl: channel.images?.primary?.href,
+                channelNumber: channel.channelNumber,
+                channelCategory:
+                    channel.category ??
+                    categories.find((category) => category.id === channel.categoryId)?.name,
                 onWatchChannel: () => {
                     modals.close();
                     onChannelClick?.(channel);
