@@ -48,6 +48,10 @@ Live TV proxy: no update needed.
   day and version, with no ID. Turn it off with the Contact lumastra.org setting; then it asks
   GitHub directly as before.
 
+### Removed
+
+- Plain Kubernetes manifests in `deploy/k8s`. Use the Helm chart in `deploy/helm/lumastra`.
+
 ### Upgrade note
 
 - License keys were never sold; 0.2.0 needs none. 0.1.x installs depend on the old license

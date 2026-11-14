@@ -27,9 +27,8 @@
 
 | Guide                                                   | What                                             |
 | ------------------------------------------------------- | ------------------------------------------------ |
-| [Quick Start](dev/QUICK-START.md)                       | Development commands, local setup, testing       |
+| [Develop Lumastra](dev/DEVELOPMENT.md)                  | Local setup, commands, testing, project layout   |
 | [Real Live TV E2E](dev/livetv-e2e.md) | Synthetic provider, playback sessions, proxy and runner runbook |
-| [Developer Guide](dev/DEVELOPER-GUIDE.md)               | API reference, utilities, patterns               |
 | [Interaction Model](dev/INTERACTION-MODEL.md)           | Media card interaction philosophy                |
 | [Silent Default Hazards](dev/silent-default-hazards.md) | Defaults that hide bugs — read before adding one |
 | [Media-Type Vocabulary](dev/media-type-vocabulary.md)   | Why the DB says `tv` and the API says `series`   |

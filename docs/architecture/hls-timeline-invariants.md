@@ -216,4 +216,4 @@ Tests worth reading or extending (paths are relative to `src/lib/server/services
 - `transcoding/full-transcode-strategy.source-timestamps.test.ts`, `transcoding/ffmpeg-args-builder.test.ts` (timestamp flags).
 - `lumastra-segment-handler.test.ts`, `lumastra-segment-handler.gop.test.ts` (handler directory).
 
-Run these through the remote runner. See `docs/dev/QUICK-START.md`.
+Run these through the remote runner. See `docs/dev/DEVELOPMENT.md`.

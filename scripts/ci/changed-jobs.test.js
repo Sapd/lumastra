@@ -126,7 +126,11 @@ const rows = [
 
     // --- non-JS trees ---------------------------------------------------------------------
     ['python worker', ['workers/sonic-embedder/embed.py'], ['unit']],
-    ['k8s manifests are read by unit tests', ['deploy/k8s/base/deployment.yaml'], ['unit']],
+    [
+        'Helm chart templates are read by unit tests',
+        ['deploy/helm/lumastra/templates/app.yaml'],
+        ['unit'],
+    ],
     ['Dockerfile', ['Dockerfile'], ['unit']],
     [
         'livetv proxy crate',
@@ -167,7 +171,7 @@ const rows = [
     ['docs plus a lockfile', ['README.md', 'package-lock.json'], ALL],
     [
         'component plus deploy manifest',
-        ['src/lib/components/A.svelte', 'deploy/k8s/x.yaml'],
+        ['src/lib/components/A.svelte', 'deploy/helm/lumastra/values.yaml'],
         ['eslint', 'svelte_types', 'unit', 'other_suites'],
     ],
 ];

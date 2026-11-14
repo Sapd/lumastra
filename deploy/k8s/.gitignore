@@ -1,4 +1,0 @@
-# Never commit the filled-in Secret — only secret.example.yaml is tracked.
-secret.yaml
-*.local.yaml
-kubeconfig
