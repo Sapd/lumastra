@@ -38,7 +38,7 @@ One node, a CloudNativePG database and an Ingress. It works on a stock k3s (Trae
 1. Get the chart.
 
     ```bash
-    git clone --branch v0.1.4 https://github.com/Sapd/lumastra.git
+    git clone --branch v0.2.0 https://github.com/Sapd/lumastra.git
     cd lumastra
     ```
 
@@ -67,7 +67,7 @@ One node, a CloudNativePG database and an Ingress. It works on a stock k3s (Trae
     ```yaml
     mode: split
     image:
-        tag: 0.1.4
+        tag: 0.2.0
     app:
         origin: http://lumastra.example.com
     secrets:
@@ -123,7 +123,7 @@ controller.
 
 ```yaml
 image:
-    tag: 0.1.4
+    tag: 0.2.0
 app:
     origin: https://lumastra.example.com
 secrets:

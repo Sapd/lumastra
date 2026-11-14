@@ -4,14 +4,12 @@ apiVersion: v2
 name: lumastra
 description: >-
     Lumastra, a self-hosted media server: web, worker, optional Live TV stream proxy and
-    sonic-analysis sidecar, with an affinity router for HLS. Beta — see README.md.
+    sonic-analysis sidecar, with an affinity router for HLS. See README.md.
 type: application
-version: 0.1.0-beta.9
+version: 0.2.0
 appVersion: 'stable'
 kubeVersion: '>=1.29.0-0'
 home: https://lumastra.org
 sources:
     - https://github.com/Sapd/lumastra
 keywords: [media, streaming, hls, jellyfin]
-annotations:
-    lumastra.org/status: beta

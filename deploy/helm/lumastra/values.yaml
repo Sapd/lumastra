@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
 # SPDX-License-Identifier: AGPL-3.0-only
 #
-# Lumastra Helm chart (beta). Every secret is a reference to a Secret you create; the chart
+# Lumastra Helm chart. Every secret is a reference to a Secret you create; the chart
 # never generates or inlines one (output is deterministic, so GitOps tools can render it offline).
 
 # Only split is supported: web StatefulSet (N replicas) + one lean task worker (Recreate).

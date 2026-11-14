@@ -2,7 +2,7 @@
 SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
 SPDX-License-Identifier: AGPL-3.0-only
 */ -}}
-Lumastra chart {{ .Chart.Version }} (beta) — release "{{ .Release.Name }}" in "{{ .Release.Namespace }}", mode {{ .Values.mode }}.
+Lumastra chart {{ .Chart.Version }} — release "{{ .Release.Name }}" in "{{ .Release.Namespace }}", mode {{ .Values.mode }}.
 
 Entry Service: {{ include "lumastra.fullname" . }}:{{ .Values.service.port }} ({{ ternary "affinity router" "HTTP pods directly" .Values.router.enabled }})
 {{- if .Values.httpRoute.enabled }}
