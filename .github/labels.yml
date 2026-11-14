@@ -66,7 +66,7 @@
 - {
       name: 'licensing',
       color: 'e99695',
-      description: Touches licensing, trademarks or third-party notices — review with care,
+      description: 'Touches licensing, trademarks or third-party notices; review with care',
   }
 - { name: 'synced', color: 'c2e0c6', description: 'Merged, waiting for the next release' }
 - { name: 'status:released', color: '0e8a16', description: 'Included in a published release' }
