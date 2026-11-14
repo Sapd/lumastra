@@ -46,12 +46,12 @@ import { truncateTables, TEST_TABLES } from '../integration/helpers/cleanup.js';
 import { ensureTestUser } from '../integration/fixtures/user.fixtures.js';
 import { callAndCheck, jfEvent, mintJfSession } from './harness';
 import { seedEpisodeExternalSrt, seedMovieEmbeddedSubs, seedMusicAlbum } from './seed';
-import { GET as itemGet } from '../../src/routes/(proprietary)/j/Items/[itemId]/+server';
-import { GET as itemsGet } from '../../src/routes/(proprietary)/j/Items/+server';
-import { GET as imageInfosGet } from '../../src/routes/(proprietary)/j/Items/[itemId]/Images/+server';
-import { GET as imageGet } from '../../src/routes/(proprietary)/j/Items/[itemId]/Images/[imageType]/+server';
-import { GET as seasonsGet } from '../../src/routes/(proprietary)/j/Shows/[seriesId]/Seasons/+server';
-import { GET as imageIndexGet } from '../../src/routes/(proprietary)/j/Items/[itemId]/Images/[imageType]/[imageIndex]/+server';
+import { GET as itemGet } from '../../src/routes/(modules)/j/Items/[itemId]/+server';
+import { GET as itemsGet } from '../../src/routes/(modules)/j/Items/+server';
+import { GET as imageInfosGet } from '../../src/routes/(modules)/j/Items/[itemId]/Images/+server';
+import { GET as imageGet } from '../../src/routes/(modules)/j/Items/[itemId]/Images/[imageType]/+server';
+import { GET as seasonsGet } from '../../src/routes/(modules)/j/Shows/[seriesId]/Seasons/+server';
+import { GET as imageIndexGet } from '../../src/routes/(modules)/j/Items/[itemId]/Images/[imageType]/[imageIndex]/+server';
 
 const USER_ID = '00000000-0000-4000-8000-00000000c0de';
 const SERIES_BLURHASH = 'LEHV6nWB2yk8pyo0adR*.7kCMdnj';

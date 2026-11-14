@@ -19,14 +19,14 @@ import {
     seedMusicAlbum,
     seedProviderMetadata,
 } from './seed';
-import { clearVideoGenreCache } from '$lib/server/proprietary/jellyfin-compat/genres';
-import { clearMusicGenreCache } from '$lib/server/proprietary/jellyfin-compat/music-genres';
-import { GET as filtersGet } from '../../src/routes/(proprietary)/j/Items/Filters/+server';
-import { GET as filters2Get } from '../../src/routes/(proprietary)/j/Items/Filters2/+server';
-import { GET as genresGet } from '../../src/routes/(proprietary)/j/Genres/+server';
-import { GET as genreGet } from '../../src/routes/(proprietary)/j/Genres/[genreName]/+server';
-import { GET as musicGenresGet } from '../../src/routes/(proprietary)/j/MusicGenres/+server';
-import { GET as hintsGet } from '../../src/routes/(proprietary)/j/Search/Hints/+server';
+import { clearVideoGenreCache } from '$lib/server/jellyfin-compat/genres';
+import { clearMusicGenreCache } from '$lib/server/jellyfin-compat/music-genres';
+import { GET as filtersGet } from '../../src/routes/(modules)/j/Items/Filters/+server';
+import { GET as filters2Get } from '../../src/routes/(modules)/j/Items/Filters2/+server';
+import { GET as genresGet } from '../../src/routes/(modules)/j/Genres/+server';
+import { GET as genreGet } from '../../src/routes/(modules)/j/Genres/[genreName]/+server';
+import { GET as musicGenresGet } from '../../src/routes/(modules)/j/MusicGenres/+server';
+import { GET as hintsGet } from '../../src/routes/(modules)/j/Search/Hints/+server';
 
 const USER_ID = '00000000-0000-4000-8000-00000000f12e';
 let sql: postgres.Sql;

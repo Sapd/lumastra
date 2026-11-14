@@ -6,7 +6,7 @@
  *
  * SINGLE SOURCE OF TRUTH for every tool's argument shape. The OpenAI
  * `tools` array is derived from these via `z.toJSONSchema()` (see
- * `src/lib/server/proprietary/assistant-tools/to-openai-schema.ts`), and the
+ * `src/lib/server/assistant/assistant-tools/to-openai-schema.ts`), and the
  * dispatch loop validates the model's `tool_calls.arguments` against the
  * exact same schema before executing — this is the prompt-injection
  * boundary: the model can only ever supply typed, bounded arguments, never

@@ -4,8 +4,8 @@
 
   LessonRail — shared lesson-list rail primitive (AGPL).
 
-  Used by EducationalShell (AGPL) and may be imported by LessonShell (proprietary)
-  since proprietary → core imports are permitted.
+  Used by EducationalShell (AGPL) and may be imported by LessonShell (modules)
+  since module → core imports are permitted.
 
   Shows an ordered list of lesson items with completion status. The current lesson
   is highlighted. Clicking a lesson navigates to it.

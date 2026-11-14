@@ -232,8 +232,8 @@ const EXTRA_IGNORES = {
  * because it takes ~30 minutes and nothing else can change what the /j handlers return.
  */
 export const JELLYFIN_PATHS = [
-    'src/routes/(proprietary)/j/**',
-    'src/lib/server/proprietary/jellyfin-compat/**',
+    'src/routes/(modules)/j/**',
+    'src/lib/server/jellyfin-compat/**',
     'src/lib/server/utils/external-subtitle-index.ts',
     'src/lib/server/utils/media-stream-mapper.ts',
     'src/lib/server/database/queries/media-streams.queries.ts',

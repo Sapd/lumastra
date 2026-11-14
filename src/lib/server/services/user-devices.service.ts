@@ -15,7 +15,7 @@
  *     device showed different names on different screens.
  *
  * This module is AGPL core on purpose. `/settings` and the OAuth flow depend on
- * it, so it must not live under `src/lib/server/proprietary/` — proprietary code
+ * it, so it must not live under `src/lib/server/assistant/` — module code
  * may import core, never the reverse.
  */
 

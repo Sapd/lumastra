@@ -12,11 +12,11 @@ import { truncateTables, TEST_TABLES } from '../integration/helpers/cleanup.js';
 import { ensureTestUser } from '../integration/fixtures/user.fixtures.js';
 import { callAndCheck, jfEvent, mintJfSession } from './harness';
 import { seedMovieEmbeddedSubs } from './seed';
-import { POST as createPost } from '../../src/routes/(proprietary)/j/Playlists/+server';
-import { GET as playlistGet } from '../../src/routes/(proprietary)/j/Playlists/[playlistId]/+server';
-import { GET as itemsGet } from '../../src/routes/(proprietary)/j/Playlists/[playlistId]/Items/+server';
-import { GET as usersGet } from '../../src/routes/(proprietary)/j/Playlists/[playlistId]/Users/+server';
-import { GET as userGet } from '../../src/routes/(proprietary)/j/Playlists/[playlistId]/Users/[userId]/+server';
+import { POST as createPost } from '../../src/routes/(modules)/j/Playlists/+server';
+import { GET as playlistGet } from '../../src/routes/(modules)/j/Playlists/[playlistId]/+server';
+import { GET as itemsGet } from '../../src/routes/(modules)/j/Playlists/[playlistId]/Items/+server';
+import { GET as usersGet } from '../../src/routes/(modules)/j/Playlists/[playlistId]/Users/+server';
+import { GET as userGet } from '../../src/routes/(modules)/j/Playlists/[playlistId]/Users/[userId]/+server';
 
 const USER_ID = '00000000-0000-4000-8000-00000000c0de';
 const FRIEND_ID = '00000000-0000-4000-8000-00000000f00d';

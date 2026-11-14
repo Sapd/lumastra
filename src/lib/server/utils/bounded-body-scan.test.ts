@@ -77,7 +77,7 @@ function directReaders(): string[] {
 
 /**
  * Authenticated or admin-only readers that keep a direct read, with the reason.
- * Nothing under /j, proprietary/, oauth/ or an anonymous endpoint belongs here.
+ * Nothing under /j, the module trees, oauth/ or an anonymous endpoint belongs here.
  */
 const ALLOWED: Record<string, string> = {
     'src/routes/admin/settings/appearance/+page.server.ts':
@@ -140,9 +140,11 @@ describe('direct request-body reads outside mount()', () => {
         expect(notAdmin).toEqual([]);
     });
 
-    it('the allowlist holds no /j, proprietary, oauth or anonymous entry', () => {
-        const bad = Object.keys(ALLOWED).filter((f) =>
-            /\/j\/|proprietary|\/oauth\/|\/auth\/|\/setup\//.test(f),
+    it('the allowlist holds no /j, module-tree, oauth or anonymous entry', () => {
+        const moduleTree =
+            /server\/jellyfin-compat\/|server\/assistant\/|components\/ai-assistant\/|\(modules\)/;
+        const bad = Object.keys(ALLOWED).filter(
+            (f) => moduleTree.test(f) || /\/j\/|\/oauth\/|\/auth\/|\/setup\//.test(f),
         );
         expect(bad).toEqual([]);
     });

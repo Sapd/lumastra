@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * Unit tests for the AGPL-core / proprietary registry that lets
- * `credential-revocation.service.ts` reach the proprietary /j (Jellyfin-
+ * Unit tests for the AGPL-core / module registry that lets
+ * `credential-revocation.service.ts` reach the /j (Jellyfin-
  * compat) live-session store without importing it directly (the license
- * boundary only permits proprietary → core registration, never the reverse).
+ * boundary only permits module → core registration, never the reverse).
  * Had no dedicated test at all — this pins what it registers, what a
  * `getJellyfinCompatRevocationProvider()` caller sees before/after
  * registration, and that a revocation call actually reaches the registered

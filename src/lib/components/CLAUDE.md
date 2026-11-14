@@ -12,7 +12,7 @@ Reusable UI components organized by feature domain.
 | `CustomActivityChart.svelte`                   | Customizable activity chart                                                               | Implementing custom activity charts            |
 | `PopularMediaStats.svelte`                     | Popular media statistics display                                                          | Displaying popularity metrics                  |
 | `NewEpisodeBanner.svelte`                      | New episode notification banner                                                           | Implementing new episode alerts                |
-| `../proprietary/components/AiAssistant.svelte` | AI Assistant component wrapper                                                            | Implementing AI assistant features             |
+| `ai-assistant/AiAssistant.svelte` | AI Assistant component wrapper                                                            | Implementing AI assistant features             |
 | `RequestModal.svelte`                          | Media request modal                                                                       | Implementing media request features            |
 | `RequestNotificationWidget.svelte`             | Request notification widget                                                               | Displaying request notifications               |
 | `SeasonSelectorModal.svelte`                   | Season selection modal                                                                    | Implementing season selection                  |

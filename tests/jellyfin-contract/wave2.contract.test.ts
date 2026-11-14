@@ -19,12 +19,12 @@ import {
     seedMusicAlbum,
     seedProviderMetadata,
 } from './seed';
-import { GET as itemsGet } from '../../src/routes/(proprietary)/j/Items/+server';
-import { GET as episodesGet } from '../../src/routes/(proprietary)/j/Shows/[seriesId]/Episodes/+server';
-import { GET as nextUpGet } from '../../src/routes/(proprietary)/j/Shows/NextUp/+server';
-import { GET as latestGet } from '../../src/routes/(proprietary)/j/Items/Latest/+server';
-import { GET as albumArtistsGet } from '../../src/routes/(proprietary)/j/Artists/AlbumArtists/+server';
-import { GET as artistsGet } from '../../src/routes/(proprietary)/j/Artists/+server';
+import { GET as itemsGet } from '../../src/routes/(modules)/j/Items/+server';
+import { GET as episodesGet } from '../../src/routes/(modules)/j/Shows/[seriesId]/Episodes/+server';
+import { GET as nextUpGet } from '../../src/routes/(modules)/j/Shows/NextUp/+server';
+import { GET as latestGet } from '../../src/routes/(modules)/j/Items/Latest/+server';
+import { GET as albumArtistsGet } from '../../src/routes/(modules)/j/Artists/AlbumArtists/+server';
+import { GET as artistsGet } from '../../src/routes/(modules)/j/Artists/+server';
 
 const USER_ID = '00000000-0000-4000-8000-00000000c0de';
 let sql: postgres.Sql;

@@ -5,7 +5,7 @@
  * AGPL-core registry for the optional AI assistant.
  *
  * This is the seam between the core and the assistant pipeline
- * (`src/lib/server/proprietary/assistant-service.ts`), mirroring
+ * (`src/lib/server/assistant/assistant-service.ts`), mirroring
  * `auth/jellyfin-compat-revocation.ts`: the core never imports the assistant
  * tree. Instead the assistant module registers itself here via
  * {@link registerAiAssistantProvider}, at boot.
@@ -22,16 +22,16 @@ import type postgres from 'postgres';
 /**
  * A resolved user context, or `null` when the username has no resolvable row
  * (deleted/unsynced user, or DB unreachable). Kept structural (`unknown`) so
- * this AGPL file stays decoupled from the proprietary `UserContext` shape — but
+ * this AGPL file stays decoupled from the assistant's `UserContext` shape — but
  * the nullability MUST be preserved so callers fail closed instead of
  * dereferencing `null`.
  */
 type ResolvedUser = NonNullable<unknown> | null;
 
 /**
- * The narrow contract the proprietary assistant registers. Intentionally
+ * The narrow contract the assistant registers. Intentionally
  * structural (inputs/deps typed `unknown`) so the AGPL core never references a
- * proprietary type. The bridge (`tasks/plugin-ai-surface.ts`) adapts this into
+ * assistant type. The bridge (`tasks/plugin-ai-surface.ts`) adapts this into
  * the SDK `ctx.ai` surface.
  */
 export interface AiAssistantProvider {
@@ -49,14 +49,14 @@ export interface AiAssistantProvider {
 let provider: AiAssistantProvider | null = null;
 
 /**
- * Called by the proprietary assistant module on load to wire itself in.
- * (proprietary → core direction, which the boundary permits.)
+ * Called by the assistant module on load to wire itself in.
+ * (module → core direction, which the boundary permits.)
  */
 export function registerAiAssistantProvider(p: AiAssistantProvider): void {
     provider = p;
 }
 
-/** The registered proprietary assistant provider, or `null` in AGPL-only builds. */
+/** The registered assistant provider, or `null` in AGPL-only builds. */
 export function getAiAssistantProvider(): AiAssistantProvider | null {
     return provider;
 }

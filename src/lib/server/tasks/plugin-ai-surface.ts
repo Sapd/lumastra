@@ -4,7 +4,7 @@
 /**
  * Optional `ctx.ai` bridge.
  *
- * The AI assistant pipeline lives in `proprietary/assistant-service.ts`. This
+ * The AI assistant pipeline lives in `assistant/assistant-service.ts`. This
  * file is core and does not import that tree (not even through a dynamic
  * `import()`). It reaches the assistant through the registry
  * (`ai/assistant-provider.ts`), into which the assistant module registers
@@ -34,8 +34,8 @@ const MAX_HISTORY_CONTENT_CHARS = 6000;
 
 /**
  * Default loader: make sure the boot registrations ran in this process (so the
- * provider is registered), then read it from the registry. No `proprietary/`
- * import here.
+ * provider is registered), then read it from the registry. No direct import
+ * of the module trees here.
  */
 async function defaultLoader(): Promise<AiAssistantProvider | null> {
     // Dynamic: the loader pulls in the push and cache graph; this file must stay light.

@@ -41,7 +41,7 @@ function endpoint(contentType: string | null, extra: Record<string, string> = {}
 
 // Any route id: the guard must not depend on which endpoint produced the bytes.
 const SOME_ROUTES = [
-    '/(proprietary)/j/Videos/[itemId]/[mediaSourceId]/Attachments/[index]',
+    '/(modules)/j/Videos/[itemId]/[mediaSourceId]/Attachments/[index]',
     '/api/image/[id]/[type]',
     '/api/v1/media/[id]/images/[role]',
     '/subsonic/rest/[method]',

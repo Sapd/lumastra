@@ -68,11 +68,14 @@ const EXCLUDED_PREFIXES = [
     'providers/implementations/tmdb/client.ts', // public image CDN, no credential
 ];
 
+// The module trees (jellyfin-compat and assistant, both under server/) are skipped, as before.
+const MODULE_TREES = new Set(['jellyfin-compat', 'assistant']);
+
 function walk(dir: string, out: string[]): void {
     for (const name of readdirSync(dir)) {
         const p = join(dir, name);
         if (statSync(p).isDirectory()) {
-            if (name === 'proprietary' || name === 'node_modules') continue;
+            if (name === 'node_modules' || MODULE_TREES.has(relative(ROOT, p))) continue;
             walk(p, out);
         } else if (p.endsWith('.ts') && !/\.(test|spec|integration\.test)\.ts$/.test(p)) {
             out.push(p);

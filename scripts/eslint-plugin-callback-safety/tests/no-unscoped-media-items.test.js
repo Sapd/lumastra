@@ -118,7 +118,7 @@ ruleTester.run('no-unscoped-media-items', rule, {
         // syntax. Classifying by ANCESTOR NODE TYPE (rather than by the child
         // key being descended into) erases the call and reports the file.
         // Measured while building this: the ancestor test produced 3 false
-        // reports in src/routes/(proprietary)/j/Shows/[seriesId]/Episodes,
+        // reports in src/routes/(modules)/j/Shows/[seriesId]/Episodes,
         // whose gate calls are real but sit inside `as [{ count: string }]`.
         {
             name: 'gate call inside an `as` cast still counts',

@@ -73,7 +73,7 @@ const STEPS: Step[] = [
             const [{ registerAiAssistantProvider }, { runAssistant, resolveUser }] =
                 await Promise.all([
                     import('$lib/server/ai/assistant-provider.js'),
-                    import('$lib/server/proprietary/assistant-service.js'),
+                    import('$lib/server/assistant/assistant-service.js'),
                 ]);
             registerAiAssistantProvider({
                 runAssistant: (input, deps) =>
@@ -95,7 +95,7 @@ const STEPS: Step[] = [
             const [{ registerJellyfinCompatRevocationProvider }, { revokeSessionsForUser }] =
                 await Promise.all([
                     import('$lib/server/auth/jellyfin-compat-revocation.js'),
-                    import('$lib/server/proprietary/jellyfin-compat/auth.js'),
+                    import('$lib/server/jellyfin-compat/auth.js'),
                 ]);
             registerJellyfinCompatRevocationProvider({ revokeSessionsForUser });
         },
@@ -109,7 +109,7 @@ const STEPS: Step[] = [
             const [{ registerJellyfinResponseObserver }, { observeJellyfinResponse }] =
                 await Promise.all([
                     import('$lib/server/compat/jellyfin-response-observer.js'),
-                    import('$lib/server/proprietary/jellyfin-compat/contract/runtime-hook.js'),
+                    import('$lib/server/jellyfin-compat/contract/runtime-hook.js'),
                 ]);
             registerJellyfinResponseObserver(observeJellyfinResponse);
         },
@@ -122,7 +122,7 @@ const STEPS: Step[] = [
         run: async () => {
             const [{ registerJellyfinReportBuilder }, { buildGithubReport }] = await Promise.all([
                 import('$lib/server/compat/jellyfin-report-provider.js'),
-                import('$lib/server/proprietary/jellyfin-compat/github-report.js'),
+                import('$lib/server/jellyfin-compat/github-report.js'),
             ]);
             registerJellyfinReportBuilder(buildGithubReport);
         },
@@ -135,7 +135,7 @@ const STEPS: Step[] = [
         background: true,
         run: async () => {
             const [{ startSilentStartSweeper }, { getDb }] = await Promise.all([
-                import('$lib/server/proprietary/jellyfin-compat/silent-start.js'),
+                import('$lib/server/jellyfin-compat/silent-start.js'),
                 import('$lib/server/database/connection.js'),
             ]);
             startSilentStartSweeper(async () => getDb());
@@ -149,7 +149,7 @@ const STEPS: Step[] = [
         background: true,
         run: async () => {
             const { registerJellyfinRemoteControl } =
-                await import('$lib/server/proprietary/jellyfin-compat/remote-control/register.js');
+                await import('$lib/server/jellyfin-compat/remote-control/register.js');
             registerJellyfinRemoteControl();
         },
     },

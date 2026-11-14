@@ -21,8 +21,8 @@ export const SCRIPTABLE_RESPONSE_CSP = "sandbox; default-src 'none'; style-src '
  * markup from constants and URL-validated ids, never from file or provider bytes.
  */
 export const FIRST_PARTY_HTML_ENDPOINT_ROUTES: ReadonlySet<string> = new Set([
-    '/(proprietary)/j/web', // bare /j/web: re-exports the catch-all handler below
-    '/(proprietary)/j/web/[...path]', // Jellyfin web deep-link shim (redirect script)
+    '/(modules)/j/web', // bare /j/web: re-exports the catch-all handler below
+    '/(modules)/j/web/[...path]', // Jellyfin web deep-link shim (redirect script)
     '/api-docs', // API reference UI; sets its own route CSP
 ]);
 

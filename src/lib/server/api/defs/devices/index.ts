@@ -144,7 +144,7 @@ export const def = defineEndpoint({
 
             // Remote targets that are not Lumastra device sessions (Jellyfin
             // clients, id `jf:…`) list next to the real devices. Empty without
-            // the proprietary provider.
+            // the module provider.
             const external = await listExternalRemoteDevices({
                 userId: String(userId),
                 username: locals.user!.username,

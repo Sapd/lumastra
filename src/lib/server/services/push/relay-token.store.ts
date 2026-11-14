@@ -216,7 +216,7 @@ export function invalidateRelayToken(sentToken: string): void {
 
 /**
  * Register a callback for "the minted token was rejected". Used by the
- * proprietary licence refresh loop (proprietary → core, the permitted
+ * licence refresh loop (removed in 0.2.0; module → core, the permitted
  * direction) to schedule an early refresh. Returns an unsubscribe function.
  */
 export function onRelayTokenInvalidated(

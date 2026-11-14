@@ -18,7 +18,7 @@ import { ApiProblem } from '$lib/server/api/problem.js';
 import { Database } from '$lib/server/database/connection.js';
 import { getUserByUsername } from '$lib/server/database/queries/users.queries.js';
 import { Logger } from '$lib/server/utils/logger.js';
-import { authorizeQuickConnectCode } from '$lib/server/proprietary/jellyfin-compat/quick-connect-authorize.js';
+import { authorizeQuickConnectCode } from '$lib/server/jellyfin-compat/quick-connect-authorize.js';
 
 const logger = Logger.for('JellyfinCompat:QuickConnect');
 

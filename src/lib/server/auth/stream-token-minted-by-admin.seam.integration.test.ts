@@ -33,11 +33,11 @@ import {
     issuePlayToken,
     issueFileToken,
     validatePlayToken,
-} from '$lib/server/proprietary/jellyfin-compat/play-token.js';
+} from '$lib/server/jellyfin-compat/play-token.js';
 import {
     buildPlayTokenUserContext,
     playTokenMintedByAdmin,
-} from '$lib/server/proprietary/jellyfin-compat/play-token-user.js';
+} from '$lib/server/jellyfin-compat/play-token-user.js';
 
 vi.mock('$app/environment', () => ({
     dev: false,

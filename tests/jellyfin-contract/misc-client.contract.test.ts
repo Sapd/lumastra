@@ -13,22 +13,22 @@ import { truncateTables, TEST_TABLES } from '../integration/helpers/cleanup.js';
 import { ensureTestUser } from '../integration/fixtures/user.fixtures.js';
 import { callAndCheck, jfEvent, mintJfSession } from './harness';
 import { seedMovieEmbeddedSubs } from './seed';
-import { GET as utcTimeGet } from '../../src/routes/(proprietary)/j/GetUtcTime/+server';
-import { GET as culturesGet } from '../../src/routes/(proprietary)/j/Localization/Cultures/+server';
-import { GET as countriesGet } from '../../src/routes/(proprietary)/j/Localization/Countries/+server';
-import { GET as ratingsGet } from '../../src/routes/(proprietary)/j/Localization/ParentalRatings/+server';
-import { GET as optionsGet } from '../../src/routes/(proprietary)/j/Localization/Options/+server';
-import { GET as brandingGet } from '../../src/routes/(proprietary)/j/Branding/Configuration/+server';
-import { GET as itemImagesGet } from '../../src/routes/(proprietary)/j/Items/[itemId]/Images/+server';
-import { GET as yearsGet } from '../../src/routes/(proprietary)/j/Years/+server';
-import { GET as yearGet } from '../../src/routes/(proprietary)/j/Years/[year]/+server';
+import { GET as utcTimeGet } from '../../src/routes/(modules)/j/GetUtcTime/+server';
+import { GET as culturesGet } from '../../src/routes/(modules)/j/Localization/Cultures/+server';
+import { GET as countriesGet } from '../../src/routes/(modules)/j/Localization/Countries/+server';
+import { GET as ratingsGet } from '../../src/routes/(modules)/j/Localization/ParentalRatings/+server';
+import { GET as optionsGet } from '../../src/routes/(modules)/j/Localization/Options/+server';
+import { GET as brandingGet } from '../../src/routes/(modules)/j/Branding/Configuration/+server';
+import { GET as itemImagesGet } from '../../src/routes/(modules)/j/Items/[itemId]/Images/+server';
+import { GET as yearsGet } from '../../src/routes/(modules)/j/Years/+server';
+import { GET as yearGet } from '../../src/routes/(modules)/j/Years/[year]/+server';
 import {
     POST as ratingPost,
     DELETE as ratingDelete,
-} from '../../src/routes/(proprietary)/j/UserItems/[itemId]/Rating/+server';
-import { GET as fontsGet } from '../../src/routes/(proprietary)/j/FallbackFont/Fonts/+server';
-import { GET as authProvidersGet } from '../../src/routes/(proprietary)/j/Auth/Providers/+server';
-import { GET as resetProvidersGet } from '../../src/routes/(proprietary)/j/Auth/PasswordResetProviders/+server';
+} from '../../src/routes/(modules)/j/UserItems/[itemId]/Rating/+server';
+import { GET as fontsGet } from '../../src/routes/(modules)/j/FallbackFont/Fonts/+server';
+import { GET as authProvidersGet } from '../../src/routes/(modules)/j/Auth/Providers/+server';
+import { GET as resetProvidersGet } from '../../src/routes/(modules)/j/Auth/PasswordResetProviders/+server';
 
 const USER_ID = '00000000-0000-4000-8000-00000000c0d6';
 let sql: postgres.Sql;

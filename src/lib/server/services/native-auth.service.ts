@@ -5,7 +5,7 @@
  * Native (built-in) login orchestration: verifying credentials, provisioning the
  * first admin, changing passwords — coordinating the password store
  * (users.password_hash), the session store, and the AUTH_NATIVE_LOGIN_ENABLED
- * config flag. AGPL-core; never touches the proprietary `/j` password store.
+ * config flag. AGPL-core; never touches the `/j` password store.
  *
  * HTTP concerns (rate limiting, cookies, status codes) live in the route
  * handlers; this layer is pure logic so it can be unit/integration tested.

@@ -453,7 +453,7 @@
  *   user_sessions store SHA-256-hashed opaque tokens, replica-shared (no sticky
  *   sessions); oidc_iss/sub/sid are NULL for native sessions (partial indexes
  *   WHERE NOT NULL back Back-Channel Logout lookup). Native login is AGPL-core
- *   and never cross-reads the proprietary /j password store.
+ *   and never cross-reads the /j password store.
  * - service_tokens.act_as_user FK is ON DELETE CASCADE (not SET NULL): NULL
  *   act_as_user means full-admin, so orphaning on user delete = silent privesc.
  *   force_non_admin pins isAdmin=false even if the impersonated user is later
@@ -468,7 +468,7 @@
  *   the old 'music:*' sentinel.
  * - license_install is a singleton (BOOLEAN PK + CHECK) per-DEPLOYMENT install
  *   UUID shared across replicas (not per-INSTANCE_ID) — one install per deploy
- *   to the license server. Identity only; enforcement is in proprietary modules.
+ *   to the license server. Identity only; enforcement is in optional modules.
  * - setup_lock is a single-row table (id = 1 CHECK) recording that first-run
  *   setup completed, so adminExists() keeps answering "done" even when no admin
  *   can be found (an IdP-side demotion or group rename must not reopen the

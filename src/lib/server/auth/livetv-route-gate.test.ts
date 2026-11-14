@@ -35,7 +35,7 @@ describe('Live TV route policy coverage', () => {
     it('installs the per-user policy before resolving pages, API defs and compat handlers', () => {
         for (const file of [
             'src/lib/server/middleware/forward-auth.ts',
-            'src/lib/server/proprietary/jellyfin-compat/middleware.ts',
+            'src/lib/server/jellyfin-compat/middleware.ts',
         ]) {
             expect(readFileSync(file, 'utf8').includes('applyLiveTvUserPolicy'), file).toBe(true);
         }
@@ -84,8 +84,8 @@ describe('Live TV secondary entry points', () => {
     it('keeps fresh checks on grant delivery, renewal and Jellyfin play tokens', () => {
         for (const file of [
             'src/lib/server/services/playback-grant.ts',
-            'src/lib/server/proprietary/jellyfin-compat/play-token-user.ts',
-            'src/lib/server/proprietary/jellyfin-compat/livetv-token-access.ts',
+            'src/lib/server/jellyfin-compat/play-token-user.ts',
+            'src/lib/server/jellyfin-compat/livetv-token-access.ts',
         ]) {
             expect(readFileSync(file, 'utf8').includes('userAllowsLiveTv'), file).toBe(true);
         }

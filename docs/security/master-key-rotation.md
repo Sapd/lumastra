@@ -28,7 +28,7 @@ Rotate Master Key**) does that and covers every store rather than just the plugi
 | `subsonic_client_passwords.token_sealed` **+ `token_lookup`** | `subsonic-compat/auth.ts`                    | `rotateSubsonicTokens`          |
 | `task_webhook_hooks.secret_encrypted`                         | `api/defs/webhooks/*`                        | `rotateWebhookSecrets`          |
 | `user_notification_webhooks.secret_encrypted`                 | `api/defs/user/notification-webhook.ts`      | `rotateWebhookSecrets`          |
-| `jellyfin_client_passwords.password_sealed`                   | `proprietary/jellyfin-compat/auth.ts`        | `rotateJellyfinClientPasswords` |
+| `jellyfin_client_passwords.password_sealed`                   | `jellyfin-compat/auth.ts`        | `rotateJellyfinClientPasswords` |
 | `livetv_sources.xtream_username` / `.xtream_password`         | `database/queries/livetv-sources.queries.ts` | `rotateLiveTvCredentials`       |
 
 The Subsonic row is the one with a second moving part: `token_lookup` is an

@@ -175,7 +175,7 @@ export const ROUTE_POLICY_RULES: readonly RouteRule[] = [
     },
     ...USER_PAGE_SEGMENTS.map((s): RouteRule => ({ pattern: `/${s}/**`, policy: 'user' })),
 
-    // ---- Jellyfin compatibility (/j, proprietary) ----
+    // ---- Jellyfin compatibility (/j) ----
     {
         pattern: '/j/**',
         policy: 'token-surface:j',

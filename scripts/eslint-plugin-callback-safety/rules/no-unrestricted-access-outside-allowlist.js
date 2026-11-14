@@ -59,10 +59,10 @@ const ALLOWLIST_PATH_FRAGMENTS = [
     '/src/lib/server/api/defs/admin/',
     // Compat surfaces (bypass the central gate by design).
     '/src/lib/server/subsonic-compat/',
-    '/src/lib/server/proprietary/jellyfin-compat/',
-    '/src/routes/(proprietary)/j/',
+    '/src/lib/server/jellyfin-compat/',
+    '/src/routes/(modules)/j/',
     // Assistant tools run inside the caller's own gated context.
-    '/src/lib/server/proprietary/assistant-tools/',
+    '/src/lib/server/assistant/assistant-tools/',
     // Cache warming + background candidate engines read the full catalog.
     '/src/lib/server/cache/warming.ts',
     '/src/lib/server/services/suggestion-engine.service.ts',

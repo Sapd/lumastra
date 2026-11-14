@@ -21,7 +21,7 @@ import {
     lockSimpleModeRow,
     upsertSimpleModeRow,
 } from '$lib/server/database/queries/livetv-simple-mode.queries.js';
-import { setJellyfinFavorite } from '$lib/server/proprietary/jellyfin-compat/favorites.js';
+import { setJellyfinFavorite } from '$lib/server/jellyfin-compat/favorites.js';
 
 vi.mock('$lib/server/database/connection.js', async (importOriginal) => {
     const mod = await importOriginal<typeof import('$lib/server/database/connection.js')>();

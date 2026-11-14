@@ -9,10 +9,11 @@
   keeping the name stable for shells that import it.
 
   Shells (WatchShell, EducationalShell, PersonalShell on the AGPL side;
-  LessonShell, ShowcaseShell on the proprietary side) import PlayerSurface
+  LessonShell, ShowcaseShell on the private side) import PlayerSurface
   rather than VideoPlayer so the injection-point API is clearly named.
 
-  AGPL invariant: this file must never import from **/proprietary/**.
+  AGPL invariant: this file must never import from the module trees
+  (**/server/jellyfin-compat/**, **/server/assistant/**, **/components/ai-assistant/**).
 -->
 
 <script lang="ts">

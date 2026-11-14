@@ -52,33 +52,33 @@ vi.mock('$lib/server/services/push/relay-token-enrol.js', () => ({
 vi.mock('$lib/server/ai/assistant-provider.js', () => ({
     registerAiAssistantProvider: h.registerAiAssistantProvider,
 }));
-vi.mock('$lib/server/proprietary/assistant-service.js', () => ({
+vi.mock('$lib/server/assistant/assistant-service.js', () => ({
     runAssistant: h.runAssistant,
     resolveUser: h.resolveUser,
 }));
 vi.mock('$lib/server/auth/jellyfin-compat-revocation.js', () => ({
     registerJellyfinCompatRevocationProvider: h.registerJellyfinCompatRevocationProvider,
 }));
-vi.mock('$lib/server/proprietary/jellyfin-compat/auth.js', () => ({
+vi.mock('$lib/server/jellyfin-compat/auth.js', () => ({
     revokeSessionsForUser: h.revokeSessionsForUser,
 }));
 vi.mock('$lib/server/compat/jellyfin-response-observer.js', () => ({
     registerJellyfinResponseObserver: h.registerJellyfinResponseObserver,
 }));
-vi.mock('$lib/server/proprietary/jellyfin-compat/contract/runtime-hook.js', () => ({
+vi.mock('$lib/server/jellyfin-compat/contract/runtime-hook.js', () => ({
     observeJellyfinResponse: h.observeJellyfinResponse,
 }));
 vi.mock('$lib/server/compat/jellyfin-report-provider.js', () => ({
     registerJellyfinReportBuilder: h.registerJellyfinReportBuilder,
 }));
-vi.mock('$lib/server/proprietary/jellyfin-compat/github-report.js', () => ({
+vi.mock('$lib/server/jellyfin-compat/github-report.js', () => ({
     buildGithubReport: h.buildGithubReport,
 }));
-vi.mock('$lib/server/proprietary/jellyfin-compat/silent-start.js', () => ({
+vi.mock('$lib/server/jellyfin-compat/silent-start.js', () => ({
     startSilentStartSweeper: h.startSilentStartSweeper,
 }));
 vi.mock('$lib/server/database/connection.js', () => ({ getDb: () => null }));
-vi.mock('$lib/server/proprietary/jellyfin-compat/remote-control/register.js', () => ({
+vi.mock('$lib/server/jellyfin-compat/remote-control/register.js', () => ({
     registerJellyfinRemoteControl: h.registerJellyfinRemoteControl,
 }));
 

@@ -5,7 +5,7 @@ import { AiUnavailableError } from '@sapd/lumastra-plugin-sdk';
 import { buildAiSurface } from './plugin-ai-surface.js';
 
 describe('buildAiSurface', () => {
-    it('returns undefined when the proprietary loader yields nothing', async () => {
+    it('returns undefined when the assistant loader yields nothing', async () => {
         const ai = await buildAiSurface(
             {} as never,
             { userId: 'test-user-id-a', username: 'a', groups: [], isAdmin: false },

@@ -26,8 +26,8 @@ import {
     getOrCreatePassword,
     validatePassword,
     validateSession,
-} from '$lib/server/proprietary/jellyfin-compat/auth';
-import type { JellyfinSession } from '$lib/server/proprietary/jellyfin-compat/auth';
+} from '$lib/server/jellyfin-compat/auth';
+import type { JellyfinSession } from '$lib/server/jellyfin-compat/auth';
 import { getTestDatabaseUrl } from './setup/test-database.js';
 
 const run = promisify(execFile);

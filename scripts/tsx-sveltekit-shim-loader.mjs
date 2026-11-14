@@ -11,7 +11,7 @@
 //     install outside the server (base '', dev false)
 //   - `$env/dynamic/private|public`                                   -> process.env
 //   - `import.meta.glob(...)`    (licensing/entitlements.ts loads the optional
-//     proprietary init module)                                        -> a literal-path
+//     compat-init module)                                        -> a literal-path
 //     lookup under the app root
 //
 // A command that never answers an HTTP request does not need more than that. Register

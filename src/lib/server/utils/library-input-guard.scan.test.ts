@@ -69,7 +69,7 @@ function spawnCalls(src: string): string[] {
 
 /** Spawn sites with no library input, or one guarded by another mechanism. */
 const UNGUARDED_SPAWNS: Record<string, { count: number; reason: string }> = {
-    'src/lib/server/proprietary/jellyfin-compat/stream-limit-clip.ts': {
+    'src/lib/server/jellyfin-compat/stream-limit-clip.ts': {
         count: 2,
         reason: "inputs are the app's own generated PNG, a lavfi source and its own clip",
     },
@@ -114,7 +114,7 @@ const UNGUARDED_DIRECT: Record<string, string> = {
     'src/lib/server/api/defs/admin/ops/system-metrics.ts#readFFmpegVersion': '`-version` check',
     'src/lib/server/services/transcoding/process-runner.ts':
         'runs argv from FFmpegArgsBuilder, which emits -format_whitelist',
-    'src/lib/server/proprietary/jellyfin-compat/progressive-transcode-runner.ts#startFfmpeg':
+    'src/lib/server/jellyfin-compat/progressive-transcode-runner.ts#startFfmpeg':
         'spawns the argv guardedArgs() built (guardLibraryInput)',
     'src/lib/server/services/download-rendition/service.ts#spawnEncode':
         'spawns the argv runFfmpeg() guarded (guardLibraryInput)',
@@ -180,7 +180,7 @@ describe('every ffmpeg/ffprobe spawn on a library file is format-whitelisted', (
             'src/lib/server/services/topshelf/topshelf-render.service.ts',
             'src/lib/server/services/download-rendition/service.ts',
             'src/lib/server/services/music-transcode/service.ts',
-            'src/lib/server/proprietary/jellyfin-compat/progressive-transcode-runner.ts',
+            'src/lib/server/jellyfin-compat/progressive-transcode-runner.ts',
             'src/lib/server/utils/ffmpeg-analysis.ts',
             'src/lib/server/api/defs/admin/transcode-failures/probe.ts',
         ];

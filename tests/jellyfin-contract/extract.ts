@@ -11,7 +11,7 @@ import { writeFileSync } from 'node:fs';
 import {
     buildDigest,
     type OpenApiDoc,
-} from '../../src/lib/server/proprietary/jellyfin-compat/contract/build-digest';
+} from '../../src/lib/server/jellyfin-compat/contract/build-digest';
 
 export const SDK_VERSIONS = ['1.6.3', '1.7.1', '1.8.12', '1.9.2'];
 const OUT = new URL('./jellyfin-contract.json', import.meta.url);

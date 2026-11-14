@@ -138,7 +138,7 @@ export async function revokeAllCredentialsForUser(
     }
 
     // Jellyfin OAuth device tokens (native-app device flow — distinct from
-    // the proprietary /j compat session store below).
+    // the /j compat session store below).
     try {
         const { getJellyfinTokenService } =
             await import('$lib/server/oauth/jellyfin-token.service.js');

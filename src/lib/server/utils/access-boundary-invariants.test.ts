@@ -59,7 +59,7 @@ describe('isMediaAccessible is never used as a standalone gate', () => {
     const gatedRoutes = [
         'src/routes/watch/[itemId]/+page.server.ts',
         'src/lib/server/api/defs/playback/previews/index.ts',
-        'src/lib/server/proprietary/jellyfin-compat/item-image-handler.ts',
+        'src/lib/server/jellyfin-compat/item-image-handler.ts',
     ];
 
     for (const route of gatedRoutes) {

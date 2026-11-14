@@ -141,7 +141,7 @@ const rows = [
     ['static assets', ['static/favicon.png'], ['unit', 'other_suites', 'integration']],
 
     // --- jellyfin contract (positive list) ------------------------------------------------
-    ['jellyfin handler', ['src/routes/(proprietary)/j/Items/+server.ts'], CODE.concat('jellyfin')],
+    ['jellyfin handler', ['src/routes/(modules)/j/Items/+server.ts'], CODE.concat('jellyfin')],
     [
         'jellyfin contract tests',
         ['tests/jellyfin-contract/kotlin/build.gradle.kts'],
@@ -238,7 +238,7 @@ describe('globToRegExp', () => {
         ['tsconfig*.json', 'tsconfig.typecheck.src.json', true],
         ['**/*.test.{ts,js}', 'src/x.test.js', true],
         ['**/*.test.{ts,js}', 'src/x.test.mjs', false],
-        ['src/routes/(proprietary)/j/**', 'src/routes/(proprietary)/j/a/+server.ts', true],
+        ['src/routes/(modules)/j/**', 'src/routes/(modules)/j/a/+server.ts', true],
         ['{scripts,src}/**/README.md', 'src/a/README.md', true],
         ['{scripts,src}/**/README.md', 'docs/README.md', false],
     ])('%s vs %s', (glob, path, expected) => {

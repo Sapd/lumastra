@@ -3,7 +3,7 @@
 
 /**
  * AGPL-core registry for remote-control targets that are not Lumastra device
- * sessions: today the Jellyfin clients behind the proprietary `/j` layer.
+ * sessions: today the Jellyfin clients behind the `/j` layer.
  *
  * The device API (`GET /devices`, `POST /devices/{id}/commands`,
  * `GET /devices/{id}/state`) stays the single surface a Lumastra remote talks
@@ -13,7 +13,7 @@
  * provider instead of the Lumastra event stream.
  *
  * Same shape as `auth/jellyfin-compat-revocation.ts`: the core never imports
- * the proprietary tree (license boundary). The provider registers itself in
+ * the module tree (module boundary). The provider registers itself in
  * `jellyfin-compat/remote-control/register.ts`, which `boot/compat-init.ts`
  * imports lazily (not on stream-proxy-only nodes). Without it (an AGPL-only
  * build, or a stream-proxy node) the getters answer "nothing" and the device
@@ -70,7 +70,7 @@ export interface ExternalRemoteTargetProvider {
 
 let provider: ExternalRemoteTargetProvider | null = null;
 
-/** Called by the proprietary module (`register.ts`) to wire itself in. */
+/** Called by the module (`register.ts`) to wire itself in. */
 export function registerExternalRemoteTargetProvider(p: ExternalRemoteTargetProvider): void {
     provider = p;
 }

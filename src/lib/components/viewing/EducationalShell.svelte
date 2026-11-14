@@ -9,7 +9,7 @@
   per-lesson watch-state completion tracking, custom metadata (instructor,
   difficulty) shown belowFold.
 
-  No enrollment, no quiz, no certificate — those are the proprietary LessonShell.
+  No enrollment, no quiz, no certificate — those are the private LessonShell.
   This is the OSS path for educational library items.
 -->
 
@@ -59,7 +59,7 @@
     // Derive the lesson list from viewingContext.lessons (populated by the server),
     // falling back to any directly-passed lessons for back-compat.
     // viewingContext.lessons has no completion state — mark all as not completed
-    // (completion tracking is a proprietary LessonShell feature).
+    // (completion tracking is a LessonShell feature).
     let lessons = $derived(
         viewingContext.lessons && viewingContext.lessons.length > 0
             ? viewingContext.lessons.map((l) => ({

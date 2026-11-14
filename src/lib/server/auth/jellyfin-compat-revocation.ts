@@ -28,8 +28,8 @@ export interface JellyfinCompatRevocationProvider {
 let provider: JellyfinCompatRevocationProvider | null = null;
 
 /**
- * Called by the proprietary jellyfin-compat module (via `boot/compat-init.ts`)
- * on load to wire itself in. (proprietary → core direction, which the
+ * Called by the jellyfin-compat module (via `boot/compat-init.ts`)
+ * on load to wire itself in. (module → core direction, which the
  * boundary permits.)
  */
 export function registerJellyfinCompatRevocationProvider(
@@ -38,7 +38,7 @@ export function registerJellyfinCompatRevocationProvider(
     provider = p;
 }
 
-/** The registered proprietary provider, or `null` in AGPL-only builds. */
+/** The registered module provider, or `null` in AGPL-only builds. */
 export function getJellyfinCompatRevocationProvider(): JellyfinCompatRevocationProvider | null {
     return provider;
 }

@@ -27,36 +27,36 @@ import {
     seedMusicAlbum,
     seedSegments,
 } from './seed';
-import { GET as itemGet } from '../../src/routes/(proprietary)/j/Items/[itemId]/+server';
-import { GET as userItemGet } from '../../src/routes/(proprietary)/j/Users/[userId]/Items/[itemId]/+server';
-import { POST as playbackInfoPost } from '../../src/routes/(proprietary)/j/Items/[itemId]/PlaybackInfo/+server';
-import { GET as userItemsGet } from '../../src/routes/(proprietary)/j/Users/[userId]/Items/+server';
-import { GET as liveTvChannelsGet } from '../../src/routes/(proprietary)/j/LiveTv/Channels/+server';
+import { GET as itemGet } from '../../src/routes/(modules)/j/Items/[itemId]/+server';
+import { GET as userItemGet } from '../../src/routes/(modules)/j/Users/[userId]/Items/[itemId]/+server';
+import { POST as playbackInfoPost } from '../../src/routes/(modules)/j/Items/[itemId]/PlaybackInfo/+server';
+import { GET as userItemsGet } from '../../src/routes/(modules)/j/Users/[userId]/Items/+server';
+import { GET as liveTvChannelsGet } from '../../src/routes/(modules)/j/LiveTv/Channels/+server';
 import {
     GET as liveTvProgramsGet,
     POST as liveTvProgramsPost,
-} from '../../src/routes/(proprietary)/j/LiveTv/Programs/+server';
-import { GET as liveTvProgramGet } from '../../src/routes/(proprietary)/j/LiveTv/Programs/[programId]/+server';
-import { GET as liveTvRecommendedGet } from '../../src/routes/(proprietary)/j/LiveTv/Programs/Recommended/+server';
-import { GET as liveTvChannelGet } from '../../src/routes/(proprietary)/j/LiveTv/Channels/[channelId]/+server';
-import { GET as liveTvInfoGet } from '../../src/routes/(proprietary)/j/LiveTv/Info/+server';
-import { GET as liveTvGuideInfoGet } from '../../src/routes/(proprietary)/j/LiveTv/GuideInfo/+server';
-import { GET as liveTvRecordingsGet } from '../../src/routes/(proprietary)/j/LiveTv/Recordings/+server';
-import { GET as liveTvRecordingsSeriesGet } from '../../src/routes/(proprietary)/j/LiveTv/Recordings/Series/+server';
-import { GET as liveTvRecordingsGroupsGet } from '../../src/routes/(proprietary)/j/LiveTv/Recordings/Groups/+server';
-import { GET as liveTvRecordingsFoldersGet } from '../../src/routes/(proprietary)/j/LiveTv/Recordings/Folders/+server';
-import { GET as liveTvTimersGet } from '../../src/routes/(proprietary)/j/LiveTv/Timers/+server';
-import { GET as liveTvTimerDefaultsGet } from '../../src/routes/(proprietary)/j/LiveTv/Timers/Defaults/+server';
-import { GET as liveTvSeriesTimersGet } from '../../src/routes/(proprietary)/j/LiveTv/SeriesTimers/+server';
-import { POST as liveStreamsOpenPost } from '../../src/routes/(proprietary)/j/LiveStreams/Open/+server';
+} from '../../src/routes/(modules)/j/LiveTv/Programs/+server';
+import { GET as liveTvProgramGet } from '../../src/routes/(modules)/j/LiveTv/Programs/[programId]/+server';
+import { GET as liveTvRecommendedGet } from '../../src/routes/(modules)/j/LiveTv/Programs/Recommended/+server';
+import { GET as liveTvChannelGet } from '../../src/routes/(modules)/j/LiveTv/Channels/[channelId]/+server';
+import { GET as liveTvInfoGet } from '../../src/routes/(modules)/j/LiveTv/Info/+server';
+import { GET as liveTvGuideInfoGet } from '../../src/routes/(modules)/j/LiveTv/GuideInfo/+server';
+import { GET as liveTvRecordingsGet } from '../../src/routes/(modules)/j/LiveTv/Recordings/+server';
+import { GET as liveTvRecordingsSeriesGet } from '../../src/routes/(modules)/j/LiveTv/Recordings/Series/+server';
+import { GET as liveTvRecordingsGroupsGet } from '../../src/routes/(modules)/j/LiveTv/Recordings/Groups/+server';
+import { GET as liveTvRecordingsFoldersGet } from '../../src/routes/(modules)/j/LiveTv/Recordings/Folders/+server';
+import { GET as liveTvTimersGet } from '../../src/routes/(modules)/j/LiveTv/Timers/+server';
+import { GET as liveTvTimerDefaultsGet } from '../../src/routes/(modules)/j/LiveTv/Timers/Defaults/+server';
+import { GET as liveTvSeriesTimersGet } from '../../src/routes/(modules)/j/LiveTv/SeriesTimers/+server';
+import { POST as liveStreamsOpenPost } from '../../src/routes/(modules)/j/LiveStreams/Open/+server';
 import { StandaloneLiveTvProvider } from '$lib/server/services/livetv/standalone-livetv-provider';
-import { GET as searchHintsGet } from '../../src/routes/(proprietary)/j/Search/Hints/+server';
-import { GET as userSettingsGet } from '../../src/routes/(proprietary)/j/DisplayPreferences/usersettings/+server';
-import { GET as mediaSegmentsGet } from '../../src/routes/(proprietary)/j/MediaSegments/[itemId]/+server';
-import { GET as additionalPartsGet } from '../../src/routes/(proprietary)/j/Videos/[itemId]/AdditionalParts/+server';
-import { POST as playingPost } from '../../src/routes/(proprietary)/j/Sessions/Playing/+server';
-import { POST as progressPost } from '../../src/routes/(proprietary)/j/Sessions/Playing/Progress/+server';
-import { POST as stoppedPost } from '../../src/routes/(proprietary)/j/Sessions/Playing/Stopped/+server';
+import { GET as searchHintsGet } from '../../src/routes/(modules)/j/Search/Hints/+server';
+import { GET as userSettingsGet } from '../../src/routes/(modules)/j/DisplayPreferences/usersettings/+server';
+import { GET as mediaSegmentsGet } from '../../src/routes/(modules)/j/MediaSegments/[itemId]/+server';
+import { GET as additionalPartsGet } from '../../src/routes/(modules)/j/Videos/[itemId]/AdditionalParts/+server';
+import { POST as playingPost } from '../../src/routes/(modules)/j/Sessions/Playing/+server';
+import { POST as progressPost } from '../../src/routes/(modules)/j/Sessions/Playing/Progress/+server';
+import { POST as stoppedPost } from '../../src/routes/(modules)/j/Sessions/Playing/Stopped/+server';
 
 vi.mock('$lib/server/services/livetv/index', async (importOriginal) => {
     const actual = await importOriginal<typeof import('$lib/server/services/livetv/index')>();

@@ -58,8 +58,8 @@ const LINKED_SINKS = new Set([
     'src/lib/server/auth/admin-route-gate.ts:AdminGateEvent:user',
     'src/lib/server/auth/route-policy/shadow.ts:user:as',
     'src/lib/server/cache/library-group-permissions-cache.ts:toLibraryAccessUser:localsUser',
-    'src/lib/server/proprietary/jellyfin-compat/access-context.ts:JellyfinAccessUser:JellyfinAccessUser',
-    'src/lib/server/proprietary/jellyfin-compat/library-views-utils.ts:LibraryViewUser:LibraryViewUser',
+    'src/lib/server/jellyfin-compat/access-context.ts:JellyfinAccessUser:JellyfinAccessUser',
+    'src/lib/server/jellyfin-compat/library-views-utils.ts:LibraryViewUser:LibraryViewUser',
 ]);
 
 /** Reviewed H1 sinks that keep `isAdmin`: every caller passes an explicit value. */
@@ -275,8 +275,8 @@ function renamePickKeys() {
 const FIXTURE_FILES = [
     'src/lib/server/services/rating-manager.service.test.ts',
     'src/lib/server/services/jellyfin-watchlist-import.service.test.ts',
-    'src/lib/server/proprietary/jellyfin-compat/remote-control/sessions-list.test.ts',
-    'src/lib/server/proprietary/jellyfin-compat/library-views-utils.integration.test.ts',
+    'src/lib/server/jellyfin-compat/remote-control/sessions-list.test.ts',
+    'src/lib/server/jellyfin-compat/library-views-utils.integration.test.ts',
     'src/lib/server/api/defs/playlists/[id]/items/bulk.test.ts',
     'src/lib/server/api/defs/admin/devices/index.integration.test.ts',
     'src/lib/server/auth/admin-route-gate.test.ts',

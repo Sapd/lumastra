@@ -853,7 +853,7 @@ export interface StoreRotationResult {
  * `newMasterKey` (security review 2026-09-12, C9).
  *
  * WHY THIS LIVES IN THE AGPL TREE, not next to its sealing code in
- * `proprietary/jellyfin-compat/auth.ts`: the rotation handler is core and does
+ * `jellyfin-compat/auth.ts`: the rotation handler is core and does
  * not import the /j tree. The TABLE is core schema
  * (base-schema-sql.ts), only the /j auth logic on top of it lives there, so
  * the sweep belongs here. `rotateSealedClientPasswords()` in that module is a

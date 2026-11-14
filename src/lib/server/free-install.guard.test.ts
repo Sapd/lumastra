@@ -73,7 +73,7 @@ const dbSentinel = new Proxy(() => undefined, {
 
 describe('free install: runAssistant is not refused for licence reasons', () => {
     it('does not throw the supporter-tier / licence error', async () => {
-        const { runAssistant } = await import('$lib/server/proprietary/assistant-service.js');
+        const { runAssistant } = await import('$lib/server/assistant/assistant-service.js');
         let message = 'runAssistant returned without reaching the database';
         try {
             await runAssistant(

@@ -10,13 +10,13 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import type { RequestEvent } from '@sveltejs/kit';
 import type postgres from 'postgres';
 import { expect } from 'vitest';
-import { createSession } from '$lib/server/proprietary/jellyfin-compat/auth';
+import { createSession } from '$lib/server/jellyfin-compat/auth';
 import {
     validateAgainstSchema,
     validateJellyfinResponse,
     type Violation,
-} from '$lib/server/proprietary/jellyfin-compat/contract/validate';
-import { getContractDigest } from '$lib/server/proprietary/jellyfin-compat/contract/digest';
+} from '$lib/server/jellyfin-compat/contract/validate';
+import { getContractDigest } from '$lib/server/jellyfin-compat/contract/digest';
 
 const OUT = new URL('./out/', import.meta.url);
 export const DEFAULT_CLIENT = 'Jellyfin Android TV';

@@ -1174,7 +1174,7 @@ export class PatService {
      * Using `hasScope()` would let admin-scoped PATs authenticate at /j/* endpoints,
      * defeating the exclusive-scope security guarantee.
      *
-     * For /j/* PAT validation, use `src/lib/server/proprietary/jellyfin-compat/pat-auth.ts` which
+     * For /j/* PAT validation, use `src/lib/server/jellyfin-compat/pat-auth.ts` which
      * performs the exact-equality check.
      */
     hasScope(validated: ValidatedPat, requiredScope: string): boolean {

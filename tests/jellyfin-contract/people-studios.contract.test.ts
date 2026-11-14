@@ -13,12 +13,12 @@ import { truncateTables, TEST_TABLES } from '../integration/helpers/cleanup.js';
 import { ensureTestUser } from '../integration/fixtures/user.fixtures.js';
 import { callAndCheck, jfEvent, mintJfSession, type RouteHandler } from './harness';
 import { seedEpisodeExternalSrt, seedMovieEmbeddedSubs, seedProviderMetadata } from './seed';
-import { GET as itemGet } from '../../src/routes/(proprietary)/j/Items/[itemId]/+server';
-import { GET as itemsGet } from '../../src/routes/(proprietary)/j/Items/+server';
-import { GET as personsGet } from '../../src/routes/(proprietary)/j/Persons/+server';
-import { GET as personGet } from '../../src/routes/(proprietary)/j/Persons/[name]/+server';
-import { GET as studiosGet } from '../../src/routes/(proprietary)/j/Studios/+server';
-import { GET as studioGet } from '../../src/routes/(proprietary)/j/Studios/[name]/+server';
+import { GET as itemGet } from '../../src/routes/(modules)/j/Items/[itemId]/+server';
+import { GET as itemsGet } from '../../src/routes/(modules)/j/Items/+server';
+import { GET as personsGet } from '../../src/routes/(modules)/j/Persons/+server';
+import { GET as personGet } from '../../src/routes/(modules)/j/Persons/[name]/+server';
+import { GET as studiosGet } from '../../src/routes/(modules)/j/Studios/+server';
+import { GET as studioGet } from '../../src/routes/(modules)/j/Studios/[name]/+server';
 
 const USER_ID = '00000000-0000-4000-8000-00000000c0df';
 let sql: postgres.Sql;

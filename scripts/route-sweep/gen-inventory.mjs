@@ -82,7 +82,7 @@ function extractParams(routeId) {
 
 function classifyTree(routeId) {
     if (routeId.includes('(private)')) return 'private';
-    if (routeId.includes('(proprietary)')) return 'proprietary';
+    if (routeId.includes('(modules)')) return 'modules';
     return 'public';
 }
 
@@ -457,7 +457,7 @@ function renderMatrix() {
                   ? 'yes'
                   : '—';
             const build = p.inPublicBuild
-                ? p.tree === 'proprietary'
+                ? p.tree === 'modules'
                     ? 'public*'
                     : 'public'
                 : 'ent';
@@ -471,7 +471,7 @@ function renderMatrix() {
     out.push('---');
     out.push('');
     out.push(
-        '`public*` = `(proprietary)` tree (the `/j` and assistant routes). ' +
+        '`public*` = `(modules)` tree (the `/j` and assistant routes). ' +
             '`ent` = not in the public repo.',
     );
     out.push('');

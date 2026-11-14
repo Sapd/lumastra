@@ -12,7 +12,7 @@ const ID = 'd8900695-2ee1-4430-ac3b-b71dd9defce3';
 
 describe('jellyfin-route-patterns table', () => {
     it('lists exactly the /j route directories (run node scripts/gen-jellyfin-route-patterns.mjs)', () => {
-        const dir = join(process.cwd(), 'src/routes/(proprietary)/j');
+        const dir = join(process.cwd(), 'src/routes/(modules)/j');
         // An AGPL-only tree has no /j routes; the table is then irrelevant.
         if (!existsSync(dir)) return;
         const found: string[] = [];

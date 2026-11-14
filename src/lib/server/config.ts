@@ -5758,7 +5758,7 @@ export const features = {
      *
      * Deliberately does NOT require JELLYFINURL/JELLYFINAPIKEY: /j serves
      * Lumastra's OWN catalog and never calls out to a Jellyfin server, and
-     * `routes/(proprietary)/j/` gates reachability on the raw flag alone. The
+     * `routes/(modules)/j/` gates reachability on the raw flag alone. The
      * user-facing pieces that hang off this predicate — Settings → Connections,
      * the /j password issue/reveal/reset APIs, the per-user /j session list and
      * the compat Quick Connect authorise endpoint — are all Valkey/Postgres

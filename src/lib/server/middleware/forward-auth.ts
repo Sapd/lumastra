@@ -107,7 +107,7 @@ import { adminExists } from '$lib/server/database/queries/users.queries.js';
 // =============================================================================
 // /api/v1/* FAILED-AUTH RATE LIMIT
 // =============================================================================
-// Mirrors the /j/* protection in src/lib/server/proprietary/jellyfin-compat/middleware.ts.
+// Mirrors the /j/* protection in src/lib/server/jellyfin-compat/middleware.ts.
 // Same window (60 failures / 60 seconds per IP) so an attacker who walks the
 // Bearer space cannot scale up by switching between PAT- and service-token-
 // shaped tokens — a single counter covers both.

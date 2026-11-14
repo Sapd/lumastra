@@ -10,7 +10,7 @@
  * leak never yields a usable session. Sessions are stored in Postgres and thus
  * shared across replicas — no sticky sessions.
  *
- * AGPL-core. Independent of the proprietary `/j` jellyfin_client_passwords store.
+ * AGPL-core. Independent of the `/j` jellyfin_client_passwords store.
  */
 
 import { randomBytes, createHash } from 'node:crypto';

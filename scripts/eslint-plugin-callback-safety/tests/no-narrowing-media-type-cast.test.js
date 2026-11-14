@@ -31,7 +31,7 @@ const ROUTE = '/repo/src/routes/playlists/+page.svelte';
 const OUT_OF_SCOPE = '/repo/src/lib/schemas/ai.ts';
 // A nested component under a directory that is NOT in scope — proves the
 // top-level `*.svelte` pattern does not leak into arbitrary subtrees.
-const OUT_OF_SCOPE_NESTED = '/repo/src/lib/proprietary/components/Foo.svelte';
+const OUT_OF_SCOPE_NESTED = '/repo/src/lib/schemas/nested/Foo.svelte';
 
 ruleTester.run('no-narrowing-media-type-cast', rule, {
     valid: [

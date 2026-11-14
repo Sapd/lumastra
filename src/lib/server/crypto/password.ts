@@ -5,9 +5,9 @@
  * Native-login password hashing.
  *
  * Independent, AGPL-core store for browser/web-UI login ONLY. This is NOT the
- * proprietary `/j` Jellyfin-client password store (jellyfin_client_passwords,
+ * `/j` Jellyfin-client password store (jellyfin_client_passwords,
  * SHA-256 PINs) — the two are deliberately separate (different security model,
- * different purpose, and the open→proprietary boundary is one-directional). Do
+ * different purpose, and the core→module boundary is one-directional). Do
  * not share, migrate, or cross-read between them.
  *
  * Algorithm: scrypt (memory-hard, salted) — built into Node, no extra dependency

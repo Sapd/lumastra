@@ -13,8 +13,7 @@ have not been reviewed.
 - **All of Lumastra's own source code** in this repository is `AGPL-3.0-only`. That includes the
   Jellyfin-compatible `/j` API and the AI assistant. A few vendored third-party files keep their
   own license (for example the Jellyfin device profiles, GPL-3.0); they are listed in
-  [`THIRD-PARTY-NOTICES.md`](./THIRD-PARTY-NOTICES.md). The directories named `proprietary` are a
-  historical name; the files in them are `AGPL-3.0-only`, as their headers say.
+  [`THIRD-PARTY-NOTICES.md`](./THIRD-PARTY-NOTICES.md).
 - **Releases before 0.2.0.** In the 0.1.x releases the `/j` API and the AI assistant were
   source-available: their files carried a source-available license identifier in their headers and lived in
   `src/lib/server/proprietary/`, `src/lib/proprietary/`, `src/routes/(proprietary)/`,
@@ -102,6 +101,5 @@ A daily check for new releases reads the public GitHub releases list of `Sapd/lu
 Features you enable (metadata providers, AI, and so on) make their own calls; they are listed at
 <https://lumastra.org/reference/data-flows/>.
 
-Installs older than 0.2.0 call the old `/api/license/*` endpoints, which will be switched off
-after 0.2.0 [date]. Updating to 0.2.0 removes the key, the weekly check-in and every limit.
-<!-- DATE: set at release -->
+Installs older than 0.2.0 call the old `/api/license/*` endpoints, which are switched off with
+0.2.0. Updating to 0.2.0 removes the key, the weekly check-in and every limit.

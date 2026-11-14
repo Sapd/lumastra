@@ -30,8 +30,8 @@ const SONIC_TASK_PATH = '/repo/src/lib/server/tasks/builtin/native/sonic-cluster
 // Allowlisted / non-applicable paths — rule must stay SILENT.
 const ADMIN_PATH = '/repo/src/lib/server/api/defs/admin/thing.ts';
 const SUBSONIC_PATH = '/repo/src/lib/server/subsonic-compat/handlers/browse.ts';
-const J_COMPAT_PATH = '/repo/src/routes/(proprietary)/j/Items/+server.ts';
-const ASSISTANT_PATH = '/repo/src/lib/server/proprietary/assistant-tools/get-playlists.tool.ts';
+const J_COMPAT_PATH = '/repo/src/routes/(modules)/j/Items/+server.ts';
+const ASSISTANT_PATH = '/repo/src/lib/server/assistant/assistant-tools/get-playlists.tool.ts';
 const WARMING_PATH = '/repo/src/lib/server/cache/warming.ts';
 const BOUNDARY_PATH = '/repo/src/lib/server/database/queries/builders/media-access-boundary.ts';
 const CATALOGUED_PATH = '/repo/src/routes/music/+page.server.ts';

@@ -15,9 +15,9 @@ import {
     refreshPresence,
     remoteSessionId,
     upsertDevice,
-} from '$lib/server/proprietary/jellyfin-compat/remote-control/device-registry';
+} from '$lib/server/jellyfin-compat/remote-control/device-registry';
 import { callAndCheck, jfEvent, mintJfSession } from './harness';
-import { GET as sessionsGet } from '../../src/routes/(proprietary)/j/Sessions/+server';
+import { GET as sessionsGet } from '../../src/routes/(modules)/j/Sessions/+server';
 
 const USER_ID = '00000000-0000-4000-8000-00000000c0de';
 let sql: postgres.Sql;

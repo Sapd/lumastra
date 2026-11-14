@@ -327,9 +327,9 @@ export function buildPluginContext(
  * optional `ctx.ai` surface.
  *
  * `buildPluginContext` is synchronous, but the `ai` bridge requires an async
- * loader (it dynamic-imports the proprietary assistant service). Request-scoped
+ * loader (it dynamic-imports the assistant service). Request-scoped
  * callers — the feature-route dispatcher — use this so a feature plugin can call
- * `ctx.ai?.ask(...)`. In OSS builds (proprietary module absent) `ai` is
+ * `ctx.ai?.ask(...)`. In OSS builds (module absent) `ai` is
  * `undefined`, exactly as if it were never offered.
  */
 export async function buildRequestPluginContext(

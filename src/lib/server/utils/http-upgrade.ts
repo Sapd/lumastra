@@ -22,7 +22,7 @@
  * falling through to their ordinary route handler.
  *
  * Registration goes through this module so the AGPL core never imports a
- * handler's (possibly proprietary) implementation: the handler's owner calls
+ * handler's implementation: the handler's owner calls
  * `registerUpgradeHandler()` from its own init.
  */
 

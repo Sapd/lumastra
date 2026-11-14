@@ -9,7 +9,7 @@
  *
  *   1. src/lib/server/api/defs/libraries/[id]/images/[role].ts
  *   2. src/routes/api/image/library/[id]/[type]/+server.ts
- *   3. src/routes/(proprietary)/j/Items/[itemId]/Images/[imageType]/+server.ts
+ *   3. src/routes/(modules)/j/Items/[itemId]/Images/[imageType]/+server.ts
  *
  * (plus a fourth, non-image-bytes sibling: defs/libraries/[id]/images/index.ts,
  * the roles listing, which shares the same gap and the same fix.)
@@ -276,7 +276,7 @@ describe.runIf(RUN)('Library mosaic/backdrop image access gate (C10)', () => {
         await seed();
         try {
             const { GET } =
-                await import('../../../routes/(proprietary)/j/Items/[itemId]/Images/[imageType]/+server.js');
+                await import('../../../routes/(modules)/j/Items/[itemId]/Images/[imageType]/+server.js');
 
             // No `locals.user` at all — this is the real shape of every request
             // this route ever receives in production (see the module doc
@@ -324,7 +324,7 @@ describe.runIf(RUN)('Library mosaic/backdrop image access gate (C10)', () => {
     // (library-image-tag.ts). Still no locals.user — the tag is the capability.
     async function getRoute3(groupId: string, query: string): Promise<Response> {
         const { GET } =
-            await import('../../../routes/(proprietary)/j/Items/[itemId]/Images/[imageType]/+server.js');
+            await import('../../../routes/(modules)/j/Items/[itemId]/Images/[imageType]/+server.js');
         const url = `http://localhost/j/Items/${groupId}/Images/Primary${query}`;
         return GET({
             params: { itemId: groupId, imageType: 'Primary' },
@@ -339,7 +339,7 @@ describe.runIf(RUN)('Library mosaic/backdrop image access gate (C10)', () => {
         await seed();
         try {
             const { libraryImageTag } =
-                await import('$lib/server/proprietary/jellyfin-compat/library-image-tag.js');
+                await import('$lib/server/jellyfin-compat/library-image-tag.js');
             const tag = libraryImageTag(deniedGroupId);
             expect(tag, 'JWT_SECRET (or the master key it derives from) must be set').toBeTruthy();
 
@@ -361,7 +361,7 @@ describe.runIf(RUN)('Library mosaic/backdrop image access gate (C10)', () => {
         await seed();
         try {
             const { libraryImageTag } =
-                await import('$lib/server/proprietary/jellyfin-compat/library-image-tag.js');
+                await import('$lib/server/jellyfin-compat/library-image-tag.js');
             const otherTag = libraryImageTag(randomUUID())!;
             const unknown = await getRoute3(randomUUID(), '');
             const unknownBytes = Buffer.from(await unknown.arrayBuffer());

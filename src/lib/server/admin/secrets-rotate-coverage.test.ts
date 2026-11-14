@@ -67,7 +67,7 @@ const SEALING_SITES: Record<string, string> = {
     // jellyfin_client_passwords.password_sealed. The sweep itself lives in the
     // AGPL tree (the handler does not import this tree); this module
     // delegates to it.
-    'src/lib/server/proprietary/jellyfin-compat/auth.ts': 'rotateJellyfinClientPasswords',
+    'src/lib/server/jellyfin-compat/auth.ts': 'rotateJellyfinClientPasswords',
 
     // livetv_sources.xtream_username / .xtream_password (security review C8).
     'src/lib/server/database/queries/livetv-sources.queries.ts': 'rotateLiveTvCredentials',
@@ -91,7 +91,7 @@ const DERIVED_NOT_STORED: Record<string, string> = {
     // The Jellyfin server id: sha256('jellyfin-server-id:' + masterKey). Not a
     // secret and not stored; rotating the key changes the id, so already-paired
     // /j clients re-pair once.
-    'src/lib/server/proprietary/jellyfin-compat/constants.ts': 'JELLYFIN_SERVER_ID seed',
+    'src/lib/server/jellyfin-compat/constants.ts': 'JELLYFIN_SERVER_ID seed',
     // The HMAC key for the short tags that replace ids in a GitHub report draft. Not
     // stored; after rotation the same id gets a different tag, so tags in reports
     // drafted before and after the rotation no longer match.

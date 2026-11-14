@@ -252,7 +252,7 @@ describe('route id normalisation', () => {
     it.each([
         ['/admin/(private)/courses/[id]', '/admin/courses/[]'],
         ['/api/v1/media/[id=uuid]/images/[role]', '/api/v1/media/[]/images/[]'],
-        ['/(proprietary)/j/[...path]', '/j/[...]'],
+        ['/(modules)/j/[...path]', '/j/[...]'],
         ['/p/[featureId]/[[page]]', '/p/[]/[[]]'],
         ['/', '/'],
     ])('%s -> %s', (id, expected) => {

@@ -482,10 +482,10 @@ export async function validateBearerCredential(
  * identical reason, for `resolveTokenUserAccess()`'s eleven token-derived-
  * UserContext callers (recounted security review 2026-09-23 final fix wave,
  * fix round 2 — the round-1 recount incorrectly lumped `user-notifier.
- * service.ts` in with the proprietary tree): forward-auth.ts x2,
- * subsonic-compat/auth.ts x2, this module x1, the five proprietary
+ * service.ts` in with the module tree): forward-auth.ts x2,
+ * subsonic-compat/auth.ts x2, this module x1, the five /j
  * jellyfin-compat/assistant-service call sites, and `services/
- * user-notifier.service.ts` x1 — AGPL core, NOT proprietary — instead of
+ * user-notifier.service.ts` x1 — AGPL core, not a module — instead of
  * omitting the field — the same "unknown
  * means deny" posture that resolver already applies to a token request with
  * a cold cache.

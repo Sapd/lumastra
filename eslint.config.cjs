@@ -20,7 +20,7 @@ const sharedGlobals = {
 // import (security review 5, C4 + Shape C, 2026-09-23 — see the block below
 // that applies it broadly for the full rationale). Factored out so the
 // viewing-boundary block (player/viewing/routes/watch) can layer this SAME
-// ban on top of its own proprietary-import ban in one `no-restricted-imports`
+// ban on top of its own module-import ban in one `no-restricted-imports`
 // config, rather than being exempted from this ban entirely — flat config
 // REPLACES, not merges, a repeated rule key for the same matched file, so a
 // file cannot be covered by two separate blocks that both set
@@ -616,11 +616,11 @@ module.exports = [
     // =========================================================================
     // Viewing-boundary rule (§2.4 of the adaptive-viewing-page spec).
     //
-    // Player primitives and viewing shells must NOT import the `proprietary/`
-    // trees (the /j API and the AI assistant; the folders are renamed later).
+    // Player primitives and viewing shells must NOT import the module trees
+    // (the /j API in server/jellyfin-compat, server/assistant, components/ai-assistant).
     // Keeping that edge one-way keeps the player independent of both.
     //
-    // Direction that IS permitted: proprietary → player (e.g. LessonShell imports
+    // Direction that IS permitted: module → player (e.g. LessonShell imports
     // PlayerSurface, LessonRail — those files are excluded from this rule).
     // =========================================================================
     {
@@ -635,9 +635,14 @@ module.exports = [
                 {
                     patterns: [
                         {
-                            group: ['**/proprietary/**'],
+                            group: [
+                                '**/server/jellyfin-compat/**',
+                                '**/server/assistant/**',
+                                '**/components/ai-assistant/**',
+                            ],
                             message:
-                                'AGPL player/viewing code must not import the proprietary tree. ' +
+                                'AGPL player/viewing code must not import the module trees ' +
+                                '(jellyfin-compat, assistant, ai-assistant). ' +
                                 'Use snippet props (rail/belowFold) or route-level injection instead.',
                         },
                         // Security review 5, C4 + Shape C: this file matches BOTH this
@@ -646,7 +651,7 @@ module.exports = [
                         // file matched by two blocks — so the upsertUserGroups ban is
                         // layered in HERE rather than relying on the other block, which
                         // deliberately `ignores` this path to avoid clobbering the
-                        // proprietary-import ban above.
+                        // module-import ban above.
                         upsertUserGroupsRestrictedPattern,
                     ],
                 },

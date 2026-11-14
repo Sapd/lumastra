@@ -4452,7 +4452,7 @@ class FFmpegTranscodeService {
      * The callback replaces any previously registered callback for that session.
      * It is fired at most once and removed immediately after invocation.
      *
-     * Intended use: proprietary modules (e.g. showcase transcode cap) that need
+     * Intended use: optional modules (e.g. showcase transcode cap) that need
      * to release a resource when the transcode session ends.  The callback is
      * intentionally typeless here — no showcase knowledge leaks into this module.
      */

@@ -25,7 +25,7 @@ vi.mock('$lib/server/cache/valkey.js', () => ({
     cacheGet: (...a: unknown[]) => mockCacheGet(...a),
     cacheSet: (...a: unknown[]) => mockCacheSet(...a),
 }));
-vi.mock('$lib/server/proprietary/jellyfin-compat/quick-connect-store', () => ({
+vi.mock('$lib/server/jellyfin-compat/quick-connect-store', () => ({
     updateQuickConnectRequest: async (
         _code: string,
         secret: string,

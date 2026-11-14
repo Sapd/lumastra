@@ -293,4 +293,4 @@ Generated from the source tree. 122 page routes, 122 of them present in the stri
 
 ---
 
-`public*` = `(proprietary)` tree (the `/j` and assistant routes). `ent` = not in the public repo.
+`public*` = `(modules)` tree (the `/j` and assistant routes). `ent` = not in the public repo.

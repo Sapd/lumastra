@@ -2951,7 +2951,7 @@ export class ImageProxyService {
                         // Routed through the same-origin-only redirect guard
                         // (C22 fix-plan finding) — this call carries the
                         // Jellyfin admin token and is reachable anonymously
-                        // via /j/UserImage (src/routes/(proprietary)/j/UserImage).
+                        // via /j/UserImage (src/routes/(modules)/j/UserImage).
                         const avatarUrl = joinUpstreamUrl(
                             config.JELLYFINURL,
                             `/Users/${encodePathSegment(userId)}/Images/Primary?quality=${quality}`,

@@ -63,8 +63,8 @@ Paths below are relative to `src/lib/server/` unless specified otherwise.
 | `mappers/user.mapper.ts`, `src/lib/schemas/user.ts` | Maps master flag into user responses |
 | `src/routes/api/ai/users/+server.ts` | Admin user data |
 | `src/routes/api/v1/stats/users/[id]/+server.ts` | Re-exported stats handler |
-| `src/routes/(proprietary)/j/Users/[userId]/+server.ts` | Compatibility user data |
-| `proprietary/assistant-service.ts`, `proprietary/assistant-tools/get-active-streams.tool.ts` | Assistant activity and visible-session consumers |
+| `src/routes/(modules)/j/Users/[userId]/+server.ts` | Compatibility user data |
+| `assistant/assistant-service.ts`, `assistant/assistant-tools/get-active-streams.tool.ts` | Assistant activity and visible-session consumers |
 
 Client readers: `PrivacySection.svelte`, the two admin user components above,
 `src/lib/api/{user,admin}.ts`, config settings sections/search index, and the

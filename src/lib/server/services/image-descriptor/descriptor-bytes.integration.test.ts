@@ -29,7 +29,7 @@ import {
 } from '../../tasks/builtin/native/media-sources/_helpers/file-scanner/ancillary-processors.js';
 import type { FileScannerContext } from '../../tasks/builtin/native/media-sources/_helpers/file-scanner/shared.js';
 import { writableAlbumArtwork } from '$lib/server/database/queries/music-enrichment-provenance.queries.js';
-import { currentImageTag } from '../../proprietary/jellyfin-compat/image-enrichment.js';
+import { currentImageTag } from '../../jellyfin-compat/image-enrichment.js';
 import { ImageCache } from '../image-proxy/cache.js';
 import { ImageProxyService } from '../image-proxy/service.js';
 import { getImageProxyService } from '../image-proxy/index.js';

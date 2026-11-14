@@ -1,0 +1,13 @@
+// SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+// SPDX-License-Identifier: AGPL-3.0-only
+
+// GET /Audio/{itemId}/master.m3u8 — audio HLS master playlist (one AAC variant
+// pointing at main.m3u8). See jellyfin-compat/audio-hls.ts.
+
+import type { RequestHandler } from './$types';
+import { withJellyfinAuth } from '$lib/server/jellyfin-compat/middleware';
+import { handleAudioMasterPlaylist } from '$lib/server/jellyfin-compat/audio-hls';
+
+export const GET: RequestHandler = withJellyfinAuth((event) => handleAudioMasterPlaylist(event), {
+    pat: 'deny',
+});

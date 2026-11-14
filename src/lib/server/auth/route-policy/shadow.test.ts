@@ -145,7 +145,7 @@ describe('route policy shadow mode', () => {
     });
 
     it('ignores resolveAuth kill switches (feature off)', async () => {
-        await run({ routeId: '/(proprietary)/j/Items' }, (e) => {
+        await run({ routeId: '/(modules)/j/Items' }, (e) => {
             markOldGate(e, 'resolveAuth');
             return new Response('Not Found', { status: 404 });
         });
@@ -159,7 +159,7 @@ describe('route policy shadow mode', () => {
 
     it('a public or token-surface route refusing a caller is its own auth, not a mismatch', async () => {
         await run({ routeId: '/login' }, () => new Response(null, { status: 401 }));
-        await run({ routeId: '/(proprietary)/j/Items' }, () => new Response(null, { status: 401 }));
+        await run({ routeId: '/(modules)/j/Items' }, () => new Response(null, { status: 401 }));
         await run(
             { routeId: '/subsonic/rest/[...path]' },
             () => new Response(null, { status: 403 }),

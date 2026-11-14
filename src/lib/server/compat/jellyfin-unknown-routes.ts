@@ -3,8 +3,7 @@
 
 /**
  * Shared key layout + reader for the daily counters of unknown /j
- * (Jellyfin-compat) requests. The writer lives in the proprietary
- * jellyfin-compat tree (it needs the contract digest); this AGPL module only
+ * (Jellyfin-compat) requests. The writer lives in the assistant module * jellyfin-compat tree (it needs the contract digest); this AGPL module only
  * knows the Valkey layout and reads it, so the admin API can use it without
  * crossing the license boundary.
  *

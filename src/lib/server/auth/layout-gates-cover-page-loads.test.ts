@@ -31,7 +31,7 @@ import {
 const ALLOWED: Record<string, string> = {
     // A kill switch, not an access gate: resolveAuth() 404s every /j request
     // itself while FEATURE_JELLYFIN_COMPAT is off, before any route runs.
-    '/(proprietary)/j': 'resolveAuth enforces FEATURE_JELLYFIN_COMPAT for all of /j',
+    '/(modules)/j': 'resolveAuth enforces FEATURE_JELLYFIN_COMPAT for all of /j',
 };
 
 const LOAD_GATE = /\b(redirect|error)\(/;

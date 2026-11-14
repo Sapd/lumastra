@@ -310,7 +310,7 @@ const APP_OWNED = [
     'config/config.service.ts',
     'handlers/hls/lumastra-segment-handler.ts',
     'middleware/immutable-asset-fallback.ts',
-    'proprietary/jellyfin-compat/video-attachments.ts', // reads ffmpeg's own mkdtemp output
+    'jellyfin-compat/video-attachments.ts', // reads ffmpeg's own mkdtemp output
     'services/cluster-node-runtime.ts',
     'services/essentia-analysis.service.ts',
     'services/ffmpeg-transcode.service.ts',

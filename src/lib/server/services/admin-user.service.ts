@@ -5,7 +5,7 @@
  * Admin-facing native user management: create accounts, reset passwords, disable/
  * enable, and delete. Coordinates the password store (users.password_hash), the
  * session store (force-logout), and the admin/disabled L1 cache. AGPL-core; never
- * touches the proprietary `/j` password store.
+ * touches the `/j` password store.
  *
  * HTTP concerns (auth gate, status codes, request parsing) live in the route
  * handlers; this layer is pure orchestration so it can be unit/integration tested.

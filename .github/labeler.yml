@@ -34,7 +34,7 @@
 'area:compat-j':
     - changed-files:
           - any-glob-to-any-file:
-                ['src/routes/(proprietary)/j/**', 'src/lib/server/proprietary/jellyfin-compat/**']
+                ['src/routes/(modules)/j/**', 'src/lib/server/jellyfin-compat/**']
 'area:plugins':
     - changed-files:
           - any-glob-to-any-file: ['plugins/**', 'packages/@sapd/**']

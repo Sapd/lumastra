@@ -547,11 +547,11 @@ describe('stripPagePreloadLinkHeader — keep response headers under proxy buffe
 describe('isImagePath', () => {
     it('treats /j Images only at a real Images route segment', async () => {
         const { isImagePath } = await import('./hooks.server.js');
-        const img = '/(proprietary)/j/Items/[itemId]/Images/[imageType]';
+        const img = '/(modules)/j/Items/[itemId]/Images/[imageType]';
         expect(isImagePath('/j/Items/x/Images/Primary', img)).toBe(true);
         expect(isImagePath('/j/items/x/images/primary', img)).toBe(true);
-        expect(isImagePath('/j/web/images/x', '/(proprietary)/j/web/[...path]')).toBe(false);
-        expect(isImagePath('/j/web/Images/x', '/(proprietary)/j/web/[...path]')).toBe(false);
+        expect(isImagePath('/j/web/images/x', '/(modules)/j/web/[...path]')).toBe(false);
+        expect(isImagePath('/j/web/Images/x', '/(modules)/j/web/[...path]')).toBe(false);
         expect(isImagePath('/j/web/images/x', null)).toBe(false);
     });
 

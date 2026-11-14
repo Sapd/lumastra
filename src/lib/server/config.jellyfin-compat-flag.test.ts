@@ -5,7 +5,7 @@
  * Unit tests for `features.jellyfinCompat` — the predicate that decides whether
  * the /j Jellyfin-compat surface is *usable*, as opposed to merely *reachable*.
  *
- * The /j layer serves Lumastra's OWN catalog: `routes/(proprietary)/j/` gates on
+ * The /j layer serves Lumastra's OWN catalog: `routes/(modules)/j/` gates on
  * the raw FEATURE_JELLYFIN_COMPAT flag and makes no outbound call to a Jellyfin
  * server. But `features.jellyfinCompat` additionally demanded JELLYFINURL and
  * JELLYFINAPIKEY, so on a Jellyfin-less install the two disagreed: /j kept
@@ -88,7 +88,7 @@ describe('features.jellyfinCompat', () => {
     });
 
     /**
-     * The seam: `routes/(proprietary)/j/+layout.server.ts` and resolveAuth() gate
+     * The seam: `routes/(modules)/j/+layout.server.ts` and resolveAuth() gate
      * /j reachability on `config.FEATURE_JELLYFIN_COMPAT`. Any consumer asking
      * `features.jellyfinCompat` must get the same answer, or the UI and the
      * surface it configures drift apart.

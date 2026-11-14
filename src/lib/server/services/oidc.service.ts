@@ -23,7 +23,7 @@
  *   - Groups come from a configurable claim, synced to users.groups every login;
  *     admin is derived from ADMIN_GROUPS (with the admin_pinned manual override).
  *
- * AGPL-core; no proprietary boundary touched.
+ * AGPL-core; no module boundary touched.
  */
 
 import { createHash } from 'node:crypto';

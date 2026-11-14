@@ -175,10 +175,10 @@
     },
     "pages": [
         {
-            "routeId": "/(proprietary)/assistant",
+            "routeId": "/(modules)/assistant",
             "url": "/assistant",
             "params": [],
-            "tree": "proprietary",
+            "tree": "modules",
             "inPublicBuild": true,
             "gate": "user",
             "gateEvidence": [

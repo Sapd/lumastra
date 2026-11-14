@@ -226,7 +226,7 @@ export async function dispatchFeatureRequest(
     try {
         // Build the context INSIDE the try: `buildRequestPluginContext` awaits
         // `buildAiSurface` + `buildPluginContext`, either of which can reject
-        // (e.g. the proprietary AI module's top-level evaluation throws, or
+        // (e.g. the AI assistant module's top-level evaluation throws, or
         // `getTaskDb()` throws). A rejection here must map to the dispatcher's
         // 500 JSON contract, not escape unhandled to SvelteKit's default error
         // path (which has no custom `handleError` and could leak a stack in dev).

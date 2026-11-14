@@ -1132,7 +1132,7 @@ export async function deleteUserAvatar(sql: postgres.Sql, username: string): Pro
 // Native (built-in) login
 // =============================================================================
 // These back the AGPL-core username/password login. They are entirely separate
-// from the proprietary `/j` jellyfin_client_passwords store — never cross-read.
+// from the `/j` jellyfin_client_passwords store — never cross-read.
 
 /**
  * Whether ANY admin user exists yet. Drives the first-run onboarding guard: when

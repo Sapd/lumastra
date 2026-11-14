@@ -12,13 +12,13 @@ import { connectValkey, disconnectValkey } from '$lib/server/cache/valkey.js';
 import { truncateTables, TEST_TABLES } from '../integration/helpers/cleanup.js';
 import { ensureTestUser } from '../integration/fixtures/user.fixtures.js';
 import { callAndCheck, jfEvent, mintJfSession } from './harness';
-import webDeviceProfile from '../../src/routes/(proprietary)/j/Items/[itemId]/PlaybackInfo/jellyfin-web-device-profile.fixture.json';
-import type { JellyfinPlaybackInfoResponse } from '$lib/server/proprietary/jellyfin-compat/types';
+import webDeviceProfile from '../../src/routes/(modules)/j/Items/[itemId]/PlaybackInfo/jellyfin-web-device-profile.fixture.json';
+import type { JellyfinPlaybackInfoResponse } from '$lib/server/jellyfin-compat/types';
 import { seedEpisodeExternalSrt, seedMovieEmbeddedSubs } from './seed';
 import {
     POST as playbackInfoPost,
     GET as playbackInfoGet,
-} from '../../src/routes/(proprietary)/j/Items/[itemId]/PlaybackInfo/+server';
+} from '../../src/routes/(modules)/j/Items/[itemId]/PlaybackInfo/+server';
 
 const USER_ID = '00000000-0000-4000-8000-00000000c0de';
 let sql: postgres.Sql;

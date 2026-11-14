@@ -8,8 +8,8 @@
  * report of a Jellyfin-client (/j) diagnostic, plus a prefilled GitHub issue URL.
  * Nothing is sent anywhere: the admin's browser opens the URL.
  *
- * The builder lives in the proprietary jellyfin-compat tree and is resolved via
- * the AGPL registry (license boundary). 404 when none is registered (AGPL-only
+ * The builder lives in the jellyfin-compat tree and is resolved via
+ * the AGPL registry (module boundary). 404 when none is registered (AGPL-only
  * build), 409 when the row is not a /j diagnostic.
  *
  * Auth: admin. Internal surface only — see ../index.ts's doc comment.

@@ -8,7 +8,7 @@
  *   - GET /api/health     — masked because the v1 `[...path]` catch-all's
  *                            `_openapi.ts` resolves first and documents no
  *                            GET 2xx schema for this path.
- *   - GET /api/assistant   — same catch-all-masking; also a proprietary route.
+ *   - GET /api/assistant   — same catch-all-masking; also a module route.
  *   - GET /api/playlists   — same catch-all-masking.
  *
  * Each test below invokes the REAL handler (mocking only its DB/service
@@ -29,7 +29,7 @@ import { PageBlockSchema } from '$lib/schemas/pagination';
 // GET /api/health?detail=true — SystemHealthResponseSchema
 //
 // NOTE: this file deliberately does NOT mock `$lib/server/config.js` — the
-// /api/assistant import graph below (proprietary assistant tools →
+// /api/assistant import graph below (assistant tools →
 // jellyseerr/jellyfin clients) instantiates several module-scope singletons
 // that read many `config.*` keys eagerly at import time. The real config
 // module already provides safe defaults for every key (env-driven with
@@ -88,7 +88,7 @@ vi.mock('$lib/server/database/queries/assistant-rag.queries.js', () => ({
 
 describe('GET /api/assistant — runtime parity with ChatRateLimitResponseSchema', () => {
     it('emits a body the client schema accepts', async () => {
-        const { GET } = await import('../src/routes/api/(proprietary)/assistant/+server.js');
+        const { GET } = await import('../src/routes/api/(modules)/assistant/+server.js');
         const res = await GET({
             url: new URL('http://localhost/api/assistant'),
             locals: {

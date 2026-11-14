@@ -18,20 +18,20 @@ import { seedMovieEmbeddedSubs, seedMusicAlbum } from './seed';
 import {
     GET as userDataGet,
     POST as userDataPost,
-} from '../../src/routes/(proprietary)/j/UserItems/[itemId]/UserData/+server';
-import { GET as introsGet } from '../../src/routes/(proprietary)/j/Items/[itemId]/Intros/+server';
-import { GET as collectionsGet } from '../../src/routes/(proprietary)/j/Items/[itemId]/Collections/+server';
-import { GET as universalGet } from '../../src/routes/(proprietary)/j/Audio/[itemId]/universal/+server';
+} from '../../src/routes/(modules)/j/UserItems/[itemId]/UserData/+server';
+import { GET as introsGet } from '../../src/routes/(modules)/j/Items/[itemId]/Intros/+server';
+import { GET as collectionsGet } from '../../src/routes/(modules)/j/Items/[itemId]/Collections/+server';
+import { GET as universalGet } from '../../src/routes/(modules)/j/Audio/[itemId]/universal/+server';
 
 import {
     POST as legacyPlayed,
     DELETE as legacyUnplayed,
-} from '../../src/routes/(proprietary)/j/Users/[userId]/PlayedItems/[itemId]/+server';
+} from '../../src/routes/(modules)/j/Users/[userId]/PlayedItems/[itemId]/+server';
 import {
     GET as legacyUserData,
     POST as legacyUserDataPost,
-} from '../../src/routes/(proprietary)/j/Users/[userId]/Items/[itemId]/UserData/+server';
-import { GET as syncPlayList } from '../../src/routes/(proprietary)/j/SyncPlay/List/+server';
+} from '../../src/routes/(modules)/j/Users/[userId]/Items/[itemId]/UserData/+server';
+import { GET as syncPlayList } from '../../src/routes/(modules)/j/SyncPlay/List/+server';
 
 const USER_ID = '00000000-0000-4000-8000-00000000c0de';
 let sql: postgres.Sql;

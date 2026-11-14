@@ -384,7 +384,7 @@ export function deleteAllAdminDevices(userId: string) {
     );
 }
 
-// ---- Per-user connections: Jellyfin /j password (proprietary endpoint) ----
+// ---- Per-user connections: Jellyfin /j password  ----
 
 function jellyfinPasswordPath(username: string): string {
     return `/api/jellyfin-connect/admin/${encodeURIComponent(username)}/password`;
