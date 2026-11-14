@@ -6,7 +6,9 @@
 
 Lumastra is a self-hosted media server for movies, series, music, audiobooks and Live TV. One login on every device, including the TV, and it scales from a single Docker host to a Kubernetes cluster.
 
-![A fictional library in the web app](docs/assets/screenshots/home.webp)
+[![Lumastra Home: a playing hero preview followed by a smooth scroll through recommendations and the series calendar](docs/assets/screenshots/home-scroll.gif)](https://lumastra.org/#preview)
+
+_Demo with fictional media. Lumastra supplies no media or TV subscriptions; you connect your own sources._
 
 ## Why Lumastra
 
@@ -19,6 +21,25 @@ Everything lives in one server: films and series next to music with a smart queu
 Your Jellyfin apps keep working. Lumastra answers the Jellyfin API under `/j`, with no Jellyfin server behind it. Tested apps: Streamyfin, Moonfin and Jellyfin Android TV. Music apps connect through the OpenSubsonic API.
 
 You can also run Jellyfin alongside it on the same media folders. Optional two-way sync keeps watched status and playback position in step, so you can try Lumastra without giving anything up.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/browse.webp" alt="Fictional movie and series library in the interactive demo"></td>
+    <td width="50%"><img src="docs/assets/screenshots/detail.webp" alt="Fictional movie details with recommendations"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Browse your collection</sub></td>
+    <td align="center"><sub>Find your next watch</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/screenshots/music.webp" alt="Music discovery with fictional artists and albums"></td>
+    <td><img src="docs/assets/screenshots/livetv.webp" alt="Live TV preview with fictional channels and programmes"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Discover music</sub></td>
+    <td align="center"><sub>Explore Live TV</sub></td>
+  </tr>
+</table>
 
 ## Requirements
 
