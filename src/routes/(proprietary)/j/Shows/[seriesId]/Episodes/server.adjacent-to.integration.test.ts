@@ -250,6 +250,17 @@ describe.runIf(RUN)('GET /j/Shows/{seriesId}/Episodes?AdjacentTo=', () => {
         expect(status).toBe(422);
     });
 
+    // Not AdjacentTo, but the same route and seed: without a Limit Jellyfin returns
+    // every episode, and Infuse builds its season list from that one page. A 100
+    // default showed South Park (368 episodes) with seasons 1-7 only.
+    it('returns every episode when no Limit is sent', async () => {
+        const s = await seed(new Array<string | null>(120).fill(null));
+        const { status, body } = await get(s.seriesId, '');
+        expect(status).toBe(200);
+        expect(body.Items).toHaveLength(120);
+        expect(body.TotalRecordCount).toBe(120);
+    });
+
     it('answers 404 for a series that does not exist', async () => {
         const { status } = await get(randomUUID(), `?AdjacentTo=${randomUUID()}`);
         expect(status).toBe(404);

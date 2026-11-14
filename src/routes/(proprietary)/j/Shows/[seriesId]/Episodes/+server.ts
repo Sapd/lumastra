@@ -33,6 +33,7 @@ import {
 } from '$lib/server/proprietary/jellyfin-compat/access-context';
 import { isSeason, isSeries } from '$lib/server/utils/media-types.js';
 import { checkMediaAccess } from '$lib/server/middleware/media-access.js';
+import { parseEpisodesLimit } from './episodes-limit';
 
 import {
     parseDtoOptions,
@@ -97,7 +98,7 @@ export const GET: RequestHandler = withJellyfinAuth(async (event) => {
         return ApiResponses.badRequest('Invalid SeasonId');
     }
     const seasonNumber = getParam(url, 'Season');
-    const limit = Math.min(Math.max(1, parseInt(getParam(url, 'Limit') ?? '100', 10) || 100), 500);
+    const limit = parseEpisodesLimit(getParam(url, 'Limit'));
     const requestedStartIndex = Math.max(0, parseInt(getParam(url, 'StartIndex') ?? '0', 10) || 0);
     let startIndex = requestedStartIndex;
 
@@ -182,8 +183,8 @@ export const GET: RequestHandler = withJellyfinAuth(async (event) => {
     // up-front, then subtract per-page filtered items. Across pages this can
     // drift if file-less episodes are unevenly distributed. Real Jellyfin does
     // file-presence filtering at SQL level so the count is exact; acceptable
-    // for now since Infuse fetches all episodes in one page (limit defaults to
-    // 100, libraries rarely exceed that).
+    // for now since Infuse fetches all episodes in one page (no Limit = every
+    // episode, see parseEpisodesLimit).
     const dropVirtual = (
         items: JellyfinBaseItemDto[],
         total: number,
