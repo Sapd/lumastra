@@ -1032,7 +1032,7 @@ describe('/setup — a resumed wizard keeps what an earlier pass saved', () => {
             props: { data: pageData({ resume: true }) as never },
         });
         const contact = await screen.findByRole('switch', {
-            name: /contact lumastra\.org for the push relay token/i,
+            name: /contact lumastra\.org \(update check, push relay\)/i,
         });
         expect(contact.getAttribute('aria-checked')).toBe('true');
         expect(contact.closest('details')).toBeNull();
@@ -1065,7 +1065,7 @@ describe('/setup — a resumed wizard keeps what an earlier pass saved', () => {
             },
         });
         const contact = await screen.findByRole('switch', {
-            name: /contact lumastra\.org for the push relay token/i,
+            name: /contact lumastra\.org \(update check, push relay\)/i,
         });
         expect(contact.getAttribute('aria-checked')).toBe('false');
         expect((contact as HTMLButtonElement).disabled).toBe(true);
