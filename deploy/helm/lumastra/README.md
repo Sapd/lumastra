@@ -35,12 +35,16 @@ You need:
 One node, a CloudNativePG database and an Ingress. It works on a stock k3s (Traefik and
 `local-path` storage included).
 
-1. Get the chart.
+1. Get the chart. Helm installs it straight from the registry in step 5, so there is nothing
+   to download for that. Alternatively, clone the repository and install from the folder:
 
     ```bash
     git clone --branch v0.2.0 https://github.com/Sapd/lumastra.git
     cd lumastra
     ```
+
+    In step 5 and in the upgrade command, use `deploy/helm/lumastra` instead of
+    `oci://ghcr.io/lumastra/charts/lumastra --version 0.2.0`.
 
 2. Install the database operator. Do this once per cluster.
 
@@ -99,7 +103,8 @@ One node, a CloudNativePG database and an Ingress. It works on a stock k3s (Trae
 5. Install.
 
     ```bash
-    helm install lumastra deploy/helm/lumastra -n lumastra -f my-values.yaml
+    helm install lumastra oci://ghcr.io/lumastra/charts/lumastra --version 0.2.0 \
+      -n lumastra -f my-values.yaml
     kubectl -n lumastra get pods
     ```
 
@@ -170,19 +175,18 @@ All values are in [`values.yaml`](values.yaml), with comments.
 
 ## Upgrade
 
-1. Read the [changelog](https://github.com/Sapd/lumastra/blob/main/CHANGELOG.md), then check
-   out the new chart version.
-
-    ```bash
-    git fetch --tags && git checkout vX.Y.Z
-    ```
+1. Read the [changelog](https://github.com/Sapd/lumastra/blob/main/CHANGELOG.md) and pick the
+   new version, `X.Y.Z` below. (If you installed from a clone, run
+   `git fetch --tags && git checkout vX.Y.Z` and use `deploy/helm/lumastra` instead of the
+   `oci://` address.)
 
 2. Put the same version in `my-values.yaml`, so later upgrades keep it, and upgrade. The
    default image tag `stable` does not roll the pods by itself.
 
     ```bash
     sed -i.bak 's|^    tag: .*|    tag: X.Y.Z|' my-values.yaml && rm my-values.yaml.bak
-    helm upgrade lumastra deploy/helm/lumastra -n lumastra -f my-values.yaml
+    helm upgrade lumastra oci://ghcr.io/lumastra/charts/lumastra --version X.Y.Z \
+      -n lumastra -f my-values.yaml
     ```
 
 The app pods update one at a time. The database schema updates when the first new pod starts.
