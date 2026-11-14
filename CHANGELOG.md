@@ -40,7 +40,9 @@ the AI assistant. Nothing is paid, and no part needs a license key. See LICENSIN
 - The setting **Contact lumastra.org** (Admin → Settings → General, section "Push relay") switches
   off both calls. Your 0.1.x choice carries over. With it off, the update check reads GitHub
   directly, and push works only with your own Apple key or relay. To stop the update check
-  entirely, turn off "Check for Lumastra updates".
+  entirely, turn off "Check for Lumastra updates". A new install makes neither call until the
+  question in setup is answered, or a day after setup if nobody answers it; until then the
+  update check reads GitHub.
 - The Helm chart is no longer marked beta.
 - The CLA is version 1.3 (no commercial tier wording).
 - The 0.1.x source-available files are also licensed under AGPL-3.0-only; see LICENSING.md.
