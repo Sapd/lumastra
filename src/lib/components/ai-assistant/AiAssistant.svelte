@@ -760,10 +760,22 @@
             console.warn('Seerr only supports TMDB IDs, got:', externalProvider);
             return;
         }
+        // Seerr knows movies and series ('tv'); a link to an episode or season
+        // cannot be requested on its own.
+        const requestType =
+            mediaType === 'movie'
+                ? 'movie'
+                : mediaType === 'tv' || mediaType === 'series'
+                  ? 'tv'
+                  : null;
+        if (!requestType) {
+            console.warn('Seerr requests need a movie or series, got:', mediaType);
+            return;
+        }
         handleRequestAction(
             {
                 externalIds: { [externalProvider]: externalId },
-                mediaType: mediaType as 'movie' | 'tv',
+                mediaType: requestType,
                 title: '', // Title not available from link
                 posterPath: '',
                 year: '',
