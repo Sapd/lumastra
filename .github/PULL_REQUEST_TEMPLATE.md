@@ -17,7 +17,7 @@ For UI, attach a screenshot or clip. "Ran X, saw Y" beats "should work". -->
 
 ## Checklist
 
-<!-- New languages aren't accepted for now, see CONTRIBUTING.md → "Pull requests". A fix to the
+<!-- New languages are not accepted; fixes to the existing English and German text are welcome. See CONTRIBUTING.md → "Pull requests". A fix to the
 existing English or German text? Skip the "ran it" / "explain every line" items, tick the CLA box,
 and confirm the strings render. -->
 

@@ -7,7 +7,7 @@ body:
           value: |
               Thanks for the report. A bug we can reproduce is a bug we can fix, and the diagnostics export and precise steps are what make that possible.
 
-              **Not a bug?** Feature proposals go to [Discussions → Features](https://github.com/Sapd/lumastra/discussions/categories/features), questions to [Q&A](https://github.com/Sapd/lumastra/discussions/categories/q-a). Feature requests filed as issues are closed.
+              **Not a bug?** Feature ideas go to [Discussions → Features](https://github.com/Sapd/lumastra/discussions/categories/features), questions to [Q&A](https://github.com/Sapd/lumastra/discussions/categories/q-a).
     - type: checkboxes
       id: prereqs
       attributes:

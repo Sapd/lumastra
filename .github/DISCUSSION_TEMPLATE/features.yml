@@ -6,7 +6,7 @@ body:
           value: |
               **Search first.** If someone already asked for this, upvote their post (the ▲ next to the title) and add your use case as a comment instead of opening a duplicate. Votes are how we see what matters most: sort the category by **Top** to see the most-wanted requests.
 
-              This is where features start. Describe the **problem** before the solution. A well-described problem gets designed well; a solution-first post usually gets "why?" back. Once a maintainer accepts a proposal, they open the tracking issue; a PR before that is closed unread (see CONTRIBUTING).
+              This is where features start. Describe the **problem** before the solution. Describe the problem first; it helps the design. Once a proposal is accepted, a tracking issue is opened and PRs can follow (see CONTRIBUTING).
 
               **House rules**, in short: keep it about media you own or are licensed to use (no references to pirated content of any kind), redact secrets and personal data before posting, and be kind. The full rules: [CODE_OF_CONDUCT.md](https://github.com/Sapd/lumastra/blob/main/.github/CODE_OF_CONDUCT.md#content-rules).
     - type: textarea

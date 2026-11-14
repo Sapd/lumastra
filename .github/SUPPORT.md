@@ -1,7 +1,6 @@
 # Getting help
 
-Lumastra is built and maintained by one person, in spare time. It's an early release (v0.1).
-Please read this before asking, so your question lands in the right place.
+This page points you to the right place for your question.
 
 ## Where to go
 
@@ -24,15 +23,14 @@ Please read this before asking, so your question lands in the right place.
   but reports are very welcome. In the app, Settings → Send Diagnostics gives you a
   reference to include.
 - **Feature ideas:** the [Features](https://github.com/Sapd/lumastra/discussions/categories/features)
-  category in Discussions. Issues aren't for feature requests.
+  category in Discussions. Ideas are discussed there before they become issues.
 - **Security problems:** report them privately, never in public. See [SECURITY.md](https://github.com/Sapd/lumastra/blob/main/.github/SECURITY.md).
 
 ## What to expect
 
-- No new features are planned before 1.0. Until then the focus is bug fixes and polish.
-- Replies and fixes can take a while. Not every question gets an answer from me; other
-  users are welcome to help each other.
-- If the number of issues grows, some areas may become best-effort (fixed when time allows).
+- Bug reports with the diagnostics from the templates get looked at first.
+- Questions in Discussions are often answered by other users too.
+- Feature ideas are collected in Discussions, and accepted ones get a tracking issue.
 
 ## Piracy
 

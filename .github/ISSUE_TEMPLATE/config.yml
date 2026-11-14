@@ -8,7 +8,7 @@ contact_links:
       about: The website docs live in Sapd/lumastra-docs. Report wrong or missing docs there, or send a pull request.
     - name: 💡 Feature request
       url: https://github.com/Sapd/lumastra/discussions/categories/features
-      about: Feature requests are NOT accepted as issues. Propose them in the Features discussions; a maintainer opens the tracking issue once an idea is accepted.
+      about: Feature ideas go to Discussions → Features. A tracking issue is opened once an idea is accepted.
     - name: 🙋 Question / help
       url: https://github.com/Sapd/lumastra/discussions/categories/q-a
       about: Setup, configuration, and "how do I" questions belong in Q&A.

@@ -60,5 +60,5 @@ like the rest of the codebase.
 
 - Vulnerabilities in third-party dependencies that are already publicly known and have an
   upstream fix (please update your dependencies first).
-- Issues that require a misconfigured deployment contrary to the documented setup (e.g.
-  exposing the app directly without forward auth in production).
+- Issues that need a deployment contrary to the documented setup (for example, trusting
+  identity headers from untrusted peers).

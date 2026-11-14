@@ -5,7 +5,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 # Silent default hazards
 
-Durable lessons from this codebase's worst bug class. Read it before touching an
+Durable lessons about configuration defaults that fail silently. Read it before touching an
 access filter, an API contract, a paginated query, or any function whose "safe"
 behaviour depends on an argument arriving.
 
