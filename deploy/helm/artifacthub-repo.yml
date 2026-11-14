@@ -4,11 +4,6 @@
 # Artifact Hub repository metadata. helm-publish.yml pushes this file to
 # ghcr.io/lumastra/charts/lumastra:artifacthub.io on every release.
 #
-# After adding the repository on artifacthub.io, add the lines Artifact Hub shows for the
-# Verified Publisher badge and the owners list:
-#   repositoryID: <uuid from the Artifact Hub control panel>
-#   owners:
-#     - name: <name>
-#       email: <email>
-# Until then the list below stays empty (it hides no charts).
-ignore: []
+# repositoryID is the ID Artifact Hub shows for this repository; it gives the listing the
+# Verified Publisher badge.
+repositoryID: 35cfc44b-24c9-4df3-80f8-1c3f8b84a6eb
