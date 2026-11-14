@@ -74,9 +74,10 @@ the AI assistant. Nothing is paid, and no part needs a license key. See LICENSIN
   0.2.0 makes the two calls above from the first day. To prevent that, switch it off right before
   updating (on 0.1.x: Admin → Settings → General → Licensing; until you update, that puts 0.1.x on
   its built-in limits).
-- 0.1.x installs: the old license endpoints at lumastra.org are switched off after 31 January 2027.
-  From then on 0.1.x runs with its built-in limits (two `/j` streams, no assistant, no push through
-  the standard relay). Update before then.
+- 0.1.x installs: the old license endpoints at lumastra.org are switched off with this release.
+  Push through the standard relay stops on 0.1.x within a day. A license key a 0.1.x install
+  already has keeps working until it expires (31 January 2027); after that it runs with its
+  built-in limits (two `/j` streams, no assistant). Update to 0.2.0 to keep everything.
 
 ## 0.1.4 - 2026-11-13
 
