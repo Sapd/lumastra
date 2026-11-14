@@ -20,45 +20,70 @@ The iPhone, iPad and Apple TV apps have their own version numbers. Their notes a
 
 Live TV proxy: no update needed.
 
+Lumastra is now fully open source under AGPL-3.0-only. Nothing is paid, and no part needs a
+license key.
+
 ### Changed
 
-- The CLA is version 1.3. There is no commercial or source-available tier any more, so the
-  wording about one is removed. The Project Owner's promise to keep merged contributions open
-  stays, and the right to license contributions under other terms is stated plainly in §3. The
-  licenses a contributor grants are unchanged. README and CONTRIBUTING are shorter, and
-  `CONTRIBUTING-AI.md` is folded into CONTRIBUTING.
-- Everything is licensed AGPL-3.0-only. The Jellyfin-compatible `/j` API and the AI assistant
-  are no longer source-available. There are no paid parts, license keys or stream limits.
-- Releases before 0.2.0: in the 0.1.x releases the `/j` API and the AI assistant were
-  source-available (files with a source-available license identifier in their headers, in `src/lib/server/proprietary/`,
-  `src/lib/proprietary/`, `src/routes/(proprietary)/`, `src/routes/api/(proprietary)/`,
-  `src/lib/server/api/defs/integrations/jellyfin-quick-connect*` and `tests/jellyfin-contract/`).
-  The copyright holder, Denis Arnst, also licenses those files, as published in every 0.1.x
-  release, under `AGPL-3.0-only`. The old release tags are not rewritten; this statement applies
-  to them. Brand assets are excluded. See LICENSING.md.
+- Everything is licensed AGPL-3.0-only, including the Jellyfin-compatible `/j` API and the AI
+  assistant, which were source-available before. See LICENSING.md.
 - `/j` has no limit on concurrent streams. The per-user stream limit an admin sets still
-  applies. The AI assistant and your own name and logos need no license key.
+  applies. The AI assistant and your own server name and logos need no license key.
 - The license check, the weekly check-in, the `LICENSE_KEY` setting and the license panel under
   System → Instance are gone. A stored `LICENSE_KEY` is ignored.
-- Push notifications: the relay token now comes from one call to lumastra.org
-  (`POST /api/push/relay-token`, install ID and version only). **Contact lumastra.org** (Settings
-  → General → Contact lumastra.org, stored as `LICENSE_SERVER_CONTACT_ENABLED`) switches it off.
-  Your own Apple key or relay still work without it.
-- The daily update check asks lumastra.org first, sending only the version; it counts checks per
-  day and version, with no ID. Turn it off with the Contact lumastra.org setting; then it asks
-  GitHub directly as before.
+- Push notifications through the standard relay: the relay token now comes from one call to
+  lumastra.org (`POST /api/push/relay-token`, sending the install ID and version only).
+- The daily update check asks lumastra.org first and sends only the version. lumastra.org counts
+  checks per day, version and country; it stores no install ID and no IP address. If
+  lumastra.org can't be reached, the check asks GitHub, as before.
+- The setting **Contact lumastra.org** (Admin → Settings → General; stored as
+  `LICENSE_SERVER_CONTACT_ENABLED`, so your choice carries over) switches off both calls. With it
+  off, the update check asks GitHub directly, and push works only with your own Apple key or
+  relay.
+- The Helm chart is version 0.2.0 and no longer marked beta.
+- The CLA is version 1.3: the wording about a commercial tier is gone, and the Project Owner's
+  promise to keep merged contributions open stays. README and CONTRIBUTING are shorter;
+  `CONTRIBUTING-AI.md` is part of CONTRIBUTING now.
+- Releases before 0.2.0: the files that were source-available in the 0.1.x releases (in
+  `src/lib/server/proprietary/`, `src/lib/proprietary/`, `src/routes/(proprietary)/`,
+  `src/routes/api/(proprietary)/`, `src/lib/server/api/defs/integrations/jellyfin-quick-connect*`
+  and `tests/jellyfin-contract/`) are also licensed, as published in every 0.1.x release, under
+  AGPL-3.0-only by their copyright holder, Denis Arnst. The old tags are not rewritten. Brand
+  assets are excluded.
+- In the source tree these folders are renamed: `src/lib/server/jellyfin-compat/`,
+  `src/lib/server/assistant/`, `src/lib/components/ai-assistant/` and the route groups
+  `(modules)`. URLs don't change.
 
 ### Removed
 
-- Plain Kubernetes manifests in `deploy/k8s`. Use the Helm chart in `deploy/helm/lumastra`.
+- The plain Kubernetes manifests in `deploy/k8s`. Use the Helm chart in `deploy/helm/lumastra`.
+
+### Fixed
+
+- Jellyfin apps: a series' episode list (`/j/Shows/{id}/Episodes`) returns every episode when the
+  app sends no limit, as Jellyfin does. Infuse showed only the first seasons of long series.
+- Text: the library age-limit hint says that it hides the whole library and how it applies to
+  audiobooks, the same in the library and group dialogs; several labels now match what the
+  setting does.
+
+### Security
+
+- `reset-password` now also revokes the user's personal access tokens, service tokens and
+  Jellyfin app (`/j`) sessions. Before, it only ended web sessions, so a device signed in with
+  the old password stayed signed in. It exits with code 3 if a store can't be revoked. If you
+  reset a password with `reset-password` on 0.1.x because an account may have been misused, run
+  it again for that user after updating.
 
 ### Upgrade note
 
-- License keys were never sold; 0.2.0 needs none. 0.1.x installs depend on the old license
-  endpoints at lumastra.org, which will be switched off after 0.2.0 [date]. After that a 0.1.x
-  install keeps working until its stored key expires, then falls back to its built-in limits (two
-  `/j` streams, no assistant), and push through the standard relay stops. 0.2.0 has none of these
-  limits. <!-- DATE: set at release -->
+- Nothing to do for a normal update: no migration, no new setting.
+- If nobody ever answered the "Contact lumastra.org" question in setup, 0.2.0 starts the two calls
+  above 24 hours after start, as 0.1.x did for the license check-in. If you don't want that, switch it off
+  before updating (on 0.1.x: Admin → Settings → General → Licensing).
+- License keys were never sold, and 0.2.0 needs none. 0.1.x installs use old license endpoints at
+  lumastra.org, which will be switched off after 31 January 2027. After that a 0.1.x install falls
+  back to its built-in limits (two `/j` streams, no assistant) and push through the standard relay
+  stops. Update to 0.2.0 to keep everything.
 
 ## 0.1.4 - 2026-11-13
 
