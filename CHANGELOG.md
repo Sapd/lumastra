@@ -16,7 +16,7 @@ health → Cluster also warns when the running proxy is behind.
 The iPhone, iPad and Apple TV apps have their own version numbers. Their notes are on
 [lumastra.org/about/changelog/](https://lumastra.org/about/changelog/).
 
-## Unreleased
+## 0.2.0 - 2026-11-14
 
 Live TV proxy: no update needed.
 
