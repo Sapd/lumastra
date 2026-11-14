@@ -1,6 +1,6 @@
 # Contributing
 
-Lumastra is a one-person project in maintenance mode. Bug reports and small fixes are welcome. Large new features are unlikely to be accepted. By taking part you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
+Bug reports and small fixes are welcome. For larger changes, open a Discussion first. By taking part you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Reporting a bug
 
@@ -11,11 +11,11 @@ Use the issue form. Include:
 - the debug report: Admin → System → Debug report → Copy report.
 - for playback problems, the matching incident under Admin → Users → Client diagnostics, and the entry under Admin → System → Transcode failures if the file was transcoded
 
-Reports without logs or steps are marked needs-info and closed after about five weeks without an answer. Do not post anything that points to pirated media, and redact paths in logs. For security problems, do not open an issue; follow [SECURITY.md](SECURITY.md).
+Reports without logs or steps are marked needs-info and closed if nobody answers for a few weeks. Do not post anything that points to pirated media, and redact paths in logs. For security problems, do not open an issue; follow [SECURITY.md](SECURITY.md).
 
 ## Pull requests
 
-Fork the repository, branch from `main` and open a pull request. Keep it to one change. Fixes, tests and documentation corrections can go straight to a pull request. Features, changes to behaviour people rely on, and anything in authentication, playback, the task system or migrations should start as a [Discussion](https://github.com/Sapd/lumastra/discussions/categories/features), because I may say no.
+Fork the repository, branch from `main` and open a pull request. Keep it to one change. Fixes, tests and documentation corrections can go straight to a pull request. Features, changes to behaviour people rely on, and anything in authentication, playback, the task system or migrations should start as a [Discussion](https://github.com/Sapd/lumastra/discussions/categories/features), so we can agree on the approach before you write code.
 
 Before you open the pull request:
 
@@ -27,7 +27,7 @@ The web app ships in English and German only.
 
 ### AI tools
 
-AI tools are fine; most of this project was written with them. Say so in the PR and be able to explain what you changed. Reports must come from a reproduction you ran yourself; unverified AI output is closed.
+AI tools are fine. Say so in the PR and be able to explain what you changed. Bug reports need a reproduction you ran yourself.
 
 ### The CLA
 
