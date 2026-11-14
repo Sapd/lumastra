@@ -12,7 +12,7 @@ _Demo with fictional media. Lumastra supplies no media or TV subscriptions; you 
 
 ## Why Lumastra
 
-Made for homelabs and clusters. Instead of one big process, Lumastra runs as separate services: the web app, a background worker for scans and analysis, PostgreSQL 17+ with pgvector, and two Valkey servers. A heavy scan can't starve playback of CPU or memory, you add web replicas when more people stream, the worker can move to another node, and a restarting pod doesn't take the whole server down. Large libraries stay fast because PostgreSQL does the searching and sorting. It is Kubernetes-native, and Docker Compose works just as well.
+Made for homelabs and clusters. Instead of one big process, Lumastra runs as separate services: the web app, a background worker for scans and analysis, PostgreSQL 17+ with pgvector, and two Valkey servers. Scans and analysis run in the worker with their own resource limits, you add web replicas when more people stream, the worker can move to another node, and a restarting pod doesn't take the whole server down. Large libraries stay fast because PostgreSQL does the searching and sorting. It is Kubernetes-native, and Docker Compose works just as well.
 
 Sign-in works on every device: the built-in login, any OIDC provider, or forward auth (Authentik, Authelia, oauth2-proxy). The iPhone, iPad and Apple TV apps sign in with a code you approve in a browser, so nobody types a password with the TV remote.
 
@@ -66,8 +66,8 @@ Compose starts five containers (web, worker, PostgreSQL, two Valkey); 8 GB of RA
 Docker Compose:
 
 ```bash
-curl -fsSL -o docker-compose.yml https://raw.githubusercontent.com/Sapd/lumastra/main/docker-compose.example.yml
-curl -fsSL -o .env https://raw.githubusercontent.com/Sapd/lumastra/main/.env.example
+curl -fsSL -o docker-compose.yml https://raw.githubusercontent.com/Sapd/lumastra/v0.2.0/docker-compose.example.yml
+curl -fsSL -o .env https://raw.githubusercontent.com/Sapd/lumastra/v0.2.0/.env.example
 # in .env, set DATABASE_PASSWORD and CACHE_PASSWORD (openssl rand -hex 24)
 # mount your media folder on both the lumastra and lumastra-worker services
 docker compose up -d
