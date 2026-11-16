@@ -268,9 +268,31 @@ describe('jellyseerr.ts JellyseerrClient — nothing left to request', () => {
         expect(result).toEqual({ success: true, requestId: 55 });
     });
 
-    it('does not offer seasons Seerr already tracks (partly available, blocklisted) as requestable', async () => {
+    it('reports any other id-less 2xx as a failure, not as already requested', async () => {
+        for (const [status, body] of [
+            [202, { message: 'Something else entirely' }],
+            [200, {}],
+            [200, null],
+        ] as const) {
+            const client = await clientAnswering(status, body);
+            const result = await client.createRequest(4242, 'tv', 7, [1]);
+            expect(result.success).toBe(false);
+            expect(result.nothingToRequest).toBeUndefined();
+        }
+    });
+
+    it("reports Seerr's 409 for an already-requested movie as nothing to request", async () => {
+        const client = await clientAnswering(409, {
+            message: 'Request for this media already exists.',
+        });
+        const result = await client.createRequest(550, 'movie', 7);
+        expect(result.success).toBe(false);
+        expect(result.nothingToRequest).toBe(true);
+    });
+
+    it('does not offer seasons Seerr already tracks, and says why', async () => {
         const client = await clientAnswering(200, {
-            seasons: [1, 2, 3, 4, 5].map((n) => ({
+            seasons: [1, 2, 3, 4, 5, 6, 7].map((n) => ({
                 seasonNumber: n,
                 name: `Season ${n}`,
                 episodeCount: 8,
@@ -281,16 +303,47 @@ describe('jellyseerr.ts JellyseerrClient — nothing left to request', () => {
                     { seasonNumber: 2, status: 6 },
                     { seasonNumber: 3, status: 1 },
                     { seasonNumber: 4, status: 7 },
+                    { seasonNumber: 6, status: 2 },
+                    { seasonNumber: 7, status: 1 },
+                ],
+                requests: [
+                    // Open request whose season status still reads UNKNOWN.
+                    { id: 1, status: 1, seasons: [{ id: 1, seasonNumber: 7, status: 1 }] },
+                    // Declined: does not block a new request.
+                    { id: 2, status: 3, seasons: [{ id: 2, seasonNumber: 3, status: 1 }] },
                 ],
             },
         });
         const seasons = await client.getRequestSeasons(4242);
-        expect(seasons?.map((s) => [s.seasonNumber, s.isPending])).toEqual([
-            [1, true],
-            [2, true],
-            [3, false],
-            [4, false],
-            [5, false],
+        expect(seasons?.map((s) => [s.seasonNumber, s.isPending, s.trackedAs])).toEqual([
+            [1, true, 'partly_available'],
+            [2, true, 'blocklisted'],
+            [3, false, undefined],
+            [4, false, undefined],
+            [5, false, undefined],
+            [6, true, 'requested'],
+            [7, true, 'requested'],
+        ]);
+    });
+
+    it('does not count blocklisted or deleted seasons as requested in the status view', async () => {
+        const client = await clientAnswering(200, {
+            seasons: [],
+            mediaInfo: {
+                id: 1,
+                status: 4,
+                seasons: [
+                    { id: 1, seasonNumber: 1, status: 6 },
+                    { id: 2, seasonNumber: 2, status: 7 },
+                    { id: 3, seasonNumber: 3, status: 3 },
+                ],
+            },
+        });
+        const statuses = await client.getSeasonRequestStatus(4242);
+        expect(statuses.map((s) => [s.seasonNumber, s.isRequested])).toEqual([
+            [1, false],
+            [2, false],
+            [3, true],
         ]);
     });
 });

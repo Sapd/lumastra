@@ -142501,6 +142501,14 @@ paths:
                           type: boolean
                         isPending:
                           type: boolean
+                        trackedAs:
+                          description: "Why the season cannot be requested: already requested, partly available, or blocklisted in Seerr. Absent
+                            when it can be requested or is fully available."
+                          type: string
+                          enum:
+                            - requested
+                            - partly_available
+                            - blocklisted
                       required:
                         - seasonNumber
                         - name

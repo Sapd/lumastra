@@ -64,3 +64,49 @@ test('selects unrequested Seerr seasons without requiring a local catalog entry'
         expect.objectContaining({ seasons: [2], mediaType: 'series' }),
     );
 });
+
+test('does not preselect seasons Seerr already tracks, and names why', async () => {
+    const season = (n: number, extra: Record<string, unknown>) => ({
+        seasonNumber: n,
+        name: `Season ${n}`,
+        episodeCount: 8,
+        airDate: null,
+        overview: null,
+        posterPath: null,
+        isAvailable: false,
+        isPending: false,
+        ...extra,
+    });
+    getRequestSeasons.mockResolvedValue({
+        data: {
+            items: [
+                season(1, { isPending: true, trackedAs: 'partly_available' }),
+                season(2, { isPending: true, trackedAs: 'blocklisted' }),
+                season(3, { isPending: true, trackedAs: 'requested' }),
+                season(4, {}),
+            ],
+        },
+        error: null,
+    });
+    render(SeasonSelectorModal, {
+        props: {
+            modalId: 'test',
+            externalIds: { tmdb: '123' },
+            title: 'New series',
+            posterPath: undefined,
+        },
+    });
+    await waitFor(() =>
+        expect(
+            (screen.getByRole('checkbox', { name: /Season 4/ }) as HTMLInputElement).checked,
+        ).toBe(true),
+    );
+    for (const n of [1, 2, 3]) {
+        const box = screen.getByRole('checkbox', { name: new RegExp(`Season ${n}`) });
+        expect((box as HTMLInputElement).checked).toBe(false);
+        expect((box as HTMLInputElement).disabled).toBe(true);
+    }
+    expect(screen.getByText('Partly available')).toBeTruthy();
+    expect(screen.getByText('Blocked')).toBeTruthy();
+    expect(screen.getByText('Requested')).toBeTruthy();
+});

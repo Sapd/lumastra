@@ -249,7 +249,7 @@ export const createRequestTool: AssistantTool<CreateRequestArgs> = {
             case 'already_requested':
                 return refuse(
                     'already_requested',
-                    `"${row.title}" is already requested or available, so there was nothing left to request. ${NOTHING_HAPPENED}`,
+                    `"${row.title}" is already requested or available, so there was nothing left to request. ${NOTHING_HAPPENED} Do not retry; tell the user it is already requested or available.`,
                 );
             case 'create_failed':
                 ctx.logger?.warn('create_request rejected by Jellyseerr', {

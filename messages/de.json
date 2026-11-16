@@ -2628,6 +2628,8 @@
     "deselect_all": "Alle abwählen",
     "available": "Verfügbar",
     "requested": "Angefordert",
+    "season_partly_available": "Teilweise verfügbar",
+    "season_blocklisted": "Gesperrt",
     "social_someone": "Jemand",
     "social_rating_excellent_1": "{name} ist absolut begeistert davon",
     "social_rating_excellent_2": "{name} findet das fantastisch",

@@ -207,6 +207,17 @@ describe('createRequestTool', () => {
         expect(checkRateLimit).not.toHaveBeenCalled();
     });
 
+    it('says the title is already tracked, and does not spend the token, when Seerr had nothing left to request', async () => {
+        vi.mocked(requestManager.createRequest).mockResolvedValue({ kind: 'already_requested' });
+        const b = body(
+            await createRequestTool.execute({ title: 'Dawn Part Two', confirmed: true }, makeCtx()),
+        );
+        expect(b.ok).toBe(false);
+        expect(b.reason).toBe('already_requested');
+        expect(String(b.note)).toMatch(/Do not retry/);
+        expect(checkRateLimit).not.toHaveBeenCalled();
+    });
+
     it('does not submit twice for the same title in one round', async () => {
         // The dedupe GATE is the peek — a spent token means "already submitted".
         vi.mocked(peekRateLimit).mockResolvedValue(rateLimit(false));

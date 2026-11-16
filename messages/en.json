@@ -2660,6 +2660,8 @@
     "deselect_all": "Deselect All",
     "available": "Available",
     "requested": "Requested",
+    "season_partly_available": "Partly available",
+    "season_blocklisted": "Blocked",
     "social_someone": "Someone",
     "social_rating_excellent_1": "{name} is absolutely thrilled about this",
     "social_rating_excellent_2": "{name} thinks this is fantastic",

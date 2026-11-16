@@ -12,7 +12,14 @@ export const RequestSeasonsResponseSchema = z.object({
             overview: z.string().nullable(),
             posterPath: z.string().nullable(),
             isAvailable: z.boolean(),
+            /** True when Seerr would refuse a request for this season (see `trackedAs`). */
             isPending: z.boolean(),
+            trackedAs: z
+                .enum(['requested', 'partly_available', 'blocklisted'])
+                .optional()
+                .describe(
+                    'Why the season cannot be requested: already requested, partly available, or blocklisted in Seerr. Absent when it can be requested or is fully available.',
+                ),
         }),
     ),
 });

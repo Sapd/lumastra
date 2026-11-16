@@ -53,6 +53,7 @@
         posterPath: string | null;
         isAvailable: boolean;
         isPending: boolean;
+        trackedAs?: 'requested' | 'partly_available' | 'blocklisted';
     }
 
     // State
@@ -399,7 +400,11 @@
                                             <span
                                                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-warning-500/20 text-warning-400">
                                                 <Icon src={Clock} class="w-3 h-3" />
-                                                {m.requested()}
+                                                {season.trackedAs === 'partly_available'
+                                                    ? m.season_partly_available()
+                                                    : season.trackedAs === 'blocklisted'
+                                                      ? m.season_blocklisted()
+                                                      : m.requested()}
                                             </span>
                                         {/if}
                                     </div>

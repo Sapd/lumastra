@@ -191,6 +191,23 @@ export interface JellyseerrQuota {
     };
 }
 
+/** A non-2xx answer from Seerr. The message stays generic (status only). */
+export class SeerrHttpError extends Error {
+    constructor(
+        readonly status: number,
+        statusText: string,
+    ) {
+        super(`Jellyseerr API error: ${status} ${statusText}`);
+        this.name = 'SeerrHttpError';
+    }
+}
+
+/**
+ * Seerr's answer when every asked-for season is already tracked:
+ * `202 { message: 'No seasons available to request' }`, with no request id.
+ */
+const NO_SEASONS_LEFT = /no seasons available/i;
+
 /** `nothingToRequest`: Seerr accepted the call but had nothing left to request. */
 export interface CreateRequestResult {
     success: boolean;
@@ -321,7 +338,7 @@ class JellyseerrClient {
                 statusText: response.statusText,
                 body: errorBody.slice(0, 500),
             });
-            throw new Error(`Jellyseerr API error: ${response.status} ${response.statusText}`);
+            throw new SeerrHttpError(response.status, response.statusText);
         }
 
         const data: unknown = await response.json();
@@ -639,26 +656,31 @@ class JellyseerrClient {
             }
 
             const response = await this.makeRequest<
-                JellyseerrCreateRequestResponse | { id?: undefined; message?: string }
+                JellyseerrCreateRequestResponse | { id?: undefined; message?: unknown } | null
             >('/request', {
                 method: 'POST',
                 body,
             });
 
-            if (typeof response.id !== 'number') {
-                // Seerr answers 202 `{ message: 'No seasons available to request' }`
-                // (no request id) when every asked-for season is already requested,
-                // available, partly available or blocklisted. Nothing was created.
+            if (typeof response?.id !== 'number') {
                 const message =
-                    'message' in response && typeof response.message === 'string'
-                        ? response.message
-                        : undefined;
-                logger.info('Seerr created no request', { mediaType, tmdbId, message });
-                return {
-                    success: false,
-                    nothingToRequest: true,
-                    error: 'Everything asked for is already requested or available',
-                };
+                    response && typeof response.message === 'string' ? response.message : undefined;
+                // Only Seerr's "no seasons left" answer means nothing was needed. Any
+                // other id-less 2xx (a proxy page, a changed contract) is a failure.
+                const nothingToRequest = message !== undefined && NO_SEASONS_LEFT.test(message);
+                logger.info('Seerr created no request', {
+                    mediaType,
+                    tmdbId,
+                    seasons,
+                    message: message?.slice(0, 200),
+                });
+                return nothingToRequest
+                    ? {
+                          success: false,
+                          nothingToRequest: true,
+                          error: 'Everything asked for is already requested or available',
+                      }
+                    : { success: false, error: 'Failed to create request' };
             }
 
             return {
@@ -666,6 +688,16 @@ class JellyseerrClient {
                 requestId: response.id,
             };
         } catch (error) {
+            // Seerr answers 409 (DuplicateMediaRequestError) for a movie, or a
+            // whole show, that already has an open request.
+            if (error instanceof SeerrHttpError && error.status === 409) {
+                logger.info('Seerr reports the request already exists', { mediaType, tmdbId });
+                return {
+                    success: false,
+                    nothingToRequest: true,
+                    error: 'Everything asked for is already requested or available',
+                };
+            }
             // Detail is logged server-side via handleError; never surface the raw
             // upstream message (may contain infra detail) to the caller. Return a
             // generic, user-safe error string instead.
@@ -774,10 +806,23 @@ class JellyseerrClient {
         if (!this.isConfigured()) return null;
         try {
             const details = await this.makeRequest<JellyseerrTvDetails>(`/tv/${tmdbId}`);
+            // Seasons inside an open (pending or approved) request, even while
+            // their season status still reads UNKNOWN: Seerr refuses those too.
+            const inOpenRequest = new Set<number>();
+            for (const request of details.mediaInfo?.requests ?? []) {
+                if (
+                    request.status !== RequestStatus.PENDING_APPROVAL &&
+                    request.status !== RequestStatus.APPROVED
+                ) {
+                    continue;
+                }
+                for (const season of request.seasons ?? []) inOpenRequest.add(season.seasonNumber);
+            }
             return (details.seasons ?? []).map((season) => {
                 const status = details.mediaInfo?.seasons?.find(
                     (item) => item.seasonNumber === season.seasonNumber,
                 )?.status;
+                const trackedAs = seasonTrackedAs(status, inOpenRequest.has(season.seasonNumber));
                 return {
                     seasonNumber: season.seasonNumber,
                     name: season.name,
@@ -786,14 +831,10 @@ class JellyseerrClient {
                     overview: season.overview ?? null,
                     posterPath: season.posterPath ?? null,
                     isAvailable: status === MediaStatus.AVAILABLE,
-                    // Anything Seerr already tracks (requested, processing, partly
-                    // available, blocklisted) is refused by POST /request, so it must
-                    // not be offered — or preselected — as requestable.
-                    isPending:
-                        status !== undefined &&
-                        status !== MediaStatus.UNKNOWN &&
-                        status !== MediaStatus.AVAILABLE &&
-                        status !== MediaStatus.DELETED,
+                    // Not requestable: POST /request refuses every season Seerr
+                    // already tracks, so the picker must not offer or preselect it.
+                    isPending: trackedAs !== undefined,
+                    ...(trackedAs ? { trackedAs } : {}),
                 };
             });
         } catch (error) {
@@ -821,8 +862,9 @@ class JellyseerrClient {
 
                     // Determine availability and request status based on season status
                     const isAvailable = status === MediaStatus.AVAILABLE;
-                    // Status >= 2 means it's been requested (PENDING, PROCESSING, PARTIALLY_AVAILABLE, or AVAILABLE)
-                    const isRequested = status >= MediaStatus.PENDING;
+                    // PENDING, PROCESSING, PARTIALLY_AVAILABLE or AVAILABLE. Not
+                    // BLOCKLISTED (6) or DELETED (7), which sort above them.
+                    const isRequested = isRequestedStatus(status);
 
                     // Map status to request status string
                     let requestStatus:
@@ -871,11 +913,11 @@ class JellyseerrClient {
                                 // - If the season has a status >= 2, use it
                                 // - Otherwise, if the request is pending/approved, treat the season as pending
                                 let effectiveStatus = seasonStatus;
-                                let isRequested = seasonStatus >= MediaStatus.PENDING;
+                                let isRequested = isRequestedStatus(seasonStatus);
                                 let requestStatus:
                                     'pending' | 'approved' | 'declined' | 'processing' | undefined;
 
-                                if (seasonStatus >= MediaStatus.PENDING) {
+                                if (isRequestedStatus(seasonStatus)) {
                                     // Season has a valid status
                                     if (seasonStatus === MediaStatus.PENDING) {
                                         requestStatus = 'pending';
@@ -941,6 +983,37 @@ class JellyseerrClient {
             this.handleError('createRequestForUser', error);
             return { success: false, error: 'Failed to create request' };
         }
+    }
+}
+
+/** PENDING through AVAILABLE: Seerr has (had) a request for it. */
+function isRequestedStatus(status: number | undefined): boolean {
+    return status !== undefined && status >= MediaStatus.PENDING && status <= MediaStatus.AVAILABLE;
+}
+
+export type SeasonTrackedAs = 'requested' | 'partly_available' | 'blocklisted';
+
+/**
+ * Why Seerr would refuse a request for this season, or undefined when it is
+ * requestable (unknown, deleted) or already fully available. An allow-list:
+ * a status Seerr adds later stays requestable instead of silently locked.
+ */
+function seasonTrackedAs(
+    status: number | undefined,
+    inOpenRequest: boolean,
+): SeasonTrackedAs | undefined {
+    switch (status) {
+        case MediaStatus.PENDING:
+        case MediaStatus.PROCESSING:
+            return 'requested';
+        case MediaStatus.PARTIALLY_AVAILABLE:
+            return 'partly_available';
+        case MediaStatus.BLOCKLISTED:
+            return 'blocklisted';
+        case MediaStatus.AVAILABLE:
+            return undefined;
+        default:
+            return inOpenRequest ? 'requested' : undefined;
     }
 }
 
