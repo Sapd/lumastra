@@ -12,6 +12,7 @@ import {
 } from './base-item';
 import type { MediaItemForSerialization } from './base-item';
 import type { MediaStreamRow } from '$lib/server/database/queries/media-streams.queries';
+import { runWithJellyfinRequestContext } from '../request-context';
 
 // ============================================================================
 // mapMediaType
@@ -279,11 +280,40 @@ describe('serializeBaseItem', () => {
         ).toBe(1.0);
     });
 
-    it('always sets PlayAccess, CanDownload, LocationType', () => {
+    it('always sets PlayAccess and LocationType', () => {
         const result = serializeBaseItem(minimalItem);
         expect(result.PlayAccess).toBe('Full');
-        expect(result.CanDownload).toBe(true);
         expect(result.LocationType).toBe('FileSystem');
+    });
+
+    describe('CanDownload follows the request download permission', () => {
+        const folder: MediaItemForSerialization = { ...minimalItem, media_type: 'tv' };
+
+        it('is false outside a request context', () => {
+            expect(serializeBaseItem(minimalItem).CanDownload).toBe(false);
+        });
+
+        it('is true for a file item when the request may download', () => {
+            const result = runWithJellyfinRequestContext({ canDownload: true }, () =>
+                serializeBaseItem(minimalItem),
+            );
+            expect(result.CanDownload).toBe(true);
+        });
+
+        it('is false for a folder even when the request may download', () => {
+            const result = runWithJellyfinRequestContext({ canDownload: true }, () =>
+                serializeBaseItem(folder),
+            );
+            expect(result.IsFolder).toBe(true);
+            expect(result.CanDownload).toBe(false);
+        });
+
+        it('is false for a file item when the request may not download', () => {
+            const result = runWithJellyfinRequestContext({ canDownload: false }, () =>
+                serializeBaseItem(minimalItem),
+            );
+            expect(result.CanDownload).toBe(false);
+        });
     });
 
     it('sets series hierarchy fields for episodes', () => {

@@ -6,6 +6,7 @@ import { toUserId } from '$lib/shared/user-id.js';
 import { parseEmbyAuthHeader, withJellyfinAuth } from './middleware';
 import type { JellyfinCompatPatAuth } from './pat-auth';
 import { localsIsAdmin } from '$lib/server/auth/locals-admin.js';
+import { currentJellyfinRequestContext } from './request-context';
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -41,6 +42,11 @@ vi.mock('$lib/server/utils/logger', () => ({
 const mockValidatePat = vi.fn();
 vi.mock('./pat-auth', () => ({
     validateJellyfinCompatPat: (...args: unknown[]) => mockValidatePat(...args),
+}));
+
+const mockCanDownload = vi.fn<(subject: unknown) => Promise<boolean>>(async () => false);
+vi.mock('$lib/server/services/download-access.service.js', () => ({
+    canDownload: (subject: unknown) => mockCanDownload(subject),
 }));
 
 // SECURITY REVIEW 2026-09-16, task 6 (C6 + deleted_at follow-up): middleware.ts
@@ -1580,3 +1586,142 @@ it.each(['quick_connect', undefined])(
         expect(event.locals.user.mediaAccessIsAdmin).toBe(true);
     },
 );
+
+// ---------------------------------------------------------------------------
+// withJellyfinAuth — download permission (CanDownload / EnableContentDownloading)
+// ---------------------------------------------------------------------------
+
+const DEFAULT_LIVE_USER_ROW = {
+    id: '00000000-0000-0000-0000-000000000001',
+    username: 'testuser',
+    is_admin: false,
+    admin_pinned: false,
+    max_age_rating: null,
+    age_rating_pinned: false,
+    groups: ['Librarians'],
+    disabled_at: null,
+    deleted_at: null,
+};
+
+describe('withJellyfinAuth — download permission context', () => {
+    beforeEach(() => {
+        mockValidateSession.mockReset();
+        mockValidatePat.mockReset();
+        mockCanDownload.mockReset();
+        mockCanDownload.mockResolvedValue(true);
+        mockGetUserByUsername.mockResolvedValue({ ...DEFAULT_LIVE_USER_ROW });
+        mockValidateSession.mockResolvedValue(SESSION_USER);
+    });
+
+    it('binds canDownload=true for the handler when the user may download', async () => {
+        let seen: ReturnType<typeof currentJellyfinRequestContext>;
+        const handler = withJellyfinAuth(async () => {
+            seen = currentJellyfinRequestContext();
+            return new Response('ok');
+        });
+        const event = mockEvent({
+            headers: { 'x-emby-authorization': 'MediaBrowser Token=session-tok' },
+        });
+        expect((await handler(event)).status).toBe(200);
+        expect(seen).toEqual({ canDownload: true });
+    });
+
+    it('binds canDownload=false when the user may not download', async () => {
+        mockCanDownload.mockResolvedValue(false);
+        let seen: ReturnType<typeof currentJellyfinRequestContext>;
+        const handler = withJellyfinAuth(async () => {
+            seen = currentJellyfinRequestContext();
+            return new Response('ok');
+        });
+        const event = mockEvent({
+            headers: { 'x-emby-authorization': 'MediaBrowser Token=session-tok' },
+        });
+        expect((await handler(event)).status).toBe(200);
+        expect(seen).toEqual({ canDownload: false });
+    });
+
+    it('resolves canDownload once per request, for the authenticated session user', async () => {
+        const handler = withJellyfinAuth(async () => new Response('ok'));
+        const event = mockEvent({
+            headers: { 'x-emby-authorization': 'MediaBrowser Token=session-tok' },
+        });
+        await handler(event);
+        expect(mockCanDownload).toHaveBeenCalledTimes(1);
+        expect(mockCanDownload).toHaveBeenCalledWith({
+            userId: SESSION_USER.userId,
+            username: 'testuser',
+            isAdmin: false,
+        });
+    });
+
+    it('an admin session is admin for canDownload (principal verdict)', async () => {
+        mockGetUserByUsername.mockResolvedValue({
+            ...DEFAULT_LIVE_USER_ROW,
+            is_admin: true,
+            admin_pinned: true,
+        });
+        const handler = withJellyfinAuth(async () => new Response('ok'));
+        const event = mockEvent({
+            headers: { 'x-emby-authorization': 'MediaBrowser Token=session-tok' },
+        });
+        await handler(event);
+        expect(mockCanDownload).toHaveBeenCalledWith(expect.objectContaining({ isAdmin: true }));
+    });
+
+    it('a Quick Connect session of an admin is not admin for canDownload', async () => {
+        mockValidateSession.mockResolvedValue({ ...SESSION_USER, origin: 'quick_connect' });
+        mockGetUserByUsername.mockResolvedValue({
+            ...DEFAULT_LIVE_USER_ROW,
+            is_admin: true,
+            admin_pinned: true,
+        });
+        const handler = withJellyfinAuth(async () => new Response('ok'));
+        const event = mockEvent({
+            headers: { 'x-emby-authorization': 'MediaBrowser Token=session-tok' },
+        });
+        await handler(event);
+        expect(mockCanDownload).toHaveBeenCalledWith(expect.objectContaining({ isAdmin: false }));
+    });
+
+    it('binds the context for a PAT request; a PAT is never admin', async () => {
+        mockValidateSession.mockResolvedValue(null);
+        mockValidatePat.mockResolvedValue(PAT_AUTH);
+        let seen: ReturnType<typeof currentJellyfinRequestContext>;
+        const handler = withJellyfinAuth(async () => {
+            seen = currentJellyfinRequestContext();
+            return new Response('ok');
+        });
+        const event = mockEvent({ headers: { 'x-emby-token': 'pat_xyz123' } });
+        expect((await handler(event)).status).toBe(200);
+        expect(mockCanDownload).toHaveBeenCalledWith({
+            userId: PAT_AUTH.userId,
+            username: 'testuser',
+            isAdmin: false,
+        });
+        expect(seen).toEqual({ canDownload: true });
+    });
+
+    it('does not resolve canDownload when authentication fails', async () => {
+        mockValidateSession.mockResolvedValue(null);
+        mockValidatePat.mockResolvedValue(null);
+        mockRateLimit.mockResolvedValue({ allowed: true, resetAt: 0 });
+        const handler = withJellyfinAuth(async () => new Response('ok'));
+        const event = mockEvent({ headers: { 'x-emby-token': 'pat_bogus' } });
+        expect((await handler(event)).status).toBe(401);
+        expect(mockCanDownload).not.toHaveBeenCalled();
+    });
+
+    it('a failed permission lookup fails closed without failing the request', async () => {
+        mockCanDownload.mockRejectedValue(new Error('database unavailable'));
+        let seen: ReturnType<typeof currentJellyfinRequestContext>;
+        const handler = withJellyfinAuth(async () => {
+            seen = currentJellyfinRequestContext();
+            return new Response('ok');
+        });
+        const event = mockEvent({
+            headers: { 'x-emby-authorization': 'MediaBrowser Token=session-tok' },
+        });
+        expect((await handler(event)).status).toBe(200);
+        expect(seen).toEqual({ canDownload: false });
+    });
+});

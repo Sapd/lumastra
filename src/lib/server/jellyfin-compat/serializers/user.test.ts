@@ -3,6 +3,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { serializeUser } from './user';
+import { runWithJellyfinRequestContext } from '../request-context';
 
 describe('serializeUser', () => {
     it('converts UUID with dashes to 32-char hex without dashes', () => {
@@ -95,5 +96,29 @@ describe('serializeUser: age limit in the policy (brief 09)', () => {
             'MaxParentalRating',
         );
         expect(serializeUser(base).Policy.BlockUnratedItems).toEqual([]);
+    });
+});
+
+describe('serializeUser: EnableContentDownloading follows the request download permission', () => {
+    const base = {
+        id: 'aaaabbbb-cccc-dddd-eeee-ffffffffffff',
+        username: 'testuser',
+        is_admin: false,
+    };
+
+    it('is false outside a request context', () => {
+        expect(serializeUser(base).Policy.EnableContentDownloading).toBe(false);
+    });
+
+    it('is true inside a context that may download', () => {
+        const dto = runWithJellyfinRequestContext({ canDownload: true }, () => serializeUser(base));
+        expect(dto.Policy.EnableContentDownloading).toBe(true);
+    });
+
+    it('is false inside a context that may not download', () => {
+        const dto = runWithJellyfinRequestContext({ canDownload: false }, () =>
+            serializeUser(base),
+        );
+        expect(dto.Policy.EnableContentDownloading).toBe(false);
     });
 });

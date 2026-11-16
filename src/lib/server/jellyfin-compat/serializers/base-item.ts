@@ -12,6 +12,7 @@ import type {
     JellyfinUserItemData,
 } from '../types';
 import { JELLYFIN_SERVER_ID, secondsToTicks, msToTicks } from '../constants';
+import { currentJellyfinRequestContext } from '../request-context';
 import type { MediaStreamRow } from '$lib/server/database/queries/media-streams.queries';
 import { isEpisode, isSeason, isSeries } from '$lib/server/utils/media-types.js';
 
@@ -456,8 +457,9 @@ export function serializeBaseItem(item: MediaItemForSerialization): JellyfinBase
         // Media info
         MediaType: mediaType,
         PlayAccess: 'Full',
-        // Folder items (Series, Season, MusicAlbum) are not directly downloadable
-        CanDownload: !isFolder,
+        // Folder items (Series, Season, MusicAlbum) are never directly downloadable.
+        // Files follow the caller's download permission for this request.
+        CanDownload: !isFolder && (currentJellyfinRequestContext()?.canDownload ?? false),
         // `/j` has no DELETE /Items: nothing can be deleted from an app.
         CanDelete: false,
         LocationType: 'FileSystem',

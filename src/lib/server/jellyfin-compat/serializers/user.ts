@@ -5,6 +5,7 @@ import type { JellyfinUserDto } from '../types';
 import { JELLYFIN_SERVER_ID } from '../constants';
 import { config } from '$lib/server/config';
 import { reportedPlaybackConfiguration, type UserPlaybackPreferences } from '../user-configuration';
+import { currentJellyfinRequestContext } from '../request-context';
 
 interface UserInput {
     id: string;
@@ -69,7 +70,7 @@ export function serializeUser(
             EnablePlaybackRemuxing: true,
             ForceRemoteSourceTranscoding: false,
             EnableContentDeletion: user.is_admin,
-            EnableContentDownloading: true,
+            EnableContentDownloading: currentJellyfinRequestContext()?.canDownload ?? false,
             EnableSyncTranscoding: true,
             EnableMediaConversion: true,
             EnablePublicSharing: false,
