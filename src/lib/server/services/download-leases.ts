@@ -6,14 +6,16 @@
  *
  * A lease is held for the life of one download response. It is keyed by
  * (user, file, device): the same file from the same device twice (a segmented
- * / range-resumed download) re-uses one slot via a refCount, a different device
- * or file takes another slot.
+ * / range-resumed download) shares one slot, a different device or file takes
+ * another slot. Every connection owns a random token; the slot is the set of its
+ * live connections, and refresh / release touch only their own connection, so an
+ * expired-and-replaced slot is never deleted or shared by the old stream.
  *
  * ## Shared state
  *
  * Valkey (coordination instance), when connected:
- *   `dl:lease:{userId}`  hash, field `${fileId}|${deviceKey}`,
- *                        value `expiresAtMs|refCount|bytesSent|startedAt|bytesPerSec`
+ *   `dl:lease:{userId}`  hash, one field per connection `${fileId}|${deviceKey}#${token}`,
+ *                        value `expiresAtMs|bytesSent|startedAt|bytesPerSec`
  *   `dl:users`           sorted set, member userId, score = latest lease expiry of that user
  * All reads and writes go through one Lua script per operation, so two replicas
  * racing for the last slot cannot both win. Expired fields are dropped inside
@@ -102,7 +104,10 @@ export function computeRate(liveLeases: number, liveUsers: number, slotConnectio
     return Math.max(1, Math.floor(Math.min(...caps)));
 }
 
+/** Slot identity (file + device); a connection field is `${slot}#${token}`. */
 const fieldOf = (k: LeaseKey): string => `${k.fileId}|${k.deviceKey}`;
+const connFieldOf = (k: LeaseKey, token: string): string => `${fieldOf(k)}#${token}`;
+const slotOfField = (f: string): string => f.slice(0, f.lastIndexOf('#'));
 
 /** Backend operations; both implementations are interchangeable. */
 interface Counts {
@@ -113,15 +118,16 @@ interface Counts {
 }
 
 interface Backend {
-    acquire(key: LeaseKey, limit: number, now: number): Promise<Counts | null>;
-    /** null = the slot is gone (expired / released): the caller must re-acquire. */
+    acquire(key: LeaseKey, token: string, limit: number, now: number): Promise<Counts | null>;
+    /** null = this connection is gone (expired / released): the caller must re-acquire. */
     refresh(
         key: LeaseKey,
+        token: string,
         deltaBytes: number,
         bytesPerSec: number,
         now: number,
     ): Promise<Counts | null>;
-    release(key: LeaseKey, now: number): Promise<void>;
+    release(key: LeaseKey, token: string, now: number): Promise<void>;
     list(now: number): Promise<ActiveDownload[]>;
 }
 
@@ -129,11 +135,11 @@ interface Backend {
 
 interface MemEntry {
     expiresAt: number;
-    refCount: number;
     bytesSent: number;
     startedAt: number;
     bytesPerSec: number;
 }
+/** userId -> connection field (`slot#token`) -> entry. */
 const memory = new Map<string, Map<string, MemEntry>>();
 
 function memSweep(userId: string, now: number): Map<string, MemEntry> | undefined {
@@ -151,35 +157,44 @@ function memCounts(key: LeaseKey, now: number): Counts {
     let u = 0;
     for (const id of [...memory.keys()]) if (memSweep(id, now)) u++;
     const m = memory.get(key.userId);
-    return { l: m?.size ?? 0, u, ref: m?.get(fieldOf(key))?.refCount ?? 1 };
+    const slot = fieldOf(key);
+    const slots = new Set<string>();
+    let ref = 0;
+    for (const f of m?.keys() ?? []) {
+        const s = slotOfField(f);
+        slots.add(s);
+        if (s === slot) ref++;
+    }
+    return { l: slots.size, u, ref: Math.max(1, ref) };
 }
 
 const memoryBackend: Backend = {
-    async acquire(key, limit, now) {
-        const field = fieldOf(key);
+    async acquire(key, token, limit, now) {
+        const slot = fieldOf(key);
         const m = memSweep(key.userId, now);
-        const existing = m?.get(field);
-        if (existing) {
-            if (existing.refCount >= MAX_SLOT_CONNECTIONS) return null;
-            existing.refCount += 1;
-            existing.expiresAt = now + LEASE_TTL_MS;
-        } else {
-            if (limit > 0 && (m?.size ?? 0) >= limit) return null;
-            const target = m ?? new Map<string, MemEntry>();
-            target.set(field, {
-                expiresAt: now + LEASE_TTL_MS,
-                refCount: 1,
-                bytesSent: 0,
-                startedAt: now,
-                bytesPerSec: 0,
-            });
-            memory.set(key.userId, target);
+        const own = connFieldOf(key, token);
+        let refs = 0;
+        const slots = new Set<string>();
+        for (const f of m?.keys() ?? []) {
+            const s = slotOfField(f);
+            slots.add(s);
+            if (s === slot && f !== own) refs++;
         }
+        if (refs >= MAX_SLOT_CONNECTIONS) return null;
+        if (refs === 0 && limit > 0 && slots.size >= limit) return null;
+        const target = m ?? new Map<string, MemEntry>();
+        target.set(own, {
+            expiresAt: now + LEASE_TTL_MS,
+            bytesSent: 0,
+            startedAt: now,
+            bytesPerSec: 0,
+        });
+        memory.set(key.userId, target);
         return memCounts(key, now);
     },
-    async refresh(key, deltaBytes, bytesPerSec, now) {
+    async refresh(key, token, deltaBytes, bytesPerSec, now) {
         const m = memSweep(key.userId, now);
-        const e = m?.get(fieldOf(key));
+        const e = m?.get(connFieldOf(key, token));
         // Lapsed while the stream was still alive: do not recreate it here (that would
         // bypass the limit); the caller re-acquires through the normal check.
         if (!e) return null;
@@ -188,34 +203,56 @@ const memoryBackend: Backend = {
         e.bytesPerSec = bytesPerSec;
         return memCounts(key, now);
     },
-    async release(key, now) {
+    async release(key, token, now) {
         const m = memSweep(key.userId, now);
-        const e = m?.get(fieldOf(key));
-        if (!m || !e) return;
-        e.refCount -= 1;
-        if (e.refCount <= 0) m.delete(fieldOf(key));
+        m?.delete(connFieldOf(key, token));
         memSweep(key.userId, now);
     },
     async list(now) {
-        const out: ActiveDownload[] = [];
+        const rows: Array<[string, string, string]> = [];
         for (const userId of [...memory.keys()]) {
             const m = memSweep(userId, now);
             if (!m) continue;
-            for (const [field, e] of m) {
-                const sep = field.indexOf('|');
-                out.push({
+            for (const [field, e] of m)
+                rows.push([
                     userId,
-                    fileId: field.slice(0, sep),
-                    deviceKey: field.slice(sep + 1),
-                    bytesSent: e.bytesSent,
-                    startedAt: e.startedAt,
-                    bytesPerSec: e.bytesPerSec,
-                });
-            }
+                    field,
+                    `${e.expiresAt}|${e.bytesSent}|${e.startedAt}|${e.bytesPerSec}`,
+                ]);
         }
-        return out;
+        return aggregateConnections(rows);
     },
 };
+
+/**
+ * Fold per-connection rows (`[userId, field, expires|bytes|started|bps]`) into one
+ * ActiveDownload per slot: bytes and rates are summed, the start is the earliest.
+ */
+function aggregateConnections(rows: Array<[string, string, string]>): ActiveDownload[] {
+    const bySlot = new Map<string, ActiveDownload>();
+    for (const [userId, field, value] of rows) {
+        const slot = slotOfField(field);
+        const p = value.split('|').map(Number);
+        const id = `${userId}\u0000${slot}`;
+        const cur = bySlot.get(id);
+        if (cur) {
+            cur.bytesSent += p[1] ?? 0;
+            cur.bytesPerSec += p[3] ?? 0;
+            cur.startedAt = Math.min(cur.startedAt, p[2] ?? cur.startedAt);
+        } else {
+            const sep = slot.indexOf('|');
+            bySlot.set(id, {
+                userId,
+                fileId: slot.slice(0, sep),
+                deviceKey: slot.slice(sep + 1),
+                bytesSent: p[1] ?? 0,
+                startedAt: p[2] ?? 0,
+                bytesPerSec: p[3] ?? 0,
+            });
+        }
+    }
+    return [...bySlot.values()];
+}
 
 /** Test hook: clear process-local state. */
 export function resetDownloadLeasesForTests(): void {
@@ -225,7 +262,8 @@ export function resetDownloadLeasesForTests(): void {
 
 // ── Valkey backend ────────────────────────────────────────────────────────────
 
-// Shared Lua helpers. Value layout: expiresAtMs|refCount|bytesSent|startedAt|bytesPerSec.
+// Shared Lua helpers. Field `slot#token` (one per connection), value
+// expiresAtMs|bytesSent|startedAt|bytesPerSec.
 const LUA_COMMON = `
 local function parse(v)
     local t = {}
@@ -238,23 +276,26 @@ local function nowMs()
     return tonumber(t[1]) * 1000 + math.floor(tonumber(t[2]) / 1000)
 end
 local function fmt(n) return string.format('%.0f', n) end
-local function pack(exp, ref, bytes, started, bps)
-    return fmt(exp) .. '|' .. fmt(ref) .. '|' .. fmt(bytes) .. '|' .. fmt(started) .. '|' .. fmt(bps)
+local function pack(exp, bytes, started, bps)
+    return fmt(exp) .. '|' .. fmt(bytes) .. '|' .. fmt(started) .. '|' .. fmt(bps)
 end
--- Drop expired fields; returns live count and the latest expiry.
-local function sweep(key, now)
+-- Drop expired connections; returns distinct live slots, the latest expiry and the
+-- number of live connections on the given slot.
+local function sweep(key, now, slot)
     local flat = redis.call('HGETALL', key)
-    local live, maxExp = 0, 0
+    local seen, slots, maxExp, refs = {}, 0, 0, 0
     for i = 1, #flat, 2 do
         local p = parse(flat[i + 1])
         if p[1] <= now then
             redis.call('HDEL', key, flat[i])
         else
-            live = live + 1
+            local s = string.match(flat[i], '^(.*)#[^#]*$')
+            if not seen[s] then seen[s] = true; slots = slots + 1 end
+            if s == slot then refs = refs + 1 end
             if p[1] > maxExp then maxExp = p[1] end
         end
     end
-    return live, maxExp
+    return slots, maxExp, refs
 end
 -- Keep dl:users in step with the user's hash; returns U (users with a live lease).
 local function syncUsers(usersKey, userId, live, maxExp, now, ttl)
@@ -269,76 +310,58 @@ local function syncUsers(usersKey, userId, live, maxExp, now, ttl)
 end
 `;
 
-// KEYS[1]=lease hash, KEYS[2]=dl:users; ARGV: ttl, limit, field, userId, maxRefs
+// KEYS[1]=lease hash, KEYS[2]=dl:users; ARGV: ttl, limit, slot, userId, maxRefs, token
 // Returns {0} rejected, or {1, L, U, R}.
 const LUA_ACQUIRE =
     LUA_COMMON +
     `
 local now = nowMs()
 local ttl, limit, maxRefs = tonumber(ARGV[1]), tonumber(ARGV[2]), tonumber(ARGV[5])
-local live, liveMaxExp = sweep(KEYS[1], now)
-local v = redis.call('HGET', KEYS[1], ARGV[3])
-local ref = 1
-if v then
-    local p = parse(v)
-    if p[2] >= maxRefs then
-        syncUsers(KEYS[2], ARGV[4], live, liveMaxExp, now, ttl)
-        return {0}
-    end
-    ref = p[2] + 1
-    redis.call('HSET', KEYS[1], ARGV[3], pack(now + ttl, ref, p[3], p[4], p[5]))
-else
-    if limit > 0 and live >= limit then
-        -- Keep the user's real latest expiry: a score of 0 would drop a user who still
-        -- holds live leases from dl:users (U undercounted, hidden from the list).
-        syncUsers(KEYS[2], ARGV[4], live, liveMaxExp, now, ttl)
-        return {0}
-    end
-    redis.call('HSET', KEYS[1], ARGV[3], pack(now + ttl, 1, 0, now, 0))
+local own = ARGV[3] .. '#' .. ARGV[6]
+local live, liveMaxExp, refs = sweep(KEYS[1], now, ARGV[3])
+if redis.call('HEXISTS', KEYS[1], own) == 1 then refs = refs - 1 end
+if refs >= maxRefs or (refs == 0 and limit > 0 and live >= limit) then
+    -- Keep the user's real latest expiry: a score of 0 would drop a user who still
+    -- holds live leases from dl:users (U undercounted, hidden from the list).
+    syncUsers(KEYS[2], ARGV[4], live, liveMaxExp, now, ttl)
+    return {0}
 end
+redis.call('HSET', KEYS[1], own, pack(now + ttl, 0, now, 0))
 redis.call('PEXPIRE', KEYS[1], ttl * 2)
-local l, maxExp = sweep(KEYS[1], now)
-return {1, l, syncUsers(KEYS[2], ARGV[4], l, maxExp, now, ttl), ref}
+local l, maxExp, r = sweep(KEYS[1], now, ARGV[3])
+return {1, l, syncUsers(KEYS[2], ARGV[4], l, maxExp, now, ttl), r}
 `;
 
-// ARGV: ttl, field, userId, deltaBytes, bytesPerSec. Returns {0} when the field is gone
-// (the caller re-acquires through the limit check), else {1, L, U, R}.
+// ARGV: ttl, slot, userId, deltaBytes, bytesPerSec, token. Returns {0} when this
+// connection is gone (the caller re-acquires through the limit check), else {1, L, U, R}.
 const LUA_REFRESH =
     LUA_COMMON +
     `
 local now = nowMs()
 local ttl = tonumber(ARGV[1])
-sweep(KEYS[1], now)
-local v = redis.call('HGET', KEYS[1], ARGV[2])
+sweep(KEYS[1], now, ARGV[2])
+local own = ARGV[2] .. '#' .. ARGV[6]
+local v = redis.call('HGET', KEYS[1], own)
 if not v then
-    local l0, max0 = sweep(KEYS[1], now)
+    local l0, max0 = sweep(KEYS[1], now, ARGV[2])
     syncUsers(KEYS[2], ARGV[3], l0, max0, now, ttl)
     return {0}
 end
 local p = parse(v)
-redis.call('HSET', KEYS[1], ARGV[2], pack(now + ttl, p[2], p[3] + tonumber(ARGV[4]), p[4], tonumber(ARGV[5])))
+redis.call('HSET', KEYS[1], own, pack(now + ttl, p[2] + tonumber(ARGV[4]), p[3], tonumber(ARGV[5])))
 redis.call('PEXPIRE', KEYS[1], ttl * 2)
-local l, maxExp = sweep(KEYS[1], now)
-return {1, l, syncUsers(KEYS[2], ARGV[3], l, maxExp, now, ttl), p[2]}
+local l, maxExp, r = sweep(KEYS[1], now, ARGV[2])
+return {1, l, syncUsers(KEYS[2], ARGV[3], l, maxExp, now, ttl), r}
 `;
 
-// ARGV: ttl, field, userId. Returns 1.
+// ARGV: ttl, slot, userId, token. Removes only this connection. Returns 1.
 const LUA_RELEASE =
     LUA_COMMON +
     `
 local now = nowMs()
 local ttl = tonumber(ARGV[1])
-sweep(KEYS[1], now)
-local v = redis.call('HGET', KEYS[1], ARGV[2])
-if v then
-    local p = parse(v)
-    if p[2] <= 1 then
-        redis.call('HDEL', KEYS[1], ARGV[2])
-    else
-        redis.call('HSET', KEYS[1], ARGV[2], pack(p[1], p[2] - 1, p[3], p[4], p[5]))
-    end
-end
-local l, maxExp = sweep(KEYS[1], now)
+redis.call('HDEL', KEYS[1], ARGV[2] .. '#' .. ARGV[4])
+local l, maxExp = sweep(KEYS[1], now, ARGV[2])
 syncUsers(KEYS[2], ARGV[3], l, maxExp, now, ttl)
 return 1
 `;
@@ -433,54 +456,41 @@ function counts(raw: unknown, offset: number): Counts {
 
 function valkeyBackend(client: ValkeyLike): Backend {
     return {
-        async acquire(key, limit) {
+        async acquire(key, token, limit) {
             const raw = await run(
                 client,
                 SCRIPTS.acquire,
                 [leaseKeyOf(key.userId), USERS_KEY],
-                [LEASE_TTL_MS, limit, fieldOf(key), key.userId, MAX_SLOT_CONNECTIONS],
+                [LEASE_TTL_MS, limit, fieldOf(key), key.userId, MAX_SLOT_CONNECTIONS, token],
             );
             if (!Array.isArray(raw)) throw new Error('unexpected lease script result');
             return Number(raw[0]) === 1 ? counts(raw, 1) : null;
         },
-        async refresh(key, deltaBytes, bytesPerSec) {
+        async refresh(key, token, deltaBytes, bytesPerSec) {
             const raw = await run(
                 client,
                 SCRIPTS.refresh,
                 [leaseKeyOf(key.userId), USERS_KEY],
-                [LEASE_TTL_MS, fieldOf(key), key.userId, deltaBytes, bytesPerSec],
+                [LEASE_TTL_MS, fieldOf(key), key.userId, deltaBytes, bytesPerSec, token],
             );
             if (!Array.isArray(raw)) throw new Error('unexpected lease script result');
             return Number(raw[0]) === 1 ? counts(raw, 1) : null;
         },
-        async release(key) {
+        async release(key, token) {
             await run(
                 client,
                 SCRIPTS.release,
                 [leaseKeyOf(key.userId), USERS_KEY],
-                [LEASE_TTL_MS, fieldOf(key), key.userId],
+                [LEASE_TTL_MS, fieldOf(key), key.userId, token],
             );
         },
         async list() {
             const raw = await run(client, SCRIPTS.list, [USERS_KEY], []);
-            const out: ActiveDownload[] = [];
-            if (!Array.isArray(raw)) return out;
-            for (let i = 0; i + 2 < raw.length; i += 3) {
-                const field = String(raw[i + 1]);
-                const sep = field.indexOf('|');
-                const p = String(raw[i + 2])
-                    .split('|')
-                    .map(Number);
-                out.push({
-                    userId: String(raw[i]),
-                    fileId: field.slice(0, sep),
-                    deviceKey: field.slice(sep + 1),
-                    bytesSent: p[2] ?? 0,
-                    startedAt: p[3] ?? 0,
-                    bytesPerSec: p[4] ?? 0,
-                });
-            }
-            return out;
+            if (!Array.isArray(raw)) return [];
+            const rows: Array<[string, string, string]> = [];
+            for (let i = 0; i + 2 < raw.length; i += 3)
+                rows.push([String(raw[i]), String(raw[i + 1]), String(raw[i + 2])]);
+            return aggregateConnections(rows);
         },
     };
 }
@@ -509,10 +519,11 @@ class Lease implements DownloadLease {
     private isRevoked = false;
     private lastBytes = 0;
     private lastAt: number;
-
     constructor(
         private readonly backend: Backend,
         private readonly key: LeaseKey,
+        /** Identifies this connection inside its slot; only it may refresh or release it. */
+        private readonly token: string,
         counts: Counts,
         now: number,
         private readonly onFallback: boolean,
@@ -537,11 +548,11 @@ class Lease implements DownloadLease {
         const dt = now - this.lastAt;
         const bytesPerSec = dt > 0 ? Math.round((delta * 1000) / dt) : 0;
         try {
-            let c = await this.backend.refresh(this.key, delta, bytesPerSec, now);
+            let c = await this.backend.refresh(this.key, this.token, delta, bytesPerSec, now);
             if (c === null) {
                 // The slot expired while the stream was alive. Take it again through the
                 // normal limit check; when that refuses, the stream must end.
-                c = await this.backend.acquire(this.key, parallelLimit(), now);
+                c = await this.backend.acquire(this.key, this.token, parallelLimit(), now);
                 if (c === null) {
                     this.isRevoked = true;
                     this.markReleased();
@@ -569,7 +580,7 @@ class Lease implements DownloadLease {
         if (this.released) return;
         this.markReleased();
         try {
-            await this.backend.release(this.key, Date.now());
+            await this.backend.release(this.key, this.token, Date.now());
         } catch (err) {
             // The lease expires on its own within LEASE_TTL_MS.
             log.warn('lease release failed', {
@@ -588,11 +599,12 @@ class Lease implements DownloadLease {
 export async function acquireDownloadLease(key: LeaseKey): Promise<AcquireResult> {
     const limit = parallelLimit();
     const now = Date.now();
+    const token = crypto.randomBytes(8).toString('hex');
     let backend = pickBackend();
     let c: Counts | null;
     let onFallback = false;
     try {
-        c = await backend.acquire(key, limit, now);
+        c = await backend.acquire(key, token, limit, now);
     } catch (err) {
         log.warn('shared lease acquire failed, using process-local leases', {
             err: err instanceof Error ? err.message : String(err),
@@ -600,14 +612,14 @@ export async function acquireDownloadLease(key: LeaseKey): Promise<AcquireResult
         if (backend !== memoryBackend) {
             // A timed-out call may still have taken the slot in Valkey: give it back so
             // it does not linger until the TTL as a phantom.
-            void backend.release(key, now).catch(() => {});
+            void backend.release(key, token, now).catch(() => {});
         }
         backend = memoryBackend;
         onFallback = true;
-        c = await backend.acquire(key, limit, now);
+        c = await backend.acquire(key, token, limit, now);
     }
     if (!c) return { ok: false, retryAfterSec: RETRY_AFTER_SEC };
-    return { ok: true, lease: new Lease(backend, key, c, now, onFallback) };
+    return { ok: true, lease: new Lease(backend, key, token, c, now, onFallback) };
 }
 
 /** Live downloads across all replicas (plus any on the local fallback). */

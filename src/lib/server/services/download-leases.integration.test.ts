@@ -30,11 +30,14 @@ const KB = 1024;
 type Cmd = { customCommand: (c: string[]) => Promise<unknown> };
 
 /** Valkey's clock cannot be faked: age a lease by rewriting its stored expiry. */
-async function expireField(userId: string, field: string): Promise<void> {
+async function expireField(userId: string, slot: string): Promise<void> {
     const c = getCoordinationClient() as unknown as Cmd;
-    const v = String(await c.customCommand(['HGET', `dl:lease:${userId}`, field]));
-    const rest = v.split('|').slice(1).join('|');
-    await c.customCommand(['HSET', `dl:lease:${userId}`, field, `1|${rest}`]);
+    const flat = (await c.customCommand(['HGETALL', `dl:lease:${userId}`])) as string[];
+    for (let i = 0; i < flat.length; i += 2) {
+        if (!flat[i]!.startsWith(`${slot}#`)) continue;
+        const rest = String(flat[i + 1]).split('|').slice(1).join('|');
+        await c.customCommand(['HSET', `dl:lease:${userId}`, flat[i]!, `1|${rest}`]);
+    }
     await c.customCommand(['ZADD', 'dl:users', '1', userId]); // its dl:users score ages too
 }
 
@@ -239,5 +242,45 @@ describe.runIf(RUN)('download leases, real Valkey', () => {
         expect((await acquireDownloadLease({ userId: u, fileId: 'f2', deviceKey: 'd' })).ok).toBe(
             false,
         );
+    });
+
+    it('an expired-and-replaced slot is not deleted or shared by the old stream', async () => {
+        cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 2;
+        const u = user();
+        const old = await must(u, 'f1');
+        await expireField(u, 'f1|dev');
+        const fresh = await must(u, 'f1'); // same slot, new owner
+        await old.refresh(10); // re-acquires its own connection
+        await old.release(); // must only drop the old stream's own connection
+        const mine = (await listActiveDownloads()).filter((d) => d.userId === u);
+        expect(mine.map((d) => d.fileId)).toEqual(['f1']);
+        expect(await fresh.refresh(0)).toBeGreaterThanOrEqual(0);
+        await fresh.release();
+        expect((await listActiveDownloads()).filter((d) => d.userId === u)).toHaveLength(0);
+    });
+
+    it('a stale stream refreshing a replaced slot cannot extend the new owner, release only drops itself', async () => {
+        cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 1;
+        const u = user();
+        const old = await must(u, 'f1');
+        await expireField(u, 'f1|dev');
+        const fresh = await must(u, 'f1');
+        await old.release();
+        // the new owner's slot is intact: another file is still refused
+        expect((await acquireDownloadLease({ userId: u, fileId: 'f2', deviceKey: 'dev' })).ok).toBe(
+            false,
+        );
+        await fresh.release();
+    });
+
+    it('sums per-connection speeds for one slot', async () => {
+        const u = user();
+        const a = await must(u, 'f1');
+        const b = await must(u, 'f1');
+        await a.refresh(100 * KB);
+        await b.refresh(100 * KB);
+        const [d] = (await listActiveDownloads()).filter((x) => x.userId === u);
+        expect(d!.bytesSent).toBe(200 * KB);
+        expect(d!.bytesPerSec).toBeGreaterThan(0);
     });
 });

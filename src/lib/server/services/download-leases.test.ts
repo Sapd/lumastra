@@ -107,7 +107,7 @@ describe('parallel limit', () => {
         ).toBe(false);
     });
 
-    it('releasing a refCount-2 field keeps the slot until the second release', async () => {
+    it('releasing one of two connections keeps the slot until the second release', async () => {
         cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 1;
         const a = await must('u', 'f1');
         const b = await must('u', 'f1');
@@ -341,5 +341,45 @@ describe('a lapsed lease cannot bypass the limit', () => {
         await l.release();
         const active = await listActiveDownloads();
         expect(active.map((d) => d.fileId)).toEqual(['f2']);
+    });
+});
+
+describe('connection ownership', () => {
+    it('a stale stream never deletes or shares the replacement slot', async () => {
+        cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 1;
+        const old = await must('u', 'f1');
+        vi.advanceTimersByTime(31_000); // old lapses without a refresh
+        const fresh = await must('u', 'f1'); // new owner of the same slot
+        await old.release(); // must not touch the new owner's connection
+        const other = () => acquireDownloadLease({ userId: 'u', fileId: 'f2', deviceKey: 'dev' });
+        expect((await other()).ok).toBe(false);
+        await fresh.release();
+        expect((await other()).ok).toBe(true);
+    });
+
+    it('an old stream refreshing after expiry re-acquires its own connection, not the new one', async () => {
+        cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 1;
+        const old = await must('u', 'f1');
+        vi.advanceTimersByTime(31_000);
+        const fresh = await must('u', 'f1');
+        await old.refresh(10);
+        expect(old.revoked()).toBe(false);
+        await old.release();
+        expect(await listActiveDownloads()).toHaveLength(1); // fresh still holds the slot
+        await fresh.release();
+        expect(await listActiveDownloads()).toHaveLength(0);
+    });
+});
+
+describe('admin speed of a segmented download', () => {
+    it('sums the per-connection speeds of one slot', async () => {
+        const a = await must('u', 'f1');
+        const b = await must('u', 'f1');
+        vi.advanceTimersByTime(1_000);
+        await a.refresh(100 * KB);
+        await b.refresh(100 * KB);
+        const list = await listActiveDownloads();
+        expect(list).toHaveLength(1);
+        expect(list[0]).toMatchObject({ bytesSent: 200 * KB, bytesPerSec: 200 * KB });
     });
 });
