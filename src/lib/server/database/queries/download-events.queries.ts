@@ -311,6 +311,31 @@ export async function listDownloadEvents(
     return rows.map(mapEventRow);
 }
 
+/**
+ * Whether a transfer of `fileId` (a file or rendition id) by the user shows in the log since
+ * `since`: still open, or active/ended after it, refusals aside. Lets the web queue confirm
+ * that a link it handed to the browser actually reached the server.
+ */
+export async function hasRecentDownloadStart(
+    sql: postgres.Sql,
+    userId: string,
+    fileId: string,
+    since: Date,
+): Promise<boolean> {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fileId)) {
+        return false;
+    }
+    const rows = await sql<{ one: number }[]>`
+        SELECT 1 AS one FROM download_events
+        WHERE user_id = ${userId}
+          AND (file_id = ${fileId} OR rendition_id = ${fileId})
+          AND (outcome IS NULL OR outcome IN ('completed', 'aborted', 'error'))
+          AND last_activity_at >= ${since}
+        LIMIT 1
+    `;
+    return rows.length > 0;
+}
+
 /** Open rows (no end yet) of the given users, for matching running transfers to titles. */
 export async function listOpenDownloadEvents(
     sql: postgres.Sql,
