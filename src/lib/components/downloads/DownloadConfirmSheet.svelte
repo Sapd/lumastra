@@ -90,7 +90,6 @@
 
     // Exactly one browser-specific hint: the Brave one when the picker is off in Brave
     // (blocked by default or just failed), else the one for this browser.
-    let batchSize = $derived(downloadQueue.profile.batchSize(pending?.list.maxParallel ?? 0));
     let browserHint = $derived.by(() => {
         if (
             !downloadQueue.supportsFolderPicker &&
@@ -222,7 +221,11 @@
                             {m.downloads_folder_chosen({ name: downloadQueue.folderName })}
                         </p>
                     {/if}
-                    <p class="text-xs text-surface-400">{m.downloads_folder_hint()}</p>
+                    {#if !downloadQueue.folderName}
+                        <p class="text-xs text-surface-400" data-testid="download-folder-hint">
+                            {m.downloads_folder_hint()}
+                        </p>
+                    {/if}
                     {#if hasOversize}
                         <p class="text-sm text-amber-300" data-testid="download-fat32-warning">
                             {m.downloads_fat32_warning()}
@@ -231,14 +234,11 @@
                 </div>
             {/if}
             {#if !downloadQueue.supportsFolderPicker || !downloadQueue.folderName}
-                <p class="text-xs text-surface-400">
-                    {downloadQueue.supportsFolderPicker
-                        ? m.downloads_links_hint_no_folder()
-                        : m.downloads_links_hint()}
-                </p>
-                <p class="text-xs text-surface-400" data-testid="download-browser-hint">
-                    {browserHint}
-                </p>
+                {#if !downloadQueue.supportsFolderPicker}
+                    <p class="text-xs text-surface-400" data-testid="download-browser-hint">
+                        {browserHint}
+                    </p>
+                {/if}
                 {#if zipOffered}
                     <fieldset class="space-y-1" data-testid="download-format">
                         <legend class="text-sm text-surface-200"
@@ -285,11 +285,6 @@
                             {/if}
                         {/if}
                     </fieldset>
-                {/if}
-                {#if batchSize > 1 && available.length > batchSize && !zipChosen}
-                    <p class="text-xs text-surface-400" data-testid="download-batch-hint">
-                        {m.downloads_links_batch_hint({ count: batchSize })}
-                    </p>
                 {/if}
             {/if}
 

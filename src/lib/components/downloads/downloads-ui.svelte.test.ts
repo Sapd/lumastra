@@ -398,7 +398,7 @@ describe('DownloadQueuePanel', () => {
 });
 
 describe('link batches in the UI', () => {
-    test('the sheet explains the batches and the panel offers "Start next N"', async () => {
+    test('the sheet shows one hint line and the panel offers "Start next N"', async () => {
         const items = [1, 2, 3, 4, 5].map((n) => ({
             mediaItemId: `ep-${n}`,
             fileId: `f-${n}`,
@@ -414,7 +414,11 @@ describe('link batches in the UI', () => {
         downloadQueue.forgetFolder();
         render(DownloadConfirmSheet);
         render(DownloadQueuePanel);
-        expect(await screen.findByTestId('download-batch-hint')).toBeTruthy();
+        // Chromium with the picker and no folder yet: only the folder hint, no browser or
+        // batch hint (the panel's "Start next" explains batches when they happen).
+        expect(await screen.findByTestId('download-folder-hint')).toBeTruthy();
+        expect(screen.queryByTestId('download-browser-hint')).toBeNull();
+        expect(screen.queryByTestId('download-batch-hint')).toBeNull();
         // no folder picked in this test: link mode
         await downloadQueue.start();
         const next = await screen.findByTestId('download-start-next');
