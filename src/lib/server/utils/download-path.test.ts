@@ -206,15 +206,21 @@ describe('openDownloadableFileIn without /proc/self/fd', () => {
 
     it('production fails closed (null) and warns once an hour naming the reason', async () => {
         process.env.NODE_ENV = 'production';
-        expect(await openDownloadableFileIn(join(lib, 'real.mkv'), [lib], 'a', { readFdLink: noProc })).toBeNull();
-        expect(await openDownloadableFileIn(join(lib, 'real.mkv'), [lib], 'b', { readFdLink: noProc })).toBeNull();
+        expect(
+            await openDownloadableFileIn(join(lib, 'real.mkv'), [lib], 'a', { readFdLink: noProc }),
+        ).toBeNull();
+        expect(
+            await openDownloadableFileIn(join(lib, 'real.mkv'), [lib], 'b', { readFdLink: noProc }),
+        ).toBeNull();
         expect(warn).toHaveBeenCalledTimes(1);
         expect(String(warn.mock.calls[0]![0])).toContain('/proc/self/fd');
     });
 
     it('the dev server keeps the realpath + inode fallback', async () => {
         process.env.NODE_ENV = 'development';
-        const f = await openDownloadableFileIn(join(lib, 'real.mkv'), [lib], 'c', { readFdLink: noProc });
+        const f = await openDownloadableFileIn(join(lib, 'real.mkv'), [lib], 'c', {
+            readFdLink: noProc,
+        });
         expect(f?.size).toBe(1);
         await f?.handle.close();
     });

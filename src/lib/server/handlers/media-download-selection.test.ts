@@ -380,7 +380,9 @@ describe('download path containment', () => {
 
 describe('web hand-off nonce: only a returned 200/206 marks started', () => {
     const withNonce = () => {
-        const e = event('/api/media/media/download?h=abcdef123456') as unknown as { locals: unknown };
+        const e = event('/api/media/media/download?h=abcdef123456') as unknown as {
+            locals: unknown;
+        };
         e.locals = { user: { userId: 'u1' } };
         return e as unknown as RequestEvent;
     };
