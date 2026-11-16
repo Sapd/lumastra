@@ -140,6 +140,8 @@ function setup(
             opts.sleep ??
             (async (ms) => {
                 sleeps.push(ms);
+                // yield a macrotask so a polling loop cannot starve the test's own waits
+                await new Promise((r) => setTimeout(r, 0));
             }),
         pickDirectory: opts.noPicker ? null : (opts.pick ?? (async () => fs.root())),
         ...(opts.env ? { env: () => opts.env as BrowserEnv } : {}),
