@@ -229,7 +229,7 @@ export async function handleDownloadFile(
         // The web queue's hand-off nonce: now that a slot is held and bytes are about to flow,
         // tell the slots endpoint THIS hand-off reached the server.
         const handoff = parseHandoffNonce(event.url.searchParams.get('h'));
-        const handoffUser = event.locals.user?.userId;
+        const handoffUser = event.locals?.user?.userId;
         if (handoff && handoffUser) void noteHandoff(handoffUser, handoff);
 
         // Open once and verify the descriptor (no second path resolution): a link or

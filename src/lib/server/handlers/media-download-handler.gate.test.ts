@@ -16,6 +16,10 @@ vi.mock('$lib/server/config', async (importOriginal) => {
     return { ...actual, config: { ...actual.config, FEATURE_MEDIA_DOWNLOAD: true } };
 });
 vi.mock('$lib/server/database', () => ({ getDb: () => ({}) }));
+vi.mock('$lib/server/services/download-handoff.js', () => ({
+    parseHandoffNonce: () => null,
+    noteHandoff: async () => {},
+}));
 vi.mock('$lib/server/utils/download-path', () => ({
     resolveDownloadablePath: async () => null,
 }));

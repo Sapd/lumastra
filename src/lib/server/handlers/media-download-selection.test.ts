@@ -40,10 +40,10 @@ const dlPath = vi.hoisted(() => ({
     refused: [] as unknown[][],
 }));
 const handoff = vi.hoisted(() => ({ noted: [] as unknown[][] }));
-vi.mock('$lib/server/services/download-handoff.js', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('$lib/server/services/download-handoff.js')>();
-    return { ...actual, noteHandoff: async (...a: unknown[]) => void handoff.noted.push(a) };
-});
+vi.mock('$lib/server/services/download-handoff.js', () => ({
+    parseHandoffNonce: (v: string | null) => (v && /^[A-Za-z0-9_-]{8,64}$/.test(v) ? v : null),
+    noteHandoff: async (...a: unknown[]) => void handoff.noted.push(a),
+}));
 vi.mock('$lib/server/utils/download-path', () => ({
     resolveDownloadablePath: async (...a: unknown[]) => {
         dlPath.calls.push(a);

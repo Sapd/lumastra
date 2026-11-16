@@ -64,6 +64,13 @@ function fakeLease(rate = 1000) {
 
 const target = { mediaItemId: ITEM, fileId: FILE, surface: 'api' as const, bytesTotal: 100 };
 
+/** Rows actually inserted: starts the budget let through. */
+async function insertedRows(): Promise<number> {
+    let n = 0;
+    for (const r of mocks.start.mock.results) if ((await r.value) !== null) n++;
+    return n;
+}
+
 async function flush(): Promise<void> {
     await vi.advanceTimersByTimeAsync(0);
 }
@@ -379,6 +386,7 @@ describe('range accounting', () => {
         expect(mocks.start).toHaveBeenCalledWith(
             expect.anything(),
             expect.objectContaining({ rangeStart: null }),
+            expect.anything(),
         );
     });
 
@@ -393,6 +401,7 @@ describe('range accounting', () => {
         expect(mocks.start).toHaveBeenCalledWith(
             expect.anything(),
             expect.objectContaining({ rangeStart: 50 }),
+            expect.anything(),
         );
         expect(mocks.end).toHaveBeenCalledWith(expect.anything(), 'row-1', 'completed', {
             bytesSentDelta: 50,
@@ -440,13 +449,13 @@ describe('per-user row budget', () => {
             res.tracker.onEnd('completed');
         }
         await flush();
-        expect(mocks.start).toHaveBeenCalledTimes(120);
+        expect(await insertedRows()).toBe(120);
         await vi.advanceTimersByTimeAsync(61_000);
         const res = await trackDownload(event({ jfDevice: { deviceId: 'late' } }), target);
         if (!res.ok) throw new Error('expected ok');
         res.tracker.onBytes(1);
         await flush();
-        expect(mocks.start).toHaveBeenCalledTimes(121);
+        expect(await insertedRows()).toBe(121);
     });
 
     it('refusals count against the same budget', async () => {
@@ -467,7 +476,7 @@ describe('per-user row budget', () => {
         await flush();
         // 40 refusals + 80 starts fill the 120 budget
         expect(mocks.refused).toHaveBeenCalledTimes(40);
-        expect(mocks.start).toHaveBeenCalledTimes(80);
+        expect(await insertedRows()).toBe(80);
     });
 });
 
