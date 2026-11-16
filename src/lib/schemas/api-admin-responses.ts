@@ -1752,6 +1752,10 @@ const TitleFields = {
     seriesTitle: z.string().optional(),
     season: z.number().optional(),
     episode: z.number().optional(),
+    archive: z
+        .boolean()
+        .optional()
+        .describe('A ZIP of a season or series: title/seriesTitle/season describe the archive'),
 };
 
 export const AdminDownloadsResponseSchema = z.object({
@@ -1791,8 +1795,13 @@ export const AdminDownloadsResponseSchema = z.object({
     degraded: z
         .boolean()
         .optional()
-        .describe('A download currently runs on the process-local fallback (Valkey unavailable): limits apply per replica'),
-    nextBefore: z.string().optional().describe('Opaque keyset cursor: pass as `before` to load older rows'),
+        .describe(
+            'A download currently runs on the process-local fallback (Valkey unavailable): limits apply per replica',
+        ),
+    nextBefore: z
+        .string()
+        .optional()
+        .describe('Opaque keyset cursor: pass as `before` to load older rows'),
 });
 export type AdminDownloadsResponse = z.infer<typeof AdminDownloadsResponseSchema>;
 

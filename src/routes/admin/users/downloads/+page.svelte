@@ -118,8 +118,18 @@
         seriesTitle?: string;
         season?: number;
         episode?: number;
+        archive?: boolean;
     }): string {
         if (!r.title) return '—';
+        if (r.archive) {
+            // A ZIP of a series (title = the series) or of one season (series + "Season NN").
+            const what = !r.seriesTitle
+                ? r.title
+                : r.season != null
+                  ? `${r.seriesTitle} - ${m.admin_downloads_season({ season: String(r.season).padStart(2, '0') })}`
+                  : `${r.seriesTitle} · ${r.title}`;
+            return `${what} (${m.admin_downloads_zip()})`;
+        }
         if (!r.seriesTitle) return r.title;
         const ep =
             r.season != null && r.episode != null

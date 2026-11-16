@@ -51,6 +51,7 @@ function row(over: Partial<DownloadEventRow>): DownloadEventRow {
         mediaItemId: 'm1',
         fileId: 'f1',
         renditionId: null,
+        kind: 'file',
         surface: 'web',
         deviceKey: 'd1',
         clientName: 'Firefox',
@@ -250,5 +251,53 @@ describe('GET /api/admin/downloads', () => {
         const body = await ((await def.handlers.GET!(event, ctx())) as Response).json();
         expect(body.active[0]).toMatchObject({ username: 'alice', bytesSent: 5 });
         expect(body.active[0].title).toBeUndefined();
+    });
+
+    it('flags archive rows (no file, no rendition) and matches a running archive lease by media item', async () => {
+        m.active.mockResolvedValue([
+            {
+                userId: 'u1',
+                fileId: 'per-request-lease-key',
+                deviceKey: 'd1',
+                bytesSent: 5,
+                startedAt: 1_000,
+                bytesPerSec: 10,
+            },
+        ]);
+        m.listOpen.mockResolvedValue([
+            row({
+                id: 'z1',
+                mediaItemId: 'season1',
+                fileId: null,
+                kind: 'archive',
+                endedAt: null,
+                outcome: null,
+            }),
+        ]);
+        m.listEvents.mockResolvedValue([
+            row({ id: 'z2', mediaItemId: 'season1', fileId: null, kind: 'archive' }),
+            // denied movie/episode rows have no file id either, but are not ZIPs
+            row({ id: 'd1', mediaItemId: 'm9', fileId: null, outcome: 'denied' }),
+            row({ id: 'f2' }),
+        ]);
+        m.titles.mockResolvedValue(
+            new Map([
+                [
+                    'season1',
+                    { title: 'Season 2', seriesTitle: 'Example Show', season: 2, episode: null },
+                ],
+            ]),
+        );
+        const res = (await def.handlers.GET!(event, ctx())) as Response;
+        const body = await res.json();
+        expect(body.active[0]).toMatchObject({
+            archive: true,
+            seriesTitle: 'Example Show',
+            season: 2,
+        });
+        expect(body.events[0]).toMatchObject({ id: 'z2', archive: true });
+        expect(body.events[1]).toMatchObject({ id: 'd1' });
+        expect(body.events[1].archive).toBeUndefined();
+        expect(body.events[2].archive).toBeUndefined();
     });
 });

@@ -446,4 +446,95 @@ describe('download-events queries', () => {
             expect(asked).toHaveLength(1);
         });
     });
+
+    describe('archive downloads (kind = archive)', () => {
+        const SERIES = '44444444-4444-4444-8444-444444444444';
+        const SEASON = '55555555-5555-4555-8555-555555555555';
+        const archive = (mediaItemId: string, over: Record<string, unknown> = {}) => ({
+            userId,
+            mediaItemId,
+            archive: true,
+            surface: 'web' as const,
+            deviceKey: 'dev-zip',
+            clientName: 'Test',
+            bytesTotal: 1000,
+            ...over,
+        });
+
+        it('stores kind archive with no file and no rendition id', async () => {
+            await startDownloadEvent(sql, archive(SERIES));
+            const [row] = await listOpenDownloadEvents(sql, [userId]);
+            expect(row).toMatchObject({
+                kind: 'archive',
+                mediaItemId: SERIES,
+                fileId: null,
+                renditionId: null,
+            });
+        });
+
+        it('every request is its own row, even for the same item on the same device', async () => {
+            const a = await startDownloadEvent(sql, archive(SERIES));
+            const b = await startDownloadEvent(sql, archive(SERIES));
+            const c = await startDownloadEvent(sql, archive(SEASON));
+            expect(new Set([a, b, c]).size).toBe(3);
+            const open = await listOpenDownloadEvents(sql, [userId]);
+            expect(open).toHaveLength(3);
+            expect(open.every((r) => r.kind === 'archive')).toBe(true);
+        });
+
+        it('repeated aborts never accumulate: each attempt is one row with its own bytes', async () => {
+            const ids: string[] = [];
+            for (let i = 0; i < 3; i++) {
+                const id = await startDownloadEvent(sql, archive(SERIES));
+                await updateDownloadEvent(sql, id, { bytesSentDelta: 400 });
+                await endDownloadEvent(sql, id, 'aborted', { bytesSentDelta: 100 });
+                ids.push(id);
+            }
+            expect(new Set(ids).size).toBe(3);
+            const rows = await listDownloadEvents(sql, { userId, limit: 10 });
+            expect(rows).toHaveLength(3);
+            for (const r of rows) {
+                expect(r).toMatchObject({ outcome: 'aborted', bytesSent: 500, bytesTotal: 1000 });
+            }
+        });
+
+        it('completed only when that one stream sent the whole archive', async () => {
+            const part = await startDownloadEvent(sql, archive(SERIES));
+            await endDownloadEvent(sql, part, 'completed', { bytesSentDelta: 999 });
+            const full = await startDownloadEvent(sql, archive(SERIES));
+            await endDownloadEvent(sql, full, 'completed', { bytesSentDelta: 1000 });
+            const rows = await listDownloadEvents(sql, { userId, limit: 10 });
+            expect(rows.find((r) => r.id === part)!.outcome).toBe('aborted');
+            expect(rows.find((r) => r.id === full)!.outcome).toBe('completed');
+        });
+
+        it('does not touch the open row of a single file of the same item', async () => {
+            const f = await startDownloadEvent(sql, {
+                ...base(),
+                mediaItemId: SERIES,
+                deviceKey: 'dev-zip',
+            });
+            const a = await startDownloadEvent(sql, archive(SERIES));
+            expect(a).not.toBe(f);
+            const [file] = await sql<{ open_streams: number; kind: string }[]>`
+                SELECT open_streams, kind FROM download_events WHERE id = ${f}`;
+            expect(file).toMatchObject({ open_streams: 1, kind: 'file' });
+        });
+
+        it('a refused archive attempt is an archive row; a refused single file stays a file row', async () => {
+            await recordRefusedDownload(sql, archive(SERIES, { bytesTotal: null }), 'denied');
+            await recordRefusedDownload(
+                sql,
+                { userId, mediaItemId: ITEM, surface: 'web', deviceKey: 'dev-zip' },
+                'denied',
+            );
+            const rows = await listDownloadEvents(sql, { userId, limit: 10 });
+            expect(rows.find((r) => r.mediaItemId === SERIES)!.kind).toBe('archive');
+            // no file id (a movie/episode denied before a file was chosen) is NOT a ZIP
+            expect(rows.find((r) => r.mediaItemId === ITEM)).toMatchObject({
+                kind: 'file',
+                fileId: null,
+            });
+        });
+    });
 });

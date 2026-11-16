@@ -27,7 +27,10 @@ import {
     type DownloadTitleInfo,
 } from '$lib/server/database/queries/download-events.queries.js';
 import { getUserByUsername } from '$lib/server/database/queries/users.queries.js';
-import { isDownloadLeasingDegraded, listActiveDownloads } from '$lib/server/services/download-leases.js';
+import {
+    isDownloadLeasingDegraded,
+    listActiveDownloads,
+} from '$lib/server/services/download-leases.js';
 import { kbpsToBytesPerSecond } from '$lib/server/utils/throttled-stream.js';
 import { config } from '$lib/server/config.js';
 
@@ -41,6 +44,9 @@ const QuerySchema = z.object({
         .optional(),
     limit: z.coerce.number().int().min(1).max(MAX_LIMIT).optional().default(50),
 });
+
+/** A ZIP of a season or series (explicit kind; a refused single file may also lack a file id). */
+const isArchive = (e: Pick<DownloadEventRow, 'kind'>): boolean => e.kind === 'archive';
 
 function titleFields(t: DownloadTitleInfo | undefined) {
     return {
@@ -112,7 +118,11 @@ export const def = defineEndpoint({
                     (e: DownloadEventRow) =>
                         e.userId === l.userId &&
                         e.deviceKey === l.deviceKey &&
-                        (e.fileId === l.fileId || e.renditionId === l.fileId),
+                        (e.fileId === l.fileId ||
+                            e.renditionId === l.fileId ||
+                            // an archive's lease has a fresh per-request key: match it to the
+                            // user's open archive row on the same device
+                            isArchive(e)),
                 );
 
             const matched = shownLeases.map((l) => ({ lease: l, event: openFor(l) }));
@@ -136,6 +146,7 @@ export const def = defineEndpoint({
                     username: names.get(lease.userId),
                     fileId: lease.fileId,
                     ...titleFields(event ? titles.get(event.mediaItemId) : undefined),
+                    archive: event && isArchive(event) ? true : undefined,
                     clientName: event?.clientName ?? undefined,
                     surface: event?.surface,
                     bytesTotal: event?.bytesTotal ?? undefined,
@@ -148,6 +159,7 @@ export const def = defineEndpoint({
                     userId: r.userId,
                     username: names.get(r.userId),
                     ...titleFields(titles.get(r.mediaItemId)),
+                    archive: isArchive(r) ? true : undefined,
                     clientName: r.clientName ?? undefined,
                     surface: r.surface,
                     bytesTotal: r.bytesTotal ?? undefined,

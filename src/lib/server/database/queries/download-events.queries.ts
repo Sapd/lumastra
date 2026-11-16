@@ -6,7 +6,9 @@
  *
  * One row per (user, file|rendition, device) transfer. A segmented or resumed
  * download (several Range requests from the same device within a few minutes)
- * re-opens and extends the same row instead of adding one per request.
+ * re-opens and extends the same row instead of adding one per request. An archive download
+ * (`kind = 'archive'`, a ZIP of a season or series: no file or rendition id) is NOT resumable:
+ * every request is its own row, never joined or re-opened.
  */
 
 import type postgres from 'postgres';
@@ -36,6 +38,8 @@ export interface DownloadEventInput {
     clientName?: string | null;
     bytesTotal?: number | null;
     rangeStart?: number | null;
+    /** A ZIP of a season or series (no file or rendition id). */
+    archive?: boolean;
 }
 
 export interface DownloadEventRow {
@@ -45,6 +49,7 @@ export interface DownloadEventRow {
     fileId: string | null;
     renditionId: string | null;
     surface: DownloadSurface;
+    kind: 'file' | 'archive';
     deviceKey: string;
     clientName: string | null;
     bytesTotal: number | null;
@@ -83,6 +88,22 @@ export async function startDownloadEvent<
     const staleBefore = new Date(Date.now() - OPEN_ROW_STALE_MS);
     const lockKey = `${e.userId}|${e.deviceKey}|${fileId ?? renditionId ?? ''}`;
 
+    if (e.archive) {
+        // Every archive request is its own attempt: never joined, never re-opened, so bytes_sent
+        // counts one stream and `completed` means that stream sent the whole archive.
+        if (opts?.allowInsert && !opts.allowInsert()) return null as never;
+        const rows = await sql<{ id: string }[]>`
+            INSERT INTO download_events
+                (user_id, media_item_id, file_id, rendition_id, kind, surface, device_key,
+                 client_name, bytes_total, range_start, open_streams)
+            VALUES
+                (${e.userId}, ${e.mediaItemId}, NULL, NULL, 'archive', ${e.surface},
+                 ${e.deviceKey}, ${e.clientName ?? null}, ${e.bytesTotal ?? null}, NULL, 1)
+            RETURNING id
+        `;
+        return rows[0].id;
+    }
+
     const id = await sql.begin(async (tx): Promise<string | null> => {
         await tx`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
 
@@ -97,6 +118,7 @@ export async function startDownloadEvent<
                   AND device_key = ${e.deviceKey}
                   AND file_id IS NOT DISTINCT FROM ${fileId}
                   AND rendition_id IS NOT DISTINCT FROM ${renditionId}
+                  AND kind = 'file'
                   AND ended_at IS NULL
                 ORDER BY started_at DESC
                 LIMIT 1
@@ -114,6 +136,7 @@ export async function startDownloadEvent<
                   AND device_key = ${e.deviceKey}
                   AND file_id IS NOT DISTINCT FROM ${fileId}
                   AND rendition_id IS NOT DISTINCT FROM ${renditionId}
+                  AND kind = 'file'
                   AND ended_at > ${since} AND outcome IN ('aborted', 'error')
                 ORDER BY started_at DESC
                 LIMIT 1
@@ -268,11 +291,11 @@ export async function recordRefusedDownload(
 ): Promise<void> {
     await sql`
         INSERT INTO download_events
-            (user_id, media_item_id, file_id, rendition_id, surface, device_key,
+            (user_id, media_item_id, file_id, rendition_id, kind, surface, device_key,
              client_name, bytes_total, range_start, ended_at, outcome, open_streams)
         VALUES
             (${e.userId}, ${e.mediaItemId}, ${e.fileId ?? null}, ${e.renditionId ?? null},
-             ${e.surface}, ${e.deviceKey}, ${e.clientName ?? null}, ${e.bytesTotal ?? null},
+             ${e.archive ? 'archive' : 'file'}, ${e.surface}, ${e.deviceKey}, ${e.clientName ?? null}, ${e.bytesTotal ?? null},
              ${e.rangeStart ?? null}, now(), ${outcome}, 0)
     `;
 }
@@ -286,6 +309,7 @@ function mapEventRow(r: Record<string, unknown>): DownloadEventRow {
         fileId: (r.file_id as string | null) ?? null,
         renditionId: (r.rendition_id as string | null) ?? null,
         surface: r.surface as DownloadSurface,
+        kind: r.kind === 'archive' ? 'archive' : 'file',
         deviceKey: r.device_key as string,
         clientName: (r.client_name as string | null) ?? null,
         bytesTotal: num(r.bytes_total),
@@ -317,7 +341,7 @@ export async function listDownloadEvents(
     // The cursor timestamp goes in as text (cast in SQL): postgres.js would turn a
     // `::timestamptz` parameter into a JS Date and cut it to milliseconds.
     const rows = await sql<Record<string, unknown>[]>`
-        SELECT id, user_id, media_item_id, file_id, rendition_id, surface, device_key,
+        SELECT id, user_id, media_item_id, file_id, rendition_id, kind, surface, device_key,
                client_name, bytes_total, bytes_sent, range_start, started_at,
                last_activity_at, ended_at, outcome,
                to_char(started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
@@ -339,7 +363,7 @@ export async function listOpenDownloadEvents(
 ): Promise<DownloadEventRow[]> {
     if (userIds.length === 0) return [];
     const rows = await sql<Record<string, unknown>[]>`
-        SELECT id, user_id, media_item_id, file_id, rendition_id, surface, device_key,
+        SELECT id, user_id, media_item_id, file_id, rendition_id, kind, surface, device_key,
                client_name, bytes_total, bytes_sent, range_start, started_at,
                last_activity_at, ended_at, outcome
         FROM download_events

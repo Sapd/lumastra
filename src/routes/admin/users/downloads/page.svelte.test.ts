@@ -78,6 +78,31 @@ const payload: AdminDownloadsResponse = {
             endedAt: '2026-11-16T07:01:00.000Z',
         },
         {
+            id: 'e5',
+            userId: 'u1',
+            username: 'alice',
+            title: 'Season 2',
+            seriesTitle: 'Zip Show',
+            season: 2,
+            archive: true,
+            surface: 'web',
+            bytesTotal: 100,
+            bytesSent: 40,
+            outcome: 'error',
+            startedAt: '2026-11-16T06:00:00.000Z',
+        },
+        {
+            id: 'e6',
+            userId: 'u1',
+            username: 'alice',
+            title: 'Whole Show',
+            archive: true,
+            surface: 'web',
+            bytesSent: 0,
+            outcome: 'aborted',
+            startedAt: '2026-11-16T05:00:00.000Z',
+        },
+        {
             // Still running: shown above, not repeated in the history.
             id: 'e4',
             userId: 'u1',
@@ -108,6 +133,13 @@ describe('admin downloads page', () => {
         expect(within(running).getByText('alice')).toBeTruthy();
         expect(screen.getByText('3.0 MB/s of 10.0 MB/s')).toBeTruthy();
         expect(within(history).queryByText('Pilot')).toBeNull();
+    });
+
+    it('shows a ZIP with its series, "Season NN" for a season, and "(ZIP)"', async () => {
+        render(DownloadsPage);
+        const history = await screen.findByRole('region', { name: 'History' });
+        expect(within(history).getByText('Zip Show - Season 02 (ZIP)')).toBeTruthy();
+        expect(within(history).getByText('Whole Show (ZIP)')).toBeTruthy();
     });
 
     it('labels refused attempts "Not allowed" and "Limit reached"', async () => {
