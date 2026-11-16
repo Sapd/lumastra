@@ -101,10 +101,12 @@ describe('DOWNLOAD_ALLOWED_MOUNT_ROOTS as extra roots', () => {
     });
 
     it('empty and whitespace entries are ignored (they never widen the roots)', async () => {
-        expect(await resolveDownloadablePathIn(join(lib, 'evil.mkv'), [lib, '', '   ', '\t'])).toBeNull();
-        expect(await resolveDownloadablePathIn(join(lib, 'debrid.mkv'), [lib, ' ' + mount + ' '])).toBe(
-            join(mount, 'remote.mkv'),
-        );
+        expect(
+            await resolveDownloadablePathIn(join(lib, 'evil.mkv'), [lib, '', '   ', '\t']),
+        ).toBeNull();
+        expect(
+            await resolveDownloadablePathIn(join(lib, 'debrid.mkv'), [lib, ' ' + mount + ' ']),
+        ).toBe(join(mount, 'remote.mkv'));
     });
 
     it('a root with a trailing slash works', async () => {

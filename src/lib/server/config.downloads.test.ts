@@ -95,7 +95,9 @@ describe('DOWNLOAD_ALLOWED_MOUNT_ROOTS', () => {
             section: 'downloads',
             label: 'Extra download folders (debrid/rclone mounts)',
         });
-        expect(def?.description).toContain('Downloads only follow symlinks into the library folders.');
+        expect(def?.description).toContain(
+            'Downloads only follow symlinks into the library folders.',
+        );
         expect(def?.requiresRestart).not.toBe(true);
     });
 });
