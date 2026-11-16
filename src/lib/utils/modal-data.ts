@@ -1000,8 +1000,9 @@ export async function fetchTmdbDetails(
         const year = isMovie(data.type) ? (data as { year?: number }).year : undefined;
 
         return {
-            // `ids` is the new open external-ID map (replaces old `externalIds`)
-            externalIds: data.ids as ExternalIds,
+            // `ids` holds provider ids only; the catalog UUID is `id`. The modal
+            // resolves seasons, play and watch state through `externalIds.internal`.
+            externalIds: { ...(data.ids as ExternalIds), internal: data.id },
             mediaType: isTv ? 'tv' : 'movie',
             title: data.title,
             overview: data.overview,

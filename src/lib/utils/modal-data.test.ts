@@ -14,7 +14,42 @@ vi.mock('$lib/api/content', () => ({
 }));
 
 import * as contentApi from '$lib/api/content';
-import { canPlayDirectly, enrichMediaData, extractAudiobookFields } from '$lib/utils/modal-data';
+import {
+    canPlayDirectly,
+    enrichMediaData,
+    extractAudiobookFields,
+    fetchTmdbDetails,
+} from '$lib/utils/modal-data';
+
+describe('fetchTmdbDetails — catalog UUID', () => {
+    beforeEach(() => vi.resetAllMocks());
+
+    // The server puts the UUID in `id` and never in `ids` (buildExternalIdsObject
+    // only copies provider rows). The modal finds the series' seasons through
+    // `externalIds.internal`, so a similar-series modal without it showed no
+    // episodes and no play button.
+    it('carries the node id into externalIds.internal', async () => {
+        vi.mocked(contentApi.getMediaDetails).mockResolvedValue({
+            data: {
+                id: '0b9e6f0e-6a55-4f6e-9a57-1f1c1d7f2a10',
+                type: 'series',
+                title: 'A series',
+                ids: { tmdb: '13916', imdb: 'tt0877057' },
+                images: {},
+                isAvailable: true,
+                canRequest: false,
+            },
+            error: null,
+            status: 200,
+        });
+        const details = await fetchTmdbDetails({ tmdb: '13916' }, 'tv');
+        expect(details?.externalIds).toEqual({
+            tmdb: '13916',
+            imdb: 'tt0877057',
+            internal: '0b9e6f0e-6a55-4f6e-9a57-1f1c1d7f2a10',
+        });
+    });
+});
 
 describe('canPlayDirectly availability precedence', () => {
     it('does not infer unknown availability from a Sonarr file hint', () => {
