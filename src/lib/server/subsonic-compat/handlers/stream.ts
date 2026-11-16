@@ -10,7 +10,7 @@ import {
 } from '$lib/server/utils/contained-fs.js';
 import { stat as fsStat } from 'node:fs/promises';
 import { Readable } from 'node:stream';
-import { basename, extname } from 'node:path';
+import { extname } from 'node:path';
 import type { RequestEvent } from '@sveltejs/kit';
 import type postgres from 'postgres';
 import { subsonicError, subsonicOk } from '$lib/server/subsonic-compat/serializers/response.js';
@@ -42,6 +42,17 @@ import { probeAudioSource } from '$lib/server/services/music-transcode/source-me
 import type { MusicCodec } from '$lib/server/services/music-transcode/types.js';
 import { parseMusicCodec } from '$lib/server/services/music-transcode/types.js';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition.js';
+import { serveContainedMediaFile } from '$lib/server/utils/file-streaming.js';
+import { canDownload } from '$lib/server/services/download-access.service.js';
+import {
+    parseRangeStart,
+    recordDownloadRefused,
+    trackDownload,
+    untrackedDownload,
+} from '$lib/server/services/download-tracking.js';
+import { resolvePlaybackSelection } from '$lib/server/database/queries/media-file-resolution.queries.js';
+import { getMediaItemForDownloadNaming } from '$lib/server/database/queries/catalog-operations.queries.js';
+import { buildDownloadFilename } from '$lib/server/handlers/media-download-handler.js';
 
 const logger = Logger.for('SubsonicCompat');
 
@@ -283,6 +294,95 @@ async function maybeServeTranscoded(args: MaybeTranscodeArgs): Promise<Response 
     }
 }
 
+/**
+ * The shape the download tracker reads (user, device, client). A Subsonic request has
+ * no session or Jellyfin device: the client name from the auth context stands in for
+ * the device, so one client app is one device (one lease slot) per user.
+ */
+function trackerEventOf(event: RequestEvent, auth: SubsonicAuthContext): RequestEvent {
+    return {
+        request: event.request,
+        locals: {
+            user: { userId: auth.userId },
+            jfDevice: { deviceId: `subsonic:${auth.clientName}`, clientName: auth.clientName },
+        },
+    } as unknown as RequestEvent;
+}
+
+function subsonicRefusal(
+    auth: SubsonicAuthContext,
+    status: number,
+    code: number,
+    message: string,
+    extra: Record<string, string> = {},
+): Response {
+    const envelope = subsonicError(code, message, auth.format);
+    return new Response(envelope.body, {
+        status,
+        headers: { ...Object.fromEntries(envelope.headers), ...extra, ...CORS_HEADERS },
+    });
+}
+
+/**
+ * download.view: the original file as an attachment, through the same pipeline as the
+ * other download routes (permission already checked by the caller): lease + limits + log
+ * via `trackDownload`, the lease rate as the throttle, and a filename built from catalog
+ * metadata (never the on-disk name, which often carries release-group junk).
+ */
+async function serveDownload(
+    event: RequestEvent,
+    auth: SubsonicAuthContext,
+    sql: postgres.Sql,
+    track: { id: string },
+    containerPath: string,
+    fileSize: number,
+): Promise<Response> {
+    const rangeHeader = event.request.headers.get('range');
+    const selection = await resolvePlaybackSelection(sql, track.id);
+    const naming = await getMediaItemForDownloadNaming(sql, track.id);
+    const ext = extname(containerPath);
+    const filename = naming ? buildDownloadFilename(naming, ext) : `download${ext}`;
+
+    const tracked =
+        event.request.method === 'HEAD'
+            ? { ok: true as const, tracker: untrackedDownload() }
+            : await trackDownload(trackerEventOf(event, auth), {
+                  mediaItemId: track.id,
+                  fileId: selection.fileId,
+                  surface: 'api',
+                  bytesTotal: fileSize,
+                  rangeStart: parseRangeStart(rangeHeader),
+              });
+    if (!tracked.ok) return tracked.response;
+    const { tracker } = tracked;
+
+    let response: Response | null;
+    try {
+        response = await serveContainedMediaFile(containerPath, rangeHeader, {
+            disposition: attachmentDisposition(filename),
+            ifRange: event.request.headers.get('if-range'),
+            throttleBytesPerSec: () => tracker.rate(),
+            observer: tracker.observer,
+            extraHeaders: CORS_HEADERS,
+        });
+    } catch (err) {
+        tracker.discard();
+        throw err;
+    }
+    if (!response) {
+        tracker.discard();
+        return subsonicError(70, 'Audio file not found.', auth.format);
+    }
+    if (response.status === 416) {
+        tracker.discard();
+        return subsonicRefusal(auth, 416, 0, 'Range not satisfiable.', {
+            'Content-Range': `bytes */${fileSize}`,
+        });
+    }
+    tracker.served(response.status);
+    return response;
+}
+
 async function serveTrack(
     event: RequestEvent,
     auth: SubsonicAuthContext,
@@ -301,6 +401,28 @@ async function serveTrack(
     const track = await getTrackDetail(sql, id);
     if (!track) {
         return subsonicError(70, 'Song not found.', auth.format);
+    }
+    // Per-user permission for the original file. After the access check so an item the
+    // caller cannot see stays "not found".
+    if (disposition === 'attachment') {
+        const allowed = await canDownload({
+            userId: auth.userId,
+            username: auth.username,
+            isAdmin: auth.ownerIsAdmin,
+        });
+        if (!allowed) {
+            recordDownloadRefused(
+                trackerEventOf(event, auth),
+                { mediaItemId: track.id, surface: 'api' },
+                'denied',
+            );
+            return subsonicRefusal(
+                auth,
+                403,
+                50,
+                'User is not authorized for the given operation.',
+            );
+        }
     }
     const filePath = track.file_path;
     if (!filePath) {
@@ -327,10 +449,9 @@ async function serveTrack(
 
     const ext = extname(containerPath).toLowerCase();
     const contentType = AUDIO_MIME_TYPES[ext] ?? 'application/octet-stream';
-    // On-disk filenames are attacker-influenced (anyone who can add a file to a
-    // library names it), and a `"` in one would close the quoted parameter early.
-    const contentDisposition =
-        disposition === 'attachment' ? attachmentDisposition(basename(containerPath)) : 'inline';
+    // Only the inline (stream) path uses this; a download names its file from catalog
+    // metadata in serveDownload, never from the on-disk name.
+    const contentDisposition = 'inline';
 
     logger.debug('Subsonic stream request', {
         username: auth.username,
@@ -358,6 +479,10 @@ async function serveTrack(
             contentDisposition,
         });
         if (transcodeResponse) return transcodeResponse;
+    }
+
+    if (disposition === 'attachment') {
+        return serveDownload(event, auth, sql, track, containerPath, fileSize);
     }
 
     // The row was checked at scan time; a link swapped in since (for the file or a

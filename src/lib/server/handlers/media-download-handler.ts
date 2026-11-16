@@ -85,7 +85,7 @@ export function buildDownloadFilename(item: MediaDownloadNamingRow, fileExt: str
  */
 export async function handleDownloadFile(
     event: RequestEvent,
-    { surface }: { surface: DownloadSurface },
+    { surface, itemId: itemIdOverride }: { surface: DownloadSurface; itemId?: string },
 ): Promise<Response> {
     const { params, request } = event;
 
@@ -102,7 +102,7 @@ export async function handleDownloadFile(
     const forbidden = await downloadForbiddenResponse(event.locals);
     if (forbidden) {
         // Logged after the verdict, so an item the caller cannot see (404 above) never lands here.
-        const refusedItemId = params.itemId ?? params.id;
+        const refusedItemId = itemIdOverride ?? params.itemId ?? params.id;
         if (refusedItemId) {
             recordDownloadRefused(event, { mediaItemId: refusedItemId, surface }, 'denied');
         }
@@ -114,13 +114,15 @@ export async function handleDownloadFile(
         return ApiResponses.error('Database unavailable');
     }
 
-    const itemId = params.itemId ?? params.id;
+    const itemId = itemIdOverride ?? params.itemId ?? params.id;
     if (!itemId) {
         return ApiResponses.badRequest('Item ID is required');
     }
 
     try {
-        const protocolAdapter = event.url.pathname.toLowerCase().startsWith('/j/');
+        // The surface the route named, not the URL: the Jellyfin protocol adapter
+        // (mediaSourceId, stale-source fallback) only applies to /j.
+        const protocolAdapter = surface === 'jellyfin';
         const rawSourceId = protocolAdapter
             ? (event.url.searchParams.get('mediaSourceId') ??
               event.url.searchParams.get('MediaSourceId') ??
@@ -170,7 +172,9 @@ export async function handleDownloadFile(
             request.method === 'HEAD'
                 ? { ok: true as const, tracker: untrackedDownload() }
                 : await trackDownload(event, {
-                      mediaItemId: itemId,
+                      // The catalog row's own id (never a composite / external id), so
+                      // the lease and the log always key on the same item.
+                      mediaItemId: naming?.id ?? itemId,
                       fileId: file?.id ?? selection.fileId,
                       surface,
                       bytesTotal: fileSize,
@@ -198,6 +202,7 @@ export async function handleDownloadFile(
         }
         // 416 and a refused path stream nothing, so no lease is held and nothing is logged.
         if (!response || response.status === 416) tracker.discard();
+        else tracker.served(response.status);
         return response ?? ApiResponses.notFound('Media not found');
     } catch (err) {
         logger.error('Failed to serve download', undefined, {

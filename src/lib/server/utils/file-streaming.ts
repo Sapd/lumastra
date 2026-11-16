@@ -209,6 +209,11 @@ export interface StreamObserver {
      * `aborted` = the client cancelled, `error` = the source failed.
      */
     onEnd?(outcome: 'completed' | 'aborted' | 'error'): void;
+    /**
+     * Called once with a function that tears the body down from the server side
+     * (stops reading the file and errors the response), for a watchdog or a revoked lease.
+     */
+    setCancel?(cancel: () => void): void;
 }
 
 export interface ServeFileOptions {
@@ -218,6 +223,8 @@ export interface ServeFileOptions {
     /** Bytes/sec cap; a function is re-read while streaming (see `throttleNodeStream`). */
     throttleBytesPerSec?: number | (() => number);
     observer?: StreamObserver;
+    /** Extra response headers (e.g. CORS for a compat surface). */
+    extraHeaders?: Record<string, string>;
 }
 
 /** Wrap a body so `observer` sees every chunk and the end. Identity when there is no observer. */
@@ -225,7 +232,7 @@ function observeStream(
     body: ReadableStream<Uint8Array>,
     observer: StreamObserver | undefined,
 ): ReadableStream<Uint8Array> {
-    if (!observer || (!observer.onBytes && !observer.onEnd)) return body;
+    if (!observer || (!observer.onBytes && !observer.onEnd && !observer.setCancel)) return body;
     const reader = body.getReader();
     let ended = false;
     const end = (outcome: 'completed' | 'aborted' | 'error'): void => {
@@ -238,6 +245,17 @@ function observeStream(
         }
     };
     return new ReadableStream<Uint8Array>({
+        start(controller) {
+            observer.setCancel?.(() => {
+                end('aborted');
+                reader.cancel().catch(() => {});
+                try {
+                    controller.error(new Error('download cancelled by the server'));
+                } catch {
+                    // already closed or errored
+                }
+            });
+        },
         async pull(controller) {
             try {
                 const { value, done } = await reader.read();
@@ -294,6 +312,7 @@ async function serveFile(
         ifRange,
         throttleBytesPerSec = 0,
         observer,
+        extraHeaders,
     }: ServeFileOptions,
 ): Promise<Response> {
     const { size: fileSize, mtimeMs } = await getCachedStat(filePath);
@@ -301,7 +320,7 @@ async function serveFile(
 
     const contentType = getMimeType(ext.toLowerCase());
 
-    const validatorHeaders: Record<string, string> = { ETag: validators.etag };
+    const validatorHeaders: Record<string, string> = { ...extraHeaders, ETag: validators.etag };
     if (validators.lastModified) validatorHeaders['Last-Modified'] = validators.lastModified;
 
     // A stale If-Range demotes the request to a full-file transfer.

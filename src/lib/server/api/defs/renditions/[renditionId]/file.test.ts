@@ -11,6 +11,16 @@ const mockOverride = vi.fn();
 const cfgOverrides = { FEATURE_MEDIA_DOWNLOAD: false };
 const mockGetRendition = vi.fn();
 const mockTrack = vi.fn();
+const mockServe = vi.fn();
+const tracker = {
+    rate: () => 5,
+    observer: { onBytes() {}, onEnd() {} },
+    onBytes() {},
+    onEnd() {},
+    served: vi.fn(),
+    discard: vi.fn(),
+};
+let useFakeTracker = false;
 
 vi.mock('$lib/server/middleware/media-access.js', () => ({
     checkMediaAccess: (...a: unknown[]) => mockCheckMediaAccess(...a),
@@ -33,7 +43,7 @@ vi.mock('$lib/server/config.js', async (importOriginal) => {
     };
 });
 vi.mock('$lib/server/utils/file-streaming.js', () => ({
-    serveFileByPath: async () => new Response('ok', { status: 200 }),
+    serveFileByPath: (...a: unknown[]) => mockServe(...a),
 }));
 vi.mock('$lib/server/database/queries/catalog-operations.queries.js', () => ({
     getMediaItemForDownloadNaming: async () => null,
@@ -55,6 +65,7 @@ vi.mock('$lib/server/services/download-tracking.js', async (importOriginal) => {
         ...actual,
         trackDownload: (...a: unknown[]) => {
             mockTrack(...a);
+            if (useFakeTracker) return Promise.resolve({ ok: true, tracker });
             return (actual.trackDownload as (...b: unknown[]) => unknown)(...a);
         },
     };
@@ -84,11 +95,13 @@ beforeEach(() => {
     vi.clearAllMocks();
     mockGetRendition.mockResolvedValue({
         id: 'r1',
-        media_item_id: 'm1',
+        media_item_id: '22222222-2222-4222-8222-222222222222',
         status: 'ready',
         artifact_name: 'a.mp4',
         rung_id: '720p',
     });
+    mockServe.mockImplementation(async () => new Response('ok', { status: 200 }));
+    useFakeTracker = false;
     mockCheckMediaAccess.mockResolvedValue(true);
     mockOverride.mockResolvedValue(null);
     cfgOverrides.FEATURE_MEDIA_DOWNLOAD = false;
@@ -129,5 +142,39 @@ describe('rendition file download tracking', () => {
     it('a GET goes through trackDownload', async () => {
         expect((await call('GET')).status).toBe(200);
         expect(mockTrack).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('rendition file download wiring', () => {
+    beforeEach(() => {
+        useFakeTracker = true;
+    });
+
+    it('serves with the tracker observer and a throttle function', async () => {
+        await call('GET');
+        const args = mockServe.mock.calls[0]!;
+        expect(typeof args[5]).toBe('function');
+        expect(args[5]()).toBe(5);
+        expect(args[6]).toBe(tracker.observer);
+        expect(tracker.served).toHaveBeenCalledWith(200);
+        expect(tracker.discard).not.toHaveBeenCalled();
+    });
+
+    it('a 416 discards the lease', async () => {
+        mockServe.mockResolvedValue(new Response(null, { status: 416 }));
+        await call('GET');
+        expect(tracker.discard).toHaveBeenCalledTimes(1);
+    });
+
+    it('a missing artifact (ENOENT) discards the lease and answers 404', async () => {
+        mockServe.mockRejectedValue(Object.assign(new Error('gone'), { code: 'ENOENT' }));
+        expect((await call('GET')).status).toBe(404);
+        expect(tracker.discard).toHaveBeenCalledTimes(1);
+    });
+
+    it('any other throw discards the lease and propagates', async () => {
+        mockServe.mockRejectedValue(new Error('disk'));
+        await expect(call('GET')).rejects.toThrow('disk');
+        expect(tracker.discard).toHaveBeenCalledTimes(1);
     });
 });

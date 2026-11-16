@@ -27,6 +27,7 @@ import { defineEndpoint } from '$lib/server/api/define.js';
 import { ApiProblem } from '$lib/server/api/problem.js';
 import { checkMediaAccess } from '$lib/server/middleware/media-access.js';
 import { getDb } from '$lib/server/database/index.js';
+import { mediaAccessUserOf } from '$lib/server/services/download-access-guard.js';
 import { handleDownloadFile } from '$lib/server/handlers/media-download-handler.js';
 
 const DownloadQuery = z
@@ -89,7 +90,7 @@ export const def = defineEndpoint({
 
             const sql = getDb();
             if (sql) {
-                if (!(await checkMediaAccess(sql, id, event.locals.user))) {
+                if (!(await checkMediaAccess(sql, id, mediaAccessUserOf(event.locals)))) {
                     return ApiProblem.notFound('Media item not found');
                 }
             } else if (event.locals.principal?.isAdmin !== true) {

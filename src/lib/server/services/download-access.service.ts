@@ -6,7 +6,8 @@
  *   1. FEATURE_MEDIA_DOWNLOAD off -> false (canDownload only; userMayDownload has
  *      no master switch, rendition routes bring their own flag)
  *   2. no user -> false
- *   3. admin -> true
+ *   3. admin -> true, but only for a user row that exists and is neither disabled nor
+ *      deleted (a disabled admin session that is still alive must not download)
  *   4. per-user override (users.allow_downloads) when not null
  *   5. DOWNLOAD_GROUPS non-empty -> the user's synced groups (users.groups, from
  *      the DB row, not request headers) must match one of them
@@ -75,11 +76,12 @@ export async function userMayDownload(
     user: { userId?: string; username?: string; isAdmin?: boolean } | null | undefined,
 ): Promise<boolean> {
     if (!user) return false;
-    if (user.isAdmin) return true;
+    // A principal with no user id (nothing to look up) keeps the plain admin verdict.
+    if (user.isAdmin && !user.userId) return true;
     if (!user.userId) return false;
     const row = await loadRow(user.userId);
-    if (row === undefined) return false; // no such user
-    return explainDownloadAccess(row, false).allowed;
+    if (row === undefined) return false; // no such user, or disabled / deleted
+    return explainDownloadAccess(row, user.isAdmin === true).allowed;
 }
 
 /** Original-file downloads: FEATURE_MEDIA_DOWNLOAD master switch plus the per-user part. */

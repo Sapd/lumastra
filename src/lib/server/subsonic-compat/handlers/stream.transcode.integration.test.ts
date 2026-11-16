@@ -14,7 +14,14 @@
 // Run against preprod:
 //   npm run test:integration -- src/lib/server/subsonic-compat/handlers/stream.transcode.integration.test.ts
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+
+// download.view is gated by the per-user download permission (covered by stream.download.test.ts);
+// here the user is simply allowed so the direct-play behaviour can be checked.
+vi.mock('$lib/server/services/download-access.service.js', () => ({
+    canDownload: async () => true,
+    userMayDownload: async () => true,
+}));
 import { randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync, existsSync, statSync, writeFileSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';

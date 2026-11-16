@@ -15,17 +15,24 @@ vi.mock('$lib/server/middleware/media-access.js', () => ({
     checkMediaAccess: (...a: unknown[]) => mockCheck(...a),
 }));
 vi.mock('$lib/server/database/index.js', () => ({ getDb: () => ({}) }));
+const mockResolve = vi.fn();
+vi.mock('../../catalog/resolve-id.js', () => ({
+    resolveCatalogInternalId: (...a: unknown[]) => mockResolve(...a),
+}));
 
 const { def } = await import('./download-internal.js');
 
-async function call() {
+async function call(headers: Record<string, string> = {}) {
     const url = 'http://localhost/api/media/m1/download';
     return def.handlers.GET!(
         {
-            locals: { user: { userId: 'u1', username: 'alice' } },
+            locals: {
+                user: { userId: 'u1', username: 'alice', mediaAccessIsAdmin: true },
+                principal: { isAdmin: false },
+            },
             url: new URL(url),
             params: { id: 'm1' },
-            request: new Request(url),
+            request: new Request(url, { headers }),
         } as unknown as RequestEvent,
         { surface: 'internal' } as never,
     );
@@ -35,6 +42,7 @@ describe('media/{id}/download (internal)', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockCheck.mockResolvedValue(true);
+        mockResolve.mockResolvedValue('internal-1');
     });
 
     it('returns the handler response untouched, surface web', async () => {
@@ -45,7 +53,16 @@ describe('media/{id}/download (internal)', () => {
         mockHandle.mockResolvedValue(handlerRes);
         const res = await call();
         expect(res).toBe(handlerRes);
-        expect(mockHandle).toHaveBeenCalledWith(expect.anything(), { surface: 'web' });
+        expect(mockHandle).toHaveBeenCalledWith(expect.anything(), {
+            surface: 'web',
+            itemId: 'internal-1',
+        });
+        // same access user as download-list: the principal decides admin, not the user row
+        expect(mockCheck).toHaveBeenCalledWith(
+            {},
+            'internal-1',
+            expect.objectContaining({ userId: 'u1', mediaAccessIsAdmin: false }),
+        );
     });
 
     it('passes the handler 403 through (download not allowed)', async () => {
@@ -57,5 +74,24 @@ describe('media/{id}/download (internal)', () => {
         mockCheck.mockResolvedValue(false);
         expect((await call()).status).toBe(404);
         expect(mockHandle).not.toHaveBeenCalled();
+    });
+
+    it('an unresolvable id is 404', async () => {
+        mockResolve.mockResolvedValue(null);
+        expect((await call()).status).toBe(404);
+        expect(mockHandle).not.toHaveBeenCalled();
+    });
+
+    it('a cross-site request is refused with 403 before anything else', async () => {
+        const res = await call({ 'sec-fetch-site': 'cross-site' });
+        expect(res.status).toBe(403);
+        expect(mockCheck).not.toHaveBeenCalled();
+        expect(mockHandle).not.toHaveBeenCalled();
+    });
+
+    it('same-origin and header-less requests pass', async () => {
+        mockHandle.mockResolvedValue(new Response('x'));
+        expect((await call({ 'sec-fetch-site': 'same-origin' })).status).toBe(200);
+        expect((await call()).status).toBe(200);
     });
 });

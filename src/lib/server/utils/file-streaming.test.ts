@@ -182,6 +182,27 @@ describe('serveFileByPath', () => {
             await response.body!.cancel();
             expect(onEnd).toHaveBeenCalledExactlyOnceWith('aborted');
         });
+
+        it('a server-side cancel hook errors the body and reports aborted once', async () => {
+            await setupMocks(8);
+            const onEnd = vi.fn();
+            const onBytes = vi.fn();
+            let cancel: (() => void) | undefined;
+            const response = await serveFileByPath(
+                '/media/observed-c.mp4',
+                null,
+                undefined,
+                'inline',
+                null,
+                0,
+                { onEnd, onBytes, setCancel: (c) => (cancel = c) },
+            );
+            expect(cancel).toBeTypeOf('function');
+            cancel!();
+            await expect(response.arrayBuffer()).rejects.toThrow();
+            expect(onBytes).not.toHaveBeenCalled();
+            expect(onEnd).toHaveBeenCalledExactlyOnceWith('aborted');
+        });
     });
 
     describe('full file response (no Range header)', () => {

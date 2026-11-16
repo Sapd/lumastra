@@ -43,6 +43,19 @@ describe('userMayDownload (no master switch)', () => {
         expect(await canDownload(user())).toBe(false);
     });
 
+    it('an admin whose row is disabled or deleted may not download', async () => {
+        getUserAllowDownloads.mockResolvedValue(undefined); // the query hides disabled / deleted rows
+        expect(await userMayDownload(user(true))).toBe(false);
+        cfg.FEATURE_MEDIA_DOWNLOAD = true;
+        expect(await canDownload(user(true))).toBe(false);
+    });
+
+    it('an active admin ignores a per-user override and the group rule', async () => {
+        mockRow(false);
+        cfg.DOWNLOAD_GROUPS = ['family'];
+        expect(await userMayDownload(user(true))).toBe(true);
+    });
+
     it('is false without a user or userId, true for admins', async () => {
         expect(await userMayDownload(null)).toBe(false);
         expect(await userMayDownload({ username: 'x' })).toBe(false);
@@ -80,9 +93,10 @@ describe('canDownload', () => {
         expect(await canDownload(undefined)).toBe(false);
     });
 
-    it('is true for admins without a query', async () => {
+    it('is true for an active admin (the row is still checked: disabled admins are refused)', async () => {
+        mockRow(null);
         expect(await canDownload(user(true))).toBe(true);
-        expect(getUserAllowDownloads).not.toHaveBeenCalled();
+        expect(getUserAllowDownloads).toHaveBeenCalledTimes(1);
     });
 
     it('is false for a user without userId unless admin', async () => {
@@ -167,9 +181,9 @@ describe('download groups', () => {
         expect(await userMayDownload(user())).toBe(false);
     });
 
-    it('admin outside the group is allowed without a query', async () => {
+    it('an active admin outside the group is allowed', async () => {
+        mockRow(null, ['other']);
         expect(await userMayDownload(user(true))).toBe(true);
-        expect(getUserAllowDownloads).not.toHaveBeenCalled();
     });
 
     it('group match is case-insensitive like hasGroupPermission', async () => {

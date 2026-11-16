@@ -29,6 +29,15 @@ const KB = 1024;
 
 type Cmd = { customCommand: (c: string[]) => Promise<unknown> };
 
+/** Valkey's clock cannot be faked: age a lease by rewriting its stored expiry. */
+async function expireField(userId: string, field: string): Promise<void> {
+    const c = getCoordinationClient() as unknown as Cmd;
+    const v = String(await c.customCommand(['HGET', `dl:lease:${userId}`, field]));
+    const rest = v.split('|').slice(1).join('|');
+    await c.customCommand(['HSET', `dl:lease:${userId}`, field, `1|${rest}`]);
+    await c.customCommand(['ZADD', 'dl:users', '1', userId]); // its dl:users score ages too
+}
+
 describe.runIf(RUN)('download leases, real Valkey', () => {
     let users: string[] = [];
     const user = () => {
@@ -100,13 +109,10 @@ describe.runIf(RUN)('download leases, real Valkey', () => {
     it('an expired lease frees its slot; refresh keeps one alive', async () => {
         cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 2;
         const u = user();
-        vi.useFakeTimers({ toFake: ['Date'] });
-        vi.setSystemTime(Date.now());
         await must(u, 'dead');
         const alive = await must(u, 'alive');
-        vi.setSystemTime(Date.now() + 20_000);
+        await expireField(u, 'dead|dev');
         await alive.refresh(0);
-        vi.setSystemTime(Date.now() + 15_000); // dead: 35 s old, alive: 15 s
         expect((await acquireDownloadLease({ userId: u, fileId: 'n1', deviceKey: 'd' })).ok).toBe(
             true,
         );
@@ -183,14 +189,11 @@ describe.runIf(RUN)('download leases, real Valkey', () => {
 
     it('a user whose lease expired without release stops counting toward U', async () => {
         cfg.DOWNLOAD_TOTAL_BANDWIDTH_KBPS = 4000;
-        vi.useFakeTimers({ toFake: ['Date'] });
-        vi.setSystemTime(Date.now());
         const a = await must(user(), 'f1');
-        await must(user(), 'f1'); // B never refreshes
+        const bUser = user();
+        await must(bUser, 'f1'); // B never refreshes
         expect(await a.refresh(0)).toBe(2000 * KB);
-        vi.setSystemTime(Date.now() + 20_000);
-        await a.refresh(0);
-        vi.setSystemTime(Date.now() + 15_000);
+        await expireField(bUser, 'f1|dev');
         expect(await a.refresh(0)).toBe(4000 * KB);
     });
 
@@ -200,5 +203,41 @@ describe.runIf(RUN)('download leases, real Valkey', () => {
         const c = getCoordinationClient() as unknown as Cmd;
         expect(Number(await c.customCommand(['PTTL', `dl:lease:${u}`]))).toBeGreaterThan(0);
         expect(Number(await c.customCommand(['PTTL', 'dl:users']))).toBeGreaterThan(0);
+    });
+
+    it('splits one slot share over its connections and caps a slot at 4 connections', async () => {
+        cfg.DOWNLOAD_USER_BANDWIDTH_KBPS = 3000;
+        const u = user();
+        const a = await must(u, 'f1');
+        await must(u, 'f1');
+        await must(u, 'f1');
+        expect(await a.refresh(0)).toBe(1000 * KB);
+        await must(u, 'f1');
+        const r = await acquireDownloadLease({ userId: u, fileId: 'f1', deviceKey: 'dev' });
+        expect(r.ok).toBe(false);
+    });
+
+    it('a refresh after expiry does not recreate the field: it re-acquires through the limit', async () => {
+        cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 1;
+        const u = user();
+        const l = await must(u, 'f1');
+        await expireField(u, 'f1|dev');
+        await must(u, 'f2'); // takes the freed slot
+        await l.refresh(10);
+        expect(l.revoked()).toBe(true);
+        await l.release();
+        const mine = (await listActiveDownloads()).filter((d) => d.userId === u);
+        expect(mine.map((d) => d.fileId)).toEqual(['f2']);
+    });
+
+    it('uses the Valkey clock: a skewed local clock does not expire a live lease', async () => {
+        cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 1;
+        const u = user();
+        await must(u, 'f1');
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(Date.now() + 120_000); // this replica's clock runs 2 min ahead
+        expect((await acquireDownloadLease({ userId: u, fileId: 'f2', deviceKey: 'd' })).ok).toBe(
+            false,
+        );
     });
 });

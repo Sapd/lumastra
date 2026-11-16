@@ -68,14 +68,17 @@ function ep(
     };
 }
 
-async function call(query = '', id = 'series1') {
+async function call(query = '', id = 'series1', headers: Record<string, string> = {}) {
     const url = `http://localhost/api/media/${id}/download-list${query}`;
     const res = await def.handlers.GET!(
         {
-            locals: { user: { userId: 'u1', username: 'alice' }, principal: { isAdmin: false } },
+            locals: {
+                user: { userId: 'u1', username: 'alice', mediaAccessIsAdmin: true },
+                principal: { isAdmin: false },
+            },
             url: new URL(url),
             params: { id },
-            request: new Request(url),
+            request: new Request(url, { headers }),
         } as unknown as RequestEvent,
         { surface: 'internal' } as never,
     );
@@ -151,10 +154,43 @@ describe('media/{id}/download-list', () => {
         expect(body.items[0].available).toBe(false);
     });
 
-    it('allowed is false when the download gate is closed', async () => {
+    it('allowed is false when the download gate is closed, and no items are returned', async () => {
         mockCanDownload.mockResolvedValue(false);
         const { body } = await call();
-        expect(body.allowed).toBe(false);
+        expect(body).toEqual({
+            allowed: false,
+            maxParallel: 3,
+            seriesFolder: '',
+            missingCount: 0,
+            items: [],
+        });
+        expect(mockEpisodes).not.toHaveBeenCalled();
+    });
+
+    it('a cross-site request is refused with 403', async () => {
+        const { res } = await call('', 'series1', { 'sec-fetch-site': 'cross-site' });
+        expect(res.status).toBe(403);
+        expect(mockCheckAccess).not.toHaveBeenCalled();
+    });
+
+    it('builds the access user from the principal, like the download route (non-admin principal wins)', async () => {
+        await call();
+        expect(mockCheckAccess).toHaveBeenCalledWith(
+            expect.anything(),
+            'series1',
+            expect.objectContaining({ userId: 'u1', mediaAccessIsAdmin: false }),
+        );
+        expect(mockCheckBatch).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.anything(),
+            expect.objectContaining({ mediaAccessIsAdmin: false }),
+        );
+    });
+
+    it('an episode without a season number goes to "Season 00"', async () => {
+        mockEpisodes.mockResolvedValue([ep('x1', null, 1)]);
+        const { body } = await call();
+        expect(body.items[0]).toMatchObject({ season: null, seasonFolder: 'Season 00' });
     });
 
     it('a movie is one item with no season folder', async () => {

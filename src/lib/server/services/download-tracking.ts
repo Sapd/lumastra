@@ -65,7 +65,12 @@ export interface DownloadTracker {
     observer: StreamObserver;
     onBytes(n: number): void;
     /** The transfer is over; releases the lease and closes the log row. Idempotent. */
-    onEnd(outcome: 'completed' | 'aborted' | 'error'): void;
+    onEnd(outcome: 'completed' | 'aborted' | 'error' | 'rate_limited'): void;
+    /**
+     * The status the response was actually served with. Only a 206 is a ranged transfer:
+     * a stale If-Range turns the request into a full send, which must not log a range start.
+     */
+    served(status: number): void;
     /** The response turned out not to stream anything (416, 404): release without logging. */
     discard(): void;
 }
@@ -137,6 +142,24 @@ const refusalSeen = new Map<string, number>();
 /** Test hook. */
 export function resetRefusalCoalescingForTests(): void {
     refusalSeen.clear();
+    refusalUserCount.clear();
+}
+
+/** True once a user already has REFUSAL_USER_CAP_PER_MIN rows of this outcome in the current minute (else counts this one). */
+function refusalOverUserCap(input: DownloadEventInput, outcome: string): boolean {
+    const now = Date.now();
+    if (refusalUserCount.size > 1_000) {
+        for (const [k, v] of refusalUserCount) if (v.resetAt <= now) refusalUserCount.delete(k);
+    }
+    const key = `${input.userId}|${outcome}`;
+    const cur = refusalUserCount.get(key);
+    if (!cur || cur.resetAt <= now) {
+        refusalUserCount.set(key, { count: 1, resetAt: now + REFUSAL_COALESCE_MS });
+        return false;
+    }
+    if (cur.count >= REFUSAL_USER_CAP_PER_MIN) return true;
+    cur.count += 1;
+    return false;
 }
 
 /** True when an identical refusal was already logged in the last minute (and records this one). */
@@ -157,16 +180,22 @@ function refusalCoalesced(input: DownloadEventInput, outcome: string): boolean {
     return false;
 }
 
-/** Write a `denied` row for a refused request. Never throws, never waits for the database. */
+/** Refusal rows per (user, outcome) allowed per minute, whatever the file or device. */
+const REFUSAL_USER_CAP_PER_MIN = 20;
+const refusalUserCount = new Map<string, { count: number; resetAt: number }>();
+
+/** Write a `denied` row for a refused request. Never throws, never waits for the database. A HEAD writes none. */
 export function recordDownloadRefused(
     event: Pick<RequestEvent, 'locals' | 'request'>,
     target: DownloadTarget,
     outcome: 'denied' | 'rate_limited' = 'denied',
 ): void {
     try {
+        if (event.request?.method === 'HEAD') return;
         const input = eventInput(event, target);
         const sql = getDb();
-        if (!input || !sql || refusalCoalesced(input, outcome)) return;
+        if (!input || !sql || refusalCoalesced(input, outcome) || refusalOverUserCap(input, outcome))
+            return;
         void Promise.resolve()
             .then(() => recordRefusedDownload(sql, input, outcome))
             .catch((err) => warn(outcome, err));
@@ -187,8 +216,16 @@ export async function trackDownload(
     const input = eventInput(event, target);
     const userId = (event.locals as unknown as TrackLocals | undefined)?.user?.userId;
     const leaseFileId = target.renditionId ?? target.fileId;
-    if (!input || !userId || !leaseFileId) {
-        return { ok: true, tracker: untrackedDownload() };
+    // No signed-in user (not reachable through the routes): plain per-download cap, no log.
+    if (!userId) return { ok: true, tracker: untrackedDownload() };
+    // A signed-in user whose download cannot be tracked (ids that are not UUIDs, no file
+    // id) is refused, never served outside the limits and the log.
+    if (!input || !leaseFileId) {
+        warn('untrackable download refused', new Error('missing or malformed ids'));
+        return {
+            ok: false,
+            response: ApiProblem.dependencyUnavailable('Download could not be tracked'),
+        };
     }
 
     let lease: DownloadLease | null = null;
@@ -224,6 +261,7 @@ export function untrackedDownload(): DownloadTracker {
         observer,
         onBytes: () => {},
         onEnd: () => {},
+        served: () => {},
         discard: () => {},
     };
 }
@@ -234,6 +272,11 @@ function createTracker(input: DownloadEventInput, lease: DownloadLease | null): 
     let finished = false;
     let lastTickTotal = 0;
     let lastProgressAt = Date.now();
+    let cancelBody: (() => void) | null = null;
+    // A stale If-Range or a plain GET is served as 200: no range start, whatever was asked.
+    const served = (status: number): void => {
+        if (status !== 206) input.rangeStart = null;
+    };
     let rowId: Promise<string | null> | null = null;
     // Log writes run strictly one after another so a late tick cannot overtake the end.
     let chain: Promise<unknown> = Promise.resolve();
@@ -276,10 +319,24 @@ function createTracker(input: DownloadEventInput, lease: DownloadLease | null): 
             lastProgressAt = Date.now();
         } else if (Date.now() - lastProgressAt >= STALL_LIMIT_MS) {
             // Nothing sent for 10 minutes: the client is gone without the stream noticing.
+            // Free the slot AND tear the body down, or it would keep streaming unaccounted.
             onEnd('aborted');
+            cancelBody?.();
             return;
         }
-        if (lease) void lease.refresh(total).catch((err) => warn('lease refresh', err));
+        if (lease) {
+            const l = lease;
+            void l
+                .refresh(total)
+                .then(() => {
+                    // The slot lapsed and could not be re-acquired within the limits: end the download.
+                    if (l.revoked() && !finished) {
+                        onEnd('rate_limited');
+                        cancelBody?.();
+                    }
+                })
+                .catch((err) => warn('lease refresh', err));
+        }
         const delta = flush();
         if (delta > 0) {
             const row = ensureRow();
@@ -312,7 +369,13 @@ function createTracker(input: DownloadEventInput, lease: DownloadLease | null): 
         enqueue('end', async () => {
             const id = await row;
             const sql = getDb();
-            if (id && sql) await endDownloadEvent(sql, id, outcome, { bytesSentDelta: delta });
+            if (id && sql) {
+                const reachedEnd =
+                    input.rangeStart != null &&
+                    input.bytesTotal != null &&
+                    input.rangeStart + total >= input.bytesTotal;
+                await endDownloadEvent(sql, id, outcome, { bytesSentDelta: delta, reachedEnd });
+            }
         });
     };
 
@@ -321,9 +384,16 @@ function createTracker(input: DownloadEventInput, lease: DownloadLease | null): 
 
     const tracker: DownloadTracker = {
         rate: rateOf,
-        observer: { onBytes, onEnd },
+        observer: {
+            onBytes,
+            onEnd,
+            setCancel: (c) => {
+                cancelBody = c;
+            },
+        },
         onBytes,
         onEnd,
+        served,
         discard: stop,
     };
     return tracker;

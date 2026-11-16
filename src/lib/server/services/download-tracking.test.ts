@@ -55,6 +55,7 @@ function fakeLease(rate = 1000) {
         rateBytesPerSec: vi.fn(() => rate),
         refresh: vi.fn(async () => rate),
         release: vi.fn(async () => {}),
+        revoked: vi.fn(() => false),
     };
 }
 
@@ -153,6 +154,7 @@ describe('trackDownload', () => {
         expect(lease.release).toHaveBeenCalledTimes(1);
         expect(mocks.end).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'row-1', 'aborted', {
             bytesSentDelta: 10,
+            reachedEnd: false,
         });
     });
 
@@ -166,6 +168,7 @@ describe('trackDownload', () => {
         await flush();
         expect(mocks.end).toHaveBeenCalledWith(expect.anything(), 'row-1', 'completed', {
             bytesSentDelta: 100,
+            reachedEnd: false,
         });
         expect(lease.release).toHaveBeenCalledTimes(1);
     });
@@ -190,6 +193,7 @@ describe('trackDownload', () => {
         // the unflushed rest goes out with the end, and the timer is gone
         expect(mocks.end).toHaveBeenCalledWith(expect.anything(), 'row-1', 'aborted', {
             bytesSentDelta: 5,
+            reachedEnd: false,
         });
         await vi.advanceTimersByTimeAsync(20_000);
         expect(lease.refresh).toHaveBeenCalledTimes(1);
@@ -281,6 +285,7 @@ describe('stall watchdog', () => {
         expect(lease.release).toHaveBeenCalledTimes(1);
         expect(mocks.end).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'row-1', 'aborted', {
             bytesSentDelta: 0,
+            reachedEnd: false,
         });
         const refreshes = lease.refresh.mock.calls.length;
         await vi.advanceTimersByTimeAsync(60_000);
@@ -298,6 +303,122 @@ describe('stall watchdog', () => {
         }
         expect(lease.release).not.toHaveBeenCalled();
         res.tracker.onEnd('aborted');
+    });
+});
+
+describe('stall and revoked lease tear the body down', () => {
+    it('a stall cancels the body through the observer hook', async () => {
+        mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
+        const res = await trackDownload(event(), target);
+        if (!res.ok) throw new Error('expected ok');
+        const cancel = vi.fn();
+        res.tracker.observer.setCancel!(cancel);
+        res.tracker.onBytes(10);
+        await vi.advanceTimersByTimeAsync(11 * 60_000);
+        expect(cancel).toHaveBeenCalledTimes(1);
+    });
+
+    it('a lease that cannot be re-acquired ends the download as rate_limited and cancels the body', async () => {
+        const lease = fakeLease();
+        mocks.acquire.mockResolvedValue({ ok: true, lease });
+        const res = await trackDownload(event(), target);
+        if (!res.ok) throw new Error('expected ok');
+        const cancel = vi.fn();
+        res.tracker.observer.setCancel!(cancel);
+        res.tracker.onBytes(10);
+        lease.revoked.mockReturnValue(true);
+        await vi.advanceTimersByTimeAsync(5_000);
+        expect(cancel).toHaveBeenCalledTimes(1);
+        expect(mocks.end).toHaveBeenCalledWith(
+            expect.anything(),
+            'row-1',
+            'rate_limited',
+            expect.anything(),
+        );
+    });
+});
+
+describe('untrackable downloads', () => {
+    it('a signed-in user with a non-UUID item id is refused with 503, not served untracked', async () => {
+        const res = await trackDownload(event(), { ...target, mediaItemId: 'tt1234' });
+        expect(res.ok).toBe(false);
+        if (res.ok) return;
+        expect(res.response.status).toBe(503);
+        expect(mocks.acquire).not.toHaveBeenCalled();
+    });
+
+    it('no file or rendition id is refused with 503', async () => {
+        const res = await trackDownload(event(), { ...target, fileId: null });
+        expect(res.ok).toBe(false);
+    });
+
+    it('no user at all stays untracked', async () => {
+        const res = await trackDownload(
+            { locals: {}, request: new Request('http://localhost/x') } as unknown as RequestEvent,
+            target,
+        );
+        expect(res.ok).toBe(true);
+    });
+});
+
+describe('range accounting', () => {
+    it('a response served as 200 (stale If-Range) logs no range start', async () => {
+        mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
+        const res = await trackDownload(event(), { ...target, rangeStart: 50 });
+        if (!res.ok) throw new Error('expected ok');
+        res.tracker.served(200);
+        res.tracker.onBytes(100);
+        await flush();
+        expect(mocks.start).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ rangeStart: null }),
+        );
+    });
+
+    it('a served 206 keeps its range start and a tail range counts as reaching the end', async () => {
+        mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
+        const res = await trackDownload(event(), { ...target, rangeStart: 50 });
+        if (!res.ok) throw new Error('expected ok');
+        res.tracker.served(206);
+        res.tracker.onBytes(50);
+        res.tracker.onEnd('completed');
+        await flush();
+        expect(mocks.start).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ rangeStart: 50 }),
+        );
+        expect(mocks.end).toHaveBeenCalledWith(expect.anything(), 'row-1', 'completed', {
+            bytesSentDelta: 50,
+            reachedEnd: true,
+        });
+    });
+});
+
+describe('refusal rows', () => {
+    it('a HEAD writes no denied row', async () => {
+        const e = {
+            locals: { user: { userId: USER } },
+            request: new Request('http://localhost/x', { method: 'HEAD' }),
+        } as unknown as RequestEvent;
+        recordDownloadRefused(e, target, 'denied');
+        await flush();
+        expect(mocks.refused).not.toHaveBeenCalled();
+    });
+
+    it('caps refusal rows per user and outcome at 20 a minute, whatever the file', async () => {
+        for (let i = 0; i < 30; i++) {
+            recordDownloadRefused(
+                event({ jfDevice: { deviceId: `d${i}` } }),
+                target,
+                'denied',
+            );
+        }
+        await flush();
+        expect(mocks.refused).toHaveBeenCalledTimes(20);
+        await vi.advanceTimersByTimeAsync(61_000);
+        recordDownloadRefused(event({ jfDevice: { deviceId: 'late' } }), target, 'denied');
+        await flush();
+        expect(mocks.refused).toHaveBeenCalledTimes(21);
     });
 });
 

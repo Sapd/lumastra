@@ -28,7 +28,11 @@ import { config } from '$lib/server/config.js';
 import { checkMediaAccess, checkMediaAccessBatch } from '$lib/server/middleware/media-access.js';
 import { aiDbService } from '$lib/server/services/database.service.js';
 import { canDownload } from '$lib/server/services/download-access.service.js';
-import { downloadSubjectOf } from '$lib/server/services/download-access-guard.js';
+import {
+    crossSiteForbiddenResponse,
+    downloadSubjectOf,
+    mediaAccessUserOf,
+} from '$lib/server/services/download-access-guard.js';
 import {
     buildDownloadFilename,
     sanitizeFilenamePart,
@@ -62,6 +66,9 @@ export const def = defineEndpoint({
     visibility: 'internal',
     handlers: {
         GET: async (event) => {
+            const crossSite = crossSiteForbiddenResponse(event.request);
+            if (crossSite) return crossSite;
+
             const sql = await aiDbService.getSql();
             if (!sql) return ApiProblem.dependencyUnavailable('Database unavailable');
 
@@ -76,24 +83,25 @@ export const def = defineEndpoint({
             const internalId = await resolveCatalogInternalId(event);
             if (!internalId) return ApiProblem.notFound('Media item not found');
 
-            const user = event.locals.user;
-            const accessUser = user
-                ? {
-                      ...user,
-                      mediaAccessIsAdmin:
-                          event.locals.principal?.isAdmin ?? user.mediaAccessIsAdmin,
-                  }
-                : undefined;
-            if (!user || !(await checkMediaAccess(sql, internalId, accessUser))) {
+            const accessUser = mediaAccessUserOf(event.locals);
+            if (!accessUser || !(await checkMediaAccess(sql, internalId, accessUser))) {
                 return ApiProblem.notFound('Media item not found');
             }
 
             // `summary=1`: just the permission, for button visibility. No item
             // queries; the visibility check above already 404s invisible ids.
+            const allowed = await canDownload(downloadSubjectOf(event.locals));
             if (event.url.searchParams.get('summary') === '1') {
+                return json({ allowed, maxParallel: config.DOWNLOAD_MAX_PARALLEL_PER_USER });
+            }
+            // Not allowed: no file names, sizes or episode structure to a user who cannot download.
+            if (!allowed) {
                 return json({
-                    allowed: await canDownload(downloadSubjectOf(event.locals)),
+                    allowed: false,
                     maxParallel: config.DOWNLOAD_MAX_PARALLEL_PER_USER,
+                    seriesFolder: '',
+                    missingCount: 0,
+                    items: [],
                 });
             }
 
@@ -149,7 +157,12 @@ export const def = defineEndpoint({
                     fileId: r.file_id as string,
                     season: r.season_number,
                     episode: r.episode_number,
-                    seasonFolder: inSeasonFolder ? seasonFolder(r.season_number) : null,
+                    // An episode with no season number lands in "Season 00", not at the root.
+                    seasonFolder: inSeasonFolder
+                        ? r.season_number === null
+                            ? 'Season 00'
+                            : seasonFolder(r.season_number)
+                        : null,
                     // extname(file_path) assumes path mapping keeps the extension (the route uses the mapped path).
                     fileName: buildDownloadFilename(r, extname(r.file_path as string)),
                     sizeBytes: Number(r.file_size_bytes ?? 0),
@@ -157,7 +170,7 @@ export const def = defineEndpoint({
                 }));
 
             return json({
-                allowed: await canDownload(downloadSubjectOf(event.locals)),
+                allowed,
                 maxParallel: config.DOWNLOAD_MAX_PARALLEL_PER_USER,
                 seriesFolder,
                 missingCount,

@@ -20,6 +20,7 @@ vi.mock('$lib/server/cache/valkey.js', () => ({ getCoordinationClient: () => coo
 
 import {
     acquireDownloadLease,
+    isDownloadLeasingDegraded,
     listActiveDownloads,
     resetDownloadLeasesForTests,
     type DownloadLease,
@@ -212,13 +213,38 @@ describe('hung Valkey', () => {
         expect(await listActiveDownloads()).toHaveLength(1);
     });
 
+    it('a timed-out acquire gives the slot back in Valkey best-effort and marks leasing degraded', async () => {
+        const calls: string[][] = [];
+        coord.client = {
+            customCommand: ((c: string[]) => {
+                calls.push(c);
+                return new Promise<unknown>(() => {});
+            }) as never,
+        };
+        const p = acquireDownloadLease({ userId: 'u', fileId: 'f1', deviceKey: 'd' });
+        await vi.advanceTimersByTimeAsync(2_000);
+        const r = await p;
+        if (!r.ok) throw new Error('expected ok');
+        // acquire script, then the release script for the same lease key
+        expect(calls).toHaveLength(2);
+        expect(calls[1]).toContain('dl:lease:u');
+        expect(isDownloadLeasingDegraded()).toBe(true);
+        await r.lease.release();
+        expect(isDownloadLeasingDegraded()).toBe(false);
+    });
+
+    it('is not degraded without Valkey', async () => {
+        await must('u', 'f1');
+        expect(isDownloadLeasingDegraded()).toBe(false);
+    });
+
     it('refresh times out, keeps the previous rate and does not throw', async () => {
         cfg.DOWNLOAD_USER_BANDWIDTH_KBPS = 3000;
-        // First call (acquire) answers {1, L=2, U=1}; every later call hangs.
+        // First call (acquire) answers {1, L=2, U=1, R=1}; every later call hangs.
         let calls = 0;
         coord.client = {
             customCommand: () =>
-                ++calls === 1 ? Promise.resolve([1, 2, 1]) : new Promise<unknown>(() => {}),
+                ++calls === 1 ? Promise.resolve([1, 2, 1, 1]) : new Promise<unknown>(() => {}),
         };
         const r = await acquireDownloadLease({ userId: 'u', fileId: 'f1', deviceKey: 'd' });
         if (!r.ok) throw new Error('expected ok');
@@ -265,5 +291,55 @@ describe('listActiveDownloads', () => {
     it('a device key containing the separator survives the round trip', async () => {
         await must('u', 'f1', 'a|b');
         expect((await listActiveDownloads())[0]).toMatchObject({ fileId: 'f1', deviceKey: 'a|b' });
+    });
+});
+
+describe('segmented downloads share one slot rate', () => {
+    it('divides the slot share by the connections on that slot', async () => {
+        cfg.DOWNLOAD_USER_BANDWIDTH_KBPS = 3000;
+        const a = await must('u', 'f1');
+        const b = await must('u', 'f1');
+        const c = await must('u', 'f1');
+        expect(await a.refresh(0)).toBe(1000 * KB);
+        expect(await b.refresh(0)).toBe(1000 * KB);
+        await c.release();
+        expect(await a.refresh(0)).toBe(1500 * KB);
+    });
+
+    it('does not divide the per-download cap', async () => {
+        cfg.DOWNLOAD_THROTTLE_KBPS = 100;
+        const a = await must('u', 'f1');
+        await must('u', 'f1');
+        expect(await a.refresh(0)).toBe(100 * KB);
+    });
+
+    it('refuses a 5th connection on one slot', async () => {
+        cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 0;
+        for (let i = 0; i < 4; i++) await must('u', 'f1');
+        const r = await acquireDownloadLease({ userId: 'u', fileId: 'f1', deviceKey: 'dev' });
+        expect(r.ok).toBe(false);
+    });
+});
+
+describe('a lapsed lease cannot bypass the limit', () => {
+    it('refresh after expiry re-acquires when a slot is free', async () => {
+        cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 1;
+        const l = await must('u', 'f1');
+        vi.advanceTimersByTime(31_000);
+        await l.refresh(10);
+        expect(l.revoked()).toBe(false);
+        expect(await listActiveDownloads()).toHaveLength(1);
+    });
+
+    it('refresh after expiry is revoked when the limit is now full, without a phantom slot', async () => {
+        cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 1;
+        const l = await must('u', 'f1');
+        vi.advanceTimersByTime(31_000);
+        await must('u', 'f2'); // took the freed slot
+        await l.refresh(10);
+        expect(l.revoked()).toBe(true);
+        await l.release();
+        const active = await listActiveDownloads();
+        expect(active.map((d) => d.fileId)).toEqual(['f2']);
     });
 });

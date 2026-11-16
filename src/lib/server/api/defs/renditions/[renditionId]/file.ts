@@ -144,6 +144,7 @@ export const def = defineEndpoint({
                 );
                 // 416 streams nothing: no lease held, nothing logged.
                 if (response.status === 416) tracker.discard();
+                else tracker.served(response.status);
                 return response;
             } catch (err) {
                 tracker.discard();

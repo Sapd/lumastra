@@ -2079,7 +2079,9 @@ export const configSchema: SettingDefinition[] = [
         label: 'Allow downloads by default',
         description:
             'Whether users may download files unless an admin has set download permission for them ' +
-            'individually. Admins can always download. Applies only while Original File Download is on.',
+            'individually. Admins can always download. Applies to original-file downloads (while ' +
+            'Original File Download is on) and to offline renditions (which have their own switch, ' +
+            'Download Renditions).',
         defaultValue: true,
         section: 'downloads',
     },
@@ -6613,7 +6615,7 @@ export const configSchema: SettingDefinition[] = [
         type: 'array',
         label: 'Download Groups',
         description:
-            "Groups allowed to download (empty = use 'Allow downloads by default'). A per-user setting overrides this.",
+            "Groups allowed to download original files (while Original File Download is on) and offline renditions (own switch) (empty = use 'Allow downloads by default'). A per-user setting overrides this.",
         defaultValue: '',
         section: 'groups',
         uiHints: { placeholder: 'family,admin', groups: true },

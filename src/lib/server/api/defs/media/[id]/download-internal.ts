@@ -16,6 +16,11 @@ import { defineEndpoint } from '$lib/server/api/define.js';
 import { ApiProblem } from '$lib/server/api/problem.js';
 import { checkMediaAccess } from '$lib/server/middleware/media-access.js';
 import { getDb } from '$lib/server/database/index.js';
+import {
+    crossSiteForbiddenResponse,
+    mediaAccessUserOf,
+} from '$lib/server/services/download-access-guard.js';
+import { resolveCatalogInternalId } from '../../catalog/resolve-id.js';
 import { handleDownloadFile } from '$lib/server/handlers/media-download-handler.js';
 
 const DownloadQuery = z.object({ fileId: z.string().optional() }).strict();
@@ -27,23 +32,31 @@ export const def = defineEndpoint({
     request: { query: DownloadQuery },
     handlers: {
         GET: async (event) => {
-            const id = event.params.id ?? '';
-            if (!id) {
+            const crossSite = crossSiteForbiddenResponse(event.request);
+            if (crossSite) return crossSite;
+
+            const rawId = event.params.id ?? '';
+            if (!rawId) {
                 return ApiProblem.validationFailed([
                     { field: 'id', message: 'Media ID is required' },
                 ]);
             }
 
+            // The catalog id the page knows may be a composite or external id; the access
+            // check, the lease and the log all use the internal media item id.
+            const id = await resolveCatalogInternalId(event);
+            if (!id) return ApiProblem.notFound('Media item not found');
+
             const sql = getDb();
             if (sql) {
-                if (!(await checkMediaAccess(sql, id, event.locals.user))) {
+                if (!(await checkMediaAccess(sql, id, mediaAccessUserOf(event.locals)))) {
                     return ApiProblem.notFound('Media item not found');
                 }
             } else if (event.locals.principal?.isAdmin !== true) {
                 return ApiProblem.dependencyUnavailable('Unable to verify content access');
             }
 
-            return handleDownloadFile(event, { surface: 'web' });
+            return handleDownloadFile(event, { surface: 'web', itemId: id });
         },
     },
 });

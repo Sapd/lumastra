@@ -2,7 +2,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RequestEvent } from '@sveltejs/kit';
-const mocks = vi.hoisted(() => ({ select: vi.fn(), serve: vi.fn(), track: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+    select: vi.fn(),
+    serve: vi.fn(),
+    track: vi.fn(),
+    tracker: {
+        rate: () => 7,
+        observer: { onBytes() {}, onEnd() {} },
+        onBytes() {},
+        onEnd() {},
+        served: vi.fn(),
+        discard: vi.fn(),
+    },
+}));
 vi.mock('$lib/server/config', () => ({ config: { FEATURE_MEDIA_DOWNLOAD: true } }));
 vi.mock('$lib/server/database', () => ({ getDb: () => ({}) }));
 vi.mock('$lib/server/database/queries/media-file-resolution.queries', () => ({
@@ -31,6 +43,7 @@ vi.mock('$lib/server/services/download-tracking.js', () => ({
         observer: {},
         onBytes() {},
         onEnd() {},
+        served() {},
         discard() {},
     }),
     trackDownload: (...a: unknown[]) => mocks.track(...a),
@@ -49,10 +62,7 @@ function event(path: string): RequestEvent {
 beforeEach(() => {
     vi.clearAllMocks();
     mocks.serve.mockResolvedValue(new Response('data'));
-    mocks.track.mockResolvedValue({
-        ok: true,
-        tracker: { rate: () => 0, observer: {}, onBytes() {}, onEnd() {}, discard() {} },
-    });
+    mocks.track.mockResolvedValue({ ok: true, tracker: mocks.tracker });
 });
 describe('attachment selected file', () => {
     it('uses fileId and never falls back for a foreign selection', async () => {
@@ -109,6 +119,65 @@ describe('attachment selected file', () => {
             fileId: selected,
         });
         expect(mocks.select).toHaveBeenNthCalledWith(2, expect.anything(), 'media');
+    });
+});
+
+describe('surface decides the adapter, not the URL', () => {
+    it('an api request on a /j-looking path does not use the Jellyfin mediaSourceId adapter', async () => {
+        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
+        await handleDownloadFile(event(`/j/Items/media/Download?mediaSourceId=${selected}`), {
+            surface: 'api',
+        });
+        expect(mocks.select).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'media', {
+            fileId: undefined,
+        });
+    });
+    it('a jellyfin request on a non-/j path uses the adapter', async () => {
+        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
+        await handleDownloadFile(event(`/x?mediaSourceId=${selected}`), { surface: 'jellyfin' });
+        expect(mocks.select).toHaveBeenCalledWith(expect.anything(), 'media', {
+            fileId: selected,
+        });
+    });
+});
+
+describe('tracker wiring', () => {
+    beforeEach(() => {
+        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
+    });
+    it('serves with the tracker observer and a throttle function bound to the tracker rate', async () => {
+        await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
+        const opts = mocks.serve.mock.calls[0]![2];
+        expect(opts.observer).toBe(mocks.tracker.observer);
+        expect(typeof opts.throttleBytesPerSec).toBe('function');
+        expect(opts.throttleBytesPerSec()).toBe(7);
+        expect(mocks.tracker.served).toHaveBeenCalledWith(200);
+        expect(mocks.tracker.discard).not.toHaveBeenCalled();
+    });
+    it('a 416 discards the lease', async () => {
+        mocks.serve.mockResolvedValue(new Response(null, { status: 416 }));
+        await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
+        expect(mocks.tracker.discard).toHaveBeenCalledTimes(1);
+    });
+    it('a refused path (null) discards the lease and answers 404', async () => {
+        mocks.serve.mockResolvedValue(null);
+        const res = await handleDownloadFile(event('/api/v1/media/media/download'), {
+            surface: 'api',
+        });
+        expect(res.status).toBe(404);
+        expect(mocks.tracker.discard).toHaveBeenCalledTimes(1);
+    });
+    it('a throw discards the lease', async () => {
+        mocks.serve.mockRejectedValue(new Error('disk'));
+        const res = await handleDownloadFile(event('/api/v1/media/media/download'), {
+            surface: 'api',
+        });
+        expect(res.status).toBe(500);
+        expect(mocks.tracker.discard).toHaveBeenCalledTimes(1);
+    });
+    it('tracks the catalog row id from the naming row, falling back to the item id', async () => {
+        await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
+        expect(mocks.track.mock.calls[0]![1]).toMatchObject({ mediaItemId: 'media', fileId: selected });
     });
 });
 

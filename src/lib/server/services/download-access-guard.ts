@@ -30,6 +30,23 @@ export function downloadSubjectOf(
     return { userId: user.userId, username: user.username, isAdmin: localsIsAdmin(locals) };
 }
 
+/**
+ * The user object every download route hands to the library/age access checks
+ * (`checkMediaAccess`, `checkMediaAccessBatch`). One helper so the routes cannot
+ * disagree: admin is decided by the principal, so an admin on a Quick Connect
+ * session or /j API key is a normal user here too.
+ */
+export function mediaAccessUserOf<U extends { mediaAccessIsAdmin?: boolean }>(
+    locals: { user?: U | null; principal?: { isAdmin?: boolean } | null } | null | undefined,
+): U | undefined {
+    const user = locals?.user;
+    if (!user) return undefined;
+    return {
+        ...user,
+        mediaAccessIsAdmin: locals?.principal?.isAdmin ?? user.mediaAccessIsAdmin,
+    };
+}
+
 export async function downloadForbiddenResponse(
     locals: GuardLocals | null | undefined,
     opts: { kind: 'original' | 'rendition' } = { kind: 'original' },
@@ -40,4 +57,16 @@ export async function downloadForbiddenResponse(
     const allowed = await check(downloadSubjectOf(locals));
     if (allowed) return null;
     return ApiProblem.forbidden(m.downloads_not_allowed(), { reason: 'downloads_not_allowed' });
+}
+
+/**
+ * Browser-session download routes are plain GET links, so a cookie-authenticated GET
+ * from another site (an <a>, <img> or navigation on a page we do not control) would
+ * start a download as the signed-in user. Browsers label that `Sec-Fetch-Site: cross-site`;
+ * `same-origin`, `same-site`, `none` (typed URL) and a missing header (non-browser) pass.
+ * Returns the 403 response, or null.
+ */
+export function crossSiteForbiddenResponse(request: Request): Response | null {
+    if (request.headers.get('sec-fetch-site') !== 'cross-site') return null;
+    return ApiProblem.forbidden(m.downloads_not_allowed(), { reason: 'cross_site_request' });
 }
