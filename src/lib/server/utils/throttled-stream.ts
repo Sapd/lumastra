@@ -136,7 +136,7 @@ export function throttleNodeStream(
                 }
                 const bytes = toUint8(value);
                 // Pay and emit piece by piece, re-reading the rate between pieces.
-                for (let at = 0; at < bytes.byteLength && !cancelled.signal.aborted; ) {
+                for (let at = 0; at < bytes.byteLength && !cancelled.signal.aborted;) {
                     const live = currentRate();
                     // 0 = unlimited right now: hand the rest of the chunk over whole.
                     const piece =

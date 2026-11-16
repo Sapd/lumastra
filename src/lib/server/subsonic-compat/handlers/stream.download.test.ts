@@ -188,7 +188,10 @@ describe('download.view', () => {
     });
 
     it('a refused lease (429) is returned and nothing is served', async () => {
-        m.track.mockResolvedValue({ ok: false, response: new Response('slow down', { status: 429 }) });
+        m.track.mockResolvedValue({
+            ok: false,
+            response: new Response('slow down', { status: 429 }),
+        });
         const res = await handleDownload(ev(), auth, {} as never);
         expect(res.status).toBe(429);
         expect(m.serve).not.toHaveBeenCalled();

@@ -203,7 +203,10 @@ describe('tracker wiring', () => {
     });
     it('tracks the catalog row id from the naming row, falling back to the item id', async () => {
         await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
-        expect(mocks.track.mock.calls[0]![1]).toMatchObject({ mediaItemId: 'media', fileId: selected });
+        expect(mocks.track.mock.calls[0]![1]).toMatchObject({
+            mediaItemId: 'media',
+            fileId: selected,
+        });
     });
 });
 
@@ -228,7 +231,10 @@ describe('HEAD and conditional requests', () => {
         const res = await handleDownloadFile(headEvent(), { surface: 'api' });
         expect(res.status).toBe(200);
         expect(res.headers.get('content-length')).toBe('4');
-        expect(mocks.preflight.mock.calls[0]![1]).toMatchObject({ method: 'HEAD', contained: true });
+        expect(mocks.preflight.mock.calls[0]![1]).toMatchObject({
+            method: 'HEAD',
+            contained: true,
+        });
         expect(mocks.track).not.toHaveBeenCalled();
         expect(mocks.serve).not.toHaveBeenCalled();
     });
@@ -272,9 +278,12 @@ describe('file-level library scope', () => {
         scope.denied = ['g-denied'];
         scope.allowed = new Set(); // the named file is denied
         mocks.select.mockResolvedValue({ files: [file], fileId: selected });
-        const res = await handleDownloadFile(event(`/api/v1/media/media/download?fileId=${selected}`), {
-            surface: 'api',
-        });
+        const res = await handleDownloadFile(
+            event(`/api/v1/media/media/download?fileId=${selected}`),
+            {
+                surface: 'api',
+            },
+        );
         expect(res.status).toBe(404);
         expect(mocks.track).not.toHaveBeenCalled();
         expect(mocks.serve).not.toHaveBeenCalled();
@@ -284,7 +293,9 @@ describe('file-level library scope', () => {
         scope.denied = ['g-denied'];
         scope.allowed = new Set([other]); // item has two files, only `other` is allowed
         mocks.select.mockResolvedValue({ files: [file, otherFile], fileId: selected });
-        const res = await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
+        const res = await handleDownloadFile(event('/api/v1/media/media/download'), {
+            surface: 'api',
+        });
         expect(res.status).toBe(200);
         expect(mocks.track.mock.calls[0]![1]).toMatchObject({ fileId: other });
     });
@@ -304,7 +315,8 @@ describe('file-level library scope', () => {
     it('without a denied library the selection is untouched', async () => {
         mocks.select.mockResolvedValue({ files: [file], fileId: selected });
         expect(
-            (await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' })).status,
+            (await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' }))
+                .status,
         ).toBe(200);
     });
 });
@@ -316,7 +328,9 @@ describe('download path containment', () => {
 
     it('a file that resolves outside the library roots is a 404 (not 403) with no lease and no stream', async () => {
         dlPath.result = null;
-        const res = await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
+        const res = await handleDownloadFile(event('/api/v1/media/media/download'), {
+            surface: 'api',
+        });
         expect(res.status).toBe(404);
         expect(mocks.track).not.toHaveBeenCalled();
         expect(mocks.serve).not.toHaveBeenCalled();

@@ -305,7 +305,9 @@ describe('DownloadQueue link mode', () => {
         expect(q.state).toBe('done');
         expect(q.mode).toBe('links');
         // only the list and the slot probes were fetched, the browser does the downloads
-        expect(fetchFn.mock.calls.filter((c) => !String(c[0]).includes('/downloads/slots'))).toHaveLength(1);
+        expect(
+            fetchFn.mock.calls.filter((c) => !String(c[0]).includes('/downloads/slots')),
+        ).toHaveLength(1);
     });
 });
 
@@ -580,7 +582,10 @@ describe('DownloadQueue failures and limits', () => {
 describe('DownloadQueue link batches', () => {
     test('hands over at most maxParallel links, then "Start next" does the rest', async () => {
         const { q, links } = setup(
-            list([1, 2, 3, 4, 5].map((n) => item(n)), { maxParallel: 2 }),
+            list(
+                [1, 2, 3, 4, 5].map((n) => item(n)),
+                { maxParallel: 2 },
+            ),
             () => fileResponse(5),
             { noPicker: true },
         );
@@ -602,7 +607,10 @@ describe('DownloadQueue link batches', () => {
 
     test('unlimited (0) hands over 4 at a time', async () => {
         const { q, links } = setup(
-            list([1, 2, 3, 4, 5, 6].map((n) => item(n)), { maxParallel: 0 }),
+            list(
+                [1, 2, 3, 4, 5, 6].map((n) => item(n)),
+                { maxParallel: 0 },
+            ),
             () => fileResponse(5),
             { noPicker: true },
         );
@@ -711,7 +719,9 @@ describe('DownloadQueue permission probe cache', () => {
     test('a failed probe is not cached', async () => {
         let n = 0;
         const f = vi.fn(async (_url: string) =>
-            ++n === 1 ? new Response('x', { status: 500 }) : json({ allowed: true, maxParallel: 1 }),
+            ++n === 1
+                ? new Response('x', { status: 500 })
+                : json({ allowed: true, maxParallel: 1 }),
         );
         const q = new DownloadQueue({ fetch: f as unknown as typeof fetch, pickDirectory: null });
         expect(await q.downloadInfo('series-1')).toEqual({ allowed: false, maxParallel: 0 });
@@ -749,17 +759,23 @@ describe('DownloadQueue permission probe cache', () => {
     });
 });
 
-
 describe('DownloadQueue link mode watches the server', () => {
     const linkSetup = (
         n: number,
         slots: (f: string | null, call: number) => Response | Promise<Response>,
         maxParallel = 2,
     ) =>
-        setup(list(Array.from({ length: n }, (_, i) => item(i + 1)), { maxParallel }), () => fileResponse(5), {
-            noPicker: true,
-            slots,
-        });
+        setup(
+            list(
+                Array.from({ length: n }, (_, i) => item(i + 1)),
+                { maxParallel },
+            ),
+            () => fileResponse(5),
+            {
+                noPicker: true,
+                slots,
+            },
+        );
 
     test('waits for a free slot before handing over, polling every 3 s', async () => {
         let inUse = 2; // another device holds both slots
@@ -836,8 +852,9 @@ describe('DownloadQueue link mode watches the server', () => {
     });
 
     test('cancelling while waiting for a slot hands nothing over', async () => {
-        const { q, links, sleeps } = linkSetup(1, (f) =>
-            json({ maxParallel: 1, inUse: 1, ...(f ? { started: true } : {}) }),
+        const { q, links, sleeps } = linkSetup(
+            1,
+            (f) => json({ maxParallel: 1, inUse: 1, ...(f ? { started: true } : {}) }),
             1,
         );
         await q.enqueue('s');

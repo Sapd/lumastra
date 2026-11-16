@@ -61,19 +61,17 @@
     });
     let noticeText = $derived(q.notice === 'busy' ? m.downloads_error_busy() : null);
     // Link mode hands over a batch at a time: "done" only once nothing is left to hand over.
-    let nextBatch = $derived(
-        q.state === 'running' ? 0 : Math.min(q.linksRemaining, q.linkBatch),
-    );
+    let nextBatch = $derived(q.state === 'running' ? 0 : Math.min(q.linksRemaining, q.linkBatch));
     let stateText = $derived(
         q.state === 'done' && nextBatch > 0
             ? null
             : q.state === 'done'
-            ? failed.length > 0
-                ? m.downloads_state_done_failed({ count: failed.length })
-                : m.downloads_state_done()
-            : q.state === 'stopped'
-              ? m.downloads_state_stopped()
-              : null,
+              ? failed.length > 0
+                  ? m.downloads_state_done_failed({ count: failed.length })
+                  : m.downloads_state_done()
+              : q.state === 'stopped'
+                ? m.downloads_state_stopped()
+                : null,
     );
     // Screen readers hear only state, error and the current file, never byte ticks.
     let announcement = $derived(

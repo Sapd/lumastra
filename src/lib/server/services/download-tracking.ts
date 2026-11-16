@@ -217,7 +217,12 @@ export function recordDownloadRefused(
         if (event.request?.method === 'HEAD') return;
         const input = eventInput(event, target);
         const sql = getDb();
-        if (!input || !sql || refusalCoalesced(input, outcome) || refusalOverUserCap(input, outcome))
+        if (
+            !input ||
+            !sql ||
+            refusalCoalesced(input, outcome) ||
+            refusalOverUserCap(input, outcome)
+        )
             return;
         if (!takeRowBudget(input.userId)) return;
         void Promise.resolve()

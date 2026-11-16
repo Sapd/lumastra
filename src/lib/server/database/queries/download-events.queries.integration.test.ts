@@ -380,9 +380,16 @@ describe('download-events queries', () => {
         });
 
         it('leaves the row alone when it is still open or nothing earlier exists', async () => {
-            const open = await startDownloadEvent(sql, { ...base(), bytesTotal: total, rangeStart: 10 });
+            const open = await startDownloadEvent(sql, {
+                ...base(),
+                bytesTotal: total,
+                rangeStart: 10,
+            });
             expect(await mergeTinyRangeEvent(sql, open)).toBe(false);
-            await endDownloadEvent(sql, open, 'completed', { bytesSentDelta: 10, reachedEnd: true });
+            await endDownloadEvent(sql, open, 'completed', {
+                bytesSentDelta: 10,
+                reachedEnd: true,
+            });
             expect(await mergeTinyRangeEvent(sql, open)).toBe(false);
             expect(await listDownloadEvents(sql, { userId, limit: 10 })).toHaveLength(1);
         });

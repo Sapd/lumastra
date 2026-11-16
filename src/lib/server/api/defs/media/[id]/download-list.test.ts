@@ -82,7 +82,11 @@ async function call(query = '', id = 'series1', headers: Record<string, string> 
             },
             url: new URL(url),
             params: { id },
-            request: new Request(url, { headers: Object.keys(headers).length ? headers : { 'sec-fetch-site': 'same-origin' } }),
+            request: new Request(url, {
+                headers: Object.keys(headers).length
+                    ? headers
+                    : { 'sec-fetch-site': 'same-origin' },
+            }),
         } as unknown as RequestEvent,
         { surface: 'internal' } as never,
     );
@@ -185,10 +189,12 @@ describe('media/{id}/download-list', () => {
         expect(ok.res.status).toBe(200);
     });
 
-    it('passes the caller\'s denied library groups into the default-file selection', async () => {
+    it("passes the caller's denied library groups into the default-file selection", async () => {
         mockDenied.mockResolvedValue(['g-denied']);
         await call();
-        expect(mockEpisodes).toHaveBeenCalledWith(expect.anything(), expect.anything(), ['g-denied']);
+        expect(mockEpisodes).toHaveBeenCalledWith(expect.anything(), expect.anything(), [
+            'g-denied',
+        ]);
     });
 
     it('builds the access user from the principal, like the download route (non-admin principal wins)', async () => {

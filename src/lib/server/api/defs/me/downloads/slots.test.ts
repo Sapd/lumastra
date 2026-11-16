@@ -27,7 +27,10 @@ vi.mock('$lib/server/auth/locals-admin.js', () => ({ localsIsAdmin: () => false 
 
 const { def } = await import('./slots.js');
 
-async function call(query = '', headers: Record<string, string> = { 'sec-fetch-site': 'same-origin' }) {
+async function call(
+    query = '',
+    headers: Record<string, string> = { 'sec-fetch-site': 'same-origin' },
+) {
     const url = `http://localhost/api/me/downloads/slots${query}`;
     const fileId = new URL(url).searchParams.get('fileId') ?? undefined;
     const res = await def.handlers.GET!(
@@ -47,13 +50,20 @@ beforeEach(() => {
     mockList.mockResolvedValue([
         { userId: 'u1', fileId: 'f1', deviceKey: 'd1', bytesSent: 0, startedAt: 0, bytesPerSec: 0 },
         { userId: 'u1', fileId: 'f2', deviceKey: 'd2', bytesSent: 0, startedAt: 0, bytesPerSec: 0 },
-        { userId: 'other', fileId: 'f9', deviceKey: 'd', bytesSent: 0, startedAt: 0, bytesPerSec: 0 },
+        {
+            userId: 'other',
+            fileId: 'f9',
+            deviceKey: 'd',
+            bytesSent: 0,
+            startedAt: 0,
+            bytesPerSec: 0,
+        },
     ]);
     mockRecent.mockResolvedValue(false);
 });
 
 describe('me/downloads/slots', () => {
-    it('reports the limit and only the caller\'s live slots, across devices', async () => {
+    it("reports the limit and only the caller's live slots, across devices", async () => {
         const { body } = await call();
         expect(body).toEqual({ maxParallel: 3, inUse: 2 });
     });

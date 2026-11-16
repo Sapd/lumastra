@@ -399,7 +399,11 @@ describe('range accounting', () => {
 });
 
 describe('tiny successful ranges', () => {
-    const run = async (rangeStart: number | null, bytes: number, outcome: 'completed' | 'aborted') => {
+    const run = async (
+        rangeStart: number | null,
+        bytes: number,
+        outcome: 'completed' | 'aborted',
+    ) => {
         mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
         const res = await trackDownload(event(), { ...target, bytesTotal: 50_000_000, rangeStart });
         if (!res.ok) throw new Error('expected ok');
@@ -445,7 +449,11 @@ describe('per-user row budget', () => {
     it('refusals count against the same budget', async () => {
         for (let i = 0; i < 20; i++) {
             recordDownloadRefused(event({ jfDevice: { deviceId: `a${i}` } }), target, 'denied');
-            recordDownloadRefused(event({ jfDevice: { deviceId: `b${i}` } }), target, 'rate_limited');
+            recordDownloadRefused(
+                event({ jfDevice: { deviceId: `b${i}` } }),
+                target,
+                'rate_limited',
+            );
         }
         mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
         for (let i = 0; i < 90; i++) {
@@ -473,11 +481,7 @@ describe('refusal rows', () => {
 
     it('caps refusal rows per user and outcome at 20 a minute, whatever the file', async () => {
         for (let i = 0; i < 30; i++) {
-            recordDownloadRefused(
-                event({ jfDevice: { deviceId: `d${i}` } }),
-                target,
-                'denied',
-            );
+            recordDownloadRefused(event({ jfDevice: { deviceId: `d${i}` } }), target, 'denied');
         }
         await flush();
         expect(mocks.refused).toHaveBeenCalledTimes(20);

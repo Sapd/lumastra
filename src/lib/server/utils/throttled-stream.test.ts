@@ -198,7 +198,12 @@ describe('throttleNodeStream wait granularity', () => {
             if (clock > 1000) rate = 10_000;
             return Promise.resolve();
         };
-        const reader = throttleNodeStream(source(1, 5000), () => rate, () => clock, sleep).getReader();
+        const reader = throttleNodeStream(
+            source(1, 5000),
+            () => rate,
+            () => clock,
+            sleep,
+        ).getReader();
         for (;;) if ((await reader.read()).done) break;
         // At a fixed 100 B/s this would take 50 s.
         expect(clock).toBeLessThan(5000);

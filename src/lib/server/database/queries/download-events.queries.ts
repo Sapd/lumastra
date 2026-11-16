@@ -163,7 +163,10 @@ export async function endDownloadEvent(
     sql: postgres.Sql,
     id: string,
     outcome: DownloadOutcome,
-    { bytesSentDelta = 0, reachedEnd = false }: { bytesSentDelta?: number; reachedEnd?: boolean } = {},
+    {
+        bytesSentDelta = 0,
+        reachedEnd = false,
+    }: { bytesSentDelta?: number; reachedEnd?: boolean } = {},
 ): Promise<void> {
     const delta = Math.max(0, Math.floor(bytesSentDelta));
     await sql`

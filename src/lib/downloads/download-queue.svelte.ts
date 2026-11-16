@@ -248,7 +248,8 @@ export class DownloadQueue {
         if (hit && Date.now() - hit.at < 60_000) return hit.value;
         const forget = () => {
             // A failure is not remembered: the next button gets a fresh probe.
-            if (this.infoCache.get(mediaItemId)?.value === value) this.infoCache.delete(mediaItemId);
+            if (this.infoCache.get(mediaItemId)?.value === value)
+                this.infoCache.delete(mediaItemId);
         };
         const value: Promise<DownloadInfo> = this.deps
             .fetch(listUrl(mediaItemId, { summary: true }))

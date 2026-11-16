@@ -32,7 +32,9 @@ type Cmd = { customCommand: (c: string[]) => Promise<unknown> };
 /** Valkey's clock cannot be faked: age a lease by rewriting its stored expiry. */
 async function expireField(userId: string, slot: string): Promise<void> {
     const c = getCoordinationClient() as unknown as Cmd;
-    const fields = ((await c.customCommand(['HKEYS', `dl:lease:${userId}`])) as string[]).map(String);
+    const fields = ((await c.customCommand(['HKEYS', `dl:lease:${userId}`])) as string[]).map(
+        String,
+    );
     for (const f of fields) {
         if (!f.startsWith(`${slot}#`)) continue;
         const v = String(await c.customCommand(['HGET', `dl:lease:${userId}`, f]));

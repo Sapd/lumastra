@@ -72,6 +72,7 @@ export function scopeSelection<F extends { id: string; is_default?: boolean | nu
 ): { files: F[]; fileId: string | null } {
     const files = selection.files.filter((f) => allowed.has(f.id));
     if (files.length === 0) return { files: [], fileId: null };
-    if (selection.fileId && allowed.has(selection.fileId)) return { files, fileId: selection.fileId };
+    if (selection.fileId && allowed.has(selection.fileId))
+        return { files, fileId: selection.fileId };
     return { files, fileId: (files.find((f) => f.is_default) ?? files[0]).id };
 }

@@ -23,7 +23,12 @@ describe('scopeSelection', () => {
     it('a denied default falls to the default-else-first allowed file', () => {
         const sel = { files: [f('a', true), f('b'), f('c', false)], fileId: 'a' };
         expect(scopeSelection(sel, new Set(['b', 'c'])).fileId).toBe('b');
-        expect(scopeSelection({ ...sel, files: [f('a', true), f('b'), f('c', true)] }, new Set(['b', 'c'])).fileId).toBe('c');
+        expect(
+            scopeSelection(
+                { ...sel, files: [f('a', true), f('b'), f('c', true)] },
+                new Set(['b', 'c']),
+            ).fileId,
+        ).toBe('c');
     });
 
     it('an allowed default stays', () => {

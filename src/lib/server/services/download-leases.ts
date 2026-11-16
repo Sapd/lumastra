@@ -502,8 +502,7 @@ function pickBackend(): Backend {
     return client ? valkeyBackend(client) : memoryBackend;
 }
 
-const parallelLimit = (): number =>
-    Math.max(0, Math.floor(config.DOWNLOAD_MAX_PARALLEL_PER_USER));
+const parallelLimit = (): number => Math.max(0, Math.floor(config.DOWNLOAD_MAX_PARALLEL_PER_USER));
 
 /** Leases currently held on the process-local fallback because Valkey failed. */
 let fallbackLeases = 0;
