@@ -264815,6 +264815,28 @@ components:
         liveTvDefault:
           description: Whether the user still has the default Live TV setting
           type: boolean
+        allowDownloads:
+          description: Per-user download override (null = follow the instance default)
+          type:
+            - boolean
+            - "null"
+        downloadAccess:
+          description: Effective download permission and which rule decided it
+          type: object
+          properties:
+            allowed:
+              type: boolean
+            reason:
+              type: string
+              enum:
+                - admin
+                - override
+                - group
+                - default
+          required:
+            - allowed
+            - reason
+          additionalProperties: false
         ageRatingPinned:
           type: boolean
         displayName:
