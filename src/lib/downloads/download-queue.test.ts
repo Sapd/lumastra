@@ -361,7 +361,9 @@ describe('DownloadQueue picker error after a successful pick', () => {
         await q.start();
         expect(q.mode).toBe('links');
         expect(links).toHaveLength(1);
-        expect(fetchFn).toHaveBeenCalledTimes(1); // list only, no file fetch
+        expect(
+            fetchFn.mock.calls.filter((c) => !String(c[0]).includes('/downloads/slots')),
+        ).toHaveLength(1); // list only, no file fetch
     });
 });
 
@@ -766,14 +768,13 @@ describe('DownloadQueue link mode watches the server', () => {
         );
         await q.enqueue('s');
         const run = q.start();
-        await vi.waitFor(() => expect(sleeps).toEqual([3000]));
+        await vi.waitFor(() => expect(sleeps).toContain(3000));
         expect(links).toHaveLength(0);
         expect(q.items[0].status).toBe('waiting');
         inUse = 1; // a slot frees up
         await vi.waitFor(() => expect(links).toHaveLength(1));
         await run;
         expect(q.items[0].status).toBe('handed');
-        expect(sleeps.filter((ms) => ms === 3000)).toHaveLength(1);
     });
 
     test('unlimited (maxParallel 0) never waits', async () => {

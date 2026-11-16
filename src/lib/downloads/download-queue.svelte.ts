@@ -688,9 +688,15 @@ export class DownloadQueue {
      */
     private async waitForFreeSlot(item: QueueItem): Promise<boolean> {
         for (;;) {
-            if (this.stopRequested) return false;
+            if (this.stopRequested) {
+                if (item.status === 'waiting') item.status = 'queued';
+                return false;
+            }
             const info = await this.slotsInfo();
-            if (this.stopRequested) return false;
+            if (this.stopRequested) {
+                if (item.status === 'waiting') item.status = 'queued';
+                return false;
+            }
             if (!info || info.maxParallel === 0 || info.inUse < info.maxParallel) {
                 if (item.status === 'waiting') item.status = 'queued';
                 return true;
