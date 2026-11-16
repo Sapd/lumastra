@@ -379,6 +379,25 @@ describe('download-events queries', () => {
             expect(rows[0]).toMatchObject({ bytesSent: 3000, outcome: 'completed' });
         });
 
+        it('a join that reopens the source row while the merge waits for the lock is not lost', async () => {
+            await insertEnded('aborted', 1000, 0, 120);
+            const tiny = await insertEnded('completed', 100, 5, 0);
+            const key = `${userId}|dev-1|${FILE}`;
+            let merged: Promise<boolean> | undefined;
+            await sql.begin(async (tx) => {
+                await tx`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+                merged = mergeTinyRangeEvent(sql, tiny); // blocks on the lock we hold
+                await new Promise((r) => setTimeout(r, 300));
+                // a new request joins (reopens) the tiny row in the meantime
+                await tx`UPDATE download_events SET ended_at = NULL, outcome = NULL, open_streams = 1
+                         WHERE id = ${tiny}`;
+            });
+            expect(await merged).toBe(false);
+            const rows = await listDownloadEvents(sql, { userId, limit: 10 });
+            expect(rows).toHaveLength(2); // nothing deleted, nothing merged
+            expect(rows.find((r) => r.id === tiny)?.endedAt).toBeNull();
+        });
+
         it('leaves the row alone when it is still open or nothing earlier exists', async () => {
             const open = await startDownloadEvent(sql, {
                 ...base(),
@@ -394,14 +413,35 @@ describe('download-events queries', () => {
             expect(await listDownloadEvents(sql, { userId, limit: 10 })).toHaveLength(1);
         });
 
-        it('never merges into a refusal row or a row older than the window', async () => {
+        it('merges into a refusal row too (outcome-independent); the completed outcome replaces the refusal', async () => {
             await recordRefusedDownload(sql, { ...base(), bytesTotal: total }, 'denied');
+            const tiny = await insertEnded('completed', 100, 5, 0);
+            expect(await mergeTinyRangeEvent(sql, tiny)).toBe(true);
+            const rows = await listDownloadEvents(sql, { userId, limit: 10 });
+            expect(rows).toHaveLength(1);
+            expect(rows[0]).toMatchObject({ bytesSent: 100, outcome: 'completed' });
+        });
+
+        it('never merges into a row older than the window', async () => {
             const old = await insertEnded('aborted', 10, 0, 3600);
             await sql`UPDATE download_events SET ended_at = now() - interval '11 minutes'
                       WHERE id = ${old}`;
             const tiny = await insertEnded('completed', 100, 5, 0);
             expect(await mergeTinyRangeEvent(sql, tiny)).toBe(false);
-            expect(await listDownloadEvents(sql, { userId, limit: 10 })).toHaveLength(3);
+            expect(await listDownloadEvents(sql, { userId, limit: 10 })).toHaveLength(2);
+        });
+
+        it('allowInsert is asked for a new row only, and false skips the insert', async () => {
+            const asked: number[] = [];
+            const none = await startDownloadEvent(sql, base(), {
+                allowInsert: () => (asked.push(1), false),
+            });
+            expect(none).toBeNull();
+            expect(await listDownloadEvents(sql, { userId, limit: 10 })).toHaveLength(0);
+            const id = (await startDownloadEvent(sql, base()))!;
+            // a join and a re-open never ask
+            expect(await startDownloadEvent(sql, base(), { allowInsert: () => (asked.push(1), false) })).toBe(id);
+            expect(asked).toHaveLength(1);
         });
     });
 

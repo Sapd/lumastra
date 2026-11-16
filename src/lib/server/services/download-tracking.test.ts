@@ -73,7 +73,10 @@ beforeEach(() => {
     resetRefusalCoalescingForTests();
     vi.clearAllMocks();
     mocks.getDb.mockReturnValue({});
-    mocks.start.mockResolvedValue('row-1');
+    // like the real query: ask before a new row, null when refused
+    mocks.start.mockImplementation(async (_s: unknown, _i: unknown, opts?: { allowInsert?: () => boolean }) =>
+        opts?.allowInsert && !opts.allowInsert() ? null : 'row-1',
+    );
     mocks.update.mockResolvedValue(undefined);
     mocks.end.mockResolvedValue(undefined);
     mocks.refused.mockResolvedValue(undefined);
@@ -465,6 +468,38 @@ describe('per-user row budget', () => {
         // 40 refusals + 80 starts fill the 120 budget
         expect(mocks.refused).toHaveBeenCalledTimes(40);
         expect(mocks.start).toHaveBeenCalledTimes(80);
+    });
+});
+
+describe('row budget is charged for inserts only', () => {
+    it('joins and re-opens do not consume the budget', async () => {
+        // a start that joins an existing row never asks to insert
+        mocks.start.mockImplementation(async () => 'row-joined');
+        mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
+        for (let i = 0; i < 200; i++) {
+            const res = await trackDownload(event({ jfDevice: { deviceId: 'same' } }), target);
+            if (!res.ok) throw new Error('expected ok');
+            res.tracker.onBytes(1);
+        }
+        await flush();
+        expect(mocks.start).toHaveBeenCalledTimes(200); // never refused, whatever the count
+        // and a real insert afterwards still has its full budget
+        mocks.start.mockImplementation(
+            async (_s: unknown, _i: unknown, opts?: { allowInsert?: () => boolean }) =>
+                opts?.allowInsert && !opts.allowInsert() ? null : 'row-new',
+        );
+        let inserted = 0;
+        for (let i = 0; i < 125; i++) {
+            const res = await trackDownload(event({ jfDevice: { deviceId: `n${i}` } }), target);
+            if (!res.ok) throw new Error('expected ok');
+            res.tracker.onBytes(1);
+            res.tracker.onEnd('completed');
+        }
+        await flush();
+        for (const call of mocks.start.mock.results.slice(200)) {
+            if ((await call.value) === 'row-new') inserted++;
+        }
+        expect(inserted).toBe(120);
     });
 });
 

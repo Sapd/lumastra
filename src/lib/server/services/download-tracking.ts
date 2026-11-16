@@ -318,9 +318,12 @@ function createTracker(input: DownloadEventInput, lease: DownloadLease | null): 
             rowId = Promise.resolve()
                 .then(async () => {
                     const sql = getDb();
-                    // Over the per-user row budget: serve the download, skip the log row.
-                    if (!sql || !takeRowBudget(input.userId)) return null;
-                    return await startDownloadEvent(sql, input);
+                    if (!sql) return null;
+                    // The per-user row budget is charged only when a NEW row is inserted (not
+                    // for joins or re-opens); over it the download is served without a log row.
+                    return await startDownloadEvent(sql, input, {
+                        allowInsert: () => takeRowBudget(input.userId),
+                    });
                 })
                 .catch((err) => {
                     warn('start', err);

@@ -66,10 +66,21 @@ export interface DownloadEventRow {
  * advisory lock, with the unique partial index on open rows (and ON CONFLICT) as the
  * backstop, so two simultaneous starts end up on ONE row.
  */
+export async function startDownloadEvent(sql: postgres.Sql, e: DownloadEventInput): Promise<string>;
 export async function startDownloadEvent(
     sql: postgres.Sql,
     e: DownloadEventInput,
-): Promise<string> {
+    opts: { allowInsert?: () => boolean },
+): Promise<string | null>;
+export async function startDownloadEvent(
+    sql: postgres.Sql,
+    e: DownloadEventInput,
+    /**
+     * Asked right before a NEW row would be inserted (never for a join or a re-open): false
+     * skips the insert and returns null. The per-user row budget charges only real inserts.
+     */
+    opts: { allowInsert?: () => boolean } = {},
+): Promise<string | null> {
     const fileId = e.fileId ?? null;
     const renditionId = e.renditionId ?? null;
     const since = new Date(Date.now() - DOWNLOAD_REOPEN_WINDOW_MS);
@@ -115,6 +126,7 @@ export async function startDownloadEvent(
         `;
         if (reopened[0]) return reopened[0].id;
 
+        if (opts.allowInsert && !opts.allowInsert()) return null;
         const rows = await tx<{ id: string }[]>`
             INSERT INTO download_events
                 (user_id, media_item_id, file_id, rendition_id, surface, device_key,
@@ -191,7 +203,8 @@ export async function endDownloadEvent(
 /**
  * A just-ended row for a tiny successful range request (not from byte 0, under
  * TINY_RANGE_MERGE_BYTES) is folded into the latest earlier row of the same transfer within
- * the reopen window, whatever that row's outcome (refusals aside): bytes are added (capped
+ * the reopen window, whatever that row's outcome (refusals included: a refusal ranks lowest, so
+ * the completed outcome replaces it): bytes are added (capped
  * at the total), the better outcome wins (completed > aborted > error) and the tiny row is
  * deleted. Without it a client could write one row per few-byte Range request. Returns true
  * when merged. No earlier row, or the row is still open, leaves it alone.
@@ -199,21 +212,28 @@ export async function endDownloadEvent(
 export async function mergeTinyRangeEvent(sql: postgres.Sql, id: string): Promise<boolean> {
     const since = new Date(Date.now() - DOWNLOAD_REOPEN_WINDOW_MS);
     return await sql.begin(async (tx) => {
-        const [row] = await tx<
-            {
-                user_id: string;
-                device_key: string;
-                file_id: string | null;
-                rendition_id: string | null;
-                bytes_sent: string;
-                outcome: DownloadOutcome | null;
-                ended_at: Date | null;
-            }[]
-        >`SELECT user_id, device_key, file_id, rendition_id, bytes_sent, outcome, ended_at
-          FROM download_events WHERE id = ${id}`;
-        if (!row || !row.ended_at) return false;
-        const lockKey = `${row.user_id}|${row.device_key}|${row.file_id ?? row.rendition_id ?? ''}`;
+        type SourceRow = {
+            user_id: string;
+            device_key: string;
+            file_id: string | null;
+            rendition_id: string | null;
+            bytes_sent: string;
+            outcome: DownloadOutcome | null;
+            ended_at: Date | null;
+        };
+        // The row's identity is immutable, so it can be read before the lock only to build
+        // the lock key; its STATE (closed or reopened by a join) is read again after it.
+        const [probe] = await tx<Pick<SourceRow, 'user_id' | 'device_key' | 'file_id' | 'rendition_id'>[]>`
+            SELECT user_id, device_key, file_id, rendition_id FROM download_events WHERE id = ${id}`;
+        if (!probe) return false;
+        const lockKey = `${probe.user_id}|${probe.device_key}|${probe.file_id ?? probe.rendition_id ?? ''}`;
         await tx`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+        // Same lock as startDownloadEvent: a concurrent join cannot slip in now. Re-read the
+        // source under it and make sure it is still closed before merging and deleting it.
+        const [row] = await tx<SourceRow[]>`
+            SELECT user_id, device_key, file_id, rendition_id, bytes_sent, outcome, ended_at
+            FROM download_events WHERE id = ${id} FOR UPDATE`;
+        if (!row || !row.ended_at) return false;
         const [target] = await tx<{ id: string; outcome: DownloadOutcome | null }[]>`
             SELECT id, outcome FROM download_events
             WHERE user_id = ${row.user_id}
@@ -222,7 +242,6 @@ export async function mergeTinyRangeEvent(sql: postgres.Sql, id: string): Promis
               AND rendition_id IS NOT DISTINCT FROM ${row.rendition_id}
               AND id <> ${id}
               AND (ended_at IS NULL OR ended_at > ${since})
-              AND (outcome IS NULL OR outcome IN ('completed', 'aborted', 'error'))
             ORDER BY started_at DESC
             LIMIT 1
         `;
