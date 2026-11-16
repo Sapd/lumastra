@@ -28,14 +28,13 @@ import { resolvePlaybackSelection } from '$lib/server/database/queries/media-fil
 import { getMediaItemForDownloadNaming } from '$lib/server/database/queries/catalog-operations.queries';
 import type { MediaDownloadNamingRow } from '$lib/server/database/queries/catalog-operations.queries';
 import { resolveMediaPath, isPathWithinLibraryRoots } from '$lib/server/utils/media-path-resolver';
-import { serveContainedMediaFile } from '$lib/server/utils/file-streaming';
+import { preflightFile, serveContainedMediaFile } from '$lib/server/utils/file-streaming';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition';
 import { downloadForbiddenResponse } from '$lib/server/services/download-access-guard.js';
 import {
     parseRangeStart,
     recordDownloadRefused,
     trackDownload,
-    untrackedDownload,
     type DownloadSurface,
 } from '$lib/server/services/download-tracking.js';
 
@@ -167,19 +166,27 @@ export async function handleDownloadFile(
             : `download${extname(pathInfo.containerPath)}`;
 
         const rangeHeader = request.headers.get('range');
-        // SvelteKit serves HEAD through GET: a HEAD takes no slot and logs nothing.
-        const tracked =
-            request.method === 'HEAD'
-                ? { ok: true as const, tracker: untrackedDownload() }
-                : await trackDownload(event, {
-                      // The catalog row's own id (never a composite / external id), so
-                      // the lease and the log always key on the same item.
-                      mediaItemId: naming?.id ?? itemId,
-                      fileId: file?.id ?? selection.fileId,
-                      surface,
-                      bytesTotal: fileSize,
-                      rangeStart: parseRangeStart(rangeHeader),
-                  });
+        // HEAD and a matching conditional GET are answered from metadata alone: no lease,
+        // no log row, no file stream.
+        const disposition = attachmentDisposition(filename);
+        const pre = await preflightFile(pathInfo.containerPath, {
+            contained: true,
+            method: request.method,
+            ifNoneMatch: request.headers.get('if-none-match'),
+            ifModifiedSince: request.headers.get('if-modified-since'),
+            disposition,
+        });
+        if (pre.kind === 'refused') return ApiResponses.notFound('Media not found');
+        if (pre.kind === 'response') return pre.response;
+        const tracked = await trackDownload(event, {
+            // The catalog row's own id (never a composite / external id), so
+            // the lease and the log always key on the same item.
+            mediaItemId: naming?.id ?? itemId,
+            fileId: file?.id ?? selection.fileId,
+            surface,
+            bytesTotal: fileSize,
+            rangeStart: parseRangeStart(rangeHeader),
+        });
         if (!tracked.ok) return tracked.response;
         const { tracker } = tracked;
 
@@ -187,7 +194,7 @@ export async function handleDownloadFile(
         let response: Response | null;
         try {
             response = await serveContainedMediaFile(pathInfo.containerPath, rangeHeader, {
-                disposition: attachmentDisposition(filename),
+                disposition,
                 ifRange: request.headers.get('if-range'),
                 // One enforcement point for both surfaces, exactly like the feature
                 // flag above: /j and /api/v1 must not be able to disagree about how

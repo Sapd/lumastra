@@ -137,7 +137,12 @@ export function throttleNodeStream(
                 const bytes = toUint8(value);
                 // Pay and emit piece by piece, re-reading the rate between pieces.
                 for (let at = 0; at < bytes.byteLength && !cancelled.signal.aborted; ) {
-                    const piece = Math.max(1, Math.floor((rate || currentRate()) * (MAX_WAIT_MS / 1000)));
+                    const live = currentRate();
+                    // 0 = unlimited right now: hand the rest of the chunk over whole.
+                    const piece =
+                        live > 0
+                            ? Math.max(1, Math.floor(live * (MAX_WAIT_MS / 1000)))
+                            : bytes.byteLength;
                     const part = bytes.subarray(at, Math.min(bytes.byteLength, at + piece));
                     await spend(part.byteLength);
                     if (cancelled.signal.aborted) return;

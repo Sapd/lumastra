@@ -154,6 +154,87 @@ function ifRangeMatches(ifRange: string, validators: FileValidators): boolean {
 }
 
 // ============================================================================
+// PREFLIGHT: HEAD and conditional requests, decided before any lease or stream
+// ============================================================================
+
+export type PreflightResult =
+    /** Answer with this response; nothing was leased, tracked or opened. */
+    | { kind: 'response'; response: Response }
+    /** The path was refused (outside the library, swapped link): answer 404. */
+    | { kind: 'refused' }
+    /** A body is needed: take the lease and serve. */
+    | { kind: 'proceed' };
+
+export interface PreflightOptions {
+    /** `true` for a library media file (re-contained, no symlink following), like `serveContainedMediaFile`. */
+    contained: boolean;
+    method: string;
+    ifNoneMatch?: string | null;
+    ifModifiedSince?: string | null;
+    disposition?: string;
+    extraHeaders?: Record<string, string>;
+}
+
+/** RFC 9110 weak comparison of an If-None-Match list against our strong ETag. */
+function ifNoneMatchHits(header: string, etag: string): boolean {
+    const bare = (t: string): string => t.trim().replace(/^W\//, '');
+    return header
+        .split(',')
+        .map(bare)
+        .some((t) => t === '*' || t === etag);
+}
+
+/**
+ * Answer a HEAD, or a conditional GET that matches (304), from the file's metadata alone.
+ *
+ * It runs before a download takes its lease: a HEAD or a 304 must hold no slot, write no
+ * log row and open no file stream. `If-None-Match` wins over `If-Modified-Since` when both
+ * are sent (RFC 9110 §13.2.2). A HEAD ignores `Range`.
+ */
+export async function preflightFile(
+    filePath: string,
+    opts: PreflightOptions,
+): Promise<PreflightResult> {
+    let statPath = filePath;
+    if (opts.contained) {
+        const servePath = await resolveContainedMediaFile(filePath, [], { parents: true });
+        if (!servePath) return { kind: 'refused' };
+        statPath = servePath;
+    }
+    const { size, mtimeMs } = await getCachedStat(statPath);
+    const validators = buildValidators(size, mtimeMs);
+    const headers: Record<string, string> = { ...opts.extraHeaders, ETag: validators.etag };
+    if (validators.lastModified) headers['Last-Modified'] = validators.lastModified;
+
+    let notModified = false;
+    if (opts.ifNoneMatch) {
+        notModified = ifNoneMatchHits(opts.ifNoneMatch, validators.etag);
+    } else if (opts.ifModifiedSince && validators.lastModified) {
+        const since = Date.parse(opts.ifModifiedSince);
+        notModified = !Number.isNaN(since) && Date.parse(validators.lastModified) <= since;
+    }
+    if (notModified) {
+        return { kind: 'response', response: new Response(null, { status: 304, headers }) };
+    }
+    if (opts.method === 'HEAD') {
+        return {
+            kind: 'response',
+            response: new Response(null, {
+                status: 200,
+                headers: {
+                    'Content-Type': getMimeType(extname(filePath).toLowerCase()),
+                    'Content-Length': String(size),
+                    'Accept-Ranges': 'bytes',
+                    'Content-Disposition': opts.disposition ?? 'inline',
+                    ...headers,
+                },
+            }),
+        };
+    }
+    return { kind: 'proceed' };
+}
+
+// ============================================================================
 // FILE STREAMING
 // ============================================================================
 

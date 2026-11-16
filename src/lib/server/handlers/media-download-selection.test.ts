@@ -5,6 +5,7 @@ import type { RequestEvent } from '@sveltejs/kit';
 const mocks = vi.hoisted(() => ({
     select: vi.fn(),
     serve: vi.fn(),
+    preflight: vi.fn(),
     track: vi.fn(),
     tracker: {
         rate: () => 7,
@@ -31,7 +32,10 @@ vi.mock('$lib/server/utils/media-path-resolver', () => ({
     }),
     isPathWithinLibraryRoots: async () => true,
 }));
-vi.mock('$lib/server/utils/file-streaming', () => ({ serveContainedMediaFile: mocks.serve }));
+vi.mock('$lib/server/utils/file-streaming', () => ({
+    serveContainedMediaFile: mocks.serve,
+    preflightFile: (...a: unknown[]) => mocks.preflight(...a),
+}));
 vi.mock('$lib/server/services/download-access-guard.js', () => ({
     downloadForbiddenResponse: async () => null,
 }));
@@ -62,6 +66,7 @@ function event(path: string): RequestEvent {
 beforeEach(() => {
     vi.clearAllMocks();
     mocks.serve.mockResolvedValue(new Response('data'));
+    mocks.preflight.mockResolvedValue({ kind: 'proceed' });
     mocks.track.mockResolvedValue({ ok: true, tracker: mocks.tracker });
 });
 describe('attachment selected file', () => {
@@ -181,22 +186,58 @@ describe('tracker wiring', () => {
     });
 });
 
-describe('HEAD requests', () => {
-    it('take no lease and log no row (SvelteKit serves HEAD through GET)', async () => {
-        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
+describe('HEAD and conditional requests', () => {
+    const headEvent = (extra: Record<string, string> = {}, method = 'HEAD') => {
         const url = new URL('/api/v1/media/media/download', 'https://test.invalid');
-        const head = {
+        return {
             url,
             params: { id: 'media', itemId: 'media' },
-            request: new Request(url, { method: 'HEAD' }),
+            request: new Request(url, { method, headers: extra }),
         } as unknown as RequestEvent;
-        expect((await handleDownloadFile(head, { surface: 'api' })).status).toBe(200);
+    };
+    beforeEach(() => {
+        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
+    });
+
+    it('a HEAD is answered by the preflight: no lease, no log row, no stream', async () => {
+        mocks.preflight.mockResolvedValue({
+            kind: 'response',
+            response: new Response(null, { status: 200, headers: { 'Content-Length': '4' } }),
+        });
+        const res = await handleDownloadFile(headEvent(), { surface: 'api' });
+        expect(res.status).toBe(200);
+        expect(res.headers.get('content-length')).toBe('4');
+        expect(mocks.preflight.mock.calls[0]![1]).toMatchObject({ method: 'HEAD', contained: true });
         expect(mocks.track).not.toHaveBeenCalled();
-        expect(mocks.serve).toHaveBeenCalledTimes(1);
+        expect(mocks.serve).not.toHaveBeenCalled();
+    });
+
+    it('a matching conditional GET is a 304 before any lease or stream', async () => {
+        mocks.preflight.mockResolvedValue({
+            kind: 'response',
+            response: new Response(null, { status: 304 }),
+        });
+        const res = await handleDownloadFile(
+            headEvent({ 'if-none-match': '"4-1"', 'if-modified-since': 'x' }, 'GET'),
+            { surface: 'api' },
+        );
+        expect(res.status).toBe(304);
+        expect(mocks.preflight.mock.calls[0]![1]).toMatchObject({
+            ifNoneMatch: '"4-1"',
+            ifModifiedSince: 'x',
+        });
+        expect(mocks.track).not.toHaveBeenCalled();
+        expect(mocks.serve).not.toHaveBeenCalled();
+    });
+
+    it('a refused path is a 404 without a lease', async () => {
+        mocks.preflight.mockResolvedValue({ kind: 'refused' });
+        const res = await handleDownloadFile(headEvent({}, 'GET'), { surface: 'api' });
+        expect(res.status).toBe(404);
+        expect(mocks.track).not.toHaveBeenCalled();
     });
 
     it('a GET does take a lease', async () => {
-        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
         await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
         expect(mocks.track).toHaveBeenCalledTimes(1);
     });

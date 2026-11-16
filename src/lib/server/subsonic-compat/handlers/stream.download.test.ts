@@ -12,6 +12,7 @@ const m = vi.hoisted(() => ({
     refused: vi.fn(),
     track: vi.fn(),
     serve: vi.fn(),
+    preflight: vi.fn(),
     naming: vi.fn(),
     tracker: {
         rate: () => 9,
@@ -41,6 +42,7 @@ vi.mock('$lib/server/services/download-tracking.js', () => ({
 }));
 vi.mock('$lib/server/utils/file-streaming.js', () => ({
     serveContainedMediaFile: (...a: unknown[]) => m.serve(...a),
+    preflightFile: (...a: unknown[]) => m.preflight(...a),
 }));
 vi.mock('$lib/server/database/queries/media-file-resolution.queries.js', () => ({
     resolvePlaybackSelection: async () => ({ files: [], fileId: 'file-1' }),
@@ -112,6 +114,7 @@ beforeEach(() => {
     m.naming.mockResolvedValue({ title: 'Clean Title' });
     m.track.mockResolvedValue({ ok: true, tracker: m.tracker });
     m.serve.mockResolvedValue(new Response('x', { status: 200 }));
+    m.preflight.mockResolvedValue({ kind: 'proceed' });
 });
 
 describe('download.view', () => {
@@ -185,9 +188,26 @@ describe('download.view', () => {
         expect(m.tracker.discard).toHaveBeenCalledTimes(1);
     });
 
-    it('a HEAD takes no lease', async () => {
-        await handleDownload(ev('HEAD'), auth, {} as never);
+    it('a HEAD is answered by the preflight: no lease and no stream opened', async () => {
+        m.preflight.mockResolvedValue({
+            kind: 'response',
+            response: new Response(null, { status: 200 }),
+        });
+        const res = await handleDownload(ev('HEAD'), auth, {} as never);
+        expect(res.status).toBe(200);
+        expect(m.preflight.mock.calls[0]![1]).toMatchObject({ method: 'HEAD', contained: true });
         expect(m.track).not.toHaveBeenCalled();
-        expect(m.serve).toHaveBeenCalledTimes(1);
+        expect(m.serve).not.toHaveBeenCalled();
+    });
+
+    it('a matching conditional GET is a 304 with no lease and no stream', async () => {
+        m.preflight.mockResolvedValue({
+            kind: 'response',
+            response: new Response(null, { status: 304 }),
+        });
+        const res = await handleDownload(ev('GET'), auth, {} as never);
+        expect(res.status).toBe(304);
+        expect(m.track).not.toHaveBeenCalled();
+        expect(m.serve).not.toHaveBeenCalled();
     });
 });

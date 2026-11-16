@@ -42,13 +42,12 @@ import { probeAudioSource } from '$lib/server/services/music-transcode/source-me
 import type { MusicCodec } from '$lib/server/services/music-transcode/types.js';
 import { parseMusicCodec } from '$lib/server/services/music-transcode/types.js';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition.js';
-import { serveContainedMediaFile } from '$lib/server/utils/file-streaming.js';
+import { preflightFile, serveContainedMediaFile } from '$lib/server/utils/file-streaming.js';
 import { canDownload } from '$lib/server/services/download-access.service.js';
 import {
     parseRangeStart,
     recordDownloadRefused,
     trackDownload,
-    untrackedDownload,
 } from '$lib/server/services/download-tracking.js';
 import { resolvePlaybackSelection } from '$lib/server/database/queries/media-file-resolution.queries.js';
 import { getMediaItemForDownloadNaming } from '$lib/server/database/queries/catalog-operations.queries.js';
@@ -343,23 +342,33 @@ async function serveDownload(
     const ext = extname(containerPath);
     const filename = naming ? buildDownloadFilename(naming, ext) : `download${ext}`;
 
-    const tracked =
-        event.request.method === 'HEAD'
-            ? { ok: true as const, tracker: untrackedDownload() }
-            : await trackDownload(trackerEventOf(event, auth), {
-                  mediaItemId: track.id,
-                  fileId: selection.fileId,
-                  surface: 'api',
-                  bytesTotal: fileSize,
-                  rangeStart: parseRangeStart(rangeHeader),
-              });
+    // HEAD and a matching conditional GET: metadata only, no lease, no row, no stream.
+    const disposition = attachmentDisposition(filename);
+    const pre = await preflightFile(containerPath, {
+        contained: true,
+        method: event.request.method,
+        ifNoneMatch: event.request.headers.get('if-none-match'),
+        ifModifiedSince: event.request.headers.get('if-modified-since'),
+        disposition,
+        extraHeaders: CORS_HEADERS,
+    });
+    if (pre.kind === 'refused') return subsonicError(70, 'Audio file not found.', auth.format);
+    if (pre.kind === 'response') return pre.response;
+
+    const tracked = await trackDownload(trackerEventOf(event, auth), {
+        mediaItemId: track.id,
+        fileId: selection.fileId,
+        surface: 'api',
+        bytesTotal: fileSize,
+        rangeStart: parseRangeStart(rangeHeader),
+    });
     if (!tracked.ok) return tracked.response;
     const { tracker } = tracked;
 
     let response: Response | null;
     try {
         response = await serveContainedMediaFile(containerPath, rangeHeader, {
-            disposition: attachmentDisposition(filename),
+            disposition,
             ifRange: event.request.headers.get('if-range'),
             throttleBytesPerSec: () => tracker.rate(),
             observer: tracker.observer,

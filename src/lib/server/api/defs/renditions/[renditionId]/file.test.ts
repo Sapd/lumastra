@@ -3,7 +3,10 @@
 
 // GET /api/v1/renditions/{id}/file: auth -> checkMediaAccess (404) -> canDownload (403).
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { RequestEvent } from '@sveltejs/kit';
 
 const mockCheckMediaAccess = vi.fn();
@@ -12,6 +15,8 @@ const cfgOverrides = { FEATURE_MEDIA_DOWNLOAD: false };
 const mockGetRendition = vi.fn();
 const mockTrack = vi.fn();
 const mockServe = vi.fn();
+const createReadStreamSpy = vi.fn();
+const artifactDir = vi.hoisted(() => ({ dir: '' }));
 const tracker = {
     rate: () => 5,
     observer: { onBytes() {}, onEnd() {} },
@@ -42,14 +47,25 @@ vi.mock('$lib/server/config.js', async (importOriginal) => {
         },
     };
 });
-vi.mock('$lib/server/utils/file-streaming.js', () => ({
-    serveFileByPath: (...a: unknown[]) => mockServe(...a),
-}));
+vi.mock('node:fs', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('node:fs')>();
+    return {
+        ...actual,
+        createReadStream: (...a: unknown[]) => {
+            createReadStreamSpy(...a);
+            return (actual.createReadStream as (...b: unknown[]) => unknown)(...a);
+        },
+    };
+});
+vi.mock('$lib/server/utils/file-streaming.js', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('$lib/server/utils/file-streaming.js')>();
+    return { ...actual, serveFileByPath: (...a: unknown[]) => mockServe(...a) };
+});
 vi.mock('$lib/server/database/queries/catalog-operations.queries.js', () => ({
     getMediaItemForDownloadNaming: async () => null,
 }));
 vi.mock('$lib/server/services/download-rendition/service.js', () => ({
-    artifactPath: (n: string) => `/tmp/${n}`,
+    artifactPath: (n: string) => join(artifactDir.dir, n),
 }));
 vi.mock('$lib/server/database/connection.js', () => ({ getDb: () => ({}) }));
 vi.mock('$lib/server/database/queries/users.queries.js', () => ({
@@ -79,13 +95,18 @@ const { def } = await import('./file.js');
 const { invalidateDownloadAccess } =
     await import('$lib/server/services/download-access.service.js');
 
-async function call(method = 'GET'): Promise<Response> {
+beforeAll(() => {
+    artifactDir.dir = mkdtempSync(join(tmpdir(), 'rendition-file-test-'));
+    writeFileSync(join(artifactDir.dir, 'a.mp4'), 'rendition-bytes');
+});
+
+async function call(method = 'GET', headers: Record<string, string> = {}): Promise<Response> {
     return await def.handlers.GET!(
         {
             locals: { user: { userId: 'u1', username: 'alice' } },
             params: { renditionId: 'r1' },
             url: new URL('http://localhost/api/v1/renditions/r1/file'),
-            request: new Request('http://localhost/api/v1/renditions/r1/file', { method }),
+            request: new Request('http://localhost/api/v1/renditions/r1/file', { method, headers }),
         } as unknown as RequestEvent,
         { surface: 'v1' } as never,
     );
@@ -134,9 +155,33 @@ describe('rendition file download gate', () => {
 });
 
 describe('rendition file download tracking', () => {
-    it('a HEAD takes no lease and logs no row', async () => {
-        expect((await call('HEAD')).status).toBe(200);
+    it('a HEAD takes no lease, logs no row and opens no stream', async () => {
+        const res = await call('HEAD', { range: 'bytes=2-3' });
+        expect(res.status).toBe(200); // Range is ignored on HEAD
+        expect(res.headers.get('content-length')).toBe('15');
+        expect(res.headers.get('accept-ranges')).toBe('bytes');
+        expect(res.headers.get('etag')).toBeTruthy();
+        expect(res.body).toBeNull();
         expect(mockTrack).not.toHaveBeenCalled();
+        expect(mockServe).not.toHaveBeenCalled();
+        expect(createReadStreamSpy).not.toHaveBeenCalled();
+    });
+
+    it('a conditional GET that matches is a 304 before lease, log and stream', async () => {
+        const etag = (await call('HEAD')).headers.get('etag')!;
+        const res = await call('GET', { 'if-none-match': etag });
+        expect(res.status).toBe(304);
+        expect(mockTrack).not.toHaveBeenCalled();
+        expect(mockServe).not.toHaveBeenCalled();
+        expect(createReadStreamSpy).not.toHaveBeenCalled();
+        const since = (await call('HEAD')).headers.get('last-modified')!;
+        expect((await call('GET', { 'if-modified-since': since })).status).toBe(304);
+        expect(mockTrack).not.toHaveBeenCalled();
+    });
+
+    it('a non-matching If-None-Match still serves and tracks', async () => {
+        expect((await call('GET', { 'if-none-match': '"nope"' })).status).toBe(200);
+        expect(mockTrack).toHaveBeenCalledTimes(1);
     });
 
     it('a GET goes through trackDownload', async () => {

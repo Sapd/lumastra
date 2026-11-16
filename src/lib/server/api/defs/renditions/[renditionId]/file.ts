@@ -29,7 +29,7 @@ import { checkMediaAccess } from '$lib/server/middleware/media-access.js';
 import { getDb } from '$lib/server/database/index.js';
 import { config } from '$lib/server/config.js';
 import { downloadForbiddenResponse } from '$lib/server/services/download-access-guard.js';
-import { serveFileByPath } from '$lib/server/utils/file-streaming.js';
+import { preflightFile, serveFileByPath } from '$lib/server/utils/file-streaming.js';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition.js';
 import { getMediaItemForDownloadNaming } from '$lib/server/database/queries/catalog-operations.queries.js';
 import { buildDownloadFilename } from '$lib/server/handlers/media-download-handler.js';
@@ -42,7 +42,6 @@ import {
     parseRangeStart,
     recordDownloadRefused,
     trackDownload,
-    untrackedDownload,
 } from '$lib/server/services/download-tracking.js';
 
 export const def = defineEndpoint({
@@ -115,23 +114,36 @@ export const def = defineEndpoint({
                 : `download (${row.rung_id}).mp4`;
 
             const rangeHeader = event.request.headers.get('range');
-            // SvelteKit serves HEAD through GET: a HEAD takes no slot and logs nothing.
-            const tracked =
-                event.request.method === 'HEAD'
-                    ? { ok: true as const, tracker: untrackedDownload() }
-                    : await trackDownload(event, {
-                          mediaItemId: row.media_item_id,
-                          renditionId: row.id,
-                          surface: 'api',
-                          bytesTotal: row.size_bytes ? Number(row.size_bytes) : null,
-                          rangeStart: parseRangeStart(rangeHeader),
-                      });
+            // HEAD and a matching conditional GET: metadata only, no lease, no row, no stream.
+            const path = artifactPath(row.artifact_name);
+            try {
+                const pre = await preflightFile(path, {
+                    contained: false,
+                    method: event.request.method,
+                    ifNoneMatch: event.request.headers.get('if-none-match'),
+                    ifModifiedSince: event.request.headers.get('if-modified-since'),
+                    disposition: attachmentDisposition(filename),
+                });
+                if (pre.kind === 'response') return pre.response;
+            } catch (err) {
+                if ((err as { code?: string } | null)?.code === 'ENOENT') {
+                    return ApiProblem.notFound('This download is no longer available');
+                }
+                throw err;
+            }
+            const tracked = await trackDownload(event, {
+                mediaItemId: row.media_item_id,
+                renditionId: row.id,
+                surface: 'api',
+                bytesTotal: row.size_bytes ? Number(row.size_bytes) : null,
+                rangeStart: parseRangeStart(rangeHeader),
+            });
             if (!tracked.ok) return tracked.response;
             const { tracker } = tracked;
 
             try {
                 const response = await serveFileByPath(
-                    artifactPath(row.artifact_name),
+                    path,
                     rangeHeader,
                     undefined,
                     attachmentDisposition(filename),
