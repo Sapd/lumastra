@@ -42,6 +42,7 @@ import {
     Megaphone,
     Beaker,
     BuildingOffice2,
+    ArrowDownTray,
     ClipboardDocumentList,
     PresentationChartBar,
     ArrowUpTray,
@@ -67,6 +68,7 @@ type AdminRoute =
     | '/admin/users/sessions'
     | '/admin/notifications'
     | '/admin/users/activity'
+    | '/admin/users/downloads'
     | '/admin/users/playback-quality'
     | '/admin/users/client-diagnostics'
     | '/admin/users/api-tokens'
@@ -121,6 +123,7 @@ export const adminPageIcons: Record<AdminRoute, IconSource> = {
     '/admin/users/sessions': QueueList,
     '/admin/notifications': Megaphone,
     '/admin/users/activity': ClipboardDocumentList,
+    '/admin/users/downloads': ArrowDownTray,
     '/admin/users/playback-quality': ChartBar,
     '/admin/users/client-diagnostics': ExclamationTriangle,
     '/admin/users/api-tokens': Key,

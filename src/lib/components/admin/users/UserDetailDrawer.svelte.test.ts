@@ -50,6 +50,7 @@ function props(overrides: Partial<LocalUser> = {}) {
         onSetAgeRating: vi.fn(),
         onUnpinAgeRating: vi.fn(),
         onSetAllowLiveTv: vi.fn().mockResolvedValue(false),
+        onSetAllowDownloads: vi.fn().mockResolvedValue(true),
         onTogglePrivacy: vi.fn(),
         onClearUserData: vi.fn(),
         onOpenQuickConnect: vi.fn(),
@@ -91,6 +92,53 @@ describe('user account panel', () => {
         expect(
             view.getByText('Live TV has no age filter. Consider turning it off for this user.'),
         ).toBeTruthy();
+    });
+
+    it.each([
+        ['true', true],
+        ['false', false],
+        ['default', null],
+    ])('sends %s for the download choice as %s', async (choice, sent) => {
+        const callbacks = props({
+            allowDownloads: sent === null ? true : null,
+            downloadAccess: { allowed: true, reason: 'default' },
+        });
+        const view = render(UserDetailDrawer, { props: callbacks });
+        await fireEvent.click(view.getByRole('tab', { name: 'Access & sign-in' }));
+        await fireEvent.change(view.getByRole('combobox', { name: 'Downloads' }), {
+            target: { value: choice },
+        });
+        expect(callbacks.onSetAllowDownloads).toHaveBeenCalledWith('sample', sent);
+    });
+
+    it.each([
+        [{ allowed: true, reason: 'group' as const }, 'Default: allowed via group'],
+        [{ allowed: false, reason: 'default' as const }, 'Default: not allowed'],
+        [{ allowed: true, reason: 'default' as const }, 'Default: allowed'],
+    ])('shows what "Default" means for the user', async (access, text) => {
+        const view = render(UserDetailDrawer, {
+            props: props({ allowDownloads: null, downloadAccess: access }),
+        });
+        await fireEvent.click(view.getByRole('tab', { name: 'Access & sign-in' }));
+        expect(view.getByText(text)).toBeTruthy();
+    });
+
+    it('hides the default hint for an explicit choice and warns when downloads are off server-wide', async () => {
+        const view = render(UserDetailDrawer, {
+            props: {
+                ...props({
+                    allowDownloads: false,
+                    downloadAccess: { allowed: false, reason: 'override' },
+                }),
+                downloadsEnabled: false,
+            },
+        });
+        await fireEvent.click(view.getByRole('tab', { name: 'Access & sign-in' }));
+        expect(view.queryByText(/^Default: /)).toBeNull();
+        expect(view.getByText(/turned off for the whole server/)).toBeTruthy();
+        expect((view.getByRole('combobox', { name: 'Downloads' }) as HTMLSelectElement).value).toBe(
+            'false',
+        );
     });
 
     it('uses the avatar byte route and updates it when the selected account changes', async () => {
@@ -337,7 +385,11 @@ it('shows how many library titles have no age rating next to the age limit', asy
     cleanup();
 
     const visible = render(UserDetailDrawer, {
-        props: { ...props(), unratedTitles: { unrated: 3, total: 10 }, unratedContentVisible: true },
+        props: {
+            ...props(),
+            unratedTitles: { unrated: 3, total: 10 },
+            unratedContentVisible: true,
+        },
     });
     await fireEvent.click(visible.getByRole('tab', { name: 'Access & sign-in' }));
     expect(visible.getByTestId('unrated-title-count').textContent).toMatch(

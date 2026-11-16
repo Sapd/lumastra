@@ -351,6 +351,30 @@
         }
     };
 
+    const setAllowDownloads = async (
+        username: string,
+        allowed: boolean | null,
+    ): Promise<boolean> => {
+        try {
+            const { data, error } = await adminApi.setUserAllowDownloads(username, allowed);
+            if (error || !data) {
+                toasts.error(m.admin_users_downloads_save_failed());
+                return false;
+            }
+            mutationCount++;
+            userState.users = userState.users.map((u) =>
+                u.username === username ? { ...u, allowDownloads: data.allowDownloads } : u,
+            );
+            // The effective value (downloadAccess) depends on groups and instance config
+            // that only the server knows, so reload the list instead of guessing it here.
+            void loadUsers();
+            return true;
+        } catch {
+            toasts.error(m.admin_users_downloads_save_failed());
+            return false;
+        }
+    };
+
     const setAgeRating = async (username: string, maxAge: number | null): Promise<boolean> => {
         userState.updatingAgeRating.add(username);
         try {
@@ -940,6 +964,8 @@
             onSetEmail={setEmail}
             onSetAgeRating={setAgeRating}
             onSetAllowLiveTv={setAllowLiveTv}
+            onSetAllowDownloads={setAllowDownloads}
+            downloadsEnabled={data.downloadsEnabled}
             onUnpinAgeRating={unpinAgeRating}
             onTogglePrivacy={togglePrivacy}
             onClearUserData={clearUserData}

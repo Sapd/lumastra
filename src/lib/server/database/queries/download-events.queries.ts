@@ -148,22 +148,9 @@ export async function recordRefusedDownload(
     `;
 }
 
-export async function listDownloadEvents(
-    sql: postgres.Sql,
-    opts: { userId?: string; limit: number; before?: Date },
-): Promise<DownloadEventRow[]> {
-    const rows = await sql<Record<string, unknown>[]>`
-        SELECT id, user_id, media_item_id, file_id, rendition_id, surface, device_key,
-               client_name, bytes_total, bytes_sent, range_start, started_at,
-               last_activity_at, ended_at, outcome
-        FROM download_events
-        WHERE (${opts.userId ?? null}::uuid IS NULL OR user_id = ${opts.userId ?? null})
-          AND (${opts.before ?? null}::timestamptz IS NULL OR started_at < ${opts.before ?? null})
-        ORDER BY started_at DESC
-        LIMIT ${opts.limit}
-    `;
+function mapEventRow(r: Record<string, unknown>): DownloadEventRow {
     const num = (v: unknown): number | null => (v == null ? null : Number(v));
-    return rows.map((r) => ({
+    return {
         id: r.id as string,
         userId: r.user_id as string,
         mediaItemId: r.media_item_id as string,
@@ -179,7 +166,98 @@ export async function listDownloadEvents(
         lastActivityAt: r.last_activity_at as Date,
         endedAt: (r.ended_at as Date | null) ?? null,
         outcome: (r.outcome as DownloadOutcome | null) ?? null,
-    }));
+    };
+}
+
+export async function listDownloadEvents(
+    sql: postgres.Sql,
+    opts: { userId?: string; limit: number; before?: Date },
+): Promise<DownloadEventRow[]> {
+    const rows = await sql<Record<string, unknown>[]>`
+        SELECT id, user_id, media_item_id, file_id, rendition_id, surface, device_key,
+               client_name, bytes_total, bytes_sent, range_start, started_at,
+               last_activity_at, ended_at, outcome
+        FROM download_events
+        WHERE (${opts.userId ?? null}::uuid IS NULL OR user_id = ${opts.userId ?? null})
+          AND (${opts.before ?? null}::timestamptz IS NULL OR started_at < ${opts.before ?? null})
+        ORDER BY started_at DESC
+        LIMIT ${opts.limit}
+    `;
+    return rows.map(mapEventRow);
+}
+
+/** Rows that are still open (no end yet), for matching running transfers to titles. */
+export async function listOpenDownloadEvents(
+    sql: postgres.Sql,
+    limit = 500,
+): Promise<DownloadEventRow[]> {
+    const rows = await sql<Record<string, unknown>[]>`
+        SELECT id, user_id, media_item_id, file_id, rendition_id, surface, device_key,
+               client_name, bytes_total, bytes_sent, range_start, started_at,
+               last_activity_at, ended_at, outcome
+        FROM download_events
+        WHERE ended_at IS NULL
+        ORDER BY started_at DESC
+        LIMIT ${limit}
+    `;
+    return rows.map(mapEventRow);
+}
+
+export interface DownloadTitleInfo {
+    title: string;
+    seriesTitle: string | null;
+    season: number | null;
+    episode: number | null;
+}
+
+/** Display titles for media items (episodes carry their series title, season and episode number). */
+export async function getDownloadTitles(
+    sql: postgres.Sql,
+    mediaItemIds: string[],
+): Promise<Map<string, DownloadTitleInfo>> {
+    const out = new Map<string, DownloadTitleInfo>();
+    if (mediaItemIds.length === 0) return out;
+    const rows = await sql<
+        {
+            id: string;
+            title: string | null;
+            series_title: string | null;
+            season_number: number | null;
+            episode_number: number | null;
+        }[]
+    >`
+        SELECT mi.id, mi.title, series.title AS series_title,
+               mi.season_number, mi.episode_number
+        FROM media_items mi
+        LEFT JOIN media_items season ON season.id = mi.parent_id AND mi.media_type = 'episode'
+        LEFT JOIN media_items series ON series.id = CASE
+            WHEN mi.media_type = 'season' THEN mi.parent_id
+            WHEN mi.media_type = 'episode' THEN COALESCE(season.parent_id, mi.parent_id)
+        END
+        WHERE mi.id IN ${sql(mediaItemIds)}
+    `;
+    for (const r of rows) {
+        out.set(r.id, {
+            title: r.title ?? r.id,
+            seriesTitle: r.series_title,
+            season: r.season_number,
+            episode: r.episode_number,
+        });
+    }
+    return out;
+}
+
+export async function getUsernamesByIds(
+    sql: postgres.Sql,
+    userIds: string[],
+): Promise<Map<string, string>> {
+    const out = new Map<string, string>();
+    if (userIds.length === 0) return out;
+    const rows = await sql<{ id: string; username: string }[]>`
+        SELECT id, username FROM users WHERE id IN ${sql(userIds)}
+    `;
+    for (const r of rows) out.set(r.id, r.username);
+    return out;
 }
 
 /** LIMIT-batched delete for `pruneUntilDrained` (the cutoff is a Date). */

@@ -49,6 +49,7 @@ export interface UserRow {
 // response schema and this mapper's return type stay one declaration.
 export type { ApiUser } from '$lib/schemas/api-user-responses.js';
 import type { ApiUser } from '$lib/schemas/api-user-responses.js';
+import { explainDownloadAccess } from '$lib/server/services/download-access.service.js';
 
 function toNumber(v: number | string | null | undefined): number | undefined {
     if (v == null) return undefined;
@@ -70,6 +71,10 @@ export function mapUserToApi(row: UserRow): ApiUser {
         allowLiveTv: row.allow_live_tv !== false,
         liveTvDefault: row.allow_live_tv == null,
         allowDownloads: row.allow_downloads ?? null,
+        downloadAccess: explainDownloadAccess(
+            { allowDownloads: row.allow_downloads ?? null, groups: row.groups ?? [] },
+            row.is_admin,
+        ),
         displayName: row.display_name ?? undefined,
         email: row.email ?? undefined,
         hideStreams: row.hide_streams,

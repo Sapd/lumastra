@@ -328,6 +328,7 @@
 /admin/users/activity GET admin  <- /admin/**
 /admin/users/api-tokens GET admin  <- /admin/**
 /admin/users/client-diagnostics GET admin  <- /admin/**
+/admin/users/downloads GET admin  <- /admin/**
 /admin/users/playback-incidents GET admin  <- /admin/**
 /admin/users/playback-quality GET admin  <- /admin/**
 /admin/users/sessions GET admin  <- /admin/**
@@ -487,6 +488,7 @@
 /api/admin/diagnostics/[id] GET admin-scoped  <- /api/admin/**
 /api/admin/diagnostics/[id]/blob GET admin-scoped  <- /api/admin/**
 /api/admin/diagnostics/[id]/github-report GET admin-scoped  <- /api/admin/**
+/api/admin/downloads GET admin-scoped  <- /api/admin/**
 /api/admin/ffmpeg-jobs DELETE admin-scoped  <- /api/admin/**
 /api/admin/ffmpeg-jobs GET admin-scoped  <- /api/admin/**
 /api/admin/fix/episode-gap-check DELETE admin-scoped  <- /api/admin/**

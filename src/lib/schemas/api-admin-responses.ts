@@ -1610,6 +1610,13 @@ export const LocalUserSchema = z.object({
         .nullable()
         .optional()
         .describe('Per-user download override (null = follow the instance default)'),
+    downloadAccess: z
+        .object({
+            allowed: z.boolean(),
+            reason: z.enum(['admin', 'override', 'group', 'default']),
+        })
+        .optional()
+        .describe('Effective download permission and which rule decided it'),
     ageRatingPinned: z
         .boolean()
         .describe('Whether age rating is manually pinned or derived from IdP groups'),
@@ -1737,6 +1744,53 @@ export const SetAllowDownloadsResponseSchema = z.object({
         .describe('Per-user download override (null = follow the instance default)'),
 });
 export type SetAllowDownloadsResponse = z.infer<typeof SetAllowDownloadsResponseSchema>;
+
+// ── Downloads (GET /api/admin/downloads) ───────────────────────────────────
+
+const TitleFields = {
+    title: z.string().optional(),
+    seriesTitle: z.string().optional(),
+    season: z.number().optional(),
+    episode: z.number().optional(),
+};
+
+export const AdminDownloadsResponseSchema = z.object({
+    totalBytesPerSec: z.number().describe('Sum of the running downloads current speeds'),
+    totalCapBytesPerSec: z
+        .number()
+        .describe('DOWNLOAD_TOTAL_BANDWIDTH_KBPS in bytes/s (0 = unlimited)'),
+    active: z.array(
+        z.object({
+            userId: z.string(),
+            username: z.string().optional(),
+            fileId: z.string(),
+            ...TitleFields,
+            clientName: z.string().optional(),
+            surface: z.enum(['web', 'jellyfin', 'api']).optional(),
+            bytesTotal: z.number().optional(),
+            bytesSent: z.number(),
+            bytesPerSec: z.number(),
+            startedAt: z.string(),
+        }),
+    ),
+    events: z.array(
+        z.object({
+            id: z.string(),
+            userId: z.string(),
+            username: z.string().optional(),
+            ...TitleFields,
+            clientName: z.string().optional(),
+            surface: z.enum(['web', 'jellyfin', 'api']),
+            bytesTotal: z.number().optional(),
+            bytesSent: z.number(),
+            outcome: z.enum(['completed', 'aborted', 'denied', 'rate_limited', 'error']).optional(),
+            startedAt: z.string(),
+            endedAt: z.string().optional(),
+        }),
+    ),
+    nextBefore: z.string().optional().describe('Pass as `before` to load older rows'),
+});
+export type AdminDownloadsResponse = z.infer<typeof AdminDownloadsResponseSchema>;
 
 export const SetAgeRatingResponseSchema = z.object({
     username: z.string(),

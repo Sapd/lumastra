@@ -39,6 +39,7 @@ import {
     Signal,
     Heart,
     CurrencyDollar,
+    ArrowDownTray,
     ClipboardDocumentList,
     BuildingOffice2,
     Key,
@@ -303,6 +304,12 @@ export const ADMIN_NAV: readonly AdminNavSection[] = [
                 title: m.admin_nav_page_users_activity,
                 description: m.admin_nav_desc_users_activity,
                 icon: ClipboardDocumentList,
+            },
+            {
+                path: '/admin/users/downloads',
+                title: m.admin_nav_page_users_downloads,
+                description: m.admin_nav_desc_users_downloads,
+                icon: ArrowDownTray,
             },
             {
                 path: '/admin/users/playback-quality',

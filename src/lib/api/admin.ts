@@ -91,6 +91,10 @@ import {
     SetAgeRatingResponseSchema,
     SetAllowLiveTvResponseSchema,
     type SetAllowLiveTvResponse,
+    SetAllowDownloadsResponseSchema,
+    type SetAllowDownloadsResponse,
+    AdminDownloadsResponseSchema,
+    type AdminDownloadsResponse,
     CreateLocalUserResponseSchema,
     SetUserPasswordResponseSchema,
     SetUserDisabledResponseSchema,
@@ -1013,6 +1017,29 @@ export function setUserAllowLiveTv(
         SetAllowLiveTvResponseSchema,
         { allowLiveTv },
     );
+}
+
+/** Set (true/false) or clear (null = follow the instance default) the per-user download override. */
+export function setUserAllowDownloads(
+    username: string,
+    allowDownloads: boolean | null,
+): Promise<ApiResult<SetAllowDownloadsResponse>> {
+    return apiPatch(
+        `/api/admin/users/${encodeURIComponent(username)}`,
+        SetAllowDownloadsResponseSchema,
+        { allowDownloads },
+    );
+}
+
+export function getAdminDownloads(
+    params: { user?: string; before?: string; limit?: number } = {},
+): Promise<ApiResult<AdminDownloadsResponse>> {
+    const q = new URLSearchParams();
+    if (params.user) q.set('user', params.user);
+    if (params.before) q.set('before', params.before);
+    if (params.limit) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return apiGet(`/api/admin/downloads${qs ? `?${qs}` : ''}`, AdminDownloadsResponseSchema);
 }
 
 export function setUserAgeRating(username: string, maxAgeRating: number | null) {

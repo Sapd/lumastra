@@ -70,6 +70,10 @@
         ) => void | boolean | Promise<boolean | void>;
         onUnpinAgeRating: (username: string) => void;
         onSetAllowLiveTv?: (username: string, allowed: boolean) => Promise<boolean>;
+        /** `null` = follow the instance default. Resolves false when the save failed. */
+        onSetAllowDownloads?: (username: string, allowed: boolean | null) => Promise<boolean>;
+        /** FEATURE_MEDIA_DOWNLOAD: with it off the switch has no effect yet. */
+        downloadsEnabled?: boolean;
         /** Resolves false when the save failed, so the switch can roll back. */
         onTogglePrivacy: (
             username: string,
@@ -107,6 +111,8 @@
         onSetAgeRating,
         onUnpinAgeRating,
         onSetAllowLiveTv,
+        onSetAllowDownloads,
+        downloadsEnabled = true,
         onTogglePrivacy,
         onClearUserData,
         jellyfinSyncEnabled = false,
@@ -254,6 +260,36 @@
         } finally {
             savingLiveTv = false;
             liveTvToggleRevision++;
+        }
+    }
+
+    let savingDownloads = $state(false);
+    let downloadsRevision = $state(0);
+    const downloadsChoice = $derived(
+        user.allowDownloads === true ? 'true' : user.allowDownloads === false ? 'false' : 'default',
+    );
+    const downloadsDefaultLabel = $derived.by(() => {
+        const a = user.downloadAccess;
+        if (!a) return '';
+        if (a.reason === 'admin') return m.admin_users_downloads_eff_admin();
+        if (a.reason === 'group') {
+            return a.allowed
+                ? m.admin_users_downloads_eff_allowed_group()
+                : m.admin_users_downloads_eff_denied_group();
+        }
+        return a.allowed
+            ? m.admin_users_downloads_eff_allowed()
+            : m.admin_users_downloads_eff_denied();
+    });
+    async function changeDownloads(value: string): Promise<void> {
+        const next = value === 'true' ? true : value === 'false' ? false : null;
+        savingDownloads = true;
+        try {
+            // A failed save leaves the prop unchanged; the remount shows the stored value again.
+            await onSetAllowDownloads?.(user.username, next);
+        } finally {
+            savingDownloads = false;
+            downloadsRevision++;
         }
     }
 
@@ -746,6 +782,34 @@
                             size="sm"
                             label={m.admin_users_allow_live_tv()}
                             onchange={() => void toggleLiveTv()} />
+                    {/key}
+                </div>
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <label class="font-medium text-white" for="user-downloads-{user.username}"
+                            >{m.admin_users_allow_downloads()}</label>
+                        <p class="mt-1 text-sm text-surface-400">
+                            {m.admin_users_downloads_help()}
+                        </p>
+                        {#if user.allowDownloads == null && downloadsDefaultLabel}<p
+                                class="mt-1 text-xs text-surface-400">
+                                {downloadsDefaultLabel}
+                            </p>{/if}
+                        {#if !downloadsEnabled}<p class="mt-1 text-xs text-amber-300">
+                                {m.admin_users_downloads_server_off()}
+                            </p>{/if}
+                    </div>
+                    {#key `${user.username}:${downloadsRevision}`}
+                        <select
+                            id="user-downloads-{user.username}"
+                            class="rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-surface-200"
+                            value={downloadsChoice}
+                            disabled={savingDownloads || !onSetAllowDownloads}
+                            onchange={(e) => void changeDownloads(e.currentTarget.value)}>
+                            <option value="default">{m.admin_users_downloads_default()}</option>
+                            <option value="true">{m.admin_users_downloads_allowed()}</option>
+                            <option value="false">{m.admin_users_downloads_denied()}</option>
+                        </select>
                     {/key}
                 </div>
                 <div>

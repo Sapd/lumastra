@@ -338,6 +338,28 @@ describe('/admin/users shallow navigation', () => {
     });
 });
 
+describe('per-user download switch', () => {
+    it('sends null when "Default" is chosen', async () => {
+        renderPage('?user=bob&tab=access');
+        const drawer = await screen.findByRole('dialog', { name: 'View details for bob' });
+        apiRequest.mockResolvedValueOnce({
+            data: { username: 'bob', allowDownloads: null },
+            error: null,
+            status: 200,
+        });
+        await fireEvent.change(within(drawer).getByRole('combobox', { name: 'Downloads' }), {
+            target: { value: 'default' },
+        });
+        await waitFor(() =>
+            expect(apiRequest).toHaveBeenCalledWith('/api/admin/users/bob', expect.anything(), {
+                allowDownloads: null,
+            }),
+        );
+        await waitFor(() => expect(apiRequest.mock.calls.length).toBeGreaterThan(1));
+        apiRequest.mockClear();
+    });
+});
+
 describe('first-install account guidance', () => {
     it('shows the built-in-login warning in the create modal even with no SSO accounts', async () => {
         page.url = new URL('/admin/users', window.location.origin) as typeof page.url;

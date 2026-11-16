@@ -74,6 +74,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     return {
         initialUsers,
         nativeLoginEnabled: config.AUTH_NATIVE_LOGIN_ENABLED,
+        downloadsEnabled: config.FEATURE_MEDIA_DOWNLOAD,
         unratedTitles,
         unratedContentVisible: config.UNRATED_CONTENT_VISIBLE,
     };

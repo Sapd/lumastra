@@ -61,6 +61,13 @@ export const ApiUserSchema = z
             .nullable()
             .optional()
             .describe('Per-user download override (null = follow the instance default)'),
+        downloadAccess: z
+            .object({
+                allowed: z.boolean(),
+                reason: z.enum(['admin', 'override', 'group', 'default']),
+            })
+            .optional()
+            .describe('Effective download permission and which rule decided it'),
         ageRatingPinned: z.boolean(),
         displayName: z.string().optional(),
         email: z.string().optional(),
