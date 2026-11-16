@@ -427,12 +427,14 @@ export async function runNeverOwnedMediaGc(
             }
             signal.throwIfAborted();
             if (base.stoppedOnBudget || !complete) break;
-            if (now() >= deadline) {
+            // A pause that would reach the deadline ends the run now: sleeping to the deadline
+            // and re-checking raced the clock (timers can fire a millisecond early).
+            if (deadline - now() <= BATCH_PAUSE_MS) {
                 base.stoppedOnBudget = true;
                 base.hasMore = true;
                 break;
             }
-            await pause(Math.min(BATCH_PAUSE_MS, deadline - now()), undefined, { signal });
+            await pause(BATCH_PAUSE_MS, undefined, { signal });
             signal.throwIfAborted();
             ({ evaluation, complete, stoppedOnBudget } = await evaluate());
             base.stoppedOnBudget = stoppedOnBudget;

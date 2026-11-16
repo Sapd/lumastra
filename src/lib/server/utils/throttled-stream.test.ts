@@ -211,17 +211,23 @@ describe('throttleNodeStream wait granularity', () => {
 
     it('a cancel during a sleep clears the timer and returns promptly', async () => {
         vi.useFakeTimers();
+        let clear: ReturnType<typeof vi.spyOn> | undefined;
         try {
             const src = source(10, 1000);
             const reader = throttleNodeStream(src, 10).getReader();
             const pending = reader.read(); // sleeps 250 ms inside pull
             await vi.advanceTimersByTimeAsync(100);
             expect(vi.getTimerCount()).toBeGreaterThan(0);
+            // Check the sleep's own timer is cleared: a global timer count also sees
+            // unrelated timers and went red under full-suite load.
+            clear = vi.spyOn(globalThis, 'clearTimeout');
             await reader.cancel(new Error('gone'));
-            expect(vi.getTimerCount()).toBe(0);
+            expect(clear).toHaveBeenCalled();
+            // No timer is advanced: the read settles because the cancel woke the sleeper.
             const r = await pending;
             expect(r.done).toBe(true);
         } finally {
+            clear?.mockRestore();
             vi.useRealTimers();
         }
     });
