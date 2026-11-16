@@ -32,7 +32,7 @@ export const def = defineEndpoint({
     request: { query: DownloadQuery },
     handlers: {
         GET: async (event) => {
-            const crossSite = crossSiteForbiddenResponse(event.request);
+            const crossSite = crossSiteForbiddenResponse(event.request, event.url);
             if (crossSite) return crossSite;
 
             const rawId = event.params.id ?? '';

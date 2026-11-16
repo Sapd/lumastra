@@ -78,7 +78,7 @@ async function call(query = '', id = 'series1', headers: Record<string, string> 
             },
             url: new URL(url),
             params: { id },
-            request: new Request(url, { headers }),
+            request: new Request(url, { headers: { 'sec-fetch-site': 'same-origin', ...headers } }),
         } as unknown as RequestEvent,
         { surface: 'internal' } as never,
     );

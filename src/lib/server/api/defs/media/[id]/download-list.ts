@@ -66,7 +66,7 @@ export const def = defineEndpoint({
     visibility: 'internal',
     handlers: {
         GET: async (event) => {
-            const crossSite = crossSiteForbiddenResponse(event.request);
+            const crossSite = crossSiteForbiddenResponse(event.request, event.url);
             if (crossSite) return crossSite;
 
             const sql = await aiDbService.getSql();

@@ -32,7 +32,7 @@ async function call(headers: Record<string, string> = {}) {
             },
             url: new URL(url),
             params: { id: 'm1' },
-            request: new Request(url, { headers }),
+            request: new Request(url, { headers: { 'sec-fetch-site': 'same-origin', ...headers } }),
         } as unknown as RequestEvent,
         { surface: 'internal' } as never,
     );
