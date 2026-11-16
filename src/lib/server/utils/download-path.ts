@@ -10,9 +10,8 @@
  * folder must not turn it into "read any file the server can read": the CANONICAL target
  * has to lie inside a canonical library root (or an explicitly trusted extra root).
  *
- * There is no separate debrid / rclone mount-root setting in this code base: a mount that
- * downloads should reach has to be an enabled library path (container or provider side).
- * Callers that learn of other roots pass them as `extraRoots`.
+ * Mounts outside the library (debrid / rclone) are listed in the setting
+ * DOWNLOAD_ALLOWED_MOUNT_ROOTS; callers pass it as `extraRoots`.
  *
  * The returned path is the canonical one: open THAT (O_NOFOLLOW, as
  * `createNoFollowReadStream` does), never the original, so a link swapped in between this
@@ -29,10 +28,36 @@ import { Logger } from './logger.js';
 
 const logger = Logger.for('DownloadPath');
 
+const WARN_EVERY_MS = 60 * 60_000;
+const warnedAt = new Map<string, number>();
+
+/** Test hook. */
+export function resetDownloadPathWarningsForTests(): void {
+    warnedAt.clear();
+}
+
+/** Warn once per (item, hour); the hint names the setting. The HTTP response never carries the path. */
+function warnOutsideRoots(itemKey: string, filePath: string, target: string): void {
+    const now = Date.now();
+    if (warnedAt.size > 1_000) {
+        for (const [k, at] of warnedAt) if (now - at >= WARN_EVERY_MS) warnedAt.delete(k);
+    }
+    const last = warnedAt.get(itemKey);
+    if (last !== undefined && now - last < WARN_EVERY_MS) return;
+    warnedAt.set(itemKey, now);
+    logger.warn(
+        'download refused: the file resolves outside the library folders. If it lives on a ' +
+            'debrid/rclone mount, add that mount folder to the setting "Extra download folders" ' +
+            '(DOWNLOAD_ALLOWED_MOUNT_ROOTS).',
+        { item: itemKey, path: filePath, target },
+    );
+}
+
 /** Pure core: the canonical path of `filePath` when it is a regular file inside one of `roots`, else null. */
 export async function resolveDownloadablePathIn(
     filePath: string,
     roots: readonly string[],
+    itemKey = filePath,
 ): Promise<string | null> {
     let real: string;
     try {
@@ -41,7 +66,7 @@ export async function resolveDownloadablePathIn(
         return null;
     }
     const canonicalRoots: string[] = [];
-    for (const root of roots) {
+    for (const root of roots.map((r) => r.trim()).filter(Boolean)) {
         try {
             canonicalRoots.push(await safeRealpath(root));
         } catch {
@@ -50,10 +75,7 @@ export async function resolveDownloadablePathIn(
         }
     }
     if (!canonicalRoots.some((r) => isWithinRoot(real, r))) {
-        logger.warn('download refused: file resolves outside the library roots', {
-            path: filePath,
-            target: real,
-        });
+        warnOutsideRoots(itemKey, filePath, real);
         return null;
     }
     try {
@@ -71,8 +93,9 @@ export async function resolveDownloadablePath(
     sql: Sql,
     filePath: string,
     extraRoots: readonly string[] = [],
+    itemKey?: string,
 ): Promise<string | null> {
     const roots = [...(await getLibraryRootPaths(sql)), ...extraRoots];
     if (roots.length === 0) return null;
-    return resolveDownloadablePathIn(filePath, roots);
+    return resolveDownloadablePathIn(filePath, roots, itemKey);
 }

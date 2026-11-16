@@ -343,8 +343,20 @@ async function serveDownload(
 ): Promise<Response> {
     // Strict containment for a download (canonical target inside a library root); the
     // canonical path is what is opened. Outside = "not found". Playback keeps its own rules.
-    const downloadPath = await resolveDownloadablePath(sql, containerPath);
-    if (!downloadPath) return subsonicError(70, 'Audio file not found.', auth.format);
+    const downloadPath = await resolveDownloadablePath(
+        sql,
+        containerPath,
+        config.DOWNLOAD_ALLOWED_MOUNT_ROOTS,
+        track.id,
+    );
+    if (!downloadPath) {
+        recordDownloadRefused(
+            trackerEventOf(event, auth),
+            { mediaItemId: track.id, surface: 'api' },
+            'denied',
+        );
+        return subsonicError(70, 'Audio file not found.', auth.format);
+    }
     const rangeHeader = event.request.headers.get('range');
     const selection = await resolvePlaybackSelection(sql, track.id);
     const naming = await getMediaItemForDownloadNaming(sql, track.id);

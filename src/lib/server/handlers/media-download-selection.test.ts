@@ -16,7 +16,9 @@ const mocks = vi.hoisted(() => ({
         discard: vi.fn(),
     },
 }));
-vi.mock('$lib/server/config', () => ({ config: { FEATURE_MEDIA_DOWNLOAD: true } }));
+vi.mock('$lib/server/config', () => ({
+    config: { FEATURE_MEDIA_DOWNLOAD: true, DOWNLOAD_ALLOWED_MOUNT_ROOTS: ['/mnt/debrid'] },
+}));
 vi.mock('$lib/server/database', () => ({ getDb: () => ({}) }));
 vi.mock('$lib/server/database/queries/media-file-resolution.queries', () => ({
     resolvePlaybackSelection: mocks.select,
@@ -32,9 +34,16 @@ vi.mock('$lib/server/utils/media-path-resolver', () => ({
     }),
     isPathWithinLibraryRoots: async () => true,
 }));
-const dlPath = vi.hoisted(() => ({ result: '/media/source.mkv' as string | null }));
+const dlPath = vi.hoisted(() => ({
+    result: '/media/source.mkv' as string | null,
+    calls: [] as unknown[][],
+    refused: [] as unknown[][],
+}));
 vi.mock('$lib/server/utils/download-path', () => ({
-    resolveDownloadablePath: async () => dlPath.result,
+    resolveDownloadablePath: async (...a: unknown[]) => {
+        dlPath.calls.push(a);
+        return dlPath.result;
+    },
 }));
 vi.mock('$lib/server/utils/file-streaming', () => ({
     serveContainedMediaFile: mocks.serve,
@@ -59,7 +68,9 @@ vi.mock('$lib/server/services/download-file-scope.js', () => ({
 }));
 vi.mock('$lib/server/services/download-tracking.js', () => ({
     parseRangeStart: () => null,
-    recordDownloadRefused: () => {},
+    recordDownloadRefused: (...a: unknown[]) => {
+        dlPath.refused.push(a);
+    },
     untrackedDownload: () => ({
         rate: () => 0,
         observer: {},
@@ -86,6 +97,8 @@ beforeEach(() => {
     scope.denied = null;
     scope.allowed = new Set();
     dlPath.result = '/media/source.mkv';
+    dlPath.calls = [];
+    dlPath.refused = [];
     mocks.serve.mockResolvedValue(new Response('data'));
     mocks.preflight.mockResolvedValue({ kind: 'proceed' });
     mocks.track.mockResolvedValue({ ok: true, tracker: mocks.tracker });
@@ -335,6 +348,14 @@ describe('download path containment', () => {
         expect(mocks.track).not.toHaveBeenCalled();
         expect(mocks.serve).not.toHaveBeenCalled();
         expect(mocks.preflight).not.toHaveBeenCalled();
+        // recorded as a denied row; the response carries no path
+        expect(dlPath.refused[0]![2]).toBe('denied');
+        expect(await res.text()).not.toContain('/media');
+    });
+
+    it('passes the configured extra mount roots to the containment check', async () => {
+        await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
+        expect(dlPath.calls[0]![2]).toEqual(['/mnt/debrid']);
     });
 
     it('serves the CANONICAL path, keeping the cataloged extension for the type', async () => {

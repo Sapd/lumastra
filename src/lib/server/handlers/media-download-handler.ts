@@ -175,8 +175,18 @@ export async function handleDownloadFile(
         // Strict containment for a download: the CANONICAL target must lie inside a library
         // root (a symlink may not lead out of it, unlike playback). The canonical path is what
         // gets opened, so a swap after this check cannot redirect the read. Outside = 404.
-        const downloadPath = await resolveDownloadablePath(sql, pathInfo.containerPath);
+        const downloadPath = await resolveDownloadablePath(
+            sql,
+            pathInfo.containerPath,
+            config.DOWNLOAD_ALLOWED_MOUNT_ROOTS,
+            itemId,
+        );
         if (!downloadPath) {
+            recordDownloadRefused(
+                event,
+                { mediaItemId: itemId, fileId: file?.id ?? selection.fileId, surface },
+                'denied',
+            );
             return ApiResponses.notFound('Media not found');
         }
 

@@ -2086,6 +2086,16 @@ export const configSchema: SettingDefinition[] = [
         section: 'downloads',
     },
     {
+        key: 'DOWNLOAD_ALLOWED_MOUNT_ROOTS',
+        type: 'array',
+        label: 'Extra download folders (debrid/rclone mounts)',
+        description:
+            'Downloads only follow symlinks into the library folders. List mount folders here (e.g. a debrid or rclone mount) that library symlinks point to, so those files can be downloaded too.',
+        defaultValue: '',
+        section: 'downloads',
+        uiHints: { placeholder: '/mnt/debrid,/mnt/rclone' },
+    },
+    {
         key: 'DOWNLOAD_THROTTLE_KBPS',
         type: 'number',
         label: 'Download speed per download (KB/s)',

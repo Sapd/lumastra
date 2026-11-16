@@ -3,14 +3,18 @@
 
 // Strict download containment on real temp dirs and symlinks; playback keeps its own rule.
 
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+const warn = vi.hoisted(() => vi.fn());
+vi.mock('./logger.js', () => ({
+    Logger: { for: () => ({ warn, info: () => {}, debug: () => {}, error: () => {} }) },
+}));
 vi.mock('./media-path-resolver.js', () => ({ getLibraryRootPaths: async () => [] }));
 
-import { resolveDownloadablePathIn } from './download-path';
+import { resetDownloadPathWarningsForTests, resolveDownloadablePathIn } from './download-path';
 import { resolveContainedMediaFile, resetContainmentRootsCache } from './contained-fs';
 
 let base = '';
@@ -79,5 +83,48 @@ describe('resolveDownloadablePathIn', () => {
         );
         // ... while the same path is refused for download
         expect(await resolveDownloadablePathIn(join(lib, 'evil.mkv'), [lib])).toBeNull();
+    });
+});
+
+describe('DOWNLOAD_ALLOWED_MOUNT_ROOTS as extra roots', () => {
+    beforeEach(() => {
+        warn.mockClear();
+        resetDownloadPathWarningsForTests();
+        vi.useRealTimers();
+    });
+
+    it('a debrid symlink is refused with an empty setting and allowed once its mount is listed', async () => {
+        expect(await resolveDownloadablePathIn(join(lib, 'debrid.mkv'), [lib])).toBeNull();
+        expect(await resolveDownloadablePathIn(join(lib, 'debrid.mkv'), [lib, mount])).toBe(
+            join(mount, 'remote.mkv'),
+        );
+    });
+
+    it('empty and whitespace entries are ignored (they never widen the roots)', async () => {
+        expect(await resolveDownloadablePathIn(join(lib, 'evil.mkv'), [lib, '', '   ', '\t'])).toBeNull();
+        expect(await resolveDownloadablePathIn(join(lib, 'debrid.mkv'), [lib, ' ' + mount + ' '])).toBe(
+            join(mount, 'remote.mkv'),
+        );
+    });
+
+    it('a root with a trailing slash works', async () => {
+        expect(await resolveDownloadablePathIn(join(lib, 'debrid.mkv'), [lib, mount + '/'])).toBe(
+            join(mount, 'remote.mkv'),
+        );
+    });
+
+    it('warns once per item and hour, naming the setting; the path stays out of the return value', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-11-16T10:00:00Z'));
+        await resolveDownloadablePathIn(join(lib, 'debrid.mkv'), [lib], 'item-1');
+        await resolveDownloadablePathIn(join(lib, 'debrid.mkv'), [lib], 'item-1');
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(String(warn.mock.calls[0]![0])).toContain('DOWNLOAD_ALLOWED_MOUNT_ROOTS');
+        await resolveDownloadablePathIn(join(lib, 'debrid.mkv'), [lib], 'item-2');
+        expect(warn).toHaveBeenCalledTimes(2);
+        vi.setSystemTime(new Date('2026-11-16T11:00:01Z'));
+        await resolveDownloadablePathIn(join(lib, 'debrid.mkv'), [lib], 'item-1');
+        expect(warn).toHaveBeenCalledTimes(3);
+        vi.useRealTimers();
     });
 });

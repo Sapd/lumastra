@@ -534,6 +534,12 @@ export const config = {
     get DOWNLOAD_GROUPS(): string[] {
         return getArray('DOWNLOAD_GROUPS', env.DOWNLOAD_GROUPS, '');
     },
+    // Extra folders (debrid / rclone mounts) that library symlinks may point into for downloads
+    get DOWNLOAD_ALLOWED_MOUNT_ROOTS(): string[] {
+        return getArray('DOWNLOAD_ALLOWED_MOUNT_ROOTS', env.DOWNLOAD_ALLOWED_MOUNT_ROOTS, '')
+            .map((r) => r.trim())
+            .filter(Boolean);
+    },
     // Groups that can request media via Jellyseerr (empty = all users allowed)
     get REQUEST_GROUPS(): string[] {
         return getArray('REQUEST_GROUPS', env.REQUEST_GROUPS, '');

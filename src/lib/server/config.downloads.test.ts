@@ -17,6 +17,7 @@ const DOWNLOAD_KEYS = [
     'DOWNLOAD_MAX_PARALLEL_PER_USER',
     'DOWNLOAD_LOG_RETENTION_DAYS',
     'DOWNLOAD_GROUPS',
+    'DOWNLOAD_ALLOWED_MOUNT_ROOTS',
 ] as const;
 
 type DownloadConfig = {
@@ -26,6 +27,7 @@ type DownloadConfig = {
     DOWNLOAD_MAX_PARALLEL_PER_USER: number;
     DOWNLOAD_LOG_RETENTION_DAYS: number;
     DOWNLOAD_GROUPS: string[];
+    DOWNLOAD_ALLOWED_MOUNT_ROOTS: string[];
 };
 
 /**
@@ -70,6 +72,31 @@ describe('DOWNLOAD_GROUPS', () => {
     it('is a groups-section array setting with an empty default', () => {
         const def = configSchema.find((d) => d.key === 'DOWNLOAD_GROUPS');
         expect(def).toMatchObject({ type: 'array', defaultValue: '', section: 'groups' });
+    });
+});
+
+describe('DOWNLOAD_ALLOWED_MOUNT_ROOTS', () => {
+    it('defaults to no extra folders', async () => {
+        expect((await loadConfig()).DOWNLOAD_ALLOWED_MOUNT_ROOTS).toEqual([]);
+    });
+
+    it('parses a comma list and drops empty or whitespace entries', async () => {
+        const config = await loadConfig({
+            DOWNLOAD_ALLOWED_MOUNT_ROOTS: '/mnt/debrid, ,/mnt/rclone/,',
+        });
+        expect(config.DOWNLOAD_ALLOWED_MOUNT_ROOTS).toEqual(['/mnt/debrid', '/mnt/rclone/']);
+    });
+
+    it('is a downloads-section array setting with the agreed label and description', () => {
+        const def = configSchema.find((d) => d.key === 'DOWNLOAD_ALLOWED_MOUNT_ROOTS');
+        expect(def).toMatchObject({
+            type: 'array',
+            defaultValue: '',
+            section: 'downloads',
+            label: 'Extra download folders (debrid/rclone mounts)',
+        });
+        expect(def?.description).toContain('Downloads only follow symlinks into the library folders.');
+        expect(def?.requiresRestart).not.toBe(true);
     });
 });
 
