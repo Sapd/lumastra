@@ -66,28 +66,24 @@ export interface DownloadEventRow {
  * advisory lock, with the unique partial index on open rows (and ON CONFLICT) as the
  * backstop, so two simultaneous starts end up on ONE row.
  */
-export async function startDownloadEvent(sql: postgres.Sql, e: DownloadEventInput): Promise<string>;
-export async function startDownloadEvent(
-    sql: postgres.Sql,
-    e: DownloadEventInput,
-    opts: { allowInsert?: () => boolean },
-): Promise<string | null>;
-export async function startDownloadEvent(
+export async function startDownloadEvent<
+    O extends { allowInsert?: () => boolean } | undefined = undefined,
+>(
     sql: postgres.Sql,
     e: DownloadEventInput,
     /**
      * Asked right before a NEW row would be inserted (never for a join or a re-open): false
      * skips the insert and returns null. The per-user row budget charges only real inserts.
      */
-    opts: { allowInsert?: () => boolean } = {},
-): Promise<string | null> {
+    opts?: O,
+): Promise<O extends { allowInsert: () => boolean } ? string | null : string> {
     const fileId = e.fileId ?? null;
     const renditionId = e.renditionId ?? null;
     const since = new Date(Date.now() - DOWNLOAD_REOPEN_WINDOW_MS);
     const staleBefore = new Date(Date.now() - OPEN_ROW_STALE_MS);
     const lockKey = `${e.userId}|${e.deviceKey}|${fileId ?? renditionId ?? ''}`;
 
-    return await sql.begin(async (tx) => {
+    const id = await sql.begin(async (tx): Promise<string | null> => {
         await tx`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
 
         const joined = await tx<{ id: string }[]>`
@@ -126,7 +122,7 @@ export async function startDownloadEvent(
         `;
         if (reopened[0]) return reopened[0].id;
 
-        if (opts.allowInsert && !opts.allowInsert()) return null;
+        if (opts?.allowInsert && !opts.allowInsert()) return null;
         const rows = await tx<{ id: string }[]>`
             INSERT INTO download_events
                 (user_id, media_item_id, file_id, rendition_id, surface, device_key,
@@ -145,6 +141,7 @@ export async function startDownloadEvent(
         `;
         return rows[0].id;
     });
+    return id as never;
 }
 
 export async function updateDownloadEvent(
