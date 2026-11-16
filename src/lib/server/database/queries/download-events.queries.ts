@@ -66,7 +66,7 @@ export async function startDownloadEvent(
     const since = new Date(Date.now() - DOWNLOAD_REOPEN_WINDOW_MS);
     const lockKey = `${e.userId}|${e.deviceKey}|${fileId ?? renditionId ?? ''}`;
 
-    return (await sql.begin(async (tx) => {
+    return await sql.begin(async (tx) => {
         await tx`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
 
         const joined = await tx<{ id: string }[]>`
@@ -117,8 +117,8 @@ export async function startDownloadEvent(
                           last_activity_at = now()
             RETURNING id
         `;
-        return rows[0]!.id;
-    })) as string;
+        return rows[0].id;
+    });
 }
 
 export async function updateDownloadEvent(
@@ -295,6 +295,7 @@ export async function getDownloadTitles(
 ): Promise<Map<string, DownloadTitleInfo>> {
     const out = new Map<string, DownloadTitleInfo>();
     if (mediaItemIds.length === 0) return out;
+    // eslint-disable-next-line callback-safety/no-unscoped-media-items -- admin-only (api/admin/downloads requires admin)
     const rows = await sql<
         {
             id: string;

@@ -224,6 +224,10 @@ export const NO_FK_MEDIA_REFERENCES: Readonly<
         protects: (sql, alias) =>
             sql`EXISTS (SELECT 1 FROM music_edit_receipts r WHERE r.undone_at IS NULL AND r.reference_ids @> ARRAY[${sql(alias)}.id])`,
     },
+    'download_events.media_item_id': {
+        class: 'derived',
+        reason: 'Download log reference without a foreign key; a log never owns or protects a title (rows may outlive the item).',
+    },
     'admin_media_change_receipts.owner': {
         class: 'derived',
         reason: 'Lookup key mirrors the classified media_item_id FK for catalog owners; person handles are not media identities.',

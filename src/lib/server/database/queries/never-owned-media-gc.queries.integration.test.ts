@@ -1037,6 +1037,8 @@ const NOT_MEDIA_ID_COLUMNS: Record<string, string> = {
     'album_split_health_cursor.after_id':
         'Health-check scan cursor; a stale id only resumes the scan.',
     'active_transcode_jobs.play_session_id': 'Playback session id.',
+    'download_events.file_id': 'Physical media_files identity in the download log, not a media_items id.',
+    'download_events.rendition_id': 'Rendition identity in the download log, not a media_items id.',
     'client_diagnostics.event_id': 'Client-generated event id.',
     'episode_orderings.provider_episode_id': 'Provider (TMDB/TVDB) episode id.',
     'episode_reconciliation_moves.tmdb_episode_id': 'TMDB episode id.',

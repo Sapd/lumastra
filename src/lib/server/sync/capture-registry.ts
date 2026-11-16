@@ -66,6 +66,7 @@ export const SYNC_IGNORED_TABLES: Readonly<Record<string, string>> = {
     music_edit_receipts:
         'Local admin undo receipts for music credit and ownership edits; never exported in catalog sync.',
     admin_media_change_receipts: 'admin-only recovery receipts',
+    download_events: 'Local per-user download log; not part of the library sync projection.',
     media_file_health_reviews:
         'Local admin-only physical-file review evidence and history; never exported in catalog sync.',
     person_image_owners:

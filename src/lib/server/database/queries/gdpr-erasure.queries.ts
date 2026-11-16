@@ -333,6 +333,7 @@ export const ERASURE_TABLE_REGISTRY: readonly ErasureTableEntry[] = [
     { table: 'media_annotations', keyColumn: 'user_id', keyType: 'uuid', strategy: 'cascade' },
     { table: 'music_listen_events', keyColumn: 'user_id', keyType: 'uuid', strategy: 'cascade' },
     { table: 'music_play_starts', keyColumn: 'user_id', keyType: 'uuid', strategy: 'cascade' },
+    { table: 'download_events', keyColumn: 'user_id', keyType: 'uuid', strategy: 'cascade' },
     { table: 'oauth_device_codes', keyColumn: 'user_id', keyType: 'uuid', strategy: 'cascade' },
     { table: 'oauth_refresh_tokens', keyColumn: 'user_id', keyType: 'uuid', strategy: 'cascade' },
     { table: 'personal_access_tokens', keyColumn: 'user_id', keyType: 'uuid', strategy: 'cascade' },

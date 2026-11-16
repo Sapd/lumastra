@@ -73,6 +73,8 @@ interface AppFeatures {
     mediaHoverPopup?: boolean;
     mediaHoverPopupTrailers?: boolean;
     mediaHoverVideoPreview?: boolean;
+    /** FEATURE_MEDIA_DOWNLOAD: master switch for web downloads. */
+    mediaDownload?: boolean;
     mediaHoverLiveTvPreview?: boolean;
     featuredPickVideo?: boolean;
     mediaAnnotations?: boolean;

@@ -32,6 +32,7 @@ export async function getDownloadListRoot(
     sql: postgres.Sql,
     id: string,
 ): Promise<DownloadListRoot | null> {
+    // eslint-disable-next-line callback-safety/no-unscoped-media-items -- access gated by caller (download-list.ts: checkMediaAccess + checkMediaAccessBatch)
     const rows = await sql<DownloadListRoot[]>`
         SELECT id, title, year, media_type
         FROM media_items
@@ -46,6 +47,7 @@ export async function listEpisodeDownloadRows(
     sql: postgres.Sql,
     containerId: string,
 ): Promise<DownloadListRow[]> {
+    // eslint-disable-next-line callback-safety/no-unscoped-media-items -- access gated by caller (download-list.ts: checkMediaAccess + checkMediaAccessBatch)
     return sql<DownloadListRow[]>`
         SELECT mi.id, mi.title, mi.year, mi.media_type, mi.season_number, mi.episode_number,
                series.title AS series_title,
@@ -72,6 +74,7 @@ export async function getSingleDownloadRow(
     sql: postgres.Sql,
     id: string,
 ): Promise<DownloadListRow | null> {
+    // eslint-disable-next-line callback-safety/no-unscoped-media-items -- access gated by caller (download-list.ts: checkMediaAccess + checkMediaAccessBatch)
     const rows = await sql<DownloadListRow[]>`
         SELECT mi.id, mi.title, mi.year, mi.media_type, mi.season_number, mi.episode_number,
                series.title AS series_title, series.year AS series_year,

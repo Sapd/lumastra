@@ -99,6 +99,9 @@ export const EXPORT_TABLE_ALLOWLIST: ReadonlyArray<string> = [
     'watchlist_activities',
     'music_listen_events',
     'music_play_starts',
+    // Web/Jellyfin/API download history (FK → users.id ON DELETE CASCADE) — the subject's own
+    // rows only; device_key (session/token/device id) is never exported
+    'download_events',
     'user_music_state',
     'user_taste_dampers',
     'playlists',
@@ -433,6 +436,8 @@ export async function collectUserExport(
         musicListenCount,
         musicPlayStartRows,
         musicPlayStartCount,
+        downloadEventRows,
+        downloadEventCount,
 
         musicStateRows,
         musicStateCount,
@@ -868,6 +873,18 @@ export async function collectUserExport(
         sql<
             { count: string }[]
         >`SELECT COUNT(*)::text AS count FROM music_play_starts WHERE user_id = ${userId}::uuid`,
+
+        // download_events (capped) — exclude device_key (may be a session/token id)
+        sql<Record<string, unknown>[]>`
+            SELECT id, user_id, media_item_id, file_id, rendition_id, surface, client_name,
+                   bytes_total, bytes_sent, range_start, started_at, last_activity_at,
+                   ended_at, outcome
+            FROM download_events WHERE user_id = ${userId}::uuid
+            ORDER BY started_at DESC LIMIT ${PER_TABLE_LIMIT}
+        `,
+        sql<
+            { count: string }[]
+        >`SELECT COUNT(*)::text AS count FROM download_events WHERE user_id = ${userId}::uuid`,
 
         // user_music_state
         sql<Record<string, unknown>[]>`
@@ -1335,6 +1352,7 @@ export async function collectUserExport(
 
         music_listen_events: toSection(musicListenRows, countOf(musicListenCount)),
         music_play_starts: toSection(musicPlayStartRows, countOf(musicPlayStartCount)),
+        download_events: toSection(downloadEventRows, countOf(downloadEventCount)),
         user_music_state: toSection(musicStateRows, countOf(musicStateCount)),
 
         taste_dampers: toSection(tasteDamperRows, countOf(tasteDamperCount)),

@@ -153,6 +153,9 @@ export const UserDataExportSchema = z
         music_play_starts: TruncatedSectionSchema.describe(
             'music_play_starts rows (capped at 10k)',
         ),
+        download_events: TruncatedSectionSchema.describe(
+            'download_events rows (the subject\'s own download history, capped at 10k). Excludes device_key.',
+        ),
         user_music_state: TruncatedSectionSchema.describe('user_music_state rows'),
 
         // ── Suggestion (taste-related)
