@@ -13095,6 +13095,7 @@
     "downloads_folder_chosen": "Speichern in: {name}",
     "downloads_folder_hint": "Die Dateien landen als Serie (Jahr)/Season 01/… in dem Ordner, den du wählst, zum Beispiel auf einem USB-Stick.",
     "downloads_links_hint": "Dein Browser speichert die Dateien im Downloads-Ordner. Er fragt eventuell einmal, ob mehrere Downloads erlaubt sind.",
+    "downloads_links_hint_no_folder": "Ohne gewählten Ordner speichert dein Browser die Dateien im Downloads-Ordner. Er fragt eventuell einmal, ob mehrere Downloads erlaubt sind.",
     "downloads_start": "Download starten",
     "downloads_cancel": "Abbrechen",
     "downloads_close": "Schließen",

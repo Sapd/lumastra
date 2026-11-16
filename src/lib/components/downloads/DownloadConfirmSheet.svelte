@@ -130,7 +130,11 @@
                 </div>
             {/if}
             {#if !downloadQueue.supportsFolderPicker || !downloadQueue.folderName}
-                <p class="text-xs text-surface-400">{m.downloads_links_hint()}</p>
+                <p class="text-xs text-surface-400">
+                    {downloadQueue.supportsFolderPicker
+                        ? m.downloads_links_hint_no_folder()
+                        : m.downloads_links_hint()}
+                </p>
                 {#if available.length > linkBatchSize(pending.list.maxParallel)}
                     <p class="text-xs text-surface-400" data-testid="download-batch-hint">
                         {m.downloads_links_batch_hint({

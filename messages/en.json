@@ -13095,6 +13095,7 @@
     "downloads_folder_chosen": "Saving to: {name}",
     "downloads_folder_hint": "Files are saved as Show (Year)/Season 01/… inside the folder you pick, for example a USB stick.",
     "downloads_links_hint": "Your browser saves the files to its Downloads folder. It may ask once to allow multiple downloads.",
+    "downloads_links_hint_no_folder": "Without a chosen folder, your browser saves the files to its Downloads folder. It may ask once to allow multiple downloads.",
     "downloads_start": "Start download",
     "downloads_cancel": "Cancel",
     "downloads_close": "Close",
