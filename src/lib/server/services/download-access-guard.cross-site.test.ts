@@ -3,7 +3,7 @@
 
 // crossSiteForbiddenResponse: Sec-Fetch-Site first, Origin / Referer when the header is missing.
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('$lib/paraglide/messages', () => ({ downloads_not_allowed: () => 'no' }));
 vi.mock('$lib/server/services/download-access.service.js', () => ({
@@ -62,5 +62,33 @@ describe('crossSiteForbiddenResponse', () => {
 
     it('an unparseable Referer is refused', () => {
         expect(check({ referer: 'not a url' })?.status).toBe(403);
+    });
+});
+
+describe('crossSiteForbiddenResponse: full origin, not just the host', () => {
+    afterEach(() => {
+        delete process.env.ORIGIN;
+    });
+
+    it('an http Origin or Referer for an https site is refused, same host or not', () => {
+        expect(check({ origin: 'http://lumastra.example' })?.status).toBe(403);
+        expect(check({ referer: 'http://lumastra.example/library' })?.status).toBe(403);
+    });
+
+    it('a different port is refused', () => {
+        expect(check({ origin: 'https://lumastra.example:8443' })?.status).toBe(403);
+    });
+
+    it('ORIGIN, when set, is the trusted origin (TLS proxy: the request URL may say http)', () => {
+        process.env.ORIGIN = 'https://lumastra.example';
+        const behindProxy = (headers: Record<string, string>) =>
+            crossSiteForbiddenResponse(
+                new Request('http://127.0.0.1:3000/x', { headers }),
+                new URL('http://127.0.0.1:3000/x'),
+            );
+        expect(behindProxy({ origin: 'https://lumastra.example' })).toBeNull();
+        expect(behindProxy({ referer: 'https://lumastra.example/a' })).toBeNull();
+        expect(behindProxy({ origin: 'http://lumastra.example' })?.status).toBe(403);
+        expect(behindProxy({ origin: 'http://127.0.0.1:3000' })?.status).toBe(403);
     });
 });

@@ -68,10 +68,21 @@ export async function downloadForbiddenResponse(
  *
  * A request WITHOUT the header (an old browser, or a client that strips it) is not trusted
  * blindly: it must then prove it is ours through `Origin` or `Referer`, whose host has to
- * match this request's host (the same host comparison as the CSRF guard, so a TLS-terminating
- * proxy does not matter). Neither present, or a foreign one, is refused.
+ * match the trusted public origin in full, scheme and port included. Neither present, or a foreign one, is refused.
  * Returns the 403 response, or null.
  */
+function trustedOrigin(url: URL): string {
+    const raw = (process.env.ORIGIN ?? '').trim();
+    if (raw) {
+        try {
+            return new URL(raw).origin;
+        } catch {
+            // adapter-node refuses to start on an invalid ORIGIN
+        }
+    }
+    return url.origin;
+}
+
 export function crossSiteForbiddenResponse(
     request: Request,
     url: URL = new URL(request.url),
@@ -81,17 +92,21 @@ export function crossSiteForbiddenResponse(
     const site = request.headers.get('sec-fetch-site');
     if (site !== null) return site === 'same-origin' || site === 'none' ? null : refuse();
 
-    const hostOf = (value: string | null): string | null => {
+    // Full origin (scheme + host + port) against the trusted public origin: ORIGIN when the
+    // operator set it (adapter-node's own source of truth behind a TLS proxy), else the
+    // origin SvelteKit resolved for this request. An http page must not pass for an https site.
+    const trusted = trustedOrigin(url);
+    const originOf = (value: string | null): string | null => {
         if (!value) return null;
         try {
-            return new URL(value).host;
+            return new URL(value).origin;
         } catch {
             return null;
         }
     };
     const origin = request.headers.get('origin');
-    if (origin !== null) return hostOf(origin) === url.host ? null : refuse();
+    if (origin !== null) return originOf(origin) === trusted ? null : refuse();
     const referer = request.headers.get('referer');
-    if (referer !== null) return hostOf(referer) === url.host ? null : refuse();
+    if (referer !== null) return originOf(referer) === trusted ? null : refuse();
     return refuse();
 }
