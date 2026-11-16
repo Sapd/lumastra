@@ -58,13 +58,13 @@ describe('throttleNodeStream', () => {
     // regardless of how the filesystem happened to chunk the reads.
     it('paces to approximately the configured rate', async () => {
         const rate = 1000; // bytes/sec
-        // 5000 bytes at 1000 B/s, minus a 1s burst allowance, is ~4s of waiting.
+        // 5000 bytes at 1000 B/s, no initial burst, is ~5s of waiting.
         const { bytes, elapsedMs } = await drainVirtual((now, sleep) =>
             throttleNodeStream(source(5, 1000), rate, now, sleep),
         );
         expect(bytes).toBe(5000);
-        expect(elapsedMs).toBeGreaterThanOrEqual(3500);
-        expect(elapsedMs).toBeLessThanOrEqual(4500);
+        expect(elapsedMs).toBeGreaterThanOrEqual(4750);
+        expect(elapsedMs).toBeLessThanOrEqual(5250);
     });
 
     it('is chunk-size independent — same rate from different read granularity', async () => {
@@ -79,12 +79,23 @@ describe('throttleNodeStream', () => {
         expect(Math.abs(coarse.elapsedMs - fine.elapsedMs)).toBeLessThanOrEqual(100);
     });
 
-    // An idle client must be able to burst, or an HTTP transfer reads as a stall.
-    it('allows an initial burst up to one second of allowance', async () => {
+    // Each response pays for its first byte: many short Range requests cannot dodge the cap.
+    it('starts with an empty bucket: no initial burst', async () => {
         const { elapsedMs } = await drainVirtual((now, sleep) =>
             throttleNodeStream(source(1, 1000), 1000, now, sleep),
         );
-        expect(elapsedMs).toBe(0);
+        expect(elapsedMs).toBeGreaterThanOrEqual(900);
+    });
+
+    it('sequential short responses take as long as one long response', async () => {
+        let total = 0;
+        for (let i = 0; i < 4; i++) {
+            const { elapsedMs } = await drainVirtual((now, sleep) =>
+                throttleNodeStream(source(1, 500), 1000, now, sleep),
+            );
+            total += elapsedMs;
+        }
+        expect(total).toBeGreaterThanOrEqual(1900);
     });
 
     // A chunk bigger than the whole bucket must not deadlock against a capacity
@@ -134,7 +145,7 @@ describe('throttleNodeStream with a changing rate', () => {
             for (let i = 0; i < chunks; i++) await reader.read();
             return (chunks * 100) / ((clock - t0) / 1000);
         };
-        await measure(10); // drain the initial burst
+        await measure(10); // settle
         const slow = await measure(10);
         rate = 2000;
         await measure(5); // let the new rate settle
@@ -151,6 +162,63 @@ describe('throttleNodeStream with a changing rate', () => {
         );
         expect(bytes).toBe(10_000);
         expect(elapsedMs).toBe(0);
+    });
+});
+
+describe('throttleNodeStream wait granularity', () => {
+    it('never waits longer than 250 ms at once and keeps delivering at 85 B/s', async () => {
+        const waits: number[] = [];
+        let clock = 0;
+        const sleep = (ms: number) => {
+            waits.push(ms);
+            clock += ms;
+            return Promise.resolve();
+        };
+        const reader = throttleNodeStream(source(1, 2000), 85, () => clock, sleep).getReader();
+        const arrivals: number[] = [];
+        for (;;) {
+            const { done } = await reader.read();
+            if (done) break;
+            arrivals.push(clock);
+        }
+        expect(Math.max(...waits)).toBeLessThanOrEqual(250);
+        // a healthy stream shows bytes every few seconds, never one 20 s silence
+        const gaps = arrivals.slice(1).map((t, i) => t - arrivals[i]!);
+        expect(Math.max(...gaps)).toBeLessThanOrEqual(300);
+        // overall rate holds: 2000 B at 85 B/s is ~23.5 s
+        expect(clock).toBeGreaterThan(22_000);
+        expect(clock).toBeLessThan(25_000);
+    });
+
+    it('re-reads the rate between pieces of one chunk', async () => {
+        let clock = 0;
+        let rate = 100;
+        const sleep = (ms: number) => {
+            clock += ms;
+            if (clock > 1000) rate = 10_000;
+            return Promise.resolve();
+        };
+        const reader = throttleNodeStream(source(1, 5000), () => rate, () => clock, sleep).getReader();
+        for (;;) if ((await reader.read()).done) break;
+        // At a fixed 100 B/s this would take 50 s.
+        expect(clock).toBeLessThan(5000);
+    });
+
+    it('a cancel during a sleep clears the timer and returns promptly', async () => {
+        vi.useFakeTimers();
+        try {
+            const src = source(10, 1000);
+            const reader = throttleNodeStream(src, 10).getReader();
+            const pending = reader.read(); // sleeps 250 ms inside pull
+            await vi.advanceTimersByTimeAsync(100);
+            expect(vi.getTimerCount()).toBeGreaterThan(0);
+            await reader.cancel(new Error('gone'));
+            expect(vi.getTimerCount()).toBe(0);
+            const r = await pending;
+            expect(r.done).toBe(true);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });
 

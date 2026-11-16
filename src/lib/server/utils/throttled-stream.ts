@@ -39,6 +39,12 @@ import type { Readable } from 'node:stream';
 
 /** Bucket depth, expressed as seconds of transfer at the configured rate. */
 const BURST_SECONDS = 1;
+/**
+ * Longest single wait. A chunk is cut into pieces that each take about this long at the
+ * current rate, so the rate is re-read between pieces, a cancel lands promptly and a
+ * very slow (but healthy) stream still delivers bytes every few seconds.
+ */
+const MAX_WAIT_MS = 250;
 
 /**
  * Wrap a Node readable in a web `ReadableStream` that emits at most
@@ -52,7 +58,7 @@ export function throttleNodeStream(
     source: Readable,
     bytesPerSecond: number | (() => number),
     now: () => number = Date.now,
-    sleep: (ms: number) => Promise<void> = defaultSleep,
+    sleep: (ms: number, signal?: AbortSignal) => Promise<void> = defaultSleep,
 ): ReadableStream<Uint8Array> {
     if (
         typeof bytesPerSecond === 'number' &&
@@ -68,9 +74,15 @@ export function throttleNodeStream(
         return Number.isFinite(r) && r > 0 ? r : 0;
     };
 
+    // The bucket starts EMPTY: every response pays for its first byte, so a client that
+    // asks for many short Range requests is throttled like one long response.
     let rate = currentRate();
-    let tokens = rate * BURST_SECONDS;
+    let tokens = 0;
     let lastRefill = now();
+    const cancelled = new AbortController();
+    const cancelSignal = new Promise<void>((resolve) =>
+        cancelled.signal.addEventListener('abort', () => resolve(), { once: true }),
+    );
 
     function refill(): void {
         const at = now();
@@ -82,8 +94,8 @@ export function throttleNodeStream(
             tokens = 0;
             return;
         }
-        // Coming from unlimited: start with a full bucket at the new rate.
-        if (rate === 0) tokens = next * BURST_SECONDS;
+        // Coming from unlimited: nothing saved up, the next byte is paid for.
+        if (rate === 0) tokens = 0;
         else tokens += elapsed * rate;
         rate = next;
         // A debt (negative tokens) carries over; only the surplus is capped.
@@ -104,8 +116,9 @@ export function throttleNodeStream(
         refill();
         if (rate === 0) return;
         tokens -= needed;
-        while (tokens < 0) {
-            await sleep(Math.max(1, Math.ceil((-tokens / rate) * 1000)));
+        while (tokens < 0 && !cancelled.signal.aborted) {
+            const ms = Math.max(1, Math.min(MAX_WAIT_MS, Math.ceil((-tokens / rate) * 1000)));
+            await Promise.race([sleep(ms, cancelled.signal), cancelSignal]);
             refill();
             if (rate === 0) return;
         }
@@ -122,21 +135,37 @@ export function throttleNodeStream(
                     return;
                 }
                 const bytes = toUint8(value);
-                await spend(bytes.byteLength);
-                controller.enqueue(bytes);
+                // Pay and emit piece by piece, re-reading the rate between pieces.
+                for (let at = 0; at < bytes.byteLength && !cancelled.signal.aborted; ) {
+                    const piece = Math.max(1, Math.floor((rate || currentRate()) * (MAX_WAIT_MS / 1000)));
+                    const part = bytes.subarray(at, Math.min(bytes.byteLength, at + piece));
+                    await spend(part.byteLength);
+                    if (cancelled.signal.aborted) return;
+                    controller.enqueue(part);
+                    at += part.byteLength;
+                }
             } catch (err) {
                 controller.error(err);
             }
         },
         cancel(reason) {
-            // Stop reading from disk the moment the client goes away.
+            // Stop reading from disk the moment the client goes away, and wake a sleeper.
+            cancelled.abort();
             source.destroy(reason instanceof Error ? reason : undefined);
         },
     });
 }
 
-function defaultSleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+function defaultSleep(ms: number, signal?: AbortSignal): Promise<void> {
+    return new Promise((resolve) => {
+        const timer = setTimeout(done, ms);
+        function done(): void {
+            clearTimeout(timer);
+            signal?.removeEventListener('abort', done);
+            resolve();
+        }
+        signal?.addEventListener('abort', done, { once: true });
+    });
 }
 
 function toUint8(value: unknown): Uint8Array {
