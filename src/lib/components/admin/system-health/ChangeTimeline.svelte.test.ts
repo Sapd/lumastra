@@ -58,7 +58,7 @@ describe('ChangeTimeline', () => {
         await waitFor(() => {
             expect(screen.getByText(/No config, task or license changes/)).toBeTruthy();
         });
-        expect(screen.getByText(/version changes aren't tracked yet/i)).toBeTruthy();
+        expect(screen.getByText(/Config, task and license changes are shown here/)).toBeTruthy();
     });
 
     test('falls back to a no-failures heading when there are no recent failure patterns', async () => {
