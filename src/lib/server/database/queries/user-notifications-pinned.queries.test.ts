@@ -29,6 +29,7 @@ import type postgres from 'postgres';
 import {
     listPinnedBroadcastsForUser,
     getNotificationForUser,
+    deleteAllUnpinnedNotifications,
 } from './user-notifications.queries.js';
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
@@ -125,5 +126,19 @@ describe('getNotificationForUser — pin state', () => {
         // one whose pin has LAPSED — the query's CASE collapses them, because
         // "was pinned once" is not a state the wire contract has.
         expect(row).toMatchObject({ pinnedAt: null, isPinned: false });
+    });
+});
+
+describe('deleteAllUnpinnedNotifications', () => {
+    it('is owner-scoped and spares a pin that is still in force', async () => {
+        const { sql, queries } = stubSql([]);
+
+        await deleteAllUnpinnedNotifications(sql, USER_ID);
+
+        expect(queries).toHaveLength(1);
+        expect(queries[0]).toContain('DELETE FROM user_notifications');
+        expect(queries[0]).toContain('n.user_id =');
+        expect(queries[0]).toContain('NOT EXISTS');
+        expect(queries[0]).toContain('b.pin_expires_at > now()');
     });
 });

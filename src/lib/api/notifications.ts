@@ -131,6 +131,18 @@ export function markAllNotificationsRead(options?: ApiRequestOptions) {
 // Delete
 // =========================================================================
 
+const ClearAllResponseSchema = z.object({ deleted: z.number().int() });
+
+/**
+ * POST /api/notifications/clear-all
+ *
+ * Deletes every notification except currently-pinned announcements, including
+ * rows not yet paged in. Returns { deleted: number }.
+ */
+export function clearAllNotifications(options?: ApiRequestOptions) {
+    return apiPost('/api/notifications/clear-all', ClearAllResponseSchema, undefined, options);
+}
+
 /** Schema for 204 No Content (DELETE returns no body). */
 const DeleteResponseSchema = z.null();
 

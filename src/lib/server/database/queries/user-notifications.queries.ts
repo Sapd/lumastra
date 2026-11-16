@@ -603,6 +603,36 @@ export async function deleteNotification(
     return rows.length > 0 ? mapRow(rows[0]) : null;
 }
 
+/**
+ * Delete every notification the user owns EXCEPT currently-pinned
+ * announcements — the drawer's "Clear all".
+ *
+ * Pinned rows are skipped for the same reason `DELETE /notifications/{id}`
+ * refuses them (409): an operator pinned them so they stay visible. The pin
+ * test matches `getNotificationForUser`'s (a lapsed `pin_expires_at` no longer
+ * counts), so a row the single delete would accept is also cleared here.
+ *
+ * Returns the deleted rows so the caller can run the request-dismissal sync
+ * for each `request.available` row, like the single delete does.
+ */
+export async function deleteAllUnpinnedNotifications(
+    sql: postgres.Sql,
+    userId: string,
+): Promise<UserNotificationRow[]> {
+    const rows = await sql<DbRow[]>`
+        DELETE FROM user_notifications n
+        WHERE n.user_id = ${userId}::uuid
+          AND NOT EXISTS (
+              SELECT 1 FROM admin_broadcasts b
+              WHERE b.id = n.broadcast_id
+                AND b.pinned_at IS NOT NULL
+                AND (b.pin_expires_at IS NULL OR b.pin_expires_at > now())
+          )
+        RETURNING n.id, n.user_id, n.kind, n.payload, n.read_at, n.created_at, n.expires_at
+    `;
+    return rows.map(mapRow);
+}
+
 // ---------------------------------------------------------------------------
 // Prune (admin / task)
 // ---------------------------------------------------------------------------

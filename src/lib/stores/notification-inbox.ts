@@ -85,6 +85,7 @@ import {
     markNotificationRead,
     markAllNotificationsRead,
     deleteNotification,
+    clearAllNotifications,
 } from '$lib/api/notifications.js';
 import { userEvents, type UserEventFrame } from '$lib/stores/user-events.js';
 import { NOTIFICATION_EVENT_KIND_NAMES } from '$lib/shared/user-event-kinds.js';
@@ -639,6 +640,26 @@ function createNotificationInboxStore() {
     }
 
     /**
+     * Delete every notification except currently-pinned announcements — the
+     * server clears rows not yet paged in too, so the list ends empty with no
+     * further page. Optimistic; on failure the inbox is refetched rather than
+     * restored from a snapshot, since the server may have deleted some rows
+     * and live frames may have arrived meanwhile.
+     */
+    async function clearAll(): Promise<void> {
+        update((state) => ({
+            ...state,
+            items: [],
+            hasMore: false,
+            nextCursor: null,
+            unreadCount: state.pinned.filter((item) => item.readAt === null).length,
+        }));
+
+        const { error } = await clearAllNotifications();
+        if (error) await loadInitial();
+    }
+
+    /**
      * Fetch the initial state and start the live feed. Returns a teardown —
      * call it on unmount. Idempotent-safe to call from multiple mount points
      * (startLive() no-ops after the first call); loadInitial() itself is not
@@ -669,6 +690,7 @@ function createNotificationInboxStore() {
         markRead,
         markAllRead,
         remove,
+        clearAll,
         teardown,
     };
 }

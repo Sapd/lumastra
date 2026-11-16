@@ -143,6 +143,19 @@
         void notificationInbox.markAllRead();
     }
 
+    // Clearing deletes rows for good, so it takes a second click on an inline
+    // confirm strip rather than firing straight away. Reset whenever the
+    // drawer closes so it never reopens half-armed.
+    let confirmingClear = $state(false);
+    $effect(() => {
+        if (!open) confirmingClear = false;
+    });
+
+    function clearAll(): void {
+        confirmingClear = false;
+        void notificationInbox.clearAll();
+    }
+
     function loadMore(): void {
         void notificationInbox.loadMore();
     }
@@ -183,6 +196,14 @@
                         {m.notifications_mark_all_read()}
                     </button>
                 {/if}
+                {#if items.length > 0 && !confirmingClear}
+                    <button
+                        type="button"
+                        class="rounded px-2 py-1 text-xs text-surface-400 hover:text-surface-200 hover:underline"
+                        onclick={() => (confirmingClear = true)}>
+                        {m.notifications_clear_all()}
+                    </button>
+                {/if}
                 <button
                     class="p-1 text-surface-400 hover:text-white"
                     onclick={onclose}
@@ -193,6 +214,28 @@
                 </button>
             </div>
         </div>
+
+        {#if confirmingClear}
+            <div
+                class="flex items-center justify-between gap-2 border-b border-surface-700 bg-surface-900/60 px-4 py-2"
+                role="alert">
+                <span class="text-xs text-surface-200">{m.notifications_clear_all_confirm()}</span>
+                <div class="flex shrink-0 items-center gap-1">
+                    <button
+                        type="button"
+                        class="rounded px-2 py-1 text-xs text-surface-400 hover:text-surface-200"
+                        onclick={() => (confirmingClear = false)}>
+                        {m.btn_cancel()}
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded bg-red-600/80 px-2 py-1 text-xs text-white hover:bg-red-600"
+                        onclick={clearAll}>
+                        {m.notifications_clear_all_confirm_button()}
+                    </button>
+                </div>
+            </div>
+        {/if}
 
         <!-- Scrollable content -->
         <div class="flex-1 space-y-1 overflow-y-auto overflow-x-hidden p-3">

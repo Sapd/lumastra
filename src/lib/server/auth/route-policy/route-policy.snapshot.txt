@@ -1990,6 +1990,7 @@
 /api/notifications/[id]/push-image POST user  <- /api/notifications/**
 /api/notifications/[id]/push-image PUT user  <- /api/notifications/**
 /api/notifications/[id]/read POST user  <- /api/notifications/**
+/api/notifications/clear-all POST user  <- /api/notifications/**
 /api/notifications/read-all POST user  <- /api/notifications/**
 /api/notifications/unread-count GET user  <- /api/notifications/**
 /api/oauth/authorize DELETE user  <- /api/oauth/**

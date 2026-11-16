@@ -25,6 +25,7 @@ const mockGetUnreadCount = vi.fn();
 const mockMarkRead = vi.fn();
 const mockMarkAllRead = vi.fn();
 const mockDeleteNotification = vi.fn();
+const mockClearAll = vi.fn();
 
 vi.mock('$lib/api/notifications.js', () => ({
     getNotifications: (...args: unknown[]) => mockGetNotifications(...args),
@@ -33,6 +34,7 @@ vi.mock('$lib/api/notifications.js', () => ({
     markNotificationRead: (...args: unknown[]) => mockMarkRead(...args),
     markAllNotificationsRead: (...args: unknown[]) => mockMarkAllRead(...args),
     deleteNotification: (...args: unknown[]) => mockDeleteNotification(...args),
+    clearAllNotifications: (...args: unknown[]) => mockClearAll(...args),
 }));
 
 // notification-inbox.ts imports `userEvents` eagerly (for startLive()); these
@@ -77,6 +79,7 @@ beforeEach(() => {
     mockMarkRead.mockReset();
     mockMarkAllRead.mockReset();
     mockDeleteNotification.mockReset();
+    mockClearAll.mockReset();
 });
 
 afterEach(() => {
@@ -182,6 +185,53 @@ describe('notificationInbox.markRead — optimistic update + rollback', () => {
         // The row is gone (delete won), but the unread count still gets its
         // credit back rather than under-counting forever.
         expect(snapshot?.items).toHaveLength(0);
+        expect(snapshot?.unreadCount).toBe(1);
+    });
+});
+
+describe('notificationInbox.clearAll', () => {
+    it('empties the list, drops the next page and keeps only pinned unread in the badge', async () => {
+        mockGetUnreadCount.mockResolvedValue({ data: { count: 40 }, error: null });
+        mockGetNotifications.mockResolvedValue({
+            data: {
+                items: [makeItem({ id: 'n1' }), makeItem({ id: 'n2' })],
+                pinned: [makeItem({ id: 'p1', pinnedAt: '2026-08-01T00:00:00.000Z' })],
+                page: { limit: 30, hasMore: true, nextCursor: 'c1' },
+            },
+            error: null,
+        });
+        const { notificationInbox } = await freshStore();
+        await notificationInbox.loadInitial();
+
+        mockClearAll.mockResolvedValue({ data: { deleted: 41 }, error: null });
+        await notificationInbox.clearAll();
+
+        let snapshot: import('./notification-inbox.js').NotificationInboxState | undefined;
+        notificationInbox.subscribe((s) => (snapshot = s))();
+        expect(mockClearAll).toHaveBeenCalledTimes(1);
+        expect(snapshot?.items).toEqual([]);
+        expect(snapshot?.hasMore).toBe(false);
+        expect(snapshot?.nextCursor).toBeNull();
+        expect(snapshot?.pinned.map((p) => p.id)).toEqual(['p1']);
+        expect(snapshot?.unreadCount).toBe(1);
+    });
+
+    it('refetches the inbox when the server call fails', async () => {
+        mockGetUnreadCount.mockResolvedValue({ data: { count: 1 }, error: null });
+        mockGetNotifications.mockResolvedValue({
+            data: { items: [makeItem({ id: 'n1' })], page: { limit: 30, hasMore: false } },
+            error: null,
+        });
+        const { notificationInbox } = await freshStore();
+        await notificationInbox.loadInitial();
+
+        mockClearAll.mockResolvedValue({ data: null, error: 'network error' });
+        await notificationInbox.clearAll();
+
+        let snapshot: import('./notification-inbox.js').NotificationInboxState | undefined;
+        notificationInbox.subscribe((s) => (snapshot = s))();
+        expect(mockGetNotifications).toHaveBeenCalledTimes(2);
+        expect(snapshot?.items.map((i) => i.id)).toEqual(['n1']);
         expect(snapshot?.unreadCount).toBe(1);
     });
 });
