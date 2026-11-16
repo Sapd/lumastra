@@ -350,6 +350,7 @@ const MEDIA_FILE_READS = [
     'services/upload-session.service.ts',
     'services/transcoding/input-guard.ts',
     'tasks/builtin/native/media-sources/_helpers/file-scanner/vorbis-raw-reader.ts',
+    'utils/download-path.ts', // opens the verified download descriptor (O_NOFOLLOW + realpath check)
     'utils/file-streaming.ts',
     'utils/playlist-sniff.ts',
 ];

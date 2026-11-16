@@ -10,6 +10,7 @@
 import { extname } from 'node:path';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
+import type { FileHandle } from 'node:fs/promises';
 import { parseRangeHeader } from '$lib/server/utils/hls-request-utils.js';
 import { bandwidthTracker } from '$lib/server/services/bandwidth-tracker.service.js';
 import { throttleNodeStream } from '$lib/server/utils/throttled-stream.js';
@@ -319,7 +320,7 @@ export interface ServeFileOptions {
 }
 
 export interface OpenedFile {
-    handle: import('node:fs/promises').FileHandle;
+    handle: FileHandle;
     size: number;
     mtimeMs: number | null;
 }

@@ -47,7 +47,16 @@ function listBody(over: Record<string, unknown> = {}) {
 }
 
 function stubList(body: unknown, status = 200) {
-    const f = vi.fn(async (_url: string) => new Response(JSON.stringify(body), { status }));
+    const f = vi.fn(async (url: string) => {
+        // link mode asks the slots endpoint: free slots, and every hand-off confirmed
+        if (String(url).includes('/downloads/slots')) {
+            const h = new URL(String(url), 'http://x').searchParams.get('h');
+            return new Response(
+                JSON.stringify({ maxParallel: 3, inUse: 0, ...(h ? { started: true } : {}) }),
+            );
+        }
+        return new Response(JSON.stringify(body), { status });
+    });
     vi.stubGlobal('fetch', f);
     return f;
 }
