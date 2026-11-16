@@ -9,6 +9,7 @@ export interface UserRow {
     max_age_rating: number | null;
     age_rating_pinned: boolean;
     allow_live_tv?: boolean | null;
+    allow_downloads?: boolean | null;
     display_name: string | null;
     email: string | null;
     hide_streams: boolean;
@@ -68,6 +69,7 @@ export function mapUserToApi(row: UserRow): ApiUser {
         ageRatingPinned: row.age_rating_pinned,
         allowLiveTv: row.allow_live_tv !== false,
         liveTvDefault: row.allow_live_tv == null,
+        allowDownloads: row.allow_downloads ?? null,
         displayName: row.display_name ?? undefined,
         email: row.email ?? undefined,
         hideStreams: row.hide_streams,

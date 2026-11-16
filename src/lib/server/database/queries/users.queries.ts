@@ -39,6 +39,7 @@ export interface UserRow {
     max_age_rating: number | null;
     age_rating_pinned: boolean;
     allow_live_tv?: boolean | null;
+    allow_downloads?: boolean | null;
     display_name: string | null;
     email: string | null;
     hide_streams: boolean;
@@ -282,7 +283,7 @@ export async function getUserByUsername(
     username: string,
 ): Promise<UserRow | null> {
     const rows = await sql<UserRow[]>`
-        SELECT id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv, display_name, email, hide_streams, groups, groups_updated_at, created_at, updated_at, last_seen_at, disabled_at, deleted_at
+        SELECT id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv, allow_downloads, display_name, email, hide_streams, groups, groups_updated_at, created_at, updated_at, last_seen_at, disabled_at, deleted_at
         FROM users
         WHERE username = ${username}
         LIMIT 1
@@ -450,7 +451,7 @@ export async function getUserById(sql: postgres.Sql, id: string): Promise<UserRo
     // on the uuid cast. Admin routes pass the path id straight through.
     if (!isUuid(id)) return null;
     const rows = await sql<UserRow[]>`
-        SELECT id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv, display_name, email, hide_streams, groups, groups_updated_at, created_at, updated_at, last_seen_at, disabled_at, deleted_at
+        SELECT id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv, allow_downloads, display_name, email, hide_streams, groups, groups_updated_at, created_at, updated_at, last_seen_at, disabled_at, deleted_at
         FROM users
         WHERE id = ${id}
         LIMIT 1
@@ -563,7 +564,7 @@ export async function setJellyfinUsername(
             jellyfin_user_id = NULL,
             updated_at = NOW()
         WHERE id = ${userId}
-        RETURNING id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv, display_name, email, hide_streams, groups, groups_updated_at, created_at, updated_at, last_seen_at, disabled_at
+        RETURNING id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv, allow_downloads, display_name, email, hide_streams, groups, groups_updated_at, created_at, updated_at, last_seen_at, disabled_at
     `;
     return rows[0] ?? null;
 }
@@ -687,7 +688,7 @@ export async function listUsers(sql: postgres.Sql): Promise<ListedUserRow[]> {
     // eslint-disable-next-line callback-safety/no-unscoped-media-items -- see comment above
     return sql<ListedUserRow[]>`
         SELECT
-            u.id, u.username, u.is_admin, u.admin_pinned, u.max_age_rating, u.age_rating_pinned, u.allow_live_tv,
+            u.id, u.username, u.is_admin, u.admin_pinned, u.max_age_rating, u.age_rating_pinned, u.allow_live_tv, u.allow_downloads,
             u.display_name, u.email, u.hide_streams, u.groups, u.groups_updated_at,
             u.created_at, u.updated_at, u.last_seen_at, u.disabled_at,
             -- Sign-in evidence for the directory's "Sign-in" column and its
@@ -847,7 +848,7 @@ export async function setIsAdmin(
         UPDATE users
         SET is_admin = ${isAdmin}, admin_pinned = true, updated_at = NOW()
         WHERE username = ${username}
-        RETURNING id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv, display_name, email, hide_streams, groups, groups_updated_at, created_at, updated_at, last_seen_at
+        RETURNING id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv, allow_downloads, display_name, email, hide_streams, groups, groups_updated_at, created_at, updated_at, last_seen_at
     `;
     return rows[0] ?? null;
 }
@@ -866,7 +867,7 @@ export async function unpinAdmin(sql: postgres.Sql, username: string): Promise<U
         UPDATE users
         SET admin_pinned = false, updated_at = NOW()
         WHERE username = ${username}
-        RETURNING id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv, display_name, email, hide_streams, groups, groups_updated_at, created_at, updated_at, last_seen_at
+        RETURNING id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv, allow_downloads, display_name, email, hide_streams, groups, groups_updated_at, created_at, updated_at, last_seen_at
     `;
     return rows[0] ?? null;
 }
@@ -884,7 +885,7 @@ export async function setMaxAgeRating(
         UPDATE users
         SET max_age_rating = ${maxAgeRating}, age_rating_pinned = true, updated_at = NOW()
         WHERE username = ${username}
-        RETURNING id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv,
+        RETURNING id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv, allow_downloads,
                   display_name, email, hide_streams, groups, groups_updated_at, created_at, updated_at, last_seen_at
     `;
     return rows[0] ?? null;
@@ -900,7 +901,7 @@ export async function unpinAgeRating(sql: postgres.Sql, username: string): Promi
         UPDATE users
         SET age_rating_pinned = false, updated_at = NOW()
         WHERE username = ${username}
-        RETURNING id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv,
+        RETURNING id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv, allow_downloads,
                   display_name, email, hide_streams, groups, groups_updated_at, created_at, updated_at, last_seen_at
     `;
     return rows[0] ?? null;
@@ -1859,6 +1860,33 @@ export async function setUserLiveTvAllowed(
 ): Promise<boolean> {
     const rows = await sql<{ id: string }[]>`
         UPDATE users SET allow_live_tv = ${allowed}, updated_at = NOW()
+        WHERE username = ${username.toLowerCase()} RETURNING id
+    `;
+    return rows.length > 0;
+}
+
+/**
+ * Per-user download override. null = follow the instance default
+ * (`DOWNLOADS_ALLOWED_BY_DEFAULT`); undefined = no such user.
+ */
+export async function getUserAllowDownloads(
+    sql: postgres.Sql,
+    userId: string,
+): Promise<boolean | null | undefined> {
+    const rows = await sql<{ allow_downloads: boolean | null }[]>`
+        SELECT allow_downloads FROM users WHERE id = ${userId}
+    `;
+    return rows.length > 0 ? rows[0].allow_downloads : undefined;
+}
+
+/** Set (true/false) or clear (null) the per-user download override. False when the user is unknown. */
+export async function setUserAllowDownloads(
+    sql: postgres.Sql,
+    username: string,
+    value: boolean | null,
+): Promise<boolean> {
+    const rows = await sql<{ id: string }[]>`
+        UPDATE users SET allow_downloads = ${value}, updated_at = NOW()
         WHERE username = ${username.toLowerCase()} RETURNING id
     `;
     return rows.length > 0;

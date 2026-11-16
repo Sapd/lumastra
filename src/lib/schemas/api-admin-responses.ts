@@ -1605,6 +1605,11 @@ export const LocalUserSchema = z.object({
         .boolean()
         .optional()
         .describe('Whether the user still has the default Live TV setting'),
+    allowDownloads: z
+        .boolean()
+        .nullable()
+        .optional()
+        .describe('Per-user download override (null = follow the instance default)'),
     ageRatingPinned: z
         .boolean()
         .describe('Whether age rating is manually pinned or derived from IdP groups'),
@@ -1723,6 +1728,15 @@ export const SetAllowLiveTvResponseSchema = z.object({
     liveTvDefault: z.boolean(),
 });
 export type SetAllowLiveTvResponse = z.infer<typeof SetAllowLiveTvResponseSchema>;
+
+export const SetAllowDownloadsResponseSchema = z.object({
+    username: z.string(),
+    allowDownloads: z
+        .boolean()
+        .nullable()
+        .describe('Per-user download override (null = follow the instance default)'),
+});
+export type SetAllowDownloadsResponse = z.infer<typeof SetAllowDownloadsResponseSchema>;
 
 export const SetAgeRatingResponseSchema = z.object({
     username: z.string(),

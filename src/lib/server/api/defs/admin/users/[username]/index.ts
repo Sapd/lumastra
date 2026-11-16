@@ -52,6 +52,7 @@ import {
     setUserAgeRating,
     setUserAdmin,
     setUserAllowLiveTv,
+    setUserAllowDownloads,
 } from '$lib/server/services/admin-user.service.js';
 import { checkRateLimit } from '$lib/server/middleware/valkey-rate-limit.js';
 import { getClientIpStrict } from '$lib/server/utils/client-ip.js';
@@ -73,6 +74,8 @@ const PatchUserBody = z
         unpinAgeRating: z.boolean().optional(),
         disabled: z.boolean().optional(),
         allowLiveTv: z.boolean({ error: () => m.admin_users_live_tv_invalid() }).optional(),
+        // true/false = override, null = follow DOWNLOADS_ALLOWED_BY_DEFAULT
+        allowDownloads: z.boolean().nullable().optional(),
     })
     // The handler applies exactly one action and returns its result, so a
     // body carrying two would silently drop the second. Reject it instead.
@@ -85,6 +88,7 @@ const PatchUserBody = z
                 d.unpinAgeRating === true,
                 d.disabled !== undefined,
                 d.allowLiveTv !== undefined,
+                d.allowDownloads !== undefined,
             ].filter(Boolean).length <= 1,
         { message: 'Send one change per request' },
     )
@@ -142,6 +146,7 @@ export const def = defineEndpoint({
                 unpinAgeRating: doUnpinAge,
                 disabled,
                 allowLiveTv,
+                allowDownloads,
             } = parse.data;
 
             const actingUsername =
@@ -152,6 +157,16 @@ export const def = defineEndpoint({
                 const result = await setUserAllowLiveTv(db, {
                     targetUsername: username,
                     allowed: allowLiveTv,
+                    actor: auditActor(event),
+                });
+                if (!result.ok) return ApiProblem.notFound();
+                return json(result.data);
+            }
+
+            if (allowDownloads !== undefined) {
+                const result = await setUserAllowDownloads(db, {
+                    targetUsername: username,
+                    allowed: allowDownloads,
                     actor: auditActor(event),
                 });
                 if (!result.ok) return ApiProblem.notFound();

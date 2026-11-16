@@ -56,6 +56,11 @@ export const ApiUserSchema = z
             .boolean()
             .optional()
             .describe('Whether the user still has the default Live TV setting'),
+        allowDownloads: z
+            .boolean()
+            .nullable()
+            .optional()
+            .describe('Per-user download override (null = follow the instance default)'),
         ageRatingPinned: z.boolean(),
         displayName: z.string().optional(),
         email: z.string().optional(),

@@ -17,7 +17,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import type { SetAllowLiveTvResponse } from '$lib/schemas/api-admin-responses.js';
+import type { SetAllowDownloadsResponse, SetAllowLiveTvResponse } from '$lib/schemas/api-admin-responses.js';
 import type postgres from 'postgres';
 import { AdminUserEmailSchema } from '$lib/schemas/admin-user.js';
 import * as m from '$lib/paraglide/messages.js';
@@ -46,6 +46,7 @@ import {
     syncAdminFromGroups,
     syncAgeRatingFromGroups,
     setUserLiveTvAllowed,
+    setUserAllowDownloads as setUserAllowDownloadsQuery,
     type UserRow,
 } from '$lib/server/database/queries/users.queries.js';
 import {
@@ -819,4 +820,22 @@ export async function setUserAllowLiveTv(
         }
     }
     return { ok: true, data: { username, allowLiveTv: params.allowed, liveTvDefault: false } };
+}
+
+/** Set (true/false) or clear (null = follow the instance default) a user's download override. */
+export async function setUserAllowDownloads(
+    sql: postgres.Sql,
+    params: { targetUsername: string; allowed: boolean | null; actor: AuditActor },
+): Promise<AdminUserResult<SetAllowDownloadsResponse>> {
+    const username = params.targetUsername.toLowerCase();
+    const target = await getUserByUsername(sql, username);
+    if (!target || !(await setUserAllowDownloadsQuery(sql, username, params.allowed))) {
+        return { ok: false, status: 404, message: 'User not found.' };
+    }
+    const { invalidateDownloadAccess } = await import('./download-access.service.js');
+    invalidateDownloadAccess(target.id);
+    auditLog('user.set_allow_downloads', username, params.actor, {
+        allowDownloads: params.allowed,
+    });
+    return { ok: true, data: { username, allowDownloads: params.allowed } };
 }
