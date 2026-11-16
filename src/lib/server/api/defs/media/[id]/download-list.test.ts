@@ -78,7 +78,7 @@ async function call(query = '', id = 'series1', headers: Record<string, string> 
             },
             url: new URL(url),
             params: { id },
-            request: new Request(url, { headers: { 'sec-fetch-site': 'same-origin', ...headers } }),
+            request: new Request(url, { headers: Object.keys(headers).length ? headers : { 'sec-fetch-site': 'same-origin' } }),
         } as unknown as RequestEvent,
         { surface: 'internal' } as never,
     );
@@ -171,6 +171,13 @@ describe('media/{id}/download-list', () => {
         const { res } = await call('', 'series1', { 'sec-fetch-site': 'cross-site' });
         expect(res.status).toBe(403);
         expect(mockCheckAccess).not.toHaveBeenCalled();
+    });
+
+    it('a header-less request without a same-origin Referer is refused', async () => {
+        const { res } = await call('', 'series1', { accept: '*/*' });
+        expect(res.status).toBe(403);
+        const ok = await call('', 'series1', { referer: 'http://localhost/library' });
+        expect(ok.res.status).toBe(200);
     });
 
     it('builds the access user from the principal, like the download route (non-admin principal wins)', async () => {

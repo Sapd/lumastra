@@ -32,7 +32,7 @@ async function call(headers: Record<string, string> = {}) {
             },
             url: new URL(url),
             params: { id: 'm1' },
-            request: new Request(url, { headers: { 'sec-fetch-site': 'same-origin', ...headers } }),
+            request: new Request(url, { headers: Object.keys(headers).length ? headers : { 'sec-fetch-site': 'same-origin' } }),
         } as unknown as RequestEvent,
         { surface: 'internal' } as never,
     );
@@ -89,9 +89,15 @@ describe('media/{id}/download (internal)', () => {
         expect(mockHandle).not.toHaveBeenCalled();
     });
 
-    it('same-origin and header-less requests pass', async () => {
+    it('same-origin requests pass, and a header-less one passes only with a same-origin Referer', async () => {
         mockHandle.mockResolvedValue(new Response('x'));
         expect((await call({ 'sec-fetch-site': 'same-origin' })).status).toBe(200);
-        expect((await call()).status).toBe(200);
+        expect((await call({ referer: 'http://localhost/library' })).status).toBe(200);
+    });
+
+    it('a header-less request with no or a foreign Origin/Referer is refused', async () => {
+        expect((await call({ accept: '*/*' })).status).toBe(403);
+        expect((await call({ referer: 'https://evil.example/' })).status).toBe(403);
+        expect(mockHandle).not.toHaveBeenCalled();
     });
 });
