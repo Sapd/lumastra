@@ -28,8 +28,8 @@ import { resolvePlaybackSelection } from '$lib/server/database/queries/media-fil
 import { getMediaItemForDownloadNaming } from '$lib/server/database/queries/catalog-operations.queries';
 import type { MediaDownloadNamingRow } from '$lib/server/database/queries/catalog-operations.queries';
 import { resolveMediaPath } from '$lib/server/utils/media-path-resolver';
-import { resolveDownloadablePath } from '$lib/server/utils/download-path';
-import { preflightFile, serveContainedMediaFile } from '$lib/server/utils/file-streaming';
+import { openDownloadableFile, resolveDownloadablePath } from '$lib/server/utils/download-path';
+import { preflightFile, serveOpenedDownload } from '$lib/server/utils/file-streaming';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition';
 import {
     downloadForbiddenResponse,
@@ -226,20 +226,31 @@ export async function handleDownloadFile(
         if (!tracked.ok) return tracked.response;
         const { tracker } = tracked;
 
-        // The row was checked at scan time; a link swapped in since is re-contained.
-        let response: Response | null;
+        // Open once and verify the descriptor (no second path resolution): a link or
+        // directory swapped in after the check above cannot redirect the read.
+        let response: Response | null = null;
         try {
-            response = await serveContainedMediaFile(downloadPath, rangeHeader, {
-                disposition,
-                mimePath: pathInfo.containerPath,
-                ifRange: request.headers.get('if-range'),
-                // One enforcement point for both surfaces, exactly like the feature
-                // flag above: /j and /api/v1 must not be able to disagree about how
-                // fast raw file egress is allowed to go. The lease's rate already
-                // includes DOWNLOAD_THROTTLE_KBPS.
-                throttleBytesPerSec: () => tracker.rate(),
-                observer: tracker.observer,
-            });
+            const opened = await openDownloadableFile(
+                sql,
+                pathInfo.containerPath,
+                config.DOWNLOAD_ALLOWED_MOUNT_ROOTS,
+                itemId,
+            );
+            if (opened) {
+                response = await serveOpenedDownload(
+                    opened,
+                    extname(pathInfo.containerPath),
+                    rangeHeader,
+                    {
+                        disposition,
+                        ifRange: request.headers.get('if-range'),
+                        // One enforcement point for both surfaces: the lease's rate already
+                        // includes DOWNLOAD_THROTTLE_KBPS.
+                        throttleBytesPerSec: () => tracker.rate(),
+                        observer: tracker.observer,
+                    },
+                );
+            }
         } catch (err) {
             tracker.discard();
             throw err;

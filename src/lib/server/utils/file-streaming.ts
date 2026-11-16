@@ -310,6 +310,31 @@ export interface ServeFileOptions {
     extraHeaders?: Record<string, string>;
     /** Path whose extension names the Content-Type, when the served path is a canonical target without it. */
     mimePath?: string;
+    /**
+     * A file the caller already opened and verified (see `openDownloadableFile`): validators
+     * come from its descriptor and the bytes are streamed FROM it, so the path is never
+     * resolved a second time. The handle is closed when the body ends, or here when no body is sent.
+     */
+    opened?: OpenedFile;
+}
+
+export interface OpenedFile {
+    handle: import('node:fs/promises').FileHandle;
+    size: number;
+    mtimeMs: number | null;
+}
+
+/**
+ * {@link serveFileByPath} for a download whose file was opened and verified once by
+ * `openDownloadableFile`: no second path resolution, so a swap after the check cannot redirect it.
+ */
+export async function serveOpenedDownload(
+    opened: OpenedFile,
+    ext: string,
+    rangeHeader: string | null,
+    opts: ServeFileOptions = {},
+): Promise<Response> {
+    return serveFile('', ext, true, rangeHeader, { ...opts, opened });
 }
 
 /** Wrap a body so `observer` sees every chunk and the end. Identity when there is no observer. */
@@ -398,9 +423,16 @@ async function serveFile(
         throttleBytesPerSec = 0,
         observer,
         extraHeaders,
+        opened,
     }: ServeFileOptions,
 ): Promise<Response> {
-    const { size: fileSize, mtimeMs } = await getCachedStat(filePath);
+    const { size: fileSize, mtimeMs } = opened ?? (await getCachedStat(filePath));
+    const source = (range?: { start: number; end: number }) =>
+        opened
+            ? opened.handle.createReadStream(range ? { start: range.start, end: range.end } : {})
+            : noFollow
+              ? createNoFollowReadStream(filePath, range)
+              : createReadStream(filePath, range);
     const validators = buildValidators(fileSize, mtimeMs);
 
     const contentType = getMimeType(ext.toLowerCase());
@@ -418,12 +450,7 @@ async function serveFile(
         if (sessionId) bandwidthTracker.trackSession(sessionId, fileSize);
         return new Response(
             observeStream(
-                throttleNodeStream(
-                    noFollow
-                        ? await createNoFollowReadStream(filePath)
-                        : createReadStream(filePath),
-                    throttleBytesPerSec,
-                ),
+                throttleNodeStream(await source(), throttleBytesPerSec),
                 observer,
             ),
             {
@@ -441,6 +468,7 @@ async function serveFile(
 
     const range = parseRangeHeader(rangeHeader, fileSize);
     if (!range) {
+        await opened?.handle.close().catch(() => {});
         return new Response(null, {
             status: 416,
             headers: {
@@ -456,12 +484,7 @@ async function serveFile(
     if (sessionId) bandwidthTracker.trackSession(sessionId, chunkSize);
     return new Response(
         observeStream(
-            throttleNodeStream(
-                noFollow
-                    ? await createNoFollowReadStream(filePath, { start, end })
-                    : createReadStream(filePath, { start, end }),
-                throttleBytesPerSec,
-            ),
+            throttleNodeStream(await source({ start, end }), throttleBytesPerSec),
             observer,
         ),
         {

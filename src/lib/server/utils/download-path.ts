@@ -18,12 +18,14 @@
  * check and the open cannot redirect the read.
  */
 
-import { stat } from 'node:fs/promises';
+import { constants as fsConstants } from 'node:fs';
+import { open, readlink, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { Sql } from 'postgres';
 import { getLibraryRootPaths } from './media-path-resolver.js';
 import { isWithinRoot } from './contained-fs.js';
 import { safeRealpath } from './safe-fs.js';
+import type { OpenedFile } from './file-streaming.js';
 import { Logger } from './logger.js';
 
 const logger = Logger.for('DownloadPath');
@@ -53,6 +55,19 @@ function warnOutsideRoots(itemKey: string, filePath: string, target: string): vo
     );
 }
 
+async function canonicalRootsOf(roots: readonly string[]): Promise<string[]> {
+    const canonicalRoots: string[] = [];
+    for (const root of roots.map((r) => r.trim()).filter(Boolean)) {
+        try {
+            canonicalRoots.push(await safeRealpath(root));
+        } catch {
+            // an unmounted root cannot contain anything canonical
+            canonicalRoots.push(resolve(root));
+        }
+    }
+    return canonicalRoots;
+}
+
 /** Pure core: the canonical path of `filePath` when it is a regular file inside one of `roots`, else null. */
 export async function resolveDownloadablePathIn(
     filePath: string,
@@ -65,15 +80,7 @@ export async function resolveDownloadablePathIn(
     } catch {
         return null;
     }
-    const canonicalRoots: string[] = [];
-    for (const root of roots.map((r) => r.trim()).filter(Boolean)) {
-        try {
-            canonicalRoots.push(await safeRealpath(root));
-        } catch {
-            // an unmounted root cannot contain anything canonical
-            canonicalRoots.push(resolve(root));
-        }
-    }
+    const canonicalRoots = await canonicalRootsOf(roots);
     if (!canonicalRoots.some((r) => isWithinRoot(real, r))) {
         warnOutsideRoots(itemKey, filePath, real);
         return null;
@@ -98,4 +105,74 @@ export async function resolveDownloadablePath(
     const roots = [...(await getLibraryRootPaths(sql)), ...extraRoots];
     if (roots.length === 0) return null;
     return resolveDownloadablePathIn(filePath, roots, itemKey);
+}
+
+export interface OpenHooks {
+    /** Test seam: runs between the path check and the open, where a swap would land. */
+    afterCheck?: () => Promise<void> | void;
+}
+
+/**
+ * Check, then OPEN ONCE, then verify the descriptor: the file is opened O_NOFOLLOW on the
+ * canonical path, `fstat`ed, and the descriptor's own real path (`/proc/self/fd/N`; elsewhere
+ * the canonical path's realpath with a matching device and inode) must lie inside an allowed
+ * root. The caller streams from THAT descriptor, so nothing resolves the path again and a
+ * link or directory swapped in after the check cannot redirect the read. Null = refuse.
+ */
+export async function openDownloadableFileIn(
+    filePath: string,
+    roots: readonly string[],
+    itemKey?: string,
+    hooks: OpenHooks = {},
+): Promise<OpenedFile | null> {
+    const canonical = await resolveDownloadablePathIn(filePath, roots, itemKey);
+    if (!canonical) return null;
+    await hooks.afterCheck?.();
+    let handle;
+    try {
+        handle = await open(
+            canonical,
+            fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW | fsConstants.O_NONBLOCK,
+        );
+    } catch {
+        return null;
+    }
+    try {
+        const st = await handle.stat();
+        if (!st.isFile()) throw new Error('not a regular file');
+        let real: string;
+        try {
+            real = await readlink(`/proc/self/fd/${handle.fd}`);
+        } catch {
+            real = await safeRealpath(canonical);
+            const again = await stat(real);
+            if (again.ino !== st.ino || again.dev !== st.dev) throw new Error('inode changed');
+        }
+        const canonicalRoots = await canonicalRootsOf(roots);
+        if (!canonicalRoots.some((r) => isWithinRoot(real, r))) {
+            warnOutsideRoots(itemKey ?? filePath, filePath, real);
+            throw new Error('descriptor outside the roots');
+        }
+        return {
+            handle,
+            size: st.size,
+            mtimeMs: Number.isFinite(st.mtimeMs) ? st.mtimeMs : null,
+        };
+    } catch {
+        await handle.close().catch(() => {});
+        return null;
+    }
+}
+
+/** {@link openDownloadableFileIn} against the enabled library roots plus `extraRoots`. */
+export async function openDownloadableFile(
+    sql: Sql,
+    filePath: string,
+    extraRoots: readonly string[] = [],
+    itemKey?: string,
+    hooks?: OpenHooks,
+): Promise<OpenedFile | null> {
+    const roots = [...(await getLibraryRootPaths(sql)), ...extraRoots];
+    if (roots.length === 0) return null;
+    return openDownloadableFileIn(filePath, roots, itemKey, hooks);
 }

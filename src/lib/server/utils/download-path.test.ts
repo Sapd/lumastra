@@ -4,7 +4,16 @@
 // Strict download containment on real temp dirs and symlinks; playback keeps its own rule.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+    mkdirSync,
+    mkdtempSync,
+    realpathSync,
+    renameSync,
+    rmSync,
+    symlinkSync,
+    unlinkSync,
+    writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -14,7 +23,11 @@ vi.mock('./logger.js', () => ({
 }));
 vi.mock('./media-path-resolver.js', () => ({ getLibraryRootPaths: async () => [] }));
 
-import { resetDownloadPathWarningsForTests, resolveDownloadablePathIn } from './download-path';
+import {
+    openDownloadableFileIn,
+    resetDownloadPathWarningsForTests,
+    resolveDownloadablePathIn,
+} from './download-path';
 import { resolveContainedMediaFile, resetContainmentRootsCache } from './contained-fs';
 
 let base = '';
@@ -128,5 +141,52 @@ describe('DOWNLOAD_ALLOWED_MOUNT_ROOTS as extra roots', () => {
         await resolveDownloadablePathIn(join(lib, 'debrid.mkv'), [lib], 'item-1');
         expect(warn).toHaveBeenCalledTimes(3);
         vi.useRealTimers();
+    });
+});
+
+describe('openDownloadableFileIn: open once, verify the descriptor', () => {
+    it('opens a normal file and reports its size', async () => {
+        const f = await openDownloadableFileIn(join(lib, 'real.mkv'), [lib]);
+        expect(f?.size).toBe(1);
+        await f?.handle.close();
+    });
+
+    it('refuses when the final file is swapped for a symlink out of the roots after the check', async () => {
+        writeFileSync(join(lib, 'swap1.mkv'), 'x');
+        const f = await openDownloadableFileIn(join(lib, 'swap1.mkv'), [lib], 'i1', {
+            afterCheck: () => {
+                unlinkSync(join(lib, 'swap1.mkv'));
+                symlinkSync(join(outside, 'passwd'), join(lib, 'swap1.mkv'));
+            },
+        });
+        expect(f).toBeNull(); // O_NOFOLLOW
+    });
+
+    it('refuses when a parent directory is swapped for a link out of the roots after the check', async () => {
+        mkdirSync(join(lib, 'dir'));
+        writeFileSync(join(lib, 'dir', 'movie.mkv'), 'inside');
+        mkdirSync(join(outside, 'dir'));
+        writeFileSync(join(outside, 'dir', 'movie.mkv'), 'SECRET-OUTSIDE');
+        const f = await openDownloadableFileIn(join(lib, 'dir', 'movie.mkv'), [lib], 'i2', {
+            afterCheck: () => {
+                renameSync(join(lib, 'dir'), join(lib, 'dir-old'));
+                symlinkSync(join(outside, 'dir'), join(lib, 'dir'));
+            },
+        });
+        // the descriptor's own real path is outside the roots: never streamed
+        expect(f).toBeNull();
+    });
+
+    it('a swap to another file INSIDE the roots is fine: the descriptor is verified, not the name', async () => {
+        writeFileSync(join(lib, 'swap3.mkv'), 'aa');
+        writeFileSync(join(lib, 'other.mkv'), 'bbbb');
+        const f = await openDownloadableFileIn(join(lib, 'swap3.mkv'), [lib], 'i3', {
+            afterCheck: () => {
+                unlinkSync(join(lib, 'swap3.mkv'));
+                writeFileSync(join(lib, 'swap3.mkv'), 'cccccc');
+            },
+        });
+        expect(f?.size).toBe(6);
+        await f?.handle.close();
     });
 });

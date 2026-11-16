@@ -45,18 +45,38 @@ const dlPath = vi.hoisted(() => ({
 }));
 vi.mock('$lib/server/utils/download-path.js', () => ({
     resolveDownloadablePath: async () => dlPath.result,
+    openDownloadableFile: async () =>
+        dlPath.result ? { handle: { path: dlPath.result }, size: 100, mtimeMs: null } : null,
 }));
-const scope = vi.hoisted(() => ({ inScope: true }));
+// Library scope: `denied` null = no restriction; otherwise only `allowed` file ids pass.
+const scope = vi.hoisted(() => ({
+    denied: null as string[] | null,
+    allowed: new Set<string>(),
+    selection: { files: [] as { id: string; file_path: string; is_default?: boolean }[], fileId: 'file-1' as string | null },
+}));
 vi.mock('$lib/server/services/download-file-scope.js', () => ({
-    deniedLibraryGroupsFor: async () => ['g-denied'],
-    isFilePathInScope: async () => scope.inScope,
+    deniedLibraryGroupsFor: async () => scope.denied,
+    allowedFileIds: async () => scope.allowed,
+    scopeSelection: (
+        sel: { files: { id: string; is_default?: boolean }[]; fileId: string | null },
+        ok: Set<string>,
+    ) => {
+        const files = sel.files.filter((f) => ok.has(f.id));
+        if (!files.length) return { files: [], fileId: null };
+        return {
+            files,
+            fileId: sel.fileId && ok.has(sel.fileId) ? sel.fileId : (files.find((f) => f.is_default) ?? files[0]!).id,
+        };
+    },
 }));
 vi.mock('$lib/server/utils/file-streaming.js', () => ({
-    serveContainedMediaFile: (...a: unknown[]) => m.serve(...a),
+    // keep the call shape the tests read: [opened, range, opts]
+    serveOpenedDownload: (opened: unknown, _ext: string, range: unknown, opts: unknown) =>
+        m.serve(opened, range, opts),
     preflightFile: (...a: unknown[]) => m.preflight(...a),
 }));
 vi.mock('$lib/server/database/queries/media-file-resolution.queries.js', () => ({
-    resolvePlaybackSelection: async () => ({ files: [], fileId: 'file-1' }),
+    resolvePlaybackSelection: async () => scope.selection,
 }));
 vi.mock('$lib/server/database/queries/catalog-operations.queries.js', () => ({
     getMediaItemForDownloadNaming: (...a: unknown[]) => m.naming(...a),
@@ -121,7 +141,9 @@ function ev(method = 'GET'): RequestEvent {
 
 beforeEach(() => {
     vi.clearAllMocks();
-    scope.inScope = true;
+    scope.denied = null;
+    scope.allowed = new Set();
+    scope.selection = { files: [], fileId: 'file-1' };
     dlPath.result = '/music/Artist.Name-Album-2011-GRP/01.group.release.flac';
     m.canDownload.mockResolvedValue(true);
     m.naming.mockResolvedValue({ title: 'Clean Title' });
@@ -227,14 +249,32 @@ describe('download.view', () => {
         expect(m.serve).not.toHaveBeenCalled();
     });
 
-    it('a file in a denied library is "song not found": no lease, no stream', async () => {
-        scope.inScope = false;
+    it('a track whose every file is in a denied library is "song not found": no lease, no stream', async () => {
+        scope.denied = ['g-denied'];
+        scope.allowed = new Set();
+        scope.selection = { files: [{ id: 'file-1', file_path: '/music/a.flac' }], fileId: 'file-1' };
         const res = await handleDownload(ev(), auth, {} as never);
-        expect(res.status).toBeGreaterThanOrEqual(200);
         const body = await res.json();
         expect(body['subsonic-response'].error.code).toBe(70);
         expect(m.track).not.toHaveBeenCalled();
         expect(m.serve).not.toHaveBeenCalled();
+    });
+
+    it('a mixed-library track: the allowed file is selected and used for serving, leasing and logging', async () => {
+        scope.denied = ['g-denied'];
+        scope.allowed = new Set(['file-ok']);
+        scope.selection = {
+            files: [
+                { id: 'file-denied', file_path: '/music/denied/01.flac', is_default: true },
+                { id: 'file-ok', file_path: '/music/ok/01.flac' },
+            ],
+            fileId: 'file-denied',
+        };
+        const res = await handleDownload(ev(), auth, {} as never);
+        expect(res.status).toBe(200);
+        // leased and logged against the allowed file
+        expect(m.track.mock.calls[0]![1]).toMatchObject({ fileId: 'file-ok' });
+        expect(m.serve).toHaveBeenCalledTimes(1);
     });
 
     it('a file whose canonical target is outside the library roots is "not found", nothing served', async () => {
@@ -249,6 +289,6 @@ describe('download.view', () => {
     it('serves the canonical path', async () => {
         dlPath.result = '/music/.real/01.flac';
         await handleDownload(ev(), auth, {} as never);
-        expect(m.serve.mock.calls[0]![0]).toBe('/music/.real/01.flac');
+        expect(m.serve.mock.calls[0]![0]).toMatchObject({ handle: { path: '/music/.real/01.flac' } });
     });
 });

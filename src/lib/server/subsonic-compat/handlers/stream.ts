@@ -42,12 +42,13 @@ import { probeAudioSource } from '$lib/server/services/music-transcode/source-me
 import type { MusicCodec } from '$lib/server/services/music-transcode/types.js';
 import { parseMusicCodec } from '$lib/server/services/music-transcode/types.js';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition.js';
-import { resolveDownloadablePath } from '$lib/server/utils/download-path.js';
+import { openDownloadableFile, resolveDownloadablePath } from '$lib/server/utils/download-path.js';
 import {
+    allowedFileIds,
     deniedLibraryGroupsFor,
-    isFilePathInScope,
+    scopeSelection,
 } from '$lib/server/services/download-file-scope.js';
-import { preflightFile, serveContainedMediaFile } from '$lib/server/utils/file-streaming.js';
+import { preflightFile, serveOpenedDownload } from '$lib/server/utils/file-streaming.js';
 import { canDownload } from '$lib/server/services/download-access.service.js';
 import {
     parseRangeStart,
@@ -340,6 +341,7 @@ async function serveDownload(
     track: { id: string },
     containerPath: string,
     fileSize: number,
+    fileId: string | null,
 ): Promise<Response> {
     // Strict containment for a download (canonical target inside a library root); the
     // canonical path is what is opened. Outside = "not found". Playback keeps its own rules.
@@ -358,7 +360,6 @@ async function serveDownload(
         return subsonicError(70, 'Audio file not found.', auth.format);
     }
     const rangeHeader = event.request.headers.get('range');
-    const selection = await resolvePlaybackSelection(sql, track.id);
     const naming = await getMediaItemForDownloadNaming(sql, track.id);
     const ext = extname(containerPath);
     const filename = naming ? buildDownloadFilename(naming, ext) : `download${ext}`;
@@ -379,7 +380,7 @@ async function serveDownload(
 
     const tracked = await trackDownload(trackerEventOf(event, auth), {
         mediaItemId: track.id,
-        fileId: selection.fileId,
+        fileId,
         surface: 'api',
         bytesTotal: fileSize,
         rangeStart: parseRangeStart(rangeHeader),
@@ -387,16 +388,24 @@ async function serveDownload(
     if (!tracked.ok) return tracked.response;
     const { tracker } = tracked;
 
-    let response: Response | null;
+    // Open once and verify the descriptor (no second path resolution).
+    let response: Response | null = null;
     try {
-        response = await serveContainedMediaFile(downloadPath, rangeHeader, {
-            disposition,
-            mimePath: containerPath,
-            ifRange: event.request.headers.get('if-range'),
-            throttleBytesPerSec: () => tracker.rate(),
-            observer: tracker.observer,
-            extraHeaders: CORS_HEADERS,
-        });
+        const opened = await openDownloadableFile(
+            sql,
+            containerPath,
+            config.DOWNLOAD_ALLOWED_MOUNT_ROOTS,
+            track.id,
+        );
+        if (opened) {
+            response = await serveOpenedDownload(opened, extname(containerPath), rangeHeader, {
+                disposition,
+                ifRange: event.request.headers.get('if-range'),
+                throttleBytesPerSec: () => tracker.rate(),
+                observer: tracker.observer,
+                extraHeaders: CORS_HEADERS,
+            });
+        }
     } catch (err) {
         tracker.discard();
         throw err;
@@ -456,19 +465,35 @@ async function serveTrack(
             );
         }
     }
-    const filePath = track.file_path;
-    if (!filePath) {
-        return subsonicError(70, 'Audio file path not available.', auth.format);
-    }
-    // File-level library scope for the original file (the item gate above is item-level).
+    let filePath = track.file_path;
+    let selectedFileId: string | null = null;
     if (disposition === 'attachment') {
+        // File-level library scope for the original file: pick the best ALLOWED file (the
+        // item gate above is item-level) and use THAT file for serving, leasing and the log.
+        let selection = await resolvePlaybackSelection(sql, track.id);
         const denied = await deniedLibraryGroupsFor(sql, {
             ownerIsAdmin: auth.ownerIsAdmin,
             userGroups: auth.userGroups,
         });
-        if (!(await isFilePathInScope(sql, filePath, denied))) {
-            return subsonicError(70, 'Song not found.', auth.format);
+        if (denied) {
+            selection = scopeSelection(
+                selection,
+                await allowedFileIds(
+                    sql,
+                    selection.files.map((f) => f.id),
+                    denied,
+                ),
+            );
+            if (selection.files.length === 0) {
+                return subsonicError(70, 'Song not found.', auth.format);
+            }
         }
+        const chosen = selection.files.find((f) => f.id === selection.fileId);
+        selectedFileId = selection.fileId;
+        if (chosen?.file_path) filePath = chosen.file_path;
+    }
+    if (!filePath) {
+        return subsonicError(70, 'Audio file path not available.', auth.format);
     }
 
     const pathInfo = await resolveMediaPath(filePath, { skipLocalAccessCheck: true }, sql);
@@ -524,7 +549,7 @@ async function serveTrack(
     }
 
     if (disposition === 'attachment') {
-        return serveDownload(event, auth, sql, track, containerPath, fileSize);
+        return serveDownload(event, auth, sql, track, containerPath, fileSize, selectedFileId);
     }
 
     // The row was checked at scan time; a link swapped in since (for the file or a

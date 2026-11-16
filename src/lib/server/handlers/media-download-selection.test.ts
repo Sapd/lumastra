@@ -44,9 +44,13 @@ vi.mock('$lib/server/utils/download-path', () => ({
         dlPath.calls.push(a);
         return dlPath.result;
     },
+    openDownloadableFile: async () =>
+        dlPath.result ? { handle: { path: dlPath.result }, size: 4, mtimeMs: null } : null,
 }));
 vi.mock('$lib/server/utils/file-streaming', () => ({
-    serveContainedMediaFile: mocks.serve,
+    // call shape the tests read: [opened, range, opts]
+    serveOpenedDownload: (opened: unknown, _ext: string, range: unknown, opts: unknown) =>
+        mocks.serve(opened, range, opts),
     preflightFile: (...a: unknown[]) => mocks.preflight(...a),
 }));
 vi.mock('$lib/server/services/download-access-guard.js', () => ({
@@ -358,11 +362,12 @@ describe('download path containment', () => {
         expect(dlPath.calls[0]![2]).toEqual(['/mnt/debrid']);
     });
 
-    it('serves the CANONICAL path, keeping the cataloged extension for the type', async () => {
+    it('serves the file opened from the CANONICAL path', async () => {
         dlPath.result = '/media/.store/abc123';
         await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
-        expect(mocks.serve.mock.calls[0]![0]).toBe('/media/.store/abc123');
-        expect(mocks.serve.mock.calls[0]![2]).toMatchObject({ mimePath: '/media/source.mkv' });
+        expect(mocks.serve.mock.calls[0]![0]).toMatchObject({
+            handle: { path: '/media/.store/abc123' },
+        });
         expect(mocks.preflight.mock.calls[0]![0]).toBe('/media/.store/abc123');
     });
 });
