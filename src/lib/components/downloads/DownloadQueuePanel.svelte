@@ -58,8 +58,14 @@
         }
     });
     let noticeText = $derived(q.notice === 'busy' ? m.downloads_error_busy() : null);
+    // Link mode hands over a batch at a time: "done" only once nothing is left to hand over.
+    let nextBatch = $derived(
+        q.state === 'running' ? 0 : Math.min(q.linksRemaining, q.linkBatch),
+    );
     let stateText = $derived(
-        q.state === 'done'
+        q.state === 'done' && nextBatch > 0
+            ? null
+            : q.state === 'done'
             ? failed.length > 0
                 ? m.downloads_state_done_failed({ count: failed.length })
                 : m.downloads_state_done()
@@ -139,6 +145,15 @@
                 </p>
             {:else if q.mode === 'links'}
                 <p class="text-xs text-surface-400">{m.downloads_handed()}</p>
+                {#if nextBatch > 0}
+                    <button
+                        type="button"
+                        class="btn btn-sm variant-filled-primary"
+                        data-testid="download-start-next"
+                        onclick={() => void q.startNextLinks()}>
+                        {m.downloads_start_next({ count: nextBatch })}
+                    </button>
+                {/if}
             {/if}
             {#if failed.length > 0}
                 <ul class="text-xs text-amber-300 space-y-0.5" data-testid="download-failures">

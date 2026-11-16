@@ -14,7 +14,9 @@
  *  - links: every other browser. A hidden `<a download>` per item, one after
  *    another with a short gap. The browser's download manager does the transfer,
  *    so there is no progress and no way to see a 403/429 here (the server's
- *    limits still apply to each request).
+ *    limits still apply to each request). Only `linkBatchSize` links are handed
+ *    over at a time (the user's parallel limit, 4 when unlimited) so a long
+ *    season does not run into 429s; the panel offers "Start next N" for the rest.
  */
 
 import { base } from '$app/paths';
@@ -91,6 +93,15 @@ const BACKOFF_BASE_MS = 1000;
 const MAX_429_ATTEMPTS = 10;
 /** Client-side ceiling when the server's limit is "unlimited" (0). */
 const UNLIMITED_PARALLEL_CEILING = 4;
+/** A dropped connection is retried this many times, from the start of the file. */
+const MAX_NETWORK_RETRIES = 2;
+/** Permission probes kept; the oldest is dropped beyond this. */
+const MAX_INFO_CACHE = 200;
+
+/** Links handed to the browser per batch (link mode). */
+export function linkBatchSize(maxParallel: number): number {
+    return maxParallel > 0 ? maxParallel : UNLIMITED_PARALLEL_CEILING;
+}
 
 function defaultDeps(): QueueDeps {
     const hasPicker = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
@@ -177,6 +188,7 @@ export class DownloadQueue {
     private dirHandle: FileSystemDirectoryHandle | null = null;
     private abort: AbortController | null = null;
     private stopRequested = false;
+    private maxParallel = 0;
     private windowStart = 0;
     private windowBytes = 0;
     private infoCache = new SvelteMap<string, { at: number; value: Promise<DownloadInfo> }>();
@@ -197,17 +209,33 @@ export class DownloadQueue {
     downloadInfo(mediaItemId: string): Promise<DownloadInfo> {
         const hit = this.infoCache.get(mediaItemId);
         if (hit && Date.now() - hit.at < 60_000) return hit.value;
+        const forget = () => {
+            // A failure is not remembered: the next button gets a fresh probe.
+            if (this.infoCache.get(mediaItemId)?.value === value) this.infoCache.delete(mediaItemId);
+        };
         const value: Promise<DownloadInfo> = this.deps
             .fetch(listUrl(mediaItemId, { summary: true }))
             .then(async (res) => {
-                if (!res.ok) return NO_DOWNLOAD;
+                if (!res.ok) {
+                    forget();
+                    return NO_DOWNLOAD;
+                }
                 const body = (await res.json()) as Partial<DownloadInfo>;
                 return {
                     allowed: body.allowed === true,
                     maxParallel: Number(body.maxParallel ?? 0),
                 };
             })
-            .catch(() => NO_DOWNLOAD);
+            .catch(() => {
+                forget();
+                return NO_DOWNLOAD;
+            });
+        this.infoCache.delete(mediaItemId);
+        while (this.infoCache.size >= MAX_INFO_CACHE) {
+            const oldest = this.infoCache.keys().next().value;
+            if (oldest === undefined) break;
+            this.infoCache.delete(oldest);
+        }
         this.infoCache.set(mediaItemId, { at: Date.now(), value });
         return value;
     }
@@ -292,6 +320,16 @@ export class DownloadQueue {
         this.mode = null;
     }
 
+    /** Link mode: items not handed to the browser yet (after the first batch). */
+    get linksRemaining(): number {
+        return this.mode === 'links' ? this.items.filter((i) => i.status === 'queued').length : 0;
+    }
+
+    /** Link mode: how many links one batch hands over. */
+    get linkBatch(): number {
+        return linkBatchSize(this.maxParallel);
+    }
+
     /** Items that ended in 'failed' (a finished run can still be 'done'). */
     get failedCount(): number {
         return this.items.filter((i) => i.status === 'failed').length;
@@ -308,6 +346,7 @@ export class DownloadQueue {
         this.pending = null;
 
         const { list } = pending;
+        this.maxParallel = list.maxParallel;
         this.mode = this.dirHandle ? 'folder' : 'links';
         this.items = this.buildItems(list);
         this.bytesDone = 0;
@@ -331,6 +370,23 @@ export class DownloadQueue {
             this.current = null;
             this.speed = 0;
             this.state = this.stopRequested || this.error ? 'stopped' : 'done';
+        }
+    }
+
+    /** Link mode: hand the next batch to the browser (a click, so popup rules stay happy). */
+    async startNextLinks(): Promise<void> {
+        if (this.state === 'running' || this.mode !== 'links' || this.linksRemaining === 0) return;
+        this.stopRequested = false;
+        this.notice = undefined;
+        this.abort = new AbortController();
+        this.state = 'running';
+        this.addUnloadGuard();
+        try {
+            await this.runLinks();
+        } finally {
+            this.removeUnloadGuard();
+            this.current = null;
+            this.state = this.stopRequested ? 'stopped' : 'done';
         }
     }
 
@@ -437,6 +493,24 @@ export class DownloadQueue {
             view.status = 'active';
             this.current = view;
             let limited = 0;
+            let networkFails = 0;
+            // A dropped connection restarts this file (no Range resume); false = give up.
+            const retryNetwork = async (): Promise<boolean> => {
+                networkFails += 1;
+                if (networkFails > MAX_NETWORK_RETRIES) {
+                    fail('network');
+                    return false;
+                }
+                giveBack();
+                view.status = 'waiting';
+                await this.sleep(BACKOFF_BASE_MS * networkFails);
+                if (this.stopRequested) {
+                    view.status = 'cancelled';
+                    return false;
+                }
+                view.status = 'active';
+                return true;
+            };
             while (true) {
                 if (this.stopRequested) {
                     view.status = 'cancelled';
@@ -448,8 +522,11 @@ export class DownloadQueue {
                         signal: this.abort?.signal,
                     });
                 } catch {
-                    if (this.stopRequested) view.status = 'cancelled';
-                    else fail('network');
+                    if (this.stopRequested) {
+                        view.status = 'cancelled';
+                        return;
+                    }
+                    if (await retryNetwork()) continue;
                     return;
                 }
                 if (res.status === 429) {
@@ -493,8 +570,27 @@ export class DownloadQueue {
                         controller.enqueue(chunk);
                     },
                 });
-                await res.body.pipeThrough(counter).pipeTo(writable as unknown as WritableStream);
-                if (view.bytesDone !== item.sizeBytes) {
+                // The response's own length wins over the list's (the file may have changed
+                // since the list was built); the list size is the fallback.
+                const headerLength = Number(res.headers.get('content-length'));
+                const expected =
+                    Number.isFinite(headerLength) && headerLength > 0
+                        ? headerLength
+                        : item.sizeBytes;
+                try {
+                    await res.body
+                        .pipeThrough(counter)
+                        .pipeTo(writable as unknown as WritableStream);
+                } catch (e) {
+                    if (this.stopRequested) throw e;
+                    // A TypeError is the body stream dropping; a DOMException is the file system.
+                    if (e instanceof TypeError) {
+                        if (await retryNetwork()) continue;
+                        return;
+                    }
+                    throw e;
+                }
+                if (view.bytesDone !== expected) {
                     fail('size_mismatch');
                     return;
                 }
@@ -524,15 +620,17 @@ export class DownloadQueue {
         ]);
     }
 
+    /** Hands over the next `linkBatch` queued items, one after another with a gap. */
     private async runLinks(): Promise<void> {
-        for (let i = 0; i < this.items.length; i++) {
+        const batch = this.items.filter((i) => i.status === 'queued').slice(0, this.linkBatch);
+        for (let i = 0; i < batch.length; i++) {
             if (this.stopRequested) return;
-            const item = this.items[i];
+            const item = batch[i];
             this.current = item;
             this.deps.triggerLink(downloadUrl(item.mediaItemId, item.fileId), item.fileName);
             item.status = 'handed';
             this.bytesDone += item.sizeBytes;
-            if (i < this.items.length - 1) await this.sleep(LINK_GAP_MS);
+            if (i < batch.length - 1) await this.sleep(LINK_GAP_MS);
         }
     }
 

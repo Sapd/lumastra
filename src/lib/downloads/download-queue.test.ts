@@ -473,3 +473,175 @@ describe('DownloadQueue failures and limits', () => {
         expect(f).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('DownloadQueue link batches', () => {
+    test('hands over at most maxParallel links, then "Start next" does the rest', async () => {
+        const { q, links } = setup(
+            list([1, 2, 3, 4, 5].map((n) => item(n)), { maxParallel: 2 }),
+            () => fileResponse(5),
+            { noPicker: true },
+        );
+        await q.enqueue('s');
+        await q.start();
+        expect(links).toHaveLength(2);
+        expect(q.linksRemaining).toBe(3);
+        expect(q.linkBatch).toBe(2);
+        await q.startNextLinks();
+        expect(links).toHaveLength(4);
+        expect(q.linksRemaining).toBe(1);
+        await q.startNextLinks();
+        expect(links.map((l) => l.fileName)).toHaveLength(5);
+        expect(q.linksRemaining).toBe(0);
+        expect(q.state).toBe('done');
+        await q.startNextLinks(); // nothing left: a no-op
+        expect(links).toHaveLength(5);
+    });
+
+    test('unlimited (0) hands over 4 at a time', async () => {
+        const { q, links } = setup(
+            list([1, 2, 3, 4, 5, 6].map((n) => item(n)), { maxParallel: 0 }),
+            () => fileResponse(5),
+            { noPicker: true },
+        );
+        await q.enqueue('s');
+        await q.start();
+        expect(links).toHaveLength(4);
+        expect(q.linksRemaining).toBe(2);
+    });
+});
+
+describe('DownloadQueue size check and network errors', () => {
+    test('compares against the response Content-Length when present', async () => {
+        const { q } = setup(list([item(1, 5)]), () => {
+            // the file changed since the list: 7 bytes, and it says so
+            return new Response(new Uint8Array(7), { headers: { 'content-length': '7' } });
+        });
+        await q.enqueue('s');
+        await q.chooseFolder();
+        await q.start();
+        expect(q.items[0]).toMatchObject({ status: 'done' });
+    });
+
+    test('a short body against its own Content-Length is a size mismatch', async () => {
+        const { q } = setup(list([item(1, 5)]), () => {
+            const body = new ReadableStream<Uint8Array>({
+                start(c) {
+                    c.enqueue(new Uint8Array(3));
+                    c.close();
+                },
+            });
+            return new Response(body, { headers: { 'content-length': '5' } });
+        });
+        await q.enqueue('s');
+        await q.chooseFolder();
+        await q.start();
+        expect(q.items[0]).toMatchObject({ status: 'failed', reason: 'size_mismatch' });
+    });
+
+    test('a fetch network failure is retried twice from the start, then fails as network', async () => {
+        const { q, calls, sleeps } = setup(list([item(1)]), () => {
+            throw new TypeError('Failed to fetch');
+        });
+        await q.enqueue('s');
+        await q.chooseFolder();
+        await q.start();
+        expect(calls).toHaveLength(3);
+        expect(sleeps).toEqual([1000, 2000]);
+        expect(q.items[0]).toMatchObject({ status: 'failed', reason: 'network' });
+        expect(q.bytesDone).toBe(0);
+    });
+
+    test('a body that drops mid-stream is retried and can then succeed', async () => {
+        const { q, calls, fs } = setup(list([item(1, 5)]), (_f, call) => {
+            if (call === 1) {
+                const body = new ReadableStream<Uint8Array>({
+                    start(c) {
+                        c.enqueue(new Uint8Array(2));
+                        c.error(new TypeError('network error'));
+                    },
+                });
+                return new Response(body);
+            }
+            return fileResponse(5);
+        });
+        await q.enqueue('s');
+        await q.chooseFolder();
+        await q.start();
+        expect(calls).toHaveLength(2);
+        expect(q.items[0]).toMatchObject({ status: 'done', bytesDone: 5 });
+        expect(q.bytesDone).toBe(5);
+        expect([...fs.files.values()]).toEqual([5]);
+    });
+
+    test('a file-system error is not retried', async () => {
+        const fs = new FakeFs();
+        fs.failWrites = true;
+        const { q, calls } = setup(list([item(1, 5)]), () => fileResponse(5), { fs });
+        await q.enqueue('s');
+        await q.chooseFolder();
+        await q.start();
+        expect(calls).toHaveLength(1);
+        expect(q.items[0]).toMatchObject({ status: 'failed', reason: 'write' });
+    });
+
+    test('cancel during a network back-off ends the file as cancelled', async () => {
+        let release!: () => void;
+        const { q } = setup(
+            list([item(1)]),
+            () => {
+                throw new TypeError('Failed to fetch');
+            },
+            { sleep: () => new Promise<void>((r) => (release = r)) },
+        );
+        await q.enqueue('s');
+        await q.chooseFolder();
+        const run = q.start();
+        await vi.waitFor(() => expect(q.items[0].status).toBe('waiting'));
+        q.cancel();
+        release?.();
+        await run;
+        expect(q.items[0].status).toBe('cancelled');
+    });
+});
+
+describe('DownloadQueue permission probe cache', () => {
+    test('a failed probe is not cached', async () => {
+        let n = 0;
+        const f = vi.fn(async (_url: string) =>
+            ++n === 1 ? new Response('x', { status: 500 }) : json({ allowed: true, maxParallel: 1 }),
+        );
+        const q = new DownloadQueue({ fetch: f as unknown as typeof fetch, pickDirectory: null });
+        expect(await q.downloadInfo('series-1')).toEqual({ allowed: false, maxParallel: 0 });
+        expect(await q.downloadInfo('series-1')).toEqual({ allowed: true, maxParallel: 1 });
+        expect(f).toHaveBeenCalledTimes(2);
+    });
+
+    test('a network error is not cached either', async () => {
+        let n = 0;
+        const f = vi.fn(async (_url: string) => {
+            if (++n === 1) throw new TypeError('offline');
+            return json({ allowed: true, maxParallel: 1 });
+        });
+        const q = new DownloadQueue({ fetch: f as unknown as typeof fetch, pickDirectory: null });
+        expect((await q.downloadInfo('series-1')).allowed).toBe(false);
+        expect((await q.downloadInfo('series-1')).allowed).toBe(true);
+    });
+
+    test('many episode buttons keyed by one series id share one probe', async () => {
+        const f = vi.fn(async (_url: string) => json({ allowed: true, maxParallel: 1 }));
+        const q = new DownloadQueue({ fetch: f as unknown as typeof fetch, pickDirectory: null });
+        await Promise.all(Array.from({ length: 30 }, () => q.downloadInfo('series-1')));
+        expect(f).toHaveBeenCalledTimes(1);
+    });
+
+    test('keeps at most 200 probes, dropping the oldest', async () => {
+        const f = vi.fn(async (_url: string) => json({ allowed: true, maxParallel: 1 }));
+        const q = new DownloadQueue({ fetch: f as unknown as typeof fetch, pickDirectory: null });
+        for (let i = 0; i < 205; i++) await q.downloadInfo(`id-${i}`);
+        expect(f).toHaveBeenCalledTimes(205);
+        await q.downloadInfo('id-204'); // still cached
+        expect(f).toHaveBeenCalledTimes(205);
+        await q.downloadInfo('id-0'); // evicted: probed again
+        expect(f).toHaveBeenCalledTimes(206);
+    });
+});

@@ -55,4 +55,26 @@ describe('sanitizePathSegment', () => {
         // FAT is case-insensitive
         expect(sanitizePathSegment('show_ a.MKV', used)).toBe('show_ a (4).MKV');
     });
+
+    test('caps a segment at 200 UTF-8 bytes (CJK titles), keeps the extension, no split characters', () => {
+        const title = '\u6f22'.repeat(100); // 100 chars, 300 bytes
+        const out = sanitizePathSegment(`${title}.mkv`);
+        expect(new TextEncoder().encode(out).length).toBeLessThanOrEqual(200);
+        expect(out.endsWith('.mkv')).toBe(true);
+        expect(out).not.toContain('\ufffd');
+        expect(out.slice(0, -4)).toMatch(/^\u6f22+$/);
+    });
+
+    test('does not split a surrogate pair at the byte cap and keeps collision suffixes within the cap', () => {
+        const emoji = '\u{1F600}'.repeat(60); // 4 bytes each
+        const used = new Set<string>();
+        const a = sanitizePathSegment(`${emoji}.mp4`, used);
+        const b = sanitizePathSegment(`${emoji}.mp4`, used);
+        for (const o of [a, b]) {
+            expect(new TextEncoder().encode(o).length).toBeLessThanOrEqual(200);
+            expect(o.endsWith('.mp4')).toBe(true);
+            expect(o.slice(0, -4).replace(/ \(\d+\)$/, '')).toMatch(/^(\u{1F600})+$/u);
+        }
+        expect(a).not.toBe(b);
+    });
 });

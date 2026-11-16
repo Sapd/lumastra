@@ -9,6 +9,9 @@
  */
 
 const MAX_SEGMENT = 120;
+/** exFAT / ext4 / eCryptfs-style limits count bytes: 200 leaves room for a collision suffix. */
+const MAX_SEGMENT_BYTES = 200;
+const utf8Bytes = (s: string): number => new TextEncoder().encode(s).length;
 // eslint-disable-next-line no-control-regex -- control characters are exactly what FAT forbids
 const FORBIDDEN = /[\\/:*?"<>|\u0000-\u001f\u007f]/g;
 
@@ -27,6 +30,28 @@ function truncate(s: string, n: number): string {
     const last = s.charCodeAt(cut - 1);
     if (last >= 0xd800 && last <= 0xdbff) cut -= 1;
     return s.slice(0, cut);
+}
+
+/** Cut to at most n UTF-8 bytes on a code point boundary (never splits a surrogate pair). */
+function truncateBytes(s: string, n: number): string {
+    if (n <= 0) return '';
+    let bytes = 0;
+    let out = '';
+    for (const ch of s) {
+        const b = utf8Bytes(ch);
+        if (bytes + b > n) break;
+        bytes += b;
+        out += ch;
+    }
+    return out;
+}
+
+/** stem + suffix + ext within both the character and the byte cap; the extension is kept. */
+function fit(stem: string, suffix: string, ext: string): string {
+    const charRoom = MAX_SEGMENT - ext.length - suffix.length;
+    const byteRoom = MAX_SEGMENT_BYTES - utf8Bytes(ext) - utf8Bytes(suffix);
+    const cut = trimEnd(truncateBytes(truncate(stem, charRoom), byteRoom));
+    return `${cut}${suffix}${ext}`;
 }
 
 /** Windows (and exFAT readers on it) refuse CON, NUL, COM1 ... even with an extension. */
@@ -49,9 +74,9 @@ function trimEnd(s: string): string {
 export function sanitizePathSegment(name: string, used?: Set<string>): string {
     let clean = avoidReserved(trimEnd(name.replace(FORBIDDEN, '_')));
     if (clean === '') clean = '_';
-    if (clean.length > MAX_SEGMENT) {
+    if (clean.length > MAX_SEGMENT || utf8Bytes(clean) > MAX_SEGMENT_BYTES) {
         const { stem, ext } = splitExt(clean);
-        clean = trimEnd(truncate(stem, MAX_SEGMENT - ext.length)) + ext;
+        clean = fit(stem, '', ext);
         if (clean === '' || clean === ext) clean = '_' + ext;
     }
     if (!used) return clean;
@@ -61,9 +86,7 @@ export function sanitizePathSegment(name: string, used?: Set<string>): string {
     while (used.has(candidate.toLowerCase())) {
         n += 1;
         const { stem, ext } = splitExt(clean);
-        const suffix = ` (${n})`;
-        const room = MAX_SEGMENT - ext.length - suffix.length;
-        candidate = `${trimEnd(truncate(stem, room))}${suffix}${ext}`;
+        candidate = fit(stem, ` (${n})`, ext);
     }
     used.add(candidate.toLowerCase());
     return candidate;

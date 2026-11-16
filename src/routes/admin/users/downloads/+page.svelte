@@ -29,9 +29,15 @@
     let userFilter = $state('');
     let filterTimer: ReturnType<typeof setTimeout> | undefined;
 
+    // Each request takes a number; a response only counts while it is still the newest,
+    // so a slow answer for an old filter cannot overwrite a newer one.
+    let loadSeq = 0;
+
     async function load(): Promise<void> {
         const user = userFilter.trim() || undefined;
+        const seq = ++loadSeq;
         const { data: res, error } = await getAdminDownloads({ user, limit: PAGE_SIZE });
+        if (seq !== loadSeq) return;
         if (error || !res) {
             toasts.error(m.admin_downloads_load_failed());
             return;
@@ -49,6 +55,8 @@
             before: nextBefore,
             limit: PAGE_SIZE,
         });
+        // The filter changed while this page was loading: it belongs to the old filter.
+        if (user !== (userFilter.trim() || undefined)) return;
         if (error || !res) {
             toasts.error(m.admin_downloads_load_failed());
             return;
@@ -175,6 +183,12 @@
             </div>
         {/if}
     </div>
+
+    {#if data?.degraded}
+        <p role="status" class="rounded-lg bg-warning-500/10 px-4 py-2 text-sm text-warning-300">
+            {m.admin_downloads_degraded()}
+        </p>
+    {/if}
 
     <section aria-labelledby="dl-running" class="space-y-2">
         <h2 id="dl-running" class="font-medium text-white">{m.admin_downloads_running()}</h2>

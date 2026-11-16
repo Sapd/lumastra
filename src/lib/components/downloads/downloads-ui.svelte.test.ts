@@ -249,3 +249,29 @@ describe('DownloadQueuePanel', () => {
         expect(screen.getByTestId('download-queue-panel').getAttribute('aria-live')).toBeNull();
     });
 });
+
+describe('link batches in the UI', () => {
+    test('the sheet explains the batches and the panel offers "Start next N"', async () => {
+        const items = [1, 2, 3, 4, 5].map((n) => ({
+            mediaItemId: `ep-${n}`,
+            fileId: `f-${n}`,
+            season: 1,
+            episode: n,
+            seasonFolder: 'Season 01',
+            fileName: `Show - S01E0${n}.mkv`,
+            sizeBytes: 10,
+            available: true,
+        }));
+        stubList(listBody({ maxParallel: 2, items }));
+        await downloadQueue.enqueue('series-batches');
+        downloadQueue.forgetFolder();
+        render(DownloadConfirmSheet);
+        render(DownloadQueuePanel);
+        expect(await screen.findByTestId('download-batch-hint')).toBeTruthy();
+        // no folder picked in this test: link mode
+        await downloadQueue.start();
+        const next = await screen.findByTestId('download-start-next');
+        expect(next.textContent).toContain('3');
+        expect(screen.queryByTestId('download-state')).toBeNull();
+    });
+});

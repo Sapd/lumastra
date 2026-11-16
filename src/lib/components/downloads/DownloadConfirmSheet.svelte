@@ -10,7 +10,11 @@
      * target folder (needs a click, so it lives here and not in the queue start).
      */
     import { tick } from 'svelte';
-    import { downloadQueue, FAT32_LIMIT_BYTES } from '$lib/downloads/download-queue.svelte';
+    import {
+        downloadQueue,
+        FAT32_LIMIT_BYTES,
+        linkBatchSize,
+    } from '$lib/downloads/download-queue.svelte';
     import { formatFileSize } from '$lib/utils/metric-formatters';
     import { Z } from '$lib/utils/z-index';
     import * as m from '$lib/paraglide/messages';
@@ -127,6 +131,13 @@
             {/if}
             {#if !downloadQueue.supportsFolderPicker || !downloadQueue.folderName}
                 <p class="text-xs text-surface-400">{m.downloads_links_hint()}</p>
+                {#if available.length > linkBatchSize(pending.list.maxParallel)}
+                    <p class="text-xs text-surface-400" data-testid="download-batch-hint">
+                        {m.downloads_links_batch_hint({
+                            count: linkBatchSize(pending.list.maxParallel),
+                        })}
+                    </p>
+                {/if}
             {/if}
 
             <div class="flex justify-end gap-2 pt-2">

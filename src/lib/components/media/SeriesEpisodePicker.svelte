@@ -39,6 +39,7 @@
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import EpisodeStill from './EpisodeStill.svelte';
     import DownloadButton from '$lib/components/downloads/DownloadButton.svelte';
+    import { downloadSeasonNumber } from '$lib/downloads/season-number';
     import EpisodeLanguageBadges from './EpisodeLanguageBadges.svelte';
     import EpisodeHoverPanel from './EpisodeHoverPanel.svelte';
     import { modalCount } from '$lib/stores/modal.store';
@@ -791,6 +792,12 @@
     // =========================================================================
 
     let currentSeason = $derived(seasons[selectedSeasonIndex]);
+    // Only a real integer season gets a season download button (never a silent season 0).
+    let downloadSeason = $derived(
+        currentSeason
+            ? downloadSeasonNumber(currentSeason.IndexNumber, currentSeason.seasonNumber)
+            : undefined,
+    );
 
     function getSeasonName(season: Season): string {
         const num = season.IndexNumber ?? season.seasonNumber ?? 0;
@@ -1113,12 +1120,10 @@
                             </button>
                         </Tooltip>
                     {/if}
-                    {#if !playlistMode && currentSeason && resolvedSeriesId}
+                    {#if !playlistMode && currentSeason && resolvedSeriesId && downloadSeason !== undefined}
                         <DownloadButton
                             mediaItemId={resolvedSeriesId}
-                            season={Number(
-                                currentSeason.IndexNumber ?? currentSeason.seasonNumber ?? 0,
-                            )}
+                            season={downloadSeason}
                             label={m.downloads_season()}
                             testId="season-download" />
                     {/if}

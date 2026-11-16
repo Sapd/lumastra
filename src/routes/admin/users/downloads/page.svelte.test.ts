@@ -175,4 +175,43 @@ describe('admin downloads page', () => {
             vi.useRealTimers();
         }
     });
+
+    it('shows a warning when limits run on the local fallback', async () => {
+        getAdminDownloads.mockResolvedValue({ data: { ...payload, degraded: true }, error: null });
+        render(DownloadsPage);
+        expect(await screen.findByRole('status')).toBeTruthy();
+    });
+
+    it('a stale response for an old filter cannot overwrite a newer one', async () => {
+        let resolveOld!: (v: unknown) => void;
+        const oldP = new Promise((r) => (resolveOld = r));
+        getAdminDownloads
+            .mockReset()
+            .mockResolvedValueOnce({ data: payload, error: null })
+            .mockReturnValueOnce(oldP)
+            .mockResolvedValue({
+                data: {
+                    ...payload,
+                    events: [{ ...payload.events[0], id: 'n1', title: 'Newest Filter Row' }],
+                },
+                error: null,
+            });
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        try {
+            render(DownloadsPage);
+            await screen.findByText('A Movie');
+            await vi.advanceTimersByTimeAsync(5_000); // refresh #2 hangs
+            await fireEvent.input(screen.getByLabelText('Filter by user'), {
+                target: { value: 'bob' },
+            });
+            await vi.advanceTimersByTimeAsync(400); // filter reload #3 answers
+            await screen.findByText('Newest Filter Row');
+            resolveOld({ data: payload, error: null }); // the old one arrives late
+            await vi.advanceTimersByTimeAsync(10);
+            expect(screen.getByText('Newest Filter Row')).toBeTruthy();
+            expect(screen.queryByText('A Movie')).toBeNull();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });
