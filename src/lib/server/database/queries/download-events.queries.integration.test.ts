@@ -79,7 +79,7 @@ describe('download-events queries', () => {
         expect(row!.outcome).toBe('completed');
     });
 
-    it('a second start for the same user, file and device reuses the row and adds bytes', async () => {
+    it('an aborted download resumed within 10 min reuses the row and adds bytes', async () => {
         const id = await startDownloadEvent(sql, base());
         await endDownloadEvent(sql, id, 'aborted', { bytesSentDelta: 30 });
         const again = await startDownloadEvent(sql, base());
@@ -88,6 +88,22 @@ describe('download-events queries', () => {
         const rows = await listDownloadEvents(sql, { userId, limit: 10 });
         expect(rows).toHaveLength(1);
         expect(rows[0]).toMatchObject({ bytesSent: 100, outcome: 'completed' });
+    });
+
+    it('a completed download is never re-opened: a re-download aborted after 1 MB is a second row', async () => {
+        const total = 10_000_000;
+        const first = await startDownloadEvent(sql, { ...base(), bytesTotal: total });
+        await endDownloadEvent(sql, first, 'completed', { bytesSentDelta: total });
+        const second = await startDownloadEvent(sql, { ...base(), bytesTotal: total });
+        expect(second).not.toBe(first);
+        await endDownloadEvent(sql, second, 'aborted', { bytesSentDelta: 1_048_576 });
+        const rows = await listDownloadEvents(sql, { userId, limit: 10 });
+        expect(rows).toHaveLength(2);
+        expect(rows.find((r) => r.id === first)).toMatchObject({ outcome: 'completed' });
+        expect(rows.find((r) => r.id === second)).toMatchObject({
+            outcome: 'aborted',
+            bytesSent: 1_048_576,
+        });
     });
 
     it('an open row is reused; another device or an old ended row starts a new one', async () => {

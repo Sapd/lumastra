@@ -35,6 +35,7 @@ import {
     parseRangeStart,
     recordDownloadRefused,
     trackDownload,
+    untrackedDownload,
     type DownloadSurface,
 } from '$lib/server/services/download-tracking.js';
 
@@ -164,13 +165,17 @@ export async function handleDownloadFile(
             : `download${extname(pathInfo.containerPath)}`;
 
         const rangeHeader = request.headers.get('range');
-        const tracked = await trackDownload(event, {
-            mediaItemId: itemId,
-            fileId: file?.id ?? selection.fileId,
-            surface,
-            bytesTotal: fileSize,
-            rangeStart: parseRangeStart(rangeHeader),
-        });
+        // SvelteKit serves HEAD through GET: a HEAD takes no slot and logs nothing.
+        const tracked =
+            request.method === 'HEAD'
+                ? { ok: true as const, tracker: untrackedDownload() }
+                : await trackDownload(event, {
+                      mediaItemId: itemId,
+                      fileId: file?.id ?? selection.fileId,
+                      surface,
+                      bytesTotal: fileSize,
+                      rangeStart: parseRangeStart(rangeHeader),
+                  });
         if (!tracked.ok) return tracked.response;
         const { tracker } = tracked;
 

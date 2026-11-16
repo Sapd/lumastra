@@ -34,7 +34,9 @@ import {
     deriveDeviceKey,
     parseRangeStart,
     recordDownloadRefused,
+    resetRefusalCoalescingForTests,
     trackDownload,
+    untrackedDownload,
 } from './download-tracking';
 
 const USER = '11111111-1111-4111-8111-111111111111';
@@ -64,6 +66,7 @@ async function flush(): Promise<void> {
 
 beforeEach(() => {
     vi.useFakeTimers();
+    resetRefusalCoalescingForTests();
     vi.clearAllMocks();
     mocks.getDb.mockReturnValue({});
     mocks.start.mockResolvedValue('row-1');
@@ -261,5 +264,62 @@ describe('recordDownloadRefused', () => {
         recordDownloadRefused(event(), { ...target, mediaItemId: 'not-a-uuid' }, 'denied');
         await flush();
         expect(mocks.refused).not.toHaveBeenCalled();
+    });
+});
+
+describe('stall watchdog', () => {
+    it('ends a stream that sent nothing for 10 minutes as aborted and frees the slot', async () => {
+        const lease = fakeLease();
+        mocks.acquire.mockResolvedValue({ ok: true, lease });
+        const res = await trackDownload(event(), target);
+        if (!res.ok) throw new Error('expected ok');
+        res.tracker.onBytes(10);
+        await vi.advanceTimersByTimeAsync(5_000); // progress seen on this tick
+        await vi.advanceTimersByTimeAsync(9 * 60_000);
+        expect(lease.release).not.toHaveBeenCalled();
+        await vi.advanceTimersByTimeAsync(2 * 60_000);
+        expect(lease.release).toHaveBeenCalledTimes(1);
+        expect(mocks.end).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'row-1', 'aborted', {
+            bytesSentDelta: 0,
+        });
+        const refreshes = lease.refresh.mock.calls.length;
+        await vi.advanceTimersByTimeAsync(60_000);
+        expect(lease.refresh.mock.calls.length).toBe(refreshes);
+    });
+
+    it('a stream that keeps sending is never cut', async () => {
+        const lease = fakeLease();
+        mocks.acquire.mockResolvedValue({ ok: true, lease });
+        const res = await trackDownload(event(), target);
+        if (!res.ok) throw new Error('expected ok');
+        for (let i = 0; i < 150; i++) {
+            res.tracker.onBytes(1);
+            await vi.advanceTimersByTimeAsync(5_000);
+        }
+        expect(lease.release).not.toHaveBeenCalled();
+        res.tracker.onEnd('aborted');
+    });
+});
+
+describe('refusal coalescing', () => {
+    it('at most one row per user, file, device and outcome per minute', async () => {
+        recordDownloadRefused(event(), target, 'denied');
+        recordDownloadRefused(event(), target, 'denied');
+        recordDownloadRefused(event(), target, 'rate_limited');
+        recordDownloadRefused(event({ jfDevice: { deviceId: 'other' } }), target, 'denied');
+        await flush();
+        expect(mocks.refused).toHaveBeenCalledTimes(3);
+        await vi.advanceTimersByTimeAsync(61_000);
+        recordDownloadRefused(event(), target, 'denied');
+        await flush();
+        expect(mocks.refused).toHaveBeenCalledTimes(4);
+    });
+
+    it('untrackedDownload holds nothing', () => {
+        const t = untrackedDownload();
+        t.onBytes(5);
+        t.onEnd('completed');
+        expect(t.rate()).toBe(0);
+        expect(mocks.start).not.toHaveBeenCalled();
     });
 });

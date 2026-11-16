@@ -10,6 +10,7 @@ const mockCheckMediaAccess = vi.fn();
 const mockOverride = vi.fn();
 const cfgOverrides = { FEATURE_MEDIA_DOWNLOAD: false };
 const mockGetRendition = vi.fn();
+const mockTrack = vi.fn();
 
 vi.mock('$lib/server/middleware/media-access.js', () => ({
     checkMediaAccess: (...a: unknown[]) => mockCheckMediaAccess(...a),
@@ -47,6 +48,17 @@ vi.mock('$lib/server/database/queries/users.queries.js', () => ({
         return v === undefined ? undefined : { allowDownloads: v, groups: [] };
     },
 }));
+vi.mock('$lib/server/services/download-tracking.js', async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import('$lib/server/services/download-tracking.js')>();
+    return {
+        ...actual,
+        trackDownload: (...a: unknown[]) => {
+            mockTrack(...a);
+            return (actual.trackDownload as (...b: unknown[]) => unknown)(...a);
+        },
+    };
+});
 vi.mock('$lib/server/database/queries/download-renditions.queries.js', () => ({
     getRendition: (...a: unknown[]) => mockGetRendition(...a),
     touchRendition: vi.fn(),
@@ -56,13 +68,13 @@ const { def } = await import('./file.js');
 const { invalidateDownloadAccess } =
     await import('$lib/server/services/download-access.service.js');
 
-async function call(): Promise<Response> {
+async function call(method = 'GET'): Promise<Response> {
     return await def.handlers.GET!(
         {
             locals: { user: { userId: 'u1', username: 'alice' } },
             params: { renditionId: 'r1' },
             url: new URL('http://localhost/api/v1/renditions/r1/file'),
-            request: new Request('http://localhost/api/v1/renditions/r1/file'),
+            request: new Request('http://localhost/api/v1/renditions/r1/file', { method }),
         } as unknown as RequestEvent,
         { surface: 'v1' } as never,
     );
@@ -105,5 +117,17 @@ describe('rendition file download gate', () => {
         const res = await call();
         expect(res.status).toBe(404);
         expect(mockOverride).not.toHaveBeenCalled();
+    });
+});
+
+describe('rendition file download tracking', () => {
+    it('a HEAD takes no lease and logs no row', async () => {
+        expect((await call('HEAD')).status).toBe(200);
+        expect(mockTrack).not.toHaveBeenCalled();
+    });
+
+    it('a GET goes through trackDownload', async () => {
+        expect((await call('GET')).status).toBe(200);
+        expect(mockTrack).toHaveBeenCalledTimes(1);
     });
 });

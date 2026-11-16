@@ -42,6 +42,9 @@ import * as m from '$lib/paraglide/messages';
 
 const log = Logger.for('DownloadTracking');
 
+/** A stream that sends nothing for this long is ended as aborted so it cannot hold a slot forever. */
+const STALL_LIMIT_MS = 10 * 60_000;
+
 export type { DownloadSurface };
 
 export interface DownloadTarget {
@@ -128,6 +131,32 @@ function warn(what: string, err: unknown): void {
     });
 }
 
+const REFUSAL_COALESCE_MS = 60_000;
+const refusalSeen = new Map<string, number>();
+
+/** Test hook. */
+export function resetRefusalCoalescingForTests(): void {
+    refusalSeen.clear();
+}
+
+/** True when an identical refusal was already logged in the last minute (and records this one). */
+function refusalCoalesced(input: DownloadEventInput, outcome: string): boolean {
+    const now = Date.now();
+    if (refusalSeen.size > 1_000) {
+        for (const [k, until] of refusalSeen) if (until <= now) refusalSeen.delete(k);
+    }
+    const key = [
+        input.userId,
+        input.fileId ?? input.renditionId ?? input.mediaItemId,
+        input.deviceKey,
+        outcome,
+    ].join('|');
+    const until = refusalSeen.get(key);
+    if (until !== undefined && until > now) return true;
+    refusalSeen.set(key, now + REFUSAL_COALESCE_MS);
+    return false;
+}
+
 /** Write a `denied` row for a refused request. Never throws, never waits for the database. */
 export function recordDownloadRefused(
     event: Pick<RequestEvent, 'locals' | 'request'>,
@@ -137,7 +166,7 @@ export function recordDownloadRefused(
     try {
         const input = eventInput(event, target);
         const sql = getDb();
-        if (!input || !sql) return;
+        if (!input || !sql || refusalCoalesced(input, outcome)) return;
         void Promise.resolve()
             .then(() => recordRefusedDownload(sql, input, outcome))
             .catch((err) => warn(outcome, err));
@@ -159,7 +188,7 @@ export async function trackDownload(
     const userId = (event.locals as unknown as TrackLocals | undefined)?.user?.userId;
     const leaseFileId = target.renditionId ?? target.fileId;
     if (!input || !userId || !leaseFileId) {
-        return { ok: true, tracker: untracked() };
+        return { ok: true, tracker: untrackedDownload() };
     }
 
     let lease: DownloadLease | null = null;
@@ -187,7 +216,8 @@ export async function trackDownload(
     return { ok: true, tracker: createTracker(input, lease) };
 }
 
-function untracked(): DownloadTracker {
+/** A tracker that holds no lease and logs nothing: plain per-download cap. For HEAD requests. */
+export function untrackedDownload(): DownloadTracker {
     const observer: StreamObserver = {};
     return {
         rate: () => kbpsToBytesPerSecond(config.DOWNLOAD_THROTTLE_KBPS),
@@ -202,6 +232,8 @@ function createTracker(input: DownloadEventInput, lease: DownloadLease | null): 
     let total = 0; // bytes sent by this stream
     let flushed = 0; // part of `total` already in the log
     let finished = false;
+    let lastTickTotal = 0;
+    let lastProgressAt = Date.now();
     let rowId: Promise<string | null> | null = null;
     // Log writes run strictly one after another so a late tick cannot overtake the end.
     let chain: Promise<unknown> = Promise.resolve();
@@ -239,6 +271,14 @@ function createTracker(input: DownloadEventInput, lease: DownloadLease | null): 
 
     const timer = setInterval(() => {
         if (finished) return;
+        if (total > lastTickTotal) {
+            lastTickTotal = total;
+            lastProgressAt = Date.now();
+        } else if (Date.now() - lastProgressAt >= STALL_LIMIT_MS) {
+            // Nothing sent for 10 minutes: the client is gone without the stream noticing.
+            onEnd('aborted');
+            return;
+        }
         if (lease) void lease.refresh(total).catch((err) => warn('lease refresh', err));
         const delta = flush();
         if (delta > 0) {

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RequestEvent } from '@sveltejs/kit';
-const mocks = vi.hoisted(() => ({ select: vi.fn(), serve: vi.fn() }));
+const mocks = vi.hoisted(() => ({ select: vi.fn(), serve: vi.fn(), track: vi.fn() }));
 vi.mock('$lib/server/config', () => ({ config: { FEATURE_MEDIA_DOWNLOAD: true } }));
 vi.mock('$lib/server/database', () => ({ getDb: () => ({}) }));
 vi.mock('$lib/server/database/queries/media-file-resolution.queries', () => ({
@@ -26,10 +26,14 @@ vi.mock('$lib/server/services/download-access-guard.js', () => ({
 vi.mock('$lib/server/services/download-tracking.js', () => ({
     parseRangeStart: () => null,
     recordDownloadRefused: () => {},
-    trackDownload: async () => ({
-        ok: true,
-        tracker: { rate: () => 0, observer: {}, onBytes() {}, onEnd() {}, discard() {} },
+    untrackedDownload: () => ({
+        rate: () => 0,
+        observer: {},
+        onBytes() {},
+        onEnd() {},
+        discard() {},
     }),
+    trackDownload: (...a: unknown[]) => mocks.track(...a),
 }));
 import { handleDownloadFile } from './media-download-handler.js';
 const selected = '22222222-2222-4222-8222-222222222222';
@@ -45,6 +49,10 @@ function event(path: string): RequestEvent {
 beforeEach(() => {
     vi.clearAllMocks();
     mocks.serve.mockResolvedValue(new Response('data'));
+    mocks.track.mockResolvedValue({
+        ok: true,
+        tracker: { rate: () => 0, observer: {}, onBytes() {}, onEnd() {}, discard() {} },
+    });
 });
 describe('attachment selected file', () => {
     it('uses fileId and never falls back for a foreign selection', async () => {
@@ -101,5 +109,26 @@ describe('attachment selected file', () => {
             fileId: selected,
         });
         expect(mocks.select).toHaveBeenNthCalledWith(2, expect.anything(), 'media');
+    });
+});
+
+describe('HEAD requests', () => {
+    it('take no lease and log no row (SvelteKit serves HEAD through GET)', async () => {
+        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
+        const url = new URL('/api/v1/media/media/download', 'https://test.invalid');
+        const head = {
+            url,
+            params: { id: 'media', itemId: 'media' },
+            request: new Request(url, { method: 'HEAD' }),
+        } as unknown as RequestEvent;
+        expect((await handleDownloadFile(head, { surface: 'api' })).status).toBe(200);
+        expect(mocks.track).not.toHaveBeenCalled();
+        expect(mocks.serve).toHaveBeenCalledTimes(1);
+    });
+
+    it('a GET does take a lease', async () => {
+        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
+        await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
+        expect(mocks.track).toHaveBeenCalledTimes(1);
     });
 });

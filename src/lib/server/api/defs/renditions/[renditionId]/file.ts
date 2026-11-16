@@ -42,6 +42,7 @@ import {
     parseRangeStart,
     recordDownloadRefused,
     trackDownload,
+    untrackedDownload,
 } from '$lib/server/services/download-tracking.js';
 
 export const def = defineEndpoint({
@@ -114,13 +115,17 @@ export const def = defineEndpoint({
                 : `download (${row.rung_id}).mp4`;
 
             const rangeHeader = event.request.headers.get('range');
-            const tracked = await trackDownload(event, {
-                mediaItemId: row.media_item_id,
-                renditionId: row.id,
-                surface: 'api',
-                bytesTotal: row.size_bytes ? Number(row.size_bytes) : null,
-                rangeStart: parseRangeStart(rangeHeader),
-            });
+            // SvelteKit serves HEAD through GET: a HEAD takes no slot and logs nothing.
+            const tracked =
+                event.request.method === 'HEAD'
+                    ? { ok: true as const, tracker: untrackedDownload() }
+                    : await trackDownload(event, {
+                          mediaItemId: row.media_item_id,
+                          renditionId: row.id,
+                          surface: 'api',
+                          bytesTotal: row.size_bytes ? Number(row.size_bytes) : null,
+                          rangeStart: parseRangeStart(rangeHeader),
+                      });
             if (!tracked.ok) return tracked.response;
             const { tracker } = tracked;
 

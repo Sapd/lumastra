@@ -49,7 +49,8 @@ export interface DownloadEventRow {
 
 /**
  * Start a download row, or re-open the open / recently ended one for the same
- * (user, file|rendition, device). Refusals (`denied`, `rate_limited`) are never re-opened.
+ * (user, file|rendition, device). Only an open row or one that ended `aborted`/`error`
+ * is re-opened: a `completed` download and refusals (`denied`, `rate_limited`) never are.
  */
 export async function startDownloadEvent(
     sql: postgres.Sql,
@@ -69,7 +70,7 @@ export async function startDownloadEvent(
               AND file_id IS NOT DISTINCT FROM ${fileId}
               AND rendition_id IS NOT DISTINCT FROM ${renditionId}
               AND (ended_at IS NULL
-                   OR (ended_at > ${since} AND outcome IN ('completed', 'aborted', 'error')))
+                   OR (ended_at > ${since} AND outcome IN ('aborted', 'error')))
             ORDER BY started_at DESC
             LIMIT 1
         )
