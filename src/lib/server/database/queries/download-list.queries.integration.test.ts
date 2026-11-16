@@ -103,6 +103,8 @@ describe('download-list queries', () => {
 
     it('the default file is the best ALLOWED one: a denied default is skipped, all denied leaves no file', async () => {
         const denied = crypto.randomUUID();
+        const other = crypto.randomUUID();
+        await sql`INSERT INTO library_groups (id, name) VALUES (${denied}, ${'dl-denied-' + denied}), (${other}, ${'dl-other-' + other})`;
         // e1's default (fb) sits in a denied library, the other file (fa) is unrestricted
         await sql`UPDATE media_files SET library_group_id = ${denied} WHERE id = ${ids.fb}`;
         try {
@@ -113,7 +115,7 @@ describe('download-list queries', () => {
             const rows = await listEpisodeDownloadRows(sql, ids.series, [denied]);
             expect(rows[0]).toMatchObject({ id: ids.e1, file_id: ids.fa });
             // another denied group changes nothing
-            expect(await getSingleDownloadRow(sql, ids.e1, [crypto.randomUUID()])).toMatchObject({
+            expect(await getSingleDownloadRow(sql, ids.e1, [other])).toMatchObject({
                 file_id: ids.fb,
             });
             // every file denied: the row stays, without a file
@@ -123,6 +125,7 @@ describe('download-list queries', () => {
             });
         } finally {
             await sql`UPDATE media_files SET library_group_id = NULL WHERE id = ANY(${[ids.fa, ids.fb]}::uuid[])`;
+            await sql`DELETE FROM library_groups WHERE id = ANY(${[denied, other]}::uuid[])`;
         }
     });
 });
