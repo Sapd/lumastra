@@ -50,6 +50,13 @@ describe('users.allow_downloads', () => {
         expect(await setUserAllowDownloads(sql, 'no_such_user_dl', true)).toBe(false);
     });
 
+    it.each(['disabled_at', 'deleted_at'])('returns undefined when %s is set', async (col) => {
+        const u = await mk();
+        await setUserAllowDownloads(sql, u.username, true);
+        await sql`UPDATE users SET ${sql(col)} = NOW() WHERE id = ${u.id}`;
+        expect(await getUserAllowDownloads(sql, u.id)).toBeUndefined();
+    });
+
     it('is exposed on the user row used by admin DTOs', async () => {
         const u = await mk();
         await setUserAllowDownloads(sql, u.username, false);

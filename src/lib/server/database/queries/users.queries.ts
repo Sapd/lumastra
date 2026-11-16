@@ -1867,14 +1867,16 @@ export async function setUserLiveTvAllowed(
 
 /**
  * Per-user download override. null = follow the instance default
- * (`DOWNLOADS_ALLOWED_BY_DEFAULT`); undefined = no such user.
+ * (`DOWNLOADS_ALLOWED_BY_DEFAULT`); undefined = no such user, or the user is
+ * disabled / soft-deleted (so canDownload denies them).
  */
 export async function getUserAllowDownloads(
     sql: postgres.Sql,
     userId: string,
 ): Promise<boolean | null | undefined> {
     const rows = await sql<{ allow_downloads: boolean | null }[]>`
-        SELECT allow_downloads FROM users WHERE id = ${userId}
+        SELECT allow_downloads FROM users
+        WHERE id = ${userId} AND disabled_at IS NULL AND deleted_at IS NULL
     `;
     return rows.length > 0 ? rows[0].allow_downloads : undefined;
 }
