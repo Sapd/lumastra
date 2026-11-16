@@ -32,11 +32,12 @@ type Cmd = { customCommand: (c: string[]) => Promise<unknown> };
 /** Valkey's clock cannot be faked: age a lease by rewriting its stored expiry. */
 async function expireField(userId: string, slot: string): Promise<void> {
     const c = getCoordinationClient() as unknown as Cmd;
-    const flat = (await c.customCommand(['HGETALL', `dl:lease:${userId}`])) as string[];
-    for (let i = 0; i < flat.length; i += 2) {
-        if (!flat[i]!.startsWith(`${slot}#`)) continue;
-        const rest = String(flat[i + 1]).split('|').slice(1).join('|');
-        await c.customCommand(['HSET', `dl:lease:${userId}`, flat[i]!, `1|${rest}`]);
+    const fields = ((await c.customCommand(['HKEYS', `dl:lease:${userId}`])) as string[]).map(String);
+    for (const f of fields) {
+        if (!f.startsWith(`${slot}#`)) continue;
+        const v = String(await c.customCommand(['HGET', `dl:lease:${userId}`, f]));
+        const rest = v.split('|').slice(1).join('|');
+        await c.customCommand(['HSET', `dl:lease:${userId}`, f, `1|${rest}`]);
     }
     await c.customCommand(['ZADD', 'dl:users', '1', userId]); // its dl:users score ages too
 }
@@ -277,6 +278,7 @@ describe.runIf(RUN)('download leases, real Valkey', () => {
         const u = user();
         const a = await must(u, 'f1');
         const b = await must(u, 'f1');
+        await new Promise((r) => setTimeout(r, 30));
         await a.refresh(100 * KB);
         await b.refresh(100 * KB);
         const [d] = (await listActiveDownloads()).filter((x) => x.userId === u);
