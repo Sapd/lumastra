@@ -42,6 +42,7 @@ import { probeAudioSource } from '$lib/server/services/music-transcode/source-me
 import type { MusicCodec } from '$lib/server/services/music-transcode/types.js';
 import { parseMusicCodec } from '$lib/server/services/music-transcode/types.js';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition.js';
+import { resolveDownloadablePath } from '$lib/server/utils/download-path.js';
 import {
     deniedLibraryGroupsFor,
     isFilePathInScope,
@@ -340,6 +341,10 @@ async function serveDownload(
     containerPath: string,
     fileSize: number,
 ): Promise<Response> {
+    // Strict containment for a download (canonical target inside a library root); the
+    // canonical path is what is opened. Outside = "not found". Playback keeps its own rules.
+    const downloadPath = await resolveDownloadablePath(sql, containerPath);
+    if (!downloadPath) return subsonicError(70, 'Audio file not found.', auth.format);
     const rangeHeader = event.request.headers.get('range');
     const selection = await resolvePlaybackSelection(sql, track.id);
     const naming = await getMediaItemForDownloadNaming(sql, track.id);
@@ -348,8 +353,9 @@ async function serveDownload(
 
     // HEAD and a matching conditional GET: metadata only, no lease, no row, no stream.
     const disposition = attachmentDisposition(filename);
-    const pre = await preflightFile(containerPath, {
+    const pre = await preflightFile(downloadPath, {
         contained: true,
+        mimePath: containerPath,
         method: event.request.method,
         ifNoneMatch: event.request.headers.get('if-none-match'),
         ifModifiedSince: event.request.headers.get('if-modified-since'),
@@ -371,8 +377,9 @@ async function serveDownload(
 
     let response: Response | null;
     try {
-        response = await serveContainedMediaFile(containerPath, rangeHeader, {
+        response = await serveContainedMediaFile(downloadPath, rangeHeader, {
             disposition,
+            mimePath: containerPath,
             ifRange: event.request.headers.get('if-range'),
             throttleBytesPerSec: () => tracker.rate(),
             observer: tracker.observer,

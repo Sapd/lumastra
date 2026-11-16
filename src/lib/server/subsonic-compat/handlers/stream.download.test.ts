@@ -40,6 +40,12 @@ vi.mock('$lib/server/services/download-tracking.js', () => ({
         discard() {},
     }),
 }));
+const dlPath = vi.hoisted(() => ({
+    result: '/music/Artist.Name-Album-2011-GRP/01.group.release.flac' as string | null,
+}));
+vi.mock('$lib/server/utils/download-path.js', () => ({
+    resolveDownloadablePath: async () => dlPath.result,
+}));
 const scope = vi.hoisted(() => ({ inScope: true }));
 vi.mock('$lib/server/services/download-file-scope.js', () => ({
     deniedLibraryGroupsFor: async () => ['g-denied'],
@@ -116,6 +122,7 @@ function ev(method = 'GET'): RequestEvent {
 beforeEach(() => {
     vi.clearAllMocks();
     scope.inScope = true;
+    dlPath.result = '/music/Artist.Name-Album-2011-GRP/01.group.release.flac';
     m.canDownload.mockResolvedValue(true);
     m.naming.mockResolvedValue({ title: 'Clean Title' });
     m.track.mockResolvedValue({ ok: true, tracker: m.tracker });
@@ -225,5 +232,20 @@ describe('download.view', () => {
         expect(body['subsonic-response'].error.code).toBe(70);
         expect(m.track).not.toHaveBeenCalled();
         expect(m.serve).not.toHaveBeenCalled();
+    });
+
+    it('a file whose canonical target is outside the library roots is "not found", nothing served', async () => {
+        dlPath.result = null;
+        const res = await handleDownload(ev(), auth, {} as never);
+        const body = await res.json();
+        expect(body['subsonic-response'].error.code).toBe(70);
+        expect(m.track).not.toHaveBeenCalled();
+        expect(m.serve).not.toHaveBeenCalled();
+    });
+
+    it('serves the canonical path', async () => {
+        dlPath.result = '/music/.real/01.flac';
+        await handleDownload(ev(), auth, {} as never);
+        expect(m.serve.mock.calls[0]![0]).toBe('/music/.real/01.flac');
     });
 });

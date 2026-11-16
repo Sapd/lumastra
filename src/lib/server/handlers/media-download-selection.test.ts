@@ -32,6 +32,10 @@ vi.mock('$lib/server/utils/media-path-resolver', () => ({
     }),
     isPathWithinLibraryRoots: async () => true,
 }));
+const dlPath = vi.hoisted(() => ({ result: '/media/source.mkv' as string | null }));
+vi.mock('$lib/server/utils/download-path', () => ({
+    resolveDownloadablePath: async () => dlPath.result,
+}));
 vi.mock('$lib/server/utils/file-streaming', () => ({
     serveContainedMediaFile: mocks.serve,
     preflightFile: (...a: unknown[]) => mocks.preflight(...a),
@@ -81,6 +85,7 @@ beforeEach(() => {
     vi.clearAllMocks();
     scope.denied = null;
     scope.allowed = new Set();
+    dlPath.result = '/media/source.mkv';
     mocks.serve.mockResolvedValue(new Response('data'));
     mocks.preflight.mockResolvedValue({ kind: 'proceed' });
     mocks.track.mockResolvedValue({ ok: true, tracker: mocks.tracker });
@@ -301,5 +306,28 @@ describe('file-level library scope', () => {
         expect(
             (await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' })).status,
         ).toBe(200);
+    });
+});
+
+describe('download path containment', () => {
+    beforeEach(() => {
+        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
+    });
+
+    it('a file that resolves outside the library roots is a 404 (not 403) with no lease and no stream', async () => {
+        dlPath.result = null;
+        const res = await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
+        expect(res.status).toBe(404);
+        expect(mocks.track).not.toHaveBeenCalled();
+        expect(mocks.serve).not.toHaveBeenCalled();
+        expect(mocks.preflight).not.toHaveBeenCalled();
+    });
+
+    it('serves the CANONICAL path, keeping the cataloged extension for the type', async () => {
+        dlPath.result = '/media/.store/abc123';
+        await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
+        expect(mocks.serve.mock.calls[0]![0]).toBe('/media/.store/abc123');
+        expect(mocks.serve.mock.calls[0]![2]).toMatchObject({ mimePath: '/media/source.mkv' });
+        expect(mocks.preflight.mock.calls[0]![0]).toBe('/media/.store/abc123');
     });
 });

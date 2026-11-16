@@ -27,7 +27,8 @@ import { Logger } from '$lib/server/utils/logger';
 import { resolvePlaybackSelection } from '$lib/server/database/queries/media-file-resolution.queries';
 import { getMediaItemForDownloadNaming } from '$lib/server/database/queries/catalog-operations.queries';
 import type { MediaDownloadNamingRow } from '$lib/server/database/queries/catalog-operations.queries';
-import { resolveMediaPath, isPathWithinLibraryRoots } from '$lib/server/utils/media-path-resolver';
+import { resolveMediaPath } from '$lib/server/utils/media-path-resolver';
+import { resolveDownloadablePath } from '$lib/server/utils/download-path';
 import { preflightFile, serveContainedMediaFile } from '$lib/server/utils/file-streaming';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition';
 import {
@@ -171,10 +172,11 @@ export async function handleDownloadFile(
             );
         }
 
-        // Defense-in-depth: the path is DB-sourced (scanner-written), but verify it
-        // resolves inside a configured library root before streaming it, so a
-        // tampered media_files row cannot serve arbitrary host files.
-        if (!(await isPathWithinLibraryRoots(sql, pathInfo.containerPath))) {
+        // Strict containment for a download: the CANONICAL target must lie inside a library
+        // root (a symlink may not lead out of it, unlike playback). The canonical path is what
+        // gets opened, so a swap after this check cannot redirect the read. Outside = 404.
+        const downloadPath = await resolveDownloadablePath(sql, pathInfo.containerPath);
+        if (!downloadPath) {
             return ApiResponses.notFound('Media not found');
         }
 
@@ -192,8 +194,9 @@ export async function handleDownloadFile(
         // HEAD and a matching conditional GET are answered from metadata alone: no lease,
         // no log row, no file stream.
         const disposition = attachmentDisposition(filename);
-        const pre = await preflightFile(pathInfo.containerPath, {
+        const pre = await preflightFile(downloadPath, {
             contained: true,
+            mimePath: pathInfo.containerPath,
             method: request.method,
             ifNoneMatch: request.headers.get('if-none-match'),
             ifModifiedSince: request.headers.get('if-modified-since'),
@@ -216,8 +219,9 @@ export async function handleDownloadFile(
         // The row was checked at scan time; a link swapped in since is re-contained.
         let response: Response | null;
         try {
-            response = await serveContainedMediaFile(pathInfo.containerPath, rangeHeader, {
+            response = await serveContainedMediaFile(downloadPath, rangeHeader, {
                 disposition,
+                mimePath: pathInfo.containerPath,
                 ifRange: request.headers.get('if-range'),
                 // One enforcement point for both surfaces, exactly like the feature
                 // flag above: /j and /api/v1 must not be able to disagree about how

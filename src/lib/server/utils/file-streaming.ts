@@ -173,6 +173,8 @@ export interface PreflightOptions {
     ifModifiedSince?: string | null;
     disposition?: string;
     extraHeaders?: Record<string, string>;
+    /** Path whose extension names the Content-Type, when `filePath` is a canonical target without it. */
+    mimePath?: string;
 }
 
 /** RFC 9110 weak comparison of an If-None-Match list against our strong ETag. */
@@ -222,7 +224,7 @@ export async function preflightFile(
             response: new Response(null, {
                 status: 200,
                 headers: {
-                    'Content-Type': getMimeType(extname(filePath).toLowerCase()),
+                    'Content-Type': getMimeType(extname(opts.mimePath ?? filePath).toLowerCase()),
                     'Content-Length': String(size),
                     'Accept-Ranges': 'bytes',
                     'Content-Disposition': opts.disposition ?? 'inline',
@@ -306,6 +308,8 @@ export interface ServeFileOptions {
     observer?: StreamObserver;
     /** Extra response headers (e.g. CORS for a compat surface). */
     extraHeaders?: Record<string, string>;
+    /** Path whose extension names the Content-Type, when the served path is a canonical target without it. */
+    mimePath?: string;
 }
 
 /** Wrap a body so `observer` sees every chunk and the end. Identity when there is no observer. */
@@ -379,7 +383,7 @@ export async function serveContainedMediaFile(
 ): Promise<Response | null> {
     const servePath = await resolveContainedMediaFile(filePath, [], { parents: true });
     if (!servePath) return null;
-    return serveFile(servePath, extname(filePath), true, rangeHeader, opts);
+    return serveFile(servePath, extname(opts.mimePath ?? filePath), true, rangeHeader, opts);
 }
 
 async function serveFile(

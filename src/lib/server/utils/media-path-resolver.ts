@@ -181,7 +181,7 @@ export async function resolveMediaPath(
  * directly-accessible file whose path sits under `provider_path` (but not the
  * container `path`) would be wrongly rejected.
  */
-async function getLibraryRootPaths(sql: Sql): Promise<string[]> {
+export async function getLibraryRootPaths(sql: Sql): Promise<string[]> {
     const cache = cacheManager.for(CACHE_NAMESPACES.libraryRoots);
     const cached = await cache.get<string[]>('all');
     if (cached) return cached;
