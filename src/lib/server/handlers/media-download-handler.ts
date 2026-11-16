@@ -31,6 +31,7 @@ import { resolveMediaPath, isPathWithinLibraryRoots } from '$lib/server/utils/me
 import { serveContainedMediaFile } from '$lib/server/utils/file-streaming';
 import { kbpsToBytesPerSecond } from '$lib/server/utils/throttled-stream';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition';
+import { downloadForbiddenResponse } from '$lib/server/services/download-access-guard.js';
 
 const logger = Logger.for('MediaDownloadHandler');
 
@@ -82,6 +83,11 @@ export async function handleDownloadFile(event: RequestEvent): Promise<Response>
     if (!config.FEATURE_MEDIA_DOWNLOAD) {
         return ApiResponses.notFound('Not Found');
     }
+
+    // Per-user permission. The route already did auth + checkMediaAccess (404),
+    // so an item the caller cannot see never reaches this 403.
+    const forbidden = await downloadForbiddenResponse(event.locals);
+    if (forbidden) return forbidden;
 
     const sql = getDb();
     if (!sql) {

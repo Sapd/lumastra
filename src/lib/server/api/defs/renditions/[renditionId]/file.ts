@@ -28,6 +28,7 @@ import { ApiProblem } from '$lib/server/api/problem.js';
 import { checkMediaAccess } from '$lib/server/middleware/media-access.js';
 import { getDb } from '$lib/server/database/index.js';
 import { config } from '$lib/server/config.js';
+import { downloadForbiddenResponse } from '$lib/server/services/download-access-guard.js';
 import { serveFileByPath } from '$lib/server/utils/file-streaming.js';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition.js';
 import { getMediaItemForDownloadNaming } from '$lib/server/database/queries/catalog-operations.queries.js';
@@ -82,6 +83,9 @@ export const def = defineEndpoint({
             if (!(await checkMediaAccess(sql, row.media_item_id, event.locals.user))) {
                 return ApiProblem.notFound('Rendition not found');
             }
+
+            const forbidden = await downloadForbiddenResponse(event.locals);
+            if (forbidden) return forbidden;
 
             if (row.status !== 'ready' || !row.artifact_name) {
                 return ApiProblem.notFound('Rendition is not ready');

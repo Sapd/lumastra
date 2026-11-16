@@ -13036,5 +13036,6 @@
     "admin_library_remote_empty": "{source} is connected but reports no libraries. Create one there first.",
     "admin_library_remote_all_added": "Every {source} library is already added or cannot be ingested.",
     "admin_library_remote_enable_existing": "One or more are disabled. Re-enable them in the library list instead of adding them again.",
-    "admin_library_remote_names_hint": "Names come straight from {source}."
+    "admin_library_remote_names_hint": "Names come straight from {source}.",
+    "downloads_not_allowed": "Downloads are not allowed for this account."
 }

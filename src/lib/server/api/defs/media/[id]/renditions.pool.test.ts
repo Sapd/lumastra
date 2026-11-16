@@ -21,9 +21,13 @@ const mockPrepareQueueDepth = vi.fn();
 const mockPendingPrepareSlots = vi.fn();
 const mockAdmitAndHoldPrepareSlot = vi.fn();
 const mockReleasePrepareSlot = vi.fn();
+const mockCanDownload = vi.fn();
 
 vi.mock('$lib/server/middleware/media-access.js', () => ({
     checkMediaAccess: (...a: unknown[]) => mockCheckMediaAccess(...a),
+}));
+vi.mock('$lib/server/services/download-access.service.js', () => ({
+    canDownload: (...a: unknown[]) => mockCanDownload(...a),
 }));
 vi.mock('$lib/server/database/index.js', () => ({ getDb: () => mockGetDb() }));
 vi.mock('$lib/server/database/queries/media-file-resolution.queries.js', () => ({
@@ -85,6 +89,7 @@ beforeEach(() => {
     vi.clearAllMocks();
     mockGetDb.mockReturnValue({});
     mockCheckMediaAccess.mockResolvedValue(true);
+    mockCanDownload.mockResolvedValue(true);
     mockResolvePlaybackSelection.mockResolvedValue({
         fileId: 'file-1',
         files: [{ id: 'file-1', file_path: '/data/x.mkv' }],
@@ -429,5 +434,22 @@ describe('a source that has audio is unchanged', () => {
     it('GET rejects an index the source does not have', async () => {
         const res = await def.handlers.GET!(makeGetEvent('?audioIndex=7'), makeCtx({}) as never);
         expect(res.status).toBe(422);
+    });
+});
+
+describe('download permission gate', () => {
+    it('403 downloads_not_allowed when canDownload is false, before any work', async () => {
+        mockCanDownload.mockResolvedValue(false);
+        const res = await def.handlers.POST!(makeEvent(), makeCtx({ rung: '720p' }) as never);
+        expect(res.status).toBe(403);
+        expect((await res.json()).reason).toBe('downloads_not_allowed');
+        expect(mockRequestRendition).not.toHaveBeenCalled();
+    });
+
+    it('an item the user cannot see stays 404, not 403', async () => {
+        mockCanDownload.mockResolvedValue(false);
+        mockCheckMediaAccess.mockResolvedValue(false);
+        const res = await def.handlers.POST!(makeEvent(), makeCtx({ rung: '720p' }) as never);
+        expect(res.status).toBe(404);
     });
 });

@@ -190,7 +190,7 @@ export class JellyfinPermissionsService {
      */
     async checkPermission(
         username: string,
-        action: 'view' | 'play' | 'download' | 'transcode_audio' | 'transcode_video' | 'remux',
+        action: 'view' | 'play' | 'transcode_audio' | 'transcode_video' | 'remux',
         context?: { libraryId?: string; itemId?: string },
     ): Promise<PermissionCheckResult> {
         const perms = await this.getPermissions(username);
@@ -216,12 +216,6 @@ export class JellyfinPermissionsService {
             case 'play':
                 if (!perms.enableMediaPlayback) {
                     return { allowed: false, reason: 'Playback disabled' };
-                }
-                break;
-
-            case 'download':
-                if (!perms.enableContentDownloading) {
-                    return { allowed: false, reason: 'Downloads disabled' };
                 }
                 break;
 

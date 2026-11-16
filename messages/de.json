@@ -13036,5 +13036,6 @@
     "admin_library_remote_empty": "{source} ist verbunden, meldet aber keine Bibliotheken. Erstelle dort zuerst eine.",
     "admin_library_remote_all_added": "Alle Bibliotheken aus {source} wurden bereits hinzugefügt oder können nicht importiert werden.",
     "admin_library_remote_enable_existing": "Eine oder mehrere sind deaktiviert. Aktiviere sie in der Bibliotheksliste wieder, statt sie erneut hinzuzufügen.",
-    "admin_library_remote_names_hint": "Die Namen stammen direkt aus {source}."
+    "admin_library_remote_names_hint": "Die Namen stammen direkt aus {source}.",
+    "downloads_not_allowed": "Downloads sind für dieses Konto nicht erlaubt."
 }

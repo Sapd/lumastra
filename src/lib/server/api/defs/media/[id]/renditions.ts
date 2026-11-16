@@ -32,6 +32,7 @@ import { ApiProblem } from '$lib/server/api/problem.js';
 import { checkRateLimit } from '$lib/server/middleware/valkey-rate-limit.js';
 import { typedJson } from '$lib/server/utils/typed-response.js';
 import { checkMediaAccess } from '$lib/server/middleware/media-access.js';
+import { downloadForbiddenResponse } from '$lib/server/services/download-access-guard.js';
 import { getDb } from '$lib/server/database/index.js';
 import { config } from '$lib/server/config.js';
 import { resolvePlaybackSelection } from '$lib/server/database/queries/media-file-resolution.queries.js';
@@ -323,6 +324,9 @@ export const def = defineEndpoint({
             if (!(await checkMediaAccess(sql, id, event.locals.user))) {
                 return ApiProblem.notFound('Media item not found');
             }
+
+            const forbidden = await downloadForbiddenResponse(event.locals);
+            if (forbidden) return forbidden;
 
             const body = ctx.input?.body;
             if (!body) {
