@@ -46,7 +46,9 @@ describe.each([
 ])('%s', (_name, path, params) => {
     it('returns 403 downloads_not_allowed when canDownload is false', async () => {
         mockCanDownload.mockResolvedValue(false);
-        const res = await handleDownloadFile(event(path, params));
+        const res = await handleDownloadFile(event(path, params), {
+            surface: path.startsWith('/j/') ? 'jellyfin' : 'api',
+        });
         expect(res.status).toBe(403);
         const body = await res.json();
         expect(body.reason).toBe('downloads_not_allowed');
@@ -55,7 +57,9 @@ describe.each([
 
     it('proceeds past the gate when canDownload is true', async () => {
         mockCanDownload.mockResolvedValue(true);
-        const res = await handleDownloadFile(event(path, params));
+        const res = await handleDownloadFile(event(path, params), {
+            surface: path.startsWith('/j/') ? 'jellyfin' : 'api',
+        });
         expect(res.status).toBe(404); // no file in the stub selection
         expect(mockResolvePlaybackSelection).toHaveBeenCalled();
     });

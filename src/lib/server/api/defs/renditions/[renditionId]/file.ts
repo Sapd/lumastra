@@ -38,7 +38,11 @@ import {
     touchRendition,
 } from '$lib/server/database/queries/download-renditions.queries.js';
 import { artifactPath } from '$lib/server/services/download-rendition/service.js';
-import { kbpsToBytesPerSecond } from '$lib/server/utils/throttled-stream.js';
+import {
+    parseRangeStart,
+    recordDownloadRefused,
+    trackDownload,
+} from '$lib/server/services/download-tracking.js';
 
 export const def = defineEndpoint({
     auth: { kind: 'scope', anyOf: ['media:read'] },
@@ -87,7 +91,14 @@ export const def = defineEndpoint({
             const forbidden = await downloadForbiddenResponse(event.locals, {
                 kind: 'rendition',
             });
-            if (forbidden) return forbidden;
+            if (forbidden) {
+                recordDownloadRefused(
+                    event,
+                    { mediaItemId: row.media_item_id, renditionId: row.id, surface: 'api' },
+                    'denied',
+                );
+                return forbidden;
+            }
 
             if (row.status !== 'ready' || !row.artifact_name) {
                 return ApiProblem.notFound('Rendition is not ready');
@@ -102,18 +113,35 @@ export const def = defineEndpoint({
                 ? buildDownloadFilename(naming, '.mp4').replace(/\.mp4$/, ` (${row.rung_id}).mp4`)
                 : `download (${row.rung_id}).mp4`;
 
+            const rangeHeader = event.request.headers.get('range');
+            const tracked = await trackDownload(event, {
+                mediaItemId: row.media_item_id,
+                renditionId: row.id,
+                surface: 'api',
+                bytesTotal: row.size_bytes ? Number(row.size_bytes) : null,
+                rangeStart: parseRangeStart(rangeHeader),
+            });
+            if (!tracked.ok) return tracked.response;
+            const { tracker } = tracked;
+
             try {
-                return await serveFileByPath(
+                const response = await serveFileByPath(
                     artifactPath(row.artifact_name),
-                    event.request.headers.get('range'),
+                    rangeHeader,
                     undefined,
                     attachmentDisposition(filename),
                     event.request.headers.get('if-range'),
-                    // Same cap as an original-file download: from the operator's
-                    // point of view both are "a user pulling a big file off my box".
-                    kbpsToBytesPerSecond(config.DOWNLOAD_THROTTLE_KBPS),
+                    // Same limits as an original-file download (the lease rate already
+                    // includes DOWNLOAD_THROTTLE_KBPS): from the operator's point of
+                    // view both are "a user pulling a big file off my box".
+                    () => tracker.rate(),
+                    tracker.observer,
                 );
+                // 416 streams nothing: no lease held, nothing logged.
+                if (response.status === 416) tracker.discard();
+                return response;
             } catch (err) {
+                tracker.discard();
                 // The row said `ready` a moment ago, but the cache reaper can
                 // unlink the artifact between that check and this open. The
                 // documented answer for a rendition that is not there is 404;

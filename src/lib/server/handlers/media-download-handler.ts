@@ -29,9 +29,14 @@ import { getMediaItemForDownloadNaming } from '$lib/server/database/queries/cata
 import type { MediaDownloadNamingRow } from '$lib/server/database/queries/catalog-operations.queries';
 import { resolveMediaPath, isPathWithinLibraryRoots } from '$lib/server/utils/media-path-resolver';
 import { serveContainedMediaFile } from '$lib/server/utils/file-streaming';
-import { kbpsToBytesPerSecond } from '$lib/server/utils/throttled-stream';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition';
 import { downloadForbiddenResponse } from '$lib/server/services/download-access-guard.js';
+import {
+    parseRangeStart,
+    recordDownloadRefused,
+    trackDownload,
+    type DownloadSurface,
+} from '$lib/server/services/download-tracking.js';
 
 const logger = Logger.for('MediaDownloadHandler');
 
@@ -73,7 +78,14 @@ export function buildDownloadFilename(item: MediaDownloadNamingRow, fileExt: str
     return `${sanitized}${fileExt}`;
 }
 
-export async function handleDownloadFile(event: RequestEvent): Promise<Response> {
+/**
+ * `surface` is named by the route that calls this (not guessed from the URL):
+ * `/j` passes `jellyfin`, `/api/v1` passes `api`.
+ */
+export async function handleDownloadFile(
+    event: RequestEvent,
+    { surface }: { surface: DownloadSurface },
+): Promise<Response> {
     const { params, request } = event;
 
     // Single enforcement point for both surfaces (/j and /api/v1) — see the
@@ -87,7 +99,14 @@ export async function handleDownloadFile(event: RequestEvent): Promise<Response>
     // Per-user permission. The route already did auth + checkMediaAccess (404),
     // so an item the caller cannot see never reaches this 403.
     const forbidden = await downloadForbiddenResponse(event.locals);
-    if (forbidden) return forbidden;
+    if (forbidden) {
+        // Logged after the verdict, so an item the caller cannot see (404 above) never lands here.
+        const refusedItemId = params.itemId ?? params.id;
+        if (refusedItemId) {
+            recordDownloadRefused(event, { mediaItemId: refusedItemId, surface }, 'denied');
+        }
+        return forbidden;
+    }
 
     const sql = getDb();
     if (!sql) {
@@ -144,19 +163,36 @@ export async function handleDownloadFile(event: RequestEvent): Promise<Response>
             ? buildDownloadFilename(naming, extname(pathInfo.containerPath))
             : `download${extname(pathInfo.containerPath)}`;
 
+        const rangeHeader = request.headers.get('range');
+        const tracked = await trackDownload(event, {
+            mediaItemId: itemId,
+            fileId: file?.id ?? selection.fileId,
+            surface,
+            bytesTotal: fileSize,
+            rangeStart: parseRangeStart(rangeHeader),
+        });
+        if (!tracked.ok) return tracked.response;
+        const { tracker } = tracked;
+
         // The row was checked at scan time; a link swapped in since is re-contained.
-        const response = await serveContainedMediaFile(
-            pathInfo.containerPath,
-            request.headers.get('range'),
-            {
+        let response: Response | null;
+        try {
+            response = await serveContainedMediaFile(pathInfo.containerPath, rangeHeader, {
                 disposition: attachmentDisposition(filename),
                 ifRange: request.headers.get('if-range'),
                 // One enforcement point for both surfaces, exactly like the feature
                 // flag above: /j and /api/v1 must not be able to disagree about how
-                // fast raw file egress is allowed to go.
-                throttleBytesPerSec: kbpsToBytesPerSecond(config.DOWNLOAD_THROTTLE_KBPS),
-            },
-        );
+                // fast raw file egress is allowed to go. The lease's rate already
+                // includes DOWNLOAD_THROTTLE_KBPS.
+                throttleBytesPerSec: () => tracker.rate(),
+                observer: tracker.observer,
+            });
+        } catch (err) {
+            tracker.discard();
+            throw err;
+        }
+        // 416 and a refused path stream nothing, so no lease is held and nothing is logged.
+        if (!response || response.status === 416) tracker.discard();
         return response ?? ApiResponses.notFound('Media not found');
     } catch (err) {
         logger.error('Failed to serve download', undefined, {

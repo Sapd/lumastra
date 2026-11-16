@@ -20,6 +20,17 @@ vi.mock('$lib/server/utils/media-path-resolver', () => ({
     isPathWithinLibraryRoots: async () => true,
 }));
 vi.mock('$lib/server/utils/file-streaming', () => ({ serveContainedMediaFile: mocks.serve }));
+vi.mock('$lib/server/services/download-access-guard.js', () => ({
+    downloadForbiddenResponse: async () => null,
+}));
+vi.mock('$lib/server/services/download-tracking.js', () => ({
+    parseRangeStart: () => null,
+    recordDownloadRefused: () => {},
+    trackDownload: async () => ({
+        ok: true,
+        tracker: { rate: () => 0, observer: {}, onBytes() {}, onEnd() {}, discard() {} },
+    }),
+}));
 import { handleDownloadFile } from './media-download-handler.js';
 const selected = '22222222-2222-4222-8222-222222222222';
 const file = { id: selected, file_path: '/media/source.mkv' };
@@ -39,8 +50,11 @@ describe('attachment selected file', () => {
     it('uses fileId and never falls back for a foreign selection', async () => {
         mocks.select.mockResolvedValue({ files: [], fileId: null });
         expect(
-            (await handleDownloadFile(event(`/api/v1/media/media/download?fileId=${selected}`)))
-                .status,
+            (
+                await handleDownloadFile(event(`/api/v1/media/media/download?fileId=${selected}`), {
+                    surface: 'api',
+                })
+            ).status,
         ).toBe(404);
         expect(mocks.select).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'media', {
             fileId: selected,
@@ -51,15 +65,22 @@ describe('attachment selected file', () => {
         'invalid explicit selector %j returns 404 without default bytes',
         async (value) => {
             expect(
-                (await handleDownloadFile(event(`/api/v1/media/media/download?fileId=${value}`)))
-                    .status,
+                (
+                    await handleDownloadFile(
+                        event(`/api/v1/media/media/download?fileId=${value}`),
+                        { surface: 'api' },
+                    )
+                ).status,
             ).toBe(404);
             expect(mocks.select).not.toHaveBeenCalled();
         },
     );
     it('an omitted selector asks for the default once', async () => {
         mocks.select.mockResolvedValue({ files: [file], fileId: selected });
-        expect((await handleDownloadFile(event('/api/v1/media/media/download'))).status).toBe(200);
+        expect(
+            (await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' }))
+                .status,
+        ).toBe(200);
         expect(mocks.select).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'media', {
             fileId: undefined,
         });
@@ -69,8 +90,12 @@ describe('attachment selected file', () => {
             .mockResolvedValueOnce({ files: [], fileId: null })
             .mockResolvedValueOnce({ files: [file], fileId: selected });
         expect(
-            (await handleDownloadFile(event(`/j/Items/media/Download?mediaSourceId=${selected}`)))
-                .status,
+            (
+                await handleDownloadFile(
+                    event(`/j/Items/media/Download?mediaSourceId=${selected}`),
+                    { surface: 'jellyfin' },
+                )
+            ).status,
         ).toBe(200);
         expect(mocks.select).toHaveBeenNthCalledWith(1, expect.anything(), 'media', {
             fileId: selected,

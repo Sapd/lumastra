@@ -185,21 +185,83 @@ export async function serveFileByPath(
      * public API and rendition downloads cannot drift apart on it — they all
      * reach the wire through this one function.
      */
-    throttleBytesPerSec = 0,
+    throttleBytesPerSec: number | (() => number) = 0,
+    observer?: StreamObserver,
 ): Promise<Response> {
     return serveFile(filePath, extname(filePath), false, rangeHeader, {
         sessionId,
         disposition,
         ifRange,
         throttleBytesPerSec,
+        observer,
     });
+}
+
+/**
+ * Observer for a response body: lets a caller count the bytes that left the
+ * server and learn how the transfer ended.
+ */
+export interface StreamObserver {
+    /** Called with the size of each chunk handed to the client. */
+    onBytes?(n: number): void;
+    /**
+     * Called exactly once when the body is finished: `completed` = source fully read,
+     * `aborted` = the client cancelled, `error` = the source failed.
+     */
+    onEnd?(outcome: 'completed' | 'aborted' | 'error'): void;
 }
 
 export interface ServeFileOptions {
     sessionId?: string;
     disposition?: string;
     ifRange?: string | null;
-    throttleBytesPerSec?: number;
+    /** Bytes/sec cap; a function is re-read while streaming (see `throttleNodeStream`). */
+    throttleBytesPerSec?: number | (() => number);
+    observer?: StreamObserver;
+}
+
+/** Wrap a body so `observer` sees every chunk and the end. Identity when there is no observer. */
+function observeStream(
+    body: ReadableStream<Uint8Array>,
+    observer: StreamObserver | undefined,
+): ReadableStream<Uint8Array> {
+    if (!observer || (!observer.onBytes && !observer.onEnd)) return body;
+    const reader = body.getReader();
+    let ended = false;
+    const end = (outcome: 'completed' | 'aborted' | 'error'): void => {
+        if (ended) return;
+        ended = true;
+        try {
+            observer.onEnd?.(outcome);
+        } catch {
+            // an observer must never break the transfer
+        }
+    };
+    return new ReadableStream<Uint8Array>({
+        async pull(controller) {
+            try {
+                const { value, done } = await reader.read();
+                if (done) {
+                    end('completed');
+                    controller.close();
+                    return;
+                }
+                try {
+                    observer.onBytes?.(value.byteLength);
+                } catch {
+                    // see above
+                }
+                controller.enqueue(value);
+            } catch (err) {
+                end('error');
+                controller.error(err);
+            }
+        },
+        async cancel(reason) {
+            end('aborted');
+            await reader.cancel(reason);
+        },
+    });
 }
 
 /**
@@ -226,7 +288,13 @@ async function serveFile(
     ext: string,
     noFollow: boolean,
     rangeHeader: string | null,
-    { sessionId, disposition = 'inline', ifRange, throttleBytesPerSec = 0 }: ServeFileOptions,
+    {
+        sessionId,
+        disposition = 'inline',
+        ifRange,
+        throttleBytesPerSec = 0,
+        observer,
+    }: ServeFileOptions,
 ): Promise<Response> {
     const { size: fileSize, mtimeMs } = await getCachedStat(filePath);
     const validators = buildValidators(fileSize, mtimeMs);
@@ -245,9 +313,14 @@ async function serveFile(
         bandwidthTracker.trackDirectPlay(fileSize);
         if (sessionId) bandwidthTracker.trackSession(sessionId, fileSize);
         return new Response(
-            throttleNodeStream(
-                noFollow ? await createNoFollowReadStream(filePath) : createReadStream(filePath),
-                throttleBytesPerSec,
+            observeStream(
+                throttleNodeStream(
+                    noFollow
+                        ? await createNoFollowReadStream(filePath)
+                        : createReadStream(filePath),
+                    throttleBytesPerSec,
+                ),
+                observer,
             ),
             {
                 status: 200,
@@ -278,11 +351,14 @@ async function serveFile(
     bandwidthTracker.trackDirectPlay(chunkSize);
     if (sessionId) bandwidthTracker.trackSession(sessionId, chunkSize);
     return new Response(
-        throttleNodeStream(
-            noFollow
-                ? await createNoFollowReadStream(filePath, { start, end })
-                : createReadStream(filePath, { start, end }),
-            throttleBytesPerSec,
+        observeStream(
+            throttleNodeStream(
+                noFollow
+                    ? await createNoFollowReadStream(filePath, { start, end })
+                    : createReadStream(filePath, { start, end }),
+                throttleBytesPerSec,
+            ),
+            observer,
         ),
         {
             status: 206,

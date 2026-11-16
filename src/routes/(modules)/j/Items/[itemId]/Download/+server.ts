@@ -51,5 +51,5 @@ export const GET: RequestHandler = withJellyfinAuth(async (event) => {
         userId: event.locals.user?.userId ?? null,
         deviceId: event.locals.jfDevice?.deviceId ?? null,
     });
-    return handleDownloadFile(event);
+    return handleDownloadFile(event, { surface: 'jellyfin' });
 });

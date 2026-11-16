@@ -95,7 +95,7 @@ export const def = defineEndpoint({
                 return ApiProblem.dependencyUnavailable('Unable to verify content access');
             }
 
-            return handleDownloadFile(event);
+            return handleDownloadFile(event, { surface: 'api' });
         },
     },
 });

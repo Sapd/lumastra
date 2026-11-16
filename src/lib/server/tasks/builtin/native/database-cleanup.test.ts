@@ -201,6 +201,12 @@ vi.mock('$lib/server/database/queries/watch-sync-activity.queries.js', () => ({
 const { pruneTranscodeFailureEvents } = vi.hoisted(() => ({
     pruneTranscodeFailureEvents: vi.fn().mockResolvedValue(0),
 }));
+const { pruneDownloadEvents } = vi.hoisted(() => ({
+    pruneDownloadEvents: vi.fn().mockResolvedValue(0),
+}));
+vi.mock('$lib/server/database/queries/download-events.queries.js', () => ({
+    pruneDownloadEvents,
+}));
 vi.mock('$lib/server/database/queries/transcode-failure-events.queries.js', () => ({
     pruneTranscodeFailureEvents,
 }));
@@ -319,6 +325,7 @@ describe('database-cleanup task', () => {
         prunePluginFailureEvents.mockResolvedValue(0);
         prunePluginSecretAccessLog.mockResolvedValue(0);
         pruneTranscodeFailureEvents.mockResolvedValue(0);
+        pruneDownloadEvents.mockResolvedValue(0);
         pruneLiveTvFailureEvents.mockResolvedValue(0);
         prunePlaybackIncidentEvents.mockResolvedValue(0);
         pruneLegacyPlaybackIncidentEvents.mockResolvedValue(0);
@@ -677,6 +684,19 @@ describe('database-cleanup task', () => {
         expect(result.result!.stats.pruneSecretAccessLog).toBe(30);
         expect(result.result!.stats.pruneTranscodeFailures).toBe(15);
         expect(result.itemsProcessed).toBeGreaterThanOrEqual(215);
+    });
+
+    it('prunes the download log by DOWNLOAD_LOG_RETENTION_DAYS', async () => {
+        pruneDownloadEvents.mockResolvedValue(7);
+
+        const result = await databaseCleanupTask.execute(makeContext());
+
+        expect(result.result!.stats.pruneDownloadEvents).toBe(7);
+        const cutoff = pruneDownloadEvents.mock.calls[0]![1] as Date;
+        const days = (Date.now() - cutoff.getTime()) / 86_400_000;
+        expect(days).toBeGreaterThan(89.9);
+        expect(days).toBeLessThan(90.1);
+        expect(result.result!.message).toContain('7 download log rows');
     });
 
     it('prunes playback incident events older than retention and enforces the row cap', async () => {

@@ -148,6 +148,42 @@ describe('serveFileByPath', () => {
         );
     }
 
+    describe('stream observer', () => {
+        it('reports bytes and a single completed end when the body is read to the end', async () => {
+            await setupMocks(8);
+            const onBytes = vi.fn();
+            const onEnd = vi.fn();
+            const response = await serveFileByPath(
+                '/media/observed-a.mp4',
+                null,
+                undefined,
+                'inline',
+                null,
+                () => 0,
+                { onBytes, onEnd },
+            );
+            await response.arrayBuffer();
+            expect(onBytes).toHaveBeenCalledWith(8);
+            expect(onEnd).toHaveBeenCalledExactlyOnceWith('completed');
+        });
+
+        it('reports aborted when the client cancels the body', async () => {
+            await setupMocks(8);
+            const onEnd = vi.fn();
+            const response = await serveFileByPath(
+                '/media/observed-b.mp4',
+                null,
+                undefined,
+                'inline',
+                null,
+                0,
+                { onEnd },
+            );
+            await response.body!.cancel();
+            expect(onEnd).toHaveBeenCalledExactlyOnceWith('aborted');
+        });
+    });
+
     describe('full file response (no Range header)', () => {
         it('returns 200 status', async () => {
             await setupMocks(1024);

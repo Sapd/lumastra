@@ -121,6 +121,7 @@ import {
 } from '$lib/server/database/queries/database-cleanup.queries.js';
 import { pruneSyncActivity } from '$lib/server/database/queries/watch-sync-activity.queries.js';
 import { pruneTranscodeFailureEvents } from '$lib/server/database/queries/transcode-failure-events.queries.js';
+import { pruneDownloadEvents } from '$lib/server/database/queries/download-events.queries.js';
 import { pruneLiveTvFailureEvents } from '$lib/server/database/queries/livetv-failure-events.queries.js';
 import { pruneSegmentDeliveryFailures } from '$lib/server/database/queries/segment-delivery-failures.queries.js';
 import {
@@ -242,6 +243,7 @@ interface CleanupStats {
     prunePluginFailures: number;
     pruneSecretAccessLog: number;
     pruneTranscodeFailures: number;
+    pruneDownloadEvents: number;
     pruneLivetvFailures: number;
     prunePlaybackIncidents: number;
     pruneSegmentDeliveryFailures: number;
@@ -364,6 +366,7 @@ export const databaseCleanupTask = defineTask<DatabaseCleanupInput, DatabaseClea
                         prunePluginFailures: 0,
                         pruneSecretAccessLog: 0,
                         pruneTranscodeFailures: 0,
+                        pruneDownloadEvents: 0,
                         pruneLivetvFailures: 0,
                         prunePlaybackIncidents: 0,
                         pruneSegmentDeliveryFailures: 0,
@@ -420,6 +423,7 @@ export const databaseCleanupTask = defineTask<DatabaseCleanupInput, DatabaseClea
             prunePluginFailures: 0,
             pruneSecretAccessLog: 0,
             pruneTranscodeFailures: 0,
+            pruneDownloadEvents: 0,
             pruneLivetvFailures: 0,
             prunePlaybackIncidents: 0,
             pruneSegmentDeliveryFailures: 0,
@@ -863,6 +867,21 @@ export const databaseCleanupTask = defineTask<DatabaseCleanupInput, DatabaseClea
             return earlyReturn(stats, errors, true);
         }
 
+        const downloadLogCutoff = new Date(
+            Date.now() - config.DOWNLOAD_LOG_RETENTION_DAYS * 86_400_000,
+        );
+        stats.pruneDownloadEvents = await pruneUntilDrained(
+            pruneDownloadEvents,
+            sql,
+            downloadLogCutoff,
+            signal,
+            50_000,
+        );
+
+        if (signal.aborted) {
+            return earlyReturn(stats, errors, true);
+        }
+
         const playbackIncidentCutoff = new Date(
             Date.now() - PLAYBACK_INCIDENT_RETENTION_DAYS * 86_400_000,
         );
@@ -1295,6 +1314,7 @@ function sumStats(stats: CleanupStats): number {
         stats.prunePluginFailures +
         stats.pruneSecretAccessLog +
         stats.pruneTranscodeFailures +
+        stats.pruneDownloadEvents +
         stats.pruneLivetvFailures +
         stats.prunePlaybackIncidents +
         stats.pruneSegmentDeliveryFailures +
@@ -1356,6 +1376,7 @@ function buildMessage(stats: CleanupStats, wasAborted: boolean): string {
         parts.push(`${stats.pruneSecretAccessLog} secret access log rows`);
     if (stats.pruneTranscodeFailures > 0)
         parts.push(`${stats.pruneTranscodeFailures} transcode failure events`);
+    if (stats.pruneDownloadEvents > 0) parts.push(`${stats.pruneDownloadEvents} download log rows`);
     if (stats.pruneLivetvFailures > 0)
         parts.push(`${stats.pruneLivetvFailures} livetv failure events`);
     if (stats.prunePlaybackIncidents > 0)
