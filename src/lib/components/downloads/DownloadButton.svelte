@@ -5,38 +5,29 @@
 
 <script lang="ts">
     /**
-     * DownloadButton - a small icon-only ghost button (tooltip + aria-label) that starts the
-     * web download flow for a movie, episode or (single-season) series. Renders nothing
-     * unless the server feature is on AND the download-list endpoint says this user is
-     * allowed (hides all download UI otherwise).
+     * DownloadButton - the quiet icon-only ghost button (tooltip + aria-label) of an episode
+     * row. It opens the download sheet with "This episode" preselected (the sheet can widen it
+     * to the rest of the season, a hand-picked list, the season or the series). Renders
+     * nothing unless the server feature is on AND the download-list endpoint says this user
+     * is allowed.
      *
-     * `accessId` lets many buttons (one per episode) share ONE cached permission check on
-     * the series instead of listing every episode. `showSize` adds "(<size>)" to the
-     * tooltip, loaded lazily on first hover/focus.
+     * `accessId` is the series id: many buttons (one per episode) share ONE cached permission
+     * check on it instead of listing every episode, and the sheet lists that series once.
+     * Without `accessId` the button downloads `mediaItemId` alone.
      */
     import { page } from '$app/stores';
     import { Icon, ArrowDownTray } from 'svelte-hero-icons';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import { downloadQueue } from '$lib/downloads/download-queue.svelte';
-    import { formatFileSize } from '$lib/utils/metric-formatters';
     import * as m from '$lib/paraglide/messages';
 
     interface Props {
         mediaItemId: string;
         accessId?: string;
-        /** Accessible name and tooltip (default "Download", or "Download episode") */
+        /** Accessible name and tooltip (default "Download episode") */
         label?: string;
-        /**
-         * 'ghost' (default): the quiet 16 px icon (season picker, episode rows).
-         * 'action': the modal's icon button, same classes as the Share button.
-         */
-        variant?: 'ghost' | 'action';
-        /** Tooltip/label gets "(<size>)", loaded lazily on first hover/focus */
-        showSize?: boolean;
         /** Episode rows: icon only shows on row hover/focus (always on touch). */
         revealOnHover?: boolean;
-        /** Start from this season of a series; the sheet can widen it to the series. */
-        season?: number;
         testId?: string;
     }
 
@@ -44,17 +35,12 @@
         mediaItemId,
         accessId = undefined,
         label = undefined,
-        variant = 'ghost',
-        showSize = false,
         revealOnHover = false,
-        season = undefined,
         testId = 'download-button',
     }: Props = $props();
 
     let featureOn = $derived($page.data?.features?.mediaDownload === true);
     let info = $state<{ allowed: boolean } | null>(null);
-    let sizeBytes = $state<number | null>(null);
-    let sizeRequested = false;
 
     $effect(() => {
         info = null;
@@ -69,34 +55,19 @@
         };
     });
 
-    function loadSize() {
-        if (!showSize || sizeRequested) return;
-        sizeRequested = true;
-        const id = mediaItemId;
-        void downloadQueue.fetchList(id).then((list) => {
-            if (!list) {
-                sizeRequested = false;
-                return;
-            }
-            sizeBytes = list.items.filter((i) => i.available).reduce((s, i) => s + i.sizeBytes, 0);
-        });
-    }
-
-    let base = $derived(label ?? (showSize ? m.downloads_button() : m.downloads_episode_aria()));
-    let text = $derived(
-        showSize && sizeBytes !== null && sizeBytes > 0
-            ? m.downloads_with_size({ size: formatFileSize(sizeBytes) })
-            : base,
-    );
+    let text = $derived(label ?? m.downloads_episode_aria());
 
     function start(e: MouseEvent) {
         e.stopPropagation();
-        // While a run is going enqueue() answers with the "already running" toast.
-        void downloadQueue.enqueue(
-            mediaItemId,
-            season === undefined ? {} : season === 0 ? { season, specials: true } : { season },
-            season,
-        );
+        // While a run is going the queue answers with the "already running" toast.
+        if (accessId) {
+            void downloadQueue.enqueueSeries(accessId, {
+                scope: 'episode',
+                episodeId: mediaItemId,
+            });
+        } else {
+            void downloadQueue.enqueue(mediaItemId);
+        }
     }
 </script>
 
@@ -105,16 +76,11 @@
         <button
             type="button"
             data-testid={testId}
-            class={variant === 'action' ? 'btn-icon variant-ghost-surface' : 'download-ghost'}
+            class="download-ghost"
             class:download-reveal={revealOnHover}
             aria-label={text}
-            onpointerenter={loadSize}
-            onfocus={loadSize}
             onclick={start}>
-            <Icon
-                src={ArrowDownTray}
-                class={variant === 'action' ? 'w-5 h-5' : 'w-4 h-4'}
-                aria-hidden="true" />
+            <Icon src={ArrowDownTray} class="w-4 h-4" aria-hidden="true" />
         </button>
     </Tooltip>
 {/if}

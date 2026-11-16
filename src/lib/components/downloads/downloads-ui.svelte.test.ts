@@ -27,7 +27,7 @@ vi.mock('$lib/stores/toast.store', () => ({ toasts: toast }));
 import DownloadButton from './DownloadButton.svelte';
 import DownloadConfirmSheet from './DownloadConfirmSheet.svelte';
 import DownloadQueuePanel from './DownloadQueuePanel.svelte';
-import { downloadQueue } from '$lib/downloads/download-queue.svelte';
+import { archiveUrl, downloadQueue } from '$lib/downloads/download-queue.svelte';
 
 function listBody(over: Record<string, unknown> = {}) {
     const mk = (n: number, size: number) => ({
@@ -79,8 +79,8 @@ afterEach(() => {
 describe('DownloadButton', () => {
     test('shows the button only when downloads are allowed', async () => {
         stubList(listBody());
-        render(DownloadButton, { mediaItemId: 'movie-allowed', showSize: true });
-        const btn = await screen.findByRole('button', { name: 'Download' });
+        render(DownloadButton, { mediaItemId: 'movie-allowed' });
+        const btn = await screen.findByRole('button', { name: 'Download episode' });
         // icon only: no visible text, the icon is hidden from assistive tech
         expect(btn.textContent?.trim()).toBe('');
         expect(btn.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
@@ -90,19 +90,6 @@ describe('DownloadButton', () => {
         stubList(listBody());
         render(DownloadButton, { mediaItemId: 'ep-1', accessId: 'series-x' });
         expect(await screen.findByRole('button', { name: 'Download episode' })).toBeTruthy();
-    });
-
-    test('the size shows in the label after the first hover', async () => {
-        const f = stubList(listBody({ items: [listBody().items[0]] }));
-        render(DownloadButton, { mediaItemId: 'movie-size', showSize: true });
-        const btn = await screen.findByRole('button', { name: 'Download' });
-        expect(f).toHaveBeenCalledTimes(1); // only the summary probe so far
-        await fireEvent.pointerEnter(btn);
-        await waitFor(() =>
-            expect(screen.getByTestId('download-button').getAttribute('aria-label')).toBe(
-                'Download (1.0 GB)',
-            ),
-        );
     });
 
     test('visibility uses the summary probe, the full list is fetched on click', async () => {
@@ -125,20 +112,6 @@ describe('DownloadButton', () => {
         expect(toast.info).toHaveBeenCalledWith('A download is already running.');
     });
 
-    test('the tooltip text updates when the size arrives while it is open', async () => {
-        const f = stubList(listBody({ items: [listBody().items[0]] }));
-        render(DownloadButton, { mediaItemId: 'movie-live', showSize: true });
-        const btn = await screen.findByRole('button', { name: 'Download' });
-        await fireEvent.mouseEnter(btn.parentElement as HTMLElement);
-        await waitFor(() => expect(document.querySelector('.tooltip-fixed')).toBeTruthy());
-        expect(document.querySelector('.tooltip-fixed')?.textContent).toBe('Download');
-        await fireEvent.pointerEnter(btn);
-        await waitFor(() =>
-            expect(document.querySelector('.tooltip-fixed')?.textContent).toBe('Download (1.0 GB)'),
-        );
-        expect(f).toHaveBeenCalledTimes(2);
-    });
-
     test('episode icons reveal on row hover and keep a touch hit area', async () => {
         stubList(listBody());
         render(DownloadButton, { mediaItemId: 'ep-1', accessId: 'series-x', revealOnHover: true });
@@ -147,20 +120,27 @@ describe('DownloadButton', () => {
         expect(btn.classList.contains('download-ghost')).toBe(true);
     });
 
-    test('the season button asks for that season and passes it as the sheet scope', async () => {
-        const f = stubList(listBody());
-        render(DownloadButton, {
-            mediaItemId: 'series-seasons',
-            season: 2,
-            label: 'Download season or series',
-        });
-        await fireEvent.click(
-            await screen.findByRole('button', { name: 'Download season or series' }),
+    test('an episode icon opens the sheet with "This episode" preselected, from ONE series list', async () => {
+        const f = stubList(
+            listBody({
+                items: [1, 2, 3].map((n) => ({
+                    ...listBody().items[0],
+                    mediaItemId: `ep-${n}`,
+                    fileId: `f-${n}`,
+                    episode: n,
+                })),
+            }),
         );
-        await waitFor(() =>
-            expect(f.mock.calls.some((c) => String(c[0]).includes('?season=2'))).toBe(true),
-        );
-        await waitFor(() => expect(downloadQueue.pending?.scopeSeason).toBe(2));
+        render(DownloadButton, { mediaItemId: 'ep-2', accessId: 'series-ep' });
+        await fireEvent.click(await screen.findByTestId('download-button'));
+        await waitFor(() => expect(downloadQueue.pending?.series?.scope).toBe('episode'));
+        expect(downloadQueue.pending?.series?.episodeId).toBe('ep-2');
+        expect(downloadQueue.pending?.list.items.map((i) => i.mediaItemId)).toEqual(['ep-2']);
+        const urls = f.mock.calls.map((c) => String(c[0]));
+        expect(urls).toEqual([
+            '/api/media/series-ep/download-list?summary=1',
+            '/api/media/series-ep/download-list?specials=1',
+        ]);
     });
 
     test('renders nothing when the user may not download', async () => {
@@ -214,11 +194,24 @@ describe('DownloadConfirmSheet', () => {
         expect(screen.queryByText('Include specials')).toBeNull();
     });
 
-    test('series-wide sheet offers specials', async () => {
-        stubList(listBody());
+    test('a series-wide sheet offers specials, a single-episode one does not', async () => {
+        const sp = {
+            ...listBody().items[0],
+            mediaItemId: 'sp-1',
+            season: 0,
+            seasonFolder: 'Specials',
+        };
+        stubList(listBody({ items: [...listBody().items, sp] }));
         render(DownloadConfirmSheet);
-        await downloadQueue.enqueue('series-sheet-2');
+        await downloadQueue.enqueueSeries('series-sheet-2', { scope: 'series' });
         expect(await screen.findByText('Include specials')).toBeTruthy();
+        downloadQueue.dismissPending();
+        await downloadQueue.enqueueSeries('series-sheet-2', {
+            scope: 'episode',
+            episodeId: 'ep-1',
+        });
+        await screen.findByTestId('download-confirm-sheet');
+        expect(screen.queryByText('Include specials')).toBeNull();
     });
 });
 
@@ -228,79 +221,146 @@ describe('DownloadConfirmSheet scope', () => {
         fileId: `f-${season}-${episode}`,
         season,
         episode,
-        seasonFolder: `Season ${season}`,
-        fileName: `S${season}E${episode}.mkv`,
+        seasonFolder: season === 0 ? 'Specials' : `Season ${season}`,
+        fileName: `Show - S0${season}E0${episode} - Title ${season}${episode}.mkv`,
         sizeBytes: size,
         available: true,
     });
 
-    /** A server that filters by ?season / ?specials like the real endpoint. */
+    /** The one series list (season 0 included) the sheet derives everything from. */
     function stubSeries(all: ReturnType<typeof it>[]) {
-        const f = vi.fn(async (url: string) => {
-            const u = new URL(String(url), 'http://x');
-            const season = u.searchParams.get('season');
-            const specials = u.searchParams.get('specials') === '1';
-            const items = all.filter((i) =>
-                season !== null ? i.season === Number(season) : specials || i.season !== 0,
-            );
-            return new Response(
-                JSON.stringify({
-                    allowed: true,
-                    maxParallel: 3,
-                    seriesFolder: 'Show (2019)',
-                    missingCount: 0,
-                    items,
-                }),
-            );
+        return stubList({
+            allowed: true,
+            maxParallel: 3,
+            seriesFolder: 'Show (2019)',
+            missingCount: 0,
+            items: all,
         });
-        vi.stubGlobal('fetch', f);
-        return f;
     }
 
-    const twoSeasons = [it(1, 1), it(1, 2), it(2, 1), it(2, 2, 3_000_000_000), it(0, 1)];
+    const twoSeasons = [it(1, 1), it(1, 2), it(1, 3), it(2, 1), it(2, 2, 3_000_000_000), it(0, 1)];
+    const radioIds = () =>
+        Array.from(document.querySelectorAll('[data-testid^="download-scope-"]')).map((e) =>
+            e.getAttribute('data-testid'),
+        );
 
-    test('a season of a multi-season series offers season / whole series with counts and sizes', async () => {
-        stubSeries(twoSeasons);
+    test('from an episode: every option with its count and size', async () => {
+        const f = stubSeries(twoSeasons);
         render(DownloadConfirmSheet);
-        await downloadQueue.enqueue('s-scope', { season: 2 }, 2);
+        await downloadQueue.enqueueSeries('s-scope', { scope: 'episode', episodeId: 'ep-1-2' });
         expect((await screen.findByTestId('download-confirm-sheet')).textContent).toContain(
             'Download "Show (2019)"',
         );
-        expect(await screen.findByText('Season 2 · 2 episodes · 4.0 GB')).toBeTruthy();
-        expect(screen.getByText('Whole series · 4 episodes · 6.0 GB')).toBeTruthy();
+        expect(screen.getByText('This episode · S01E02 · 1.0 GB')).toBeTruthy();
+        expect(screen.getByText('From here to end of season · 2 episodes · 2.0 GB')).toBeTruthy();
+        expect(screen.getByText('Choose episodes…')).toBeTruthy();
+        expect(screen.getByText('Whole season 1 · 3 episodes · 3.0 GB')).toBeTruthy();
+        expect(screen.getByText('Whole series · 5 episodes · 7.0 GB')).toBeTruthy();
+        expect((screen.getByTestId('download-scope-episode') as HTMLInputElement).checked).toBe(
+            true,
+        );
+        expect(screen.getByTestId('download-start').textContent).toContain('Download · 1.0 GB');
+        expect(f).toHaveBeenCalledTimes(1);
+    });
+
+    test('the last episode has no "from here"; a one-episode season has no checklist', async () => {
+        stubSeries(twoSeasons);
+        render(DownloadConfirmSheet);
+        await downloadQueue.enqueueSeries('s-scope-2', { scope: 'episode', episodeId: 'ep-1-3' });
+        await screen.findByTestId('download-scope');
+        expect(screen.queryByTestId('download-scope-fromHere')).toBeNull();
+        expect(screen.getByTestId('download-scope-custom')).toBeTruthy();
+        downloadQueue.dismissPending();
+        const one = [it(1, 1), it(2, 1), it(2, 2)];
+        stubSeries(one);
+        await downloadQueue.enqueueSeries('s-scope-2', { scope: 'season', season: 1 });
+        await waitFor(() =>
+            expect(radioIds()).toEqual(['download-scope-season', 'download-scope-series']),
+        );
+    });
+
+    test('a season opened from the menu: "Whole season" selected, specials only for series', async () => {
+        stubSeries(twoSeasons);
+        render(DownloadConfirmSheet);
+        await downloadQueue.enqueueSeries('s-scope-3', { scope: 'season', season: 2 });
+        expect(await screen.findByText('Whole season 2 · 2 episodes · 4.0 GB')).toBeTruthy();
         expect((screen.getByTestId('download-scope-season') as HTMLInputElement).checked).toBe(
             true,
         );
         expect(screen.getByTestId('download-start').textContent).toContain(
             'Download 2 files · 4.0 GB',
         );
-    });
-
-    test('the radio switches to the whole series and back', async () => {
-        stubSeries(twoSeasons);
-        render(DownloadConfirmSheet);
-        await downloadQueue.enqueue('s-scope-2', { season: 2 }, 2);
-        await screen.findByText('Whole series · 4 episodes · 6.0 GB');
+        expect(screen.queryByText('Include specials')).toBeNull();
         await fireEvent.click(screen.getByTestId('download-scope-series'));
-        await waitFor(() => expect(downloadQueue.pending?.opts).toEqual({}));
         await waitFor(() =>
             expect(screen.getByTestId('download-start').textContent).toContain(
-                'Download 4 files · 6.0 GB',
+                'Download 5 files · 7.0 GB',
             ),
         );
-        // the specials checkbox belongs to the whole-series scope
-        expect(screen.getByText('Include specials')).toBeTruthy();
-        await fireEvent.click(screen.getByTestId('download-scope-season'));
-        await waitFor(() => expect(downloadQueue.pending?.opts).toEqual({ season: 2 }));
-        expect(screen.queryByText('Include specials')).toBeNull();
+        await fireEvent.click(screen.getByTestId('download-specials'));
+        await waitFor(() =>
+            expect(screen.getByTestId('download-start').textContent).toContain(
+                'Download 6 files · 8.0 GB',
+            ),
+        );
     });
 
-    test('a single-season series has no scope radio', async () => {
-        stubSeries([it(1, 1), it(1, 2), it(0, 1)]);
+    test('the checklist lists the season, starts with the opening episode, and selects/deselects', async () => {
+        stubSeries(twoSeasons);
         render(DownloadConfirmSheet);
-        await downloadQueue.enqueue('s-one', { season: 1 }, 1);
+        await downloadQueue.enqueueSeries('s-scope-4', { scope: 'episode', episodeId: 'ep-1-2' });
+        await fireEvent.click(await screen.findByTestId('download-scope-custom'));
+        const box = (id: string) =>
+            screen.getByTestId(`download-episode-${id}`) as HTMLInputElement;
+        await waitFor(() => expect(box('ep-1-1')).toBeTruthy());
+        expect(screen.getByTestId('download-episodes').textContent).toContain('Title 12');
+        expect([box('ep-1-1').checked, box('ep-1-2').checked, box('ep-1-3').checked]).toEqual([
+            false,
+            true,
+            false,
+        ]);
+        await fireEvent.click(box('ep-1-3'));
+        await waitFor(() =>
+            expect(screen.getByTestId('download-start').textContent).toContain(
+                'Download 2 files · 2.0 GB',
+            ),
+        );
+        await fireEvent.click(screen.getByTestId('download-select-all'));
+        await waitFor(() =>
+            expect(screen.getByTestId('download-start').textContent).toContain(
+                'Download 3 files · 3.0 GB',
+            ),
+        );
+        await fireEvent.click(screen.getByTestId('download-select-none'));
+        await waitFor(() =>
+            expect((screen.getByTestId('download-start') as HTMLButtonElement).disabled).toBe(true),
+        );
+        await fireEvent.click(box('ep-1-1'));
+        await waitFor(() =>
+            expect((screen.getByTestId('download-start') as HTMLButtonElement).disabled).toBe(
+                false,
+            ),
+        );
+        expect(downloadQueue.pending?.opts).toEqual({ episodeIds: ['ep-1-1'] });
+    });
+
+    test('a season opened without an episode starts with every episode checked', async () => {
+        stubSeries(twoSeasons);
+        render(DownloadConfirmSheet);
+        await downloadQueue.enqueueSeries('s-scope-5', { scope: 'custom', season: 1 });
+        await screen.findByTestId('download-episodes');
+        for (const id of ['ep-1-1', 'ep-1-2', 'ep-1-3']) {
+            expect((screen.getByTestId(`download-episode-${id}`) as HTMLInputElement).checked).toBe(
+                true,
+            );
+        }
+    });
+
+    test('a single-season series with one scope shows no scope radio', async () => {
+        stubSeries([it(1, 1)]);
+        render(DownloadConfirmSheet);
+        await downloadQueue.enqueueSeries('s-one', { scope: 'season', season: 1 });
         await screen.findByTestId('download-confirm-sheet');
-        await new Promise((r) => setTimeout(r, 20));
         expect(screen.queryByTestId('download-scope')).toBeNull();
     });
 });
@@ -523,6 +583,36 @@ describe('DownloadConfirmSheet ZIP choice (no folder picker)', () => {
         expect(
             await screen.findByText('Over 4 GB: needs an exFAT stick (not FAT32).'),
         ).toBeTruthy();
+    });
+
+    test('the primary button says ZIP when the ZIP is chosen, and a custom subset passes the ids', async () => {
+        downloadQueue.pickerReason = 'blocked';
+        stubList(season(3));
+        render(DownloadConfirmSheet);
+        await downloadQueue.enqueueSeries('series-zip', { scope: 'custom', season: 1 });
+        await screen.findByTestId('download-format');
+        await fireEvent.click(screen.getByTestId('download-episode-ep-3'));
+        await fireEvent.click(screen.getByTestId('download-format-zip'));
+        await waitFor(() =>
+            expect(screen.getByTestId('download-start').textContent).toContain(
+                'Download ZIP · 2.0 GB',
+            ),
+        );
+        expect(downloadQueue.pending?.opts).toEqual({ episodeIds: ['ep-1', 'ep-2'] });
+        expect(archiveUrl('series-zip', downloadQueue.pending!.opts)).toBe(
+            '/api/media/series-zip/download-zip?episodes=ep-1%2Cep-2',
+        );
+    });
+
+    test('a custom selection of more than 200 episodes hides the ZIP choice, silently', async () => {
+        downloadQueue.pickerReason = 'blocked';
+        stubList(season(201));
+        render(DownloadConfirmSheet);
+        await downloadQueue.enqueueSeries('series-big', { scope: 'custom', season: 1 });
+        await screen.findByTestId('download-episodes');
+        expect(screen.queryByTestId('download-format')).toBeNull();
+        await fireEvent.click(screen.getByTestId('download-episode-ep-201'));
+        await waitFor(() => expect(screen.getByTestId('download-format')).toBeTruthy());
     });
 
     test('is not offered for a single file', async () => {

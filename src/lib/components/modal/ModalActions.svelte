@@ -24,6 +24,7 @@
         Check,
         CodeBracket,
         Cog6Tooth,
+        ArrowDownTray,
         EllipsisHorizontal,
         Eye,
         EyeSlash,
@@ -61,7 +62,7 @@
     import { imageFromIds } from '$lib/utils/image-utils';
     import { getPreferredExternalId } from '$lib/utils/external-ids';
     import SeasonSelectorModal from '$lib/components/SeasonSelectorModal.svelte';
-    import DownloadButton from '$lib/components/downloads/DownloadButton.svelte';
+    import { downloadQueue } from '$lib/downloads/download-queue.svelte';
     import DebugPanel from './DebugPanel.svelte';
     import ActionPopover from './ActionPopover.svelte';
     import * as m from '$lib/paraglide/messages';
@@ -746,6 +747,37 @@
     let normalizedMediaType = $derived(getNormalizedMediaType());
     let isEpisode = $derived(isEpisodeType(mediaType));
 
+    // Download entries of the "..." menu: a movie, an episode or a series, for a user who may
+    // download (the same cheap summary probe the episode icons use; no list is fetched here).
+    let downloadKind = $derived<'single' | 'series' | null>(
+        isSeries ? 'series' : (isMovie(mediaType) || isEpisode) && isAvailable ? 'single' : null,
+    );
+    let downloadId = $derived(
+        downloadKind && externalIds?.internal && UUID_RE.test(externalIds.internal)
+            ? externalIds.internal
+            : null,
+    );
+    let downloadAllowed = $state(false);
+    $effect(() => {
+        downloadAllowed = false;
+        const id = downloadId;
+        if (!id || $page.data?.features?.mediaDownload !== true) return;
+        let cancelled = false;
+        void downloadQueue.downloadInfo(id).then((r) => {
+            if (!cancelled) downloadAllowed = r.allowed;
+        });
+        return () => {
+            cancelled = true;
+        };
+    });
+    // The season the episode picker shows, when it belongs to this series.
+    let pickerSeason = $derived(
+        downloadQueue.pickerContext?.seriesId === downloadId
+            ? downloadQueue.pickerContext?.season
+            : undefined,
+    );
+    let showMoreMenu = $derived(downloadAllowed || isAdminOrArrManager);
+
     // Seen-aware rating: only `isWatched` is exposed to this component as a
     // watch-state signal (the modal does not thread playCount / completion /
     // in-progress here). A previously-set userRating also implies the user has
@@ -851,6 +883,7 @@
         showWatchlistButton;
         showWatchedButton;
         isAdminOrArrManager;
+        showMoreMenu;
         isAvailable;
         canRequest;
         isEpisode;
@@ -1314,11 +1347,11 @@
         </button>
     {/if}
 
-    <!-- Admin overflow menu (admin/arrManager only): "Manage in Admin" +
-         debug panel. Both are operator-only utilities that don't belong at
-         top level alongside primary user actions — same permission gating
-         as before, preserved per-item inside the popover. -->
-    {#if isAdminOrArrManager}
+    <!-- "..." menu: the download entries (for anyone who may download) first, then the
+         admin utilities ("Manage in Admin" + debug panel; admin/arrManager only, gated
+         per item as before). Neither group belongs at top level next to the primary
+         actions. -->
+    {#if showMoreMenu}
         <ActionPopover
             ariaLabel={m.modal_more_actions()}
             triggerClass="btn-icon variant-ghost-surface"
@@ -1327,7 +1360,63 @@
                 <Icon src={EllipsisHorizontal} class="w-5 h-5" />
             {/snippet}
             {#snippet content({ close })}
-                {#if externalIds?.internal}
+                {#if downloadAllowed && downloadId}
+                    {#if downloadKind === 'single'}
+                        <button
+                            type="button"
+                            role="menuitem"
+                            data-testid="menu-download"
+                            class="w-full px-3 py-2 text-left hover:bg-surface-700 flex items-center gap-2 text-sm text-surface-100"
+                            onclick={() => {
+                                close();
+                                void downloadQueue.enqueue(downloadId);
+                            }}>
+                            <Icon src={ArrowDownTray} class="w-4 h-4 shrink-0" />
+                            <span>{m.downloads_menu_download()}</span>
+                        </button>
+                    {:else}
+                        {#if pickerSeason !== undefined}
+                            <button
+                                type="button"
+                                role="menuitem"
+                                data-testid="menu-download-season"
+                                class="w-full px-3 py-2 text-left hover:bg-surface-700 flex items-center gap-2 text-sm text-surface-100"
+                                onclick={() => {
+                                    close();
+                                    void downloadQueue.enqueueSeries(downloadId, {
+                                        scope: 'season',
+                                        season: pickerSeason,
+                                    });
+                                }}>
+                                <Icon src={ArrowDownTray} class="w-4 h-4 shrink-0" />
+                                <span>
+                                    {pickerSeason === 0
+                                        ? m.downloads_menu_specials()
+                                        : m.downloads_menu_season({ season: pickerSeason })}
+                                </span>
+                            </button>
+                        {/if}
+                        <button
+                            type="button"
+                            role="menuitem"
+                            data-testid="menu-download-series"
+                            class="w-full px-3 py-2 text-left hover:bg-surface-700 flex items-center gap-2 text-sm text-surface-100"
+                            onclick={() => {
+                                close();
+                                void downloadQueue.enqueueSeries(downloadId, {
+                                    scope: 'series',
+                                    season: pickerSeason,
+                                });
+                            }}>
+                            <Icon src={ArrowDownTray} class="w-4 h-4 shrink-0" />
+                            <span>{m.downloads_menu_series()}</span>
+                        </button>
+                    {/if}
+                {/if}
+                {#if downloadAllowed && downloadId && isAdminOrArrManager}
+                    <div role="separator" class="my-1 border-t border-surface-600"></div>
+                {/if}
+                {#if isAdminOrArrManager && externalIds?.internal}
                     <button
                         type="button"
                         role="menuitem"
@@ -1344,17 +1433,19 @@
                         <span>{m.modal_manage_in_admin()}</span>
                     </button>
                 {/if}
-                <button
-                    type="button"
-                    role="menuitem"
-                    class="w-full px-3 py-2 text-left hover:bg-surface-700 flex items-center gap-2 text-sm text-surface-100"
-                    onclick={() => {
-                        close();
-                        showDebugPanel = true;
-                    }}>
-                    <Icon src={CodeBracket} class="w-4 h-4 shrink-0" />
-                    <span>{m.modal_admin_debug_info_title()}</span>
-                </button>
+                {#if isAdminOrArrManager}
+                    <button
+                        type="button"
+                        role="menuitem"
+                        class="w-full px-3 py-2 text-left hover:bg-surface-700 flex items-center gap-2 text-sm text-surface-100"
+                        onclick={() => {
+                            close();
+                            showDebugPanel = true;
+                        }}>
+                        <Icon src={CodeBracket} class="w-4 h-4 shrink-0" />
+                        <span>{m.modal_admin_debug_info_title()}</span>
+                    </button>
+                {/if}
             {/snippet}
         </ActionPopover>
     {/if}
@@ -1365,15 +1456,6 @@
             itemId={externalIds?.internal ?? ''}
             {title}
             mediaType={mediaType || 'movie'} />
-    {/if}
-
-    <!-- Download (movies and single episodes): icon-only like Share, after Send to TV.
-         Hidden below `sm` (the row is tight there) and unless the server feature is on,
-         the user may download, and the item has a file. -->
-    {#if (isMovie(mediaType) || isEpisode) && isAvailable && externalIds?.internal && UUID_RE.test(externalIds.internal)}
-        <span class="hidden sm:inline-flex">
-            <DownloadButton mediaItemId={externalIds.internal} variant="action" showSize />
-        </span>
     {/if}
 
     <!-- Mark as Watched Button -->

@@ -39,6 +39,7 @@
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import EpisodeStill from './EpisodeStill.svelte';
     import DownloadButton from '$lib/components/downloads/DownloadButton.svelte';
+    import { downloadQueue } from '$lib/downloads/download-queue.svelte';
     import { downloadSeasonNumber } from '$lib/downloads/season-number';
     import EpisodeLanguageBadges from './EpisodeLanguageBadges.svelte';
     import EpisodeHoverPanel from './EpisodeHoverPanel.svelte';
@@ -799,6 +800,15 @@
             : undefined,
     );
 
+    // The modal's "Download season N" menu item lives in another component: tell the download
+    // store which series and season this picker shows.
+    $effect(() => {
+        const id = resolvedSeriesId;
+        if (playlistMode || !id) return;
+        downloadQueue.setPickerContext(id, downloadSeason);
+        return () => downloadQueue.clearPickerContext(id);
+    });
+
     function getSeasonName(season: Season): string {
         const num = season.IndexNumber ?? season.seasonNumber ?? 0;
         const name = season.Name || season.name;
@@ -1119,13 +1129,6 @@
                                 {m.episode_picker_season()}
                             </button>
                         </Tooltip>
-                    {/if}
-                    {#if !playlistMode && resolvedSeriesId && downloadSeason !== undefined}
-                        <DownloadButton
-                            mediaItemId={resolvedSeriesId}
-                            season={downloadSeason}
-                            label={m.downloads_season_or_series()}
-                            testId="series-download" />
                     {/if}
                 </div>
             </div>

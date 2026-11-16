@@ -123,15 +123,37 @@ afterEach(() => {
 });
 
 describe('SeriesEpisodePicker download icons', () => {
-    test('one season/series icon, no text buttons; click starts the season download', async () => {
-        const enqueue = vi.spyOn(downloadQueue, 'enqueue').mockResolvedValue();
+    test('no season/series download element next to the season selector', async () => {
         render(SeriesEpisodePicker, { series: { id: 'series-1' }, inline: true });
-        const icon = await screen.findByRole('button', { name: 'Download season or series' });
-        expect(icon.textContent?.trim()).toBe('');
+        await screen.findByText('Ep 1');
+        expect(screen.queryByRole('button', { name: 'Download season or series' })).toBeNull();
+        expect(screen.queryByTestId('series-download')).toBeNull();
         expect(screen.queryByText('Download season')).toBeNull();
         expect(screen.queryByText('Download series')).toBeNull();
-        await fireEvent.click(icon);
-        expect(enqueue).toHaveBeenCalledWith('series-1', { season: 1 }, 1);
+    });
+
+    test('the picker tells the download store which series and season it shows, and clears it', async () => {
+        const { unmount } = render(SeriesEpisodePicker, {
+            series: { id: 'series-1' },
+            inline: true,
+        });
+        await screen.findByText('Ep 1');
+        await waitFor(() =>
+            expect(downloadQueue.pickerContext).toEqual({ seriesId: 'series-1', season: 1 }),
+        );
+        unmount();
+        expect(downloadQueue.pickerContext).toBeNull();
+    });
+
+    test('an episode icon opens the sheet with "This episode" for that episode', async () => {
+        const enqueueSeries = vi.spyOn(downloadQueue, 'enqueueSeries').mockResolvedValue();
+        render(SeriesEpisodePicker, { series: { id: 'series-1' }, inline: true });
+        await screen.findByText('Ep 1');
+        await fireEvent.click(await screen.findByRole('button', { name: 'Download episode' }));
+        expect(enqueueSeries).toHaveBeenCalledWith('series-1', {
+            scope: 'episode',
+            episodeId: 'episode-1',
+        });
     });
 
     test('episode icons: only for downloadable rows, revealed on hover', async () => {

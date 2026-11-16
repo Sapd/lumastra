@@ -109,7 +109,7 @@ vi.mock('$lib/server/services/download-tracking.js', () => ({
     untrackedDownload: () => tracker,
 }));
 
-const { def, resetPreparationCacheForTests, MAX_ARCHIVE_ENTRIES } =
+const { def, resetPreparationCacheForTests, MAX_ARCHIVE_ENTRIES, MAX_SUBSET_EPISODES } =
     await import('./download-zip.js');
 const { resetDownloadPreparationForTests, acquirePreparation } =
     await import('$lib/server/services/download-preparation.js');
@@ -704,6 +704,149 @@ describe('media/{id}/download-zip', () => {
             response: new Response('slow down', { status: 429 }),
         });
         expect((await call()).status).toBe(429);
+    });
+
+    describe('?episodes= subset', () => {
+        const U = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+        beforeEach(() => {
+            mockEpisodes.mockResolvedValue([
+                ep(U(21), 2, 1),
+                ep(U(1), 0, 1),
+                ep(U(12), 1, 2),
+                ep(U(11), 1, 1),
+            ]);
+            for (const n of [21, 1, 12, 11]) disk[`/media/x/${U(n)}.mkv`] = 1000;
+        });
+
+        it('holds only the named episodes, across seasons, named "<series> - Selection.zip"', async () => {
+            const res = await call(`?episodes=${U(21)},${U(11)}`);
+            expect(res.status).toBe(200);
+            expect(decodeURIComponent(res.headers.get('Content-Disposition')!)).toContain(
+                'Café Show (2004) - Selection.zip',
+            );
+            const body = Buffer.from(await res.arrayBuffer());
+            expect(body.length).toBe(Number(res.headers.get('Content-Length')));
+            const names = zipNames(body);
+            if (names) {
+                expect(names).toEqual([
+                    'Café Show (2004)/Season 01/Café Show - S01E01 - Ep ' + U(11) + '.mkv',
+                    'Café Show (2004)/Season 02/Café Show - S02E01 - Ep ' + U(21) + '.mkv',
+                ]);
+            }
+        });
+
+        it('a special can be named with specials=1', async () => {
+            const res = await call(`?specials=1&episodes=${U(1)}`);
+            expect(res.status).toBe(200);
+            const names = zipNames(Buffer.from(await res.arrayBuffer()));
+            if (names) expect(names).toHaveLength(1);
+        });
+
+        it('duplicates collapse to one entry', async () => {
+            const res = await call(`?episodes=${U(11)},${U(11)},${U(11).toUpperCase()}`);
+            expect(res.status).toBe(200);
+            const names = zipNames(Buffer.from(await res.arrayBuffer()));
+            if (names) expect(names).toHaveLength(1);
+        });
+
+        it('HEAD answers the same headers without a lease', async () => {
+            const q = `?episodes=${U(11)},${U(12)}`;
+            const get = await call(q);
+            const head = await call(q, 'series1', { method: 'HEAD' });
+            expect(head.status).toBe(200);
+            expect(head.headers.get('Content-Length')).toBe(get.headers.get('Content-Length'));
+            expect(head.headers.get('Content-Disposition')).toBe(
+                get.headers.get('Content-Disposition'),
+            );
+            await get.arrayBuffer();
+            expect(mockTrack).toHaveBeenCalledTimes(1);
+        });
+
+        it('an id from another series is 404 (whole request), nothing streamed', async () => {
+            const res = await call(`?episodes=${U(11)},${U(999)}`);
+            expect(res.status).toBe(404);
+            expect(tracker.served).not.toHaveBeenCalled();
+            expect(tracker.discard).toHaveBeenCalled();
+        });
+
+        it('an age-restricted id (hidden from this user) is 404 too', async () => {
+            mockCheckBatch.mockImplementation(
+                async (_s: unknown, ids: string[]) => new Set(ids.filter((i) => i !== U(12))),
+            );
+            expect((await call(`?episodes=${U(11)},${U(12)}`)).status).toBe(404);
+            expect((await call(`?episodes=${U(11)}`)).status).toBe(200);
+        });
+
+        it('an advertised file that is gone on disk is still 409', async () => {
+            delete disk[`/media/x/${U(12)}.mkv`];
+            const res = await call(`?episodes=${U(11)},${U(12)}`);
+            expect(res.status).toBe(409);
+            expect((await res.json()).reason).toBe('files_unavailable');
+        });
+
+        it('a named episode the list marks unavailable is 409, never a shorter 200', async () => {
+            mockEpisodes.mockResolvedValue([
+                ep(U(11), 1, 1),
+                ep(U(12), 1, 2, { is_missing: true }),
+            ]);
+            const res = await call(`?season=1&episodes=${U(11)},${U(12)}`);
+            expect(res.status).toBe(409);
+            expect((await res.json()).reason).toBe('files_unavailable');
+            expect(tracker.served).not.toHaveBeenCalled();
+        });
+
+        it('all named episodes unavailable is 409, not 404', async () => {
+            mockEpisodes.mockResolvedValue([ep(U(12), 1, 2, { is_missing: true })]);
+            expect((await call(`?episodes=${U(12)}`)).status).toBe(409);
+        });
+
+        it('season narrows the subset: a season-2 id with season=1 is 404', async () => {
+            expect((await call(`?season=1&episodes=${U(11)},${U(21)}`)).status).toBe(404);
+            expect((await call(`?season=1&episodes=${U(11)},${U(12)}`)).status).toBe(200);
+        });
+
+        it('specials narrows the subset: a special without specials=1 is 404', async () => {
+            expect((await call(`?episodes=${U(11)},${U(1)}`)).status).toBe(404);
+            expect((await call(`?specials=1&episodes=${U(11)},${U(1)}`)).status).toBe(200);
+        });
+
+        it('dashless and upper-case ids are the same id (dedup, membership, cache key)', async () => {
+            const dashless = U(11).replaceAll('-', '').toUpperCase();
+            const res = await call(`?episodes=${dashless},${U(11)}`);
+            expect(res.status).toBe(200);
+            const names = zipNames(Buffer.from(await res.arrayBuffer()));
+            if (names) expect(names).toHaveLength(1);
+            await (await call(`?episodes=${U(11)}`)).arrayBuffer();
+            expect(mockRoot).toHaveBeenCalledTimes(1);
+        });
+
+        it('a file of an episode that is not in the subset does not make it 409', async () => {
+            delete disk[`/media/x/${U(12)}.mkv`];
+            expect((await call(`?episodes=${U(11)}`)).status).toBe(200);
+        });
+
+        it('422 (like an invalid season) for non-uuid ids, an empty list or a trailing comma', async () => {
+            for (const q of ['?episodes=', '?episodes=abc', `?episodes=${U(11)},`, '?episodes=,']) {
+                const res = await call(q);
+                expect(res.status, q).toBe(422);
+            }
+            expect(mockTrack).not.toHaveBeenCalled();
+        });
+
+        it('422 above the id cap, 404 at the cap (distinct ids)', async () => {
+            const many = (n: number) => Array.from({ length: n }, (_, i) => U(1000 + i)).join(',');
+            expect((await call(`?episodes=${many(MAX_SUBSET_EPISODES + 1)}`)).status).toBe(422);
+            // At the cap the ids are well-formed; they are simply unknown here (404, not 400).
+            expect((await call(`?episodes=${many(MAX_SUBSET_EPISODES)}`)).status).toBe(404);
+        });
+
+        it('the cache key includes the id list', async () => {
+            await (await call(`?episodes=${U(11)}`)).arrayBuffer();
+            await (await call(`?episodes=${U(12)}`)).arrayBuffer();
+            await (await call(`?episodes=${U(12)},${U(11)}`)).arrayBuffer();
+            await (await call(`?episodes=${U(11)},${U(12)}`)).arrayBuffer();
+            expect(mockRoot).toHaveBeenCalledTimes(3);
+        });
     });
 
     it('an invalid season is rejected', async () => {

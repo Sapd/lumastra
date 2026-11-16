@@ -6,15 +6,19 @@
 <script lang="ts">
     /**
      * DownloadConfirmSheet - shows what is about to be downloaded (file count,
-     * total size, unavailable episodes) and, in Chromium, lets the user pick the
-     * target folder (needs a click, so it lives here and not in the queue start).
+     * total size, unavailable episodes), for a series lets the user choose the scope
+     * (this episode, the rest of the season, a hand-picked list, a season, the series)
+     * and, in Chromium, lets the user pick the target folder (needs a click, so it
+     * lives here and not in the queue start).
      */
-    import { tick, untrack } from 'svelte';
+    import { tick } from 'svelte';
+    import { downloadQueue, FAT32_LIMIT_BYTES } from '$lib/downloads/download-queue.svelte';
     import {
-        downloadQueue,
-        FAT32_LIMIT_BYTES,
-        type DownloadList,
-    } from '$lib/downloads/download-queue.svelte';
+        episodeCode,
+        scopeOptions,
+        seasonEpisodes,
+        type ScopeOption,
+    } from '$lib/downloads/download-scope';
     import { formatFileSize } from '$lib/utils/metric-formatters';
     import { Z } from '$lib/utils/z-index';
     import * as m from '$lib/paraglide/messages';
@@ -22,58 +26,56 @@
     let pending = $derived(downloadQueue.pending);
     let available = $derived(pending?.list.items.filter((i) => i.available) ?? []);
     let totalBytes = $derived(available.reduce((s, i) => s + i.sizeBytes, 0));
-    // A series-wide list can include season 0 on request; a single season or
-    // movie cannot, so the checkbox only shows for the series-wide case.
-    let canToggleSpecials = $derived(
-        !!pending &&
-            pending.opts.season === undefined &&
-            pending.list.items.some((i) => i.seasonFolder !== null),
-    );
 
-    // Season <-> whole series: only for a season of a series with more than one season
-    // (specials do not count). Counts and sizes come from ONE series list (with specials).
-    let scopeSeason = $derived(pending?.scopeSeason);
-    let seriesList = $state<DownloadList | null>(null);
-    let seriesFor: string | undefined;
-    $effect(() => {
-        const p = pending;
-        untrack(() => {
-            if (!p || p.scopeSeason === undefined) {
-                seriesList = null;
-                seriesFor = undefined;
-                return;
+    // Series sheet: every option, count and size is derived from the one list the queue holds.
+    let series = $derived(pending?.series);
+    let options = $derived(series ? scopeOptions(series) : []);
+    let showScope = $derived(options.length > 1);
+    let checklist = $derived(series && series.scope === 'custom' ? seasonEpisodes(series) : []);
+    // Season 0 only joins a series-wide download, and only when the series has some.
+    let canToggleSpecials = $derived(
+        series?.scope === 'series' && series.all.items.some((i) => i.season === 0 && i.available),
+    );
+    function label(o: ScopeOption): string {
+        const size = formatFileSize(o.bytes);
+        switch (o.scope) {
+            case 'episode': {
+                const from = series?.all.items.find((i) => i.mediaItemId === series?.episodeId);
+                return m.downloads_scope_episode({ code: from ? episodeCode(from) : '', size });
             }
-            // Switching scope re-lists the same series: keep the counts.
-            const id: string = p.mediaItemId;
-            if (seriesFor === id) return;
-            seriesFor = id;
-            seriesList = null;
-            void downloadQueue.fetchList(id, { specials: true }).then((l) => {
-                if (seriesFor === id) seriesList = l;
-            });
-        });
-    });
-    let seriesItems = $derived((seriesList?.items ?? []).filter((i) => i.available));
-    let realSeasons = $derived(
-        new Set((seriesList?.items ?? []).filter((i) => i.season !== 0).map((i) => i.season)),
-    );
-    let showScope = $derived(scopeSeason !== undefined && realSeasons.size > 1);
-    function tally(items: typeof seriesItems) {
-        return {
-            count: items.length,
-            size: formatFileSize(items.reduce((s, i) => s + i.sizeBytes, 0)),
-        };
+            case 'fromHere':
+                return m.downloads_scope_from_here({ count: o.count, size });
+            case 'custom':
+                return m.downloads_scope_custom();
+            case 'season':
+                return series?.season === 0
+                    ? m.downloads_scope_specials({ count: o.count, size })
+                    : m.downloads_scope_season({
+                          season: series?.season ?? 0,
+                          count: o.count,
+                          size,
+                      });
+            case 'series':
+                return m.downloads_scope_series({ count: o.count, size });
+        }
     }
-    let seasonTally = $derived(tally(seriesItems.filter((i) => i.season === scopeSeason)));
-    let seriesTally = $derived(
-        tally(pending?.opts.specials ? seriesItems : seriesItems.filter((i) => i.season !== 0)),
-    );
-    let seasonScoped = $derived(pending?.opts.season !== undefined);
+    /** "Show - S01E02 - Title.mkv" -> "Title"; empty when the name has no title part. */
+    function episodeTitle(i: { fileName: string }): string {
+        return /S\d+E\d+(?:-?E\d+)*\s+-\s+(.+)\.[^.]+$/.exec(i.fileName)?.[1] ?? '';
+    }
     let titleName = $derived(pending?.list.seriesFolder ?? '');
+    // No folder picker and a season/series: the user may take one ZIP (folders kept) instead.
+    let zipOffered = $derived(downloadQueue.zipOffered);
+    let zipChosen = $derived(zipOffered && downloadQueue.archive);
     let startLabel = $derived(
-        available.length === 1
-            ? m.downloads_start_one({ size: formatFileSize(totalBytes) })
-            : m.downloads_start_n({ count: available.length, size: formatFileSize(totalBytes) }),
+        zipChosen
+            ? m.downloads_start_zip({ size: formatFileSize(totalBytes) })
+            : available.length === 1
+              ? m.downloads_start_one({ size: formatFileSize(totalBytes) })
+              : m.downloads_start_n({
+                    count: available.length,
+                    size: formatFileSize(totalBytes),
+                }),
     );
 
     // FAT32 sticks cannot hold a file of 4 GiB or more. Only matters when saving to a folder.
@@ -82,9 +84,6 @@
             available.some((i) => i.sizeBytes >= FAT32_LIMIT_BYTES),
     );
 
-    // No folder picker and a season/series: the user may take one ZIP (folders kept) instead.
-    let zipOffered = $derived(downloadQueue.zipOffered);
-    let zipChosen = $derived(zipOffered && downloadQueue.archive);
     let zipOverFat32 = $derived(totalBytes >= FAT32_LIMIT_BYTES);
     let isIosBrowser = $derived(downloadQueue.profile.hint === 'ios');
 
@@ -153,38 +152,68 @@
                 {m.downloads_confirm_title({ name: titleName })}
             </h3>
 
-            {#if showScope}
-                <fieldset
-                    class="space-y-1"
-                    data-testid="download-scope"
-                    disabled={downloadQueue.loading}>
+            {#if series && showScope}
+                <fieldset class="space-y-1" data-testid="download-scope">
                     <legend class="sr-only">{m.downloads_scope_legend()}</legend>
-                    <label class="flex items-center gap-2 text-sm text-surface-200">
-                        <input
-                            type="radio"
-                            name="download-scope"
-                            class="radio"
-                            data-testid="download-scope-season"
-                            checked={seasonScoped}
-                            onchange={() => void downloadQueue.setScope(scopeSeason)} />
-                        {scopeSeason === 0
-                            ? m.downloads_scope_specials(seasonTally)
-                            : m.downloads_scope_season({
-                                  season: scopeSeason ?? 0,
-                                  ...seasonTally,
-                              })}
-                    </label>
-                    <label class="flex items-center gap-2 text-sm text-surface-200">
-                        <input
-                            type="radio"
-                            name="download-scope"
-                            class="radio"
-                            data-testid="download-scope-series"
-                            checked={!seasonScoped}
-                            onchange={() => void downloadQueue.setScope(undefined)} />
-                        {m.downloads_scope_series(seriesTally)}
-                    </label>
+                    {#each options as o (o.scope)}
+                        <label class="flex items-center gap-2 text-sm text-surface-200">
+                            <input
+                                type="radio"
+                                name="download-scope"
+                                class="radio"
+                                data-testid="download-scope-{o.scope}"
+                                checked={series.scope === o.scope}
+                                onchange={() => downloadQueue.setScope(o.scope)} />
+                            {label(o)}
+                        </label>
+                    {/each}
                 </fieldset>
+            {/if}
+
+            {#if series && series.scope === 'custom'}
+                <div class="space-y-1" data-testid="download-episodes">
+                    <div class="flex gap-3 text-xs">
+                        <button
+                            type="button"
+                            class="text-primary-400 hover:underline"
+                            data-testid="download-select-all"
+                            onclick={() =>
+                                downloadQueue.setAllEpisodes(
+                                    true,
+                                    checklist.map((i) => i.mediaItemId),
+                                )}>
+                            {m.downloads_select_all()}
+                        </button>
+                        <button
+                            type="button"
+                            class="text-primary-400 hover:underline"
+                            data-testid="download-select-none"
+                            onclick={() => downloadQueue.setAllEpisodes(false, [])}>
+                            {m.downloads_select_none()}
+                        </button>
+                    </div>
+                    <ul class="max-h-48 overflow-y-auto space-y-0.5 pr-1">
+                        {#each checklist as ep (ep.mediaItemId)}
+                            <li>
+                                <label
+                                    class="flex items-center gap-2 text-sm text-surface-200 py-0.5">
+                                    <input
+                                        type="checkbox"
+                                        class="checkbox"
+                                        data-testid="download-episode-{ep.mediaItemId}"
+                                        checked={series.custom.includes(ep.mediaItemId)}
+                                        onchange={() =>
+                                            downloadQueue.toggleEpisode(ep.mediaItemId)} />
+                                    <span class="font-mono text-xs shrink-0"
+                                        >{episodeCode(ep)}</span>
+                                    <span class="truncate min-w-0 flex-1">{episodeTitle(ep)}</span>
+                                    <span class="text-xs text-surface-400 shrink-0"
+                                        >{formatFileSize(ep.sizeBytes)}</span>
+                                </label>
+                            </li>
+                        {/each}
+                    </ul>
+                </div>
             {/if}
 
             {#if pending.list.missingCount > 0}
@@ -198,9 +227,9 @@
                     <input
                         type="checkbox"
                         class="checkbox"
-                        checked={pending.opts.specials === true}
-                        disabled={downloadQueue.loading}
-                        onchange={(e) => void downloadQueue.setSpecials(e.currentTarget.checked)} />
+                        data-testid="download-specials"
+                        checked={series?.specials === true}
+                        onchange={(e) => downloadQueue.setSpecials(e.currentTarget.checked)} />
                     {m.downloads_include_specials()}
                 </label>
             {/if}

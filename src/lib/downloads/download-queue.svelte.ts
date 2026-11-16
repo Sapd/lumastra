@@ -30,6 +30,13 @@ import { sanitizePathSegment } from './path-sanitize';
 import { toasts } from '$lib/stores/toast.store';
 import * as m from '$lib/paraglide/messages';
 import {
+    initialSeriesScope,
+    scopeItems,
+    scopeQuery,
+    type DownloadScope,
+    type SeriesScope,
+} from './download-scope';
+import {
     detectBrowserEnv,
     linkBatchSize,
     linkModeProfile,
@@ -39,6 +46,7 @@ import {
 } from './browser-profile';
 
 export { linkBatchSize };
+export type { DownloadScope, SeriesScope };
 
 export interface DownloadListItem {
     mediaItemId: string;
@@ -63,7 +71,12 @@ export interface DownloadList {
 export interface EnqueueOptions {
     season?: number;
     specials?: boolean;
+    /** ZIP only: a subset of the series (max `MAX_ZIP_EPISODES`). The list call ignores it. */
+    episodeIds?: string[];
 }
+
+/** The server takes at most this many ids in `?episodes=`. */
+export const MAX_ZIP_EPISODES = 200;
 
 export type QueueItemStatus =
     'queued' | 'active' | 'waiting' | 'done' | 'skipped' | 'failed' | 'cancelled' | 'handed';
@@ -99,12 +112,10 @@ export interface QueueItem extends DownloadListItem {
 export interface PendingDownload {
     mediaItemId: string;
     opts: EnqueueOptions;
+    /** What will be downloaded: for a series sheet, the items of the chosen scope. */
     list: DownloadList;
-    /**
-     * Set when the download started from a season of a series: the sheet can switch between
-     * this season and the whole series (and back).
-     */
-    scopeSeason?: number;
+    /** Series sheet only: the whole series list and the scope choice `list`/`opts` follow. */
+    series?: SeriesScope;
 }
 
 export interface QueueDeps {
@@ -193,6 +204,7 @@ export function archiveUrl(mediaItemId: string, opts: EnqueueOptions, handoff?: 
     const q = new SvelteURLSearchParams();
     if (opts.season !== undefined) q.set('season', String(opts.season));
     if (opts.specials) q.set('specials', '1');
+    if (opts.episodeIds?.length) q.set('episodes', opts.episodeIds.join(','));
     if (handoff) q.set('h', handoff);
     const qs = q.toString();
     return `${base}/api/media/${encodeURIComponent(mediaItemId)}/download-zip${qs ? `?${qs}` : ''}`;
@@ -245,6 +257,11 @@ export class DownloadQueue {
     /** Set by enqueue(); the confirm sheet shows it */
     pending = $state<PendingDownload | null>(null);
     folderName = $state<string | null>(null);
+    /**
+     * The series and season the episode picker shows right now, for the modal's "Download
+     * season N" menu item (the picker and the action row are different components).
+     */
+    pickerContext = $state<{ seriesId: string; season: number | undefined } | null>(null);
     loading = $state(false);
 
     /** Why the folder picker is off despite being present: it threw something other than a cancel */
@@ -334,50 +351,96 @@ export class DownloadQueue {
     }
 
     /**
-     * Fetch the list for a title/season and open the confirm sheet. `scopeSeason` marks a
-     * season of a series the sheet may widen to the whole series. Outcomes without a run
-     * (busy, not allowed, empty, failed) are toasts, never queue state.
+     * The list for the sheet, or null after a toast: busy, not allowed, empty, failed. Outcomes
+     * without a run are toasts, never queue state.
      */
-    async enqueue(
+    private async fetchForSheet(
         mediaItemId: string,
-        opts: EnqueueOptions = {},
-        scopeSeason?: number,
-    ): Promise<void> {
+        opts: EnqueueOptions,
+    ): Promise<DownloadList | null> {
         if (this.state === 'running') {
             // Never touch `error`/`state`: they describe the run in progress.
             toasts.info(m.downloads_error_busy());
-            return;
+            return null;
         }
         this.error = undefined;
         this.archive = false;
         this.loading = true;
-        const failed = () =>
+        const failed = () => {
             toasts.error(m.downloads_error_list(), { diagnosticKey: 'downloads_error_list' });
+            return null;
+        };
         try {
             const res = await this.deps.fetch(listUrl(mediaItemId, opts));
             if (res.status === 403 || res.status === 404) {
                 toasts.warning(m.downloads_error_not_allowed());
-                return;
+                return null;
             }
-            if (!res.ok) {
-                failed();
-                return;
-            }
+            if (!res.ok) return failed();
             const list = (await res.json()) as DownloadList;
             if (!list.allowed) {
                 toasts.warning(m.downloads_error_not_allowed());
-                return;
+                return null;
             }
             if (list.items.length === 0) {
                 toasts.info(m.downloads_error_empty());
-                return;
+                return null;
             }
-            this.pending = { mediaItemId, opts, list, scopeSeason };
+            return list;
         } catch {
-            failed();
+            return failed();
         } finally {
             this.loading = false;
         }
+    }
+
+    /** Fetch the list of a movie or single episode and open the confirm sheet. */
+    async enqueue(mediaItemId: string, opts: EnqueueOptions = {}): Promise<void> {
+        const list = await this.fetchForSheet(mediaItemId, opts);
+        if (list) this.pending = { mediaItemId, opts, list };
+    }
+
+    /**
+     * Open the confirm sheet for a series with a scope preselected. ONE list of the whole series
+     * (season 0 included) is fetched; every scope, count and size is derived from it, so
+     * switching scope never calls the server. `season` is the season the user is looking at;
+     * `episodeId` the episode the sheet was opened from.
+     */
+    async enqueueSeries(
+        seriesId: string,
+        want: { scope: DownloadScope; season?: number; episodeId?: string },
+    ): Promise<void> {
+        const all = await this.fetchForSheet(seriesId, { specials: true });
+        if (!all) return;
+        const series = initialSeriesScope(all, want);
+        if (!series) {
+            toasts.info(m.downloads_error_empty());
+            return;
+        }
+        this.pending = this.seriesPending(seriesId, series);
+    }
+
+    /** The pending download a series scope stands for. */
+    private seriesPending(seriesId: string, series: SeriesScope): PendingDownload {
+        const chosen = scopeItems(series);
+        const all = series.all;
+        return {
+            mediaItemId: seriesId,
+            opts: scopeQuery(series),
+            list: {
+                ...all,
+                // The server's count covers the whole series; a narrower scope has none of its own.
+                missingCount: series.scope === 'series' ? all.missingCount : 0,
+                items: chosen,
+            },
+            series,
+        };
+    }
+
+    private updateSeries(change: Partial<SeriesScope>): void {
+        const p = this.pending;
+        if (!p?.series) return;
+        this.pending = this.seriesPending(p.mediaItemId, { ...p.series, ...change });
     }
 
     /**
@@ -387,6 +450,7 @@ export class DownloadQueue {
     get zipOffered(): boolean {
         const p = this.pending;
         if (!p || this.supportsFolderPicker) return false;
+        if ((p.opts.episodeIds?.length ?? 0) > MAX_ZIP_EPISODES) return false;
         const available = p.list.items.filter((i) => i.available);
         return available.length >= 2 && available.some((i) => i.seasonFolder !== null);
     }
@@ -395,26 +459,27 @@ export class DownloadQueue {
         this.archive = on;
     }
 
-    /** Sheet checkbox: re-list the same series with or without season 0. */
-    async setSpecials(include: boolean): Promise<void> {
-        const p = this.pending;
-        if (!p) return;
-        await this.enqueue(p.mediaItemId, { ...p.opts, specials: include }, p.scopeSeason);
+    /** Sheet checkbox (series scope): with or without season 0. */
+    setSpecials(include: boolean): void {
+        this.updateSeries({ specials: include });
     }
 
-    /** Sheet radio: the scope season, or (undefined) the whole series. */
-    async setScope(season: number | undefined): Promise<void> {
-        const p = this.pending;
-        if (!p || p.scopeSeason === undefined) return;
-        const opts: EnqueueOptions =
-            season === undefined
-                ? p.opts.specials
-                    ? { specials: true }
-                    : {}
-                : season === 0
-                  ? { season, specials: true }
-                  : { season };
-        await this.enqueue(p.mediaItemId, opts, p.scopeSeason);
+    /** Sheet radio. Choosing the checklist keeps what was checked before. */
+    setScope(scope: DownloadScope): void {
+        this.updateSeries({ scope });
+    }
+
+    /** Checklist: one episode on or off. */
+    toggleEpisode(id: string): void {
+        const p = this.pending?.series;
+        if (!p) return;
+        const on = p.custom.includes(id);
+        this.updateSeries({ custom: on ? p.custom.filter((c) => c !== id) : [...p.custom, id] });
+    }
+
+    /** Checklist: every available episode of the season, or none. */
+    setAllEpisodes(on: boolean, ids: string[]): void {
+        this.updateSeries({ custom: on ? ids : [] });
     }
 
     /** Must be called from a click handler (user activation). */
@@ -439,6 +504,15 @@ export class DownloadQueue {
     forgetFolder(): void {
         this.dirHandle = null;
         this.folderName = null;
+    }
+
+    setPickerContext(seriesId: string, season: number | undefined): void {
+        this.pickerContext = { seriesId, season };
+    }
+
+    /** Only the picker that set it may clear it (two pickers can be alive during a swap). */
+    clearPickerContext(seriesId: string): void {
+        if (this.pickerContext?.seriesId === seriesId) this.pickerContext = null;
     }
 
     dismissPending(): void {
@@ -563,9 +637,13 @@ export class DownloadQueue {
         const files = p.list.items.filter((i) => i.available);
         const folders = new SvelteSet(files.map((i) => i.seasonFolder));
         const [only] = [...folders];
-        const fileName = `${sanitizePathSegment(p.list.seriesFolder)}${
-            folders.size === 1 && only ? ` - ${sanitizePathSegment(only)}` : ''
-        }.zip`;
+        // Same names as the server's Content-Disposition: a subset is "Selection".
+        const suffix = p.opts.episodeIds
+            ? ' - Selection'
+            : folders.size === 1 && only
+              ? ` - ${sanitizePathSegment(only)}`
+              : '';
+        const fileName = `${sanitizePathSegment(p.list.seriesFolder)}${suffix}.zip`;
         return [
             {
                 mediaItemId: p.mediaItemId,

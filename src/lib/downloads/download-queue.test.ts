@@ -437,14 +437,160 @@ describe('DownloadQueue enqueue', () => {
         });
     });
 
-    test('switching scope keeps the season hint and re-lists', async () => {
-        const { q } = setup(list([item(1), item(2)]), () => fileResponse(5));
-        await q.enqueue('series-1', { season: 2 }, 2);
-        await q.setScope(undefined);
-        expect(q.pending?.opts).toEqual({});
-        expect(q.pending?.scopeSeason).toBe(2);
-        await q.setScope(2);
-        expect(q.pending?.opts).toEqual({ season: 2 });
+    describe('series scope', () => {
+        const ep = (season: number, n: number, size = 10): DownloadListItem => ({
+            mediaItemId: `s${season}e${n}`,
+            fileId: `f-s${season}e${n}`,
+            season,
+            episode: n,
+            seasonFolder: season === 0 ? 'Specials' : `Season 0${season}`,
+            fileName: `Show - S0${season}E0${n} - T${n}.mkv`,
+            sizeBytes: size,
+            available: true,
+        });
+        const items = [ep(0, 1), ep(1, 1), ep(1, 2), ep(1, 3), ep(2, 1), ep(2, 2)];
+
+        test('enqueueSeries fetches ONE list (with specials) and scope changes never fetch again', async () => {
+            const { q, fetchFn } = setup(list(items), () => fileResponse(5));
+            await q.enqueueSeries('series-1', { scope: 'season', season: 1 });
+            expect(fetchFn).toHaveBeenCalledTimes(1);
+            expect(String(fetchFn.mock.calls[0]![0])).toBe(
+                '/api/media/series-1/download-list?specials=1',
+            );
+            q.setScope('series');
+            q.setScope('custom');
+            q.toggleEpisode('s1e2');
+            q.setSpecials(true);
+            expect(fetchFn).toHaveBeenCalledTimes(1);
+        });
+
+        test('season, series and specials scopes pick the matching items and request options', async () => {
+            const { q } = setup(list(items), () => fileResponse(5));
+            await q.enqueueSeries('series-1', { scope: 'season', season: 2 });
+            expect(q.pending?.list.items.map((i) => i.mediaItemId)).toEqual(['s2e1', 's2e2']);
+            expect(q.pending?.opts).toEqual({ season: 2 });
+            q.setScope('series');
+            expect(q.pending?.list.items).toHaveLength(5); // no season 0
+            expect(q.pending?.opts).toEqual({});
+            q.setSpecials(true);
+            expect(q.pending?.list.items).toHaveLength(6);
+            expect(q.pending?.opts).toEqual({ specials: true });
+        });
+
+        test('an episode opens "This episode" with the season of that episode', async () => {
+            const { q } = setup(list(items), () => fileResponse(5));
+            await q.enqueueSeries('series-1', { scope: 'episode', episodeId: 's2e2' });
+            expect(q.pending?.series).toMatchObject({ scope: 'episode', season: 2 });
+            expect(q.pending?.list.items.map((i) => i.mediaItemId)).toEqual(['s2e2']);
+            q.setScope('fromHere');
+            expect(q.pending?.list.items.map((i) => i.mediaItemId)).toEqual(['s2e2']);
+        });
+
+        test('"from here" runs to the end of the season; the custom list starts with the opening episode', async () => {
+            const { q } = setup(list(items), () => fileResponse(5));
+            await q.enqueueSeries('series-1', { scope: 'fromHere', episodeId: 's1e2' });
+            expect(q.pending?.list.items.map((i) => i.mediaItemId)).toEqual(['s1e2', 's1e3']);
+            expect(q.pending?.opts).toEqual({ episodeIds: ['s1e2', 's1e3'] });
+            q.setScope('custom');
+            expect(q.pending?.list.items.map((i) => i.mediaItemId)).toEqual(['s1e2']);
+            q.toggleEpisode('s1e3');
+            q.toggleEpisode('s1e2');
+            expect(q.pending?.list.items.map((i) => i.mediaItemId)).toEqual(['s1e3']);
+            q.setAllEpisodes(true, ['s1e1', 's1e2', 's1e3']);
+            expect(q.pending?.list.items).toHaveLength(3);
+            q.setAllEpisodes(false, []);
+            expect(q.pending?.list.items).toHaveLength(0);
+            expect(q.pending?.opts).toEqual({ episodeIds: [] });
+        });
+
+        test('a scope that does not exist falls back; an unknown or unavailable episode is "nothing to download"', async () => {
+            const { q } = setup(list(items), () => fileResponse(5));
+            await q.enqueueSeries('series-1', { scope: 'season', season: 9 });
+            expect(q.pending?.series?.scope).toBe('series');
+            q.dismissPending();
+            toast.info.mockClear();
+            await q.enqueueSeries('series-1', { scope: 'episode', episodeId: 'nope' });
+            expect(q.pending).toBeNull();
+            expect(toast.info).toHaveBeenCalledWith('There is nothing to download here.');
+        });
+
+        test('a busy queue answers with the toast, no list call', async () => {
+            const { q, fetchFn } = setup(list(items), () => fileResponse(5));
+            q.state = 'running';
+            await q.enqueueSeries('series-1', { scope: 'series' });
+            expect(fetchFn).not.toHaveBeenCalled();
+            q.state = 'idle';
+        });
+
+        test('ZIP of a subset passes the ids and is named "Selection"', async () => {
+            const { q, links } = setup(
+                list(items),
+                () => new Response(null, { status: 200, headers: { 'content-length': '99' } }),
+                { noPicker: true },
+            );
+            await q.enqueueSeries('series-1', { scope: 'fromHere', episodeId: 's1e1' });
+            expect(q.zipOffered).toBe(true);
+            q.setArchive(true);
+            await q.start();
+            expect(links).toHaveLength(1);
+            const url = new URL(links[0]!.url, 'http://x');
+            expect(url.pathname).toBe('/api/media/series-1/download-zip');
+            expect(url.searchParams.get('episodes')).toBe('s1e1,s1e2,s1e3');
+            expect(url.searchParams.has('season')).toBe(false);
+            expect(links[0]!.fileName).toBe('Show (2020) - Selection.zip');
+        });
+
+        test('ZIP of a whole season keeps the season and its name', async () => {
+            const { q, links } = setup(
+                list(items),
+                () => new Response(null, { status: 200, headers: { 'content-length': '99' } }),
+                { noPicker: true },
+            );
+            await q.enqueueSeries('series-1', { scope: 'season', season: 1 });
+            q.setArchive(true);
+            await q.start();
+            expect(q.mode).toBe('zip');
+            expect(links[0]!.url).toMatch(/^\/api\/media\/series-1\/download-zip\?season=1&h=/);
+            expect(links[0]!.fileName).toBe('Show (2020) - Season 01.zip');
+        });
+
+        test('no ZIP for more than 200 chosen episodes (separate files only)', async () => {
+            const many = Array.from({ length: 201 }, (_, i) => ep(1, i + 1));
+            const { q } = setup(list(many), () => fileResponse(5), { noPicker: true });
+            await q.enqueueSeries('series-1', { scope: 'custom', season: 1 });
+            q.setAllEpisodes(
+                true,
+                many.map((i) => i.mediaItemId),
+            );
+            expect(q.zipOffered).toBe(false);
+            q.setAllEpisodes(
+                true,
+                many.slice(0, 200).map((i) => i.mediaItemId),
+            );
+            expect(q.zipOffered).toBe(true);
+        });
+
+        test('a subset with a special passes specials=1 to the ZIP', async () => {
+            const { q, links } = setup(
+                list(items),
+                () => new Response(null, { status: 200, headers: { 'content-length': '99' } }),
+                { noPicker: true },
+            );
+            await q.enqueueSeries('series-1', { scope: 'episode', episodeId: 's0e1' });
+            // one file: no ZIP, but the options still carry specials for the server
+            expect(q.pending?.opts).toEqual({ episodeIds: ['s0e1'], specials: true });
+            expect(q.zipOffered).toBe(false);
+            expect(links).toHaveLength(0);
+        });
+
+        test('the picker context is set and only cleared by the same series', () => {
+            const { q } = setup(list(items), () => fileResponse(5));
+            q.setPickerContext('a', 2);
+            q.clearPickerContext('b');
+            expect(q.pickerContext).toEqual({ seriesId: 'a', season: 2 });
+            q.clearPickerContext('a');
+            expect(q.pickerContext).toBeNull();
+        });
     });
 
     test('cancel stops a running queue', async () => {

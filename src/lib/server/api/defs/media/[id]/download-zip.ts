@@ -23,6 +23,16 @@
  * headers go out; if any cannot be included the answer is 409 `files_unavailable` rather than a
  * short archive. Files are opened once with the descriptor verified when streamed.
  *
+ * `?episodes=<id,id,...>` narrows the archive to a subset of the series (the web download sheet's
+ * "choose episodes"): at most 200 distinct ids (the URL stays short), uuids only (422 otherwise, like an invalid
+ * season), normalised to lower case with dashes. The subset is INTERSECTED with the list built
+ * for the requested `season`/`specials` (a season-2 id with `season=1`, or a special without
+ * `specials=1`, is a 404), so per-file library and age checks are unchanged. A named episode that
+ * is unavailable is a 409 `files_unavailable`, like a season's, never a shorter archive. An id that is not in that list
+ * (another series, hidden by age or library scope, no file) answers 404 for the whole request,
+ * never silently dropped: the answer is the same for "not yours" and "not there", so it reveals
+ * nothing beyond what download-list already shows. The file is named `<series> - Selection.zip`.
+ *
  * One archive = one lease and one download_events row (keyed on the requested series/season id;
  * no file or rendition id), bandwidth-limited as a whole. No Range support: a Range request gets
  * the full 200. HEAD answers the headers only (no lease, no log).
@@ -37,6 +47,7 @@ import { defineEndpoint } from '$lib/server/api/define.js';
 import { ApiProblem } from '$lib/server/api/problem.js';
 import { config } from '$lib/server/config.js';
 import { getDb } from '$lib/server/database/index.js';
+import { isUuid, normalizeUuid } from '$lib/server/utils/media-key-parser.js';
 import { checkMediaAccess, checkMediaAccessBatch } from '$lib/server/middleware/media-access.js';
 import {
     allowedFileIds,
@@ -73,6 +84,18 @@ import {
 import { resolveCatalogInternalId } from '../../catalog/resolve-id.js';
 
 const logger = Logger.for('DownloadZip');
+
+/** Most episode ids one `?episodes=` subset may name. */
+export const MAX_SUBSET_EPISODES = 200;
+
+/** Parse `?episodes=`: null = not given, 'invalid' = empty, not uuids or over the cap. */
+export function parseEpisodeSubset(raw: string | null): string[] | null | 'invalid' {
+    if (raw === null) return null;
+    // Dashless and upper-case spellings are the same id: normalise before the dedup.
+    const ids = [...new Set(raw.split(',').map((id) => normalizeUuid(id.trim())))];
+    if (ids.length === 0 || ids.length > MAX_SUBSET_EPISODES) return 'invalid';
+    return ids.every((id) => isUuid(id)) ? ids : 'invalid';
+}
 
 /** Files stat-ed at the same time while the archive size is computed (NFS/CIFS latency). */
 const STAT_CONCURRENCY = 8;
@@ -303,6 +326,16 @@ export const def = defineEndpoint({
                 ]);
             }
             const specials = event.url.searchParams.get('specials') === '1';
+            const subsetParsed = parseEpisodeSubset(event.url.searchParams.get('episodes'));
+            if (subsetParsed === 'invalid') {
+                return ApiProblem.validationFailed([
+                    {
+                        field: 'episodes',
+                        message: `episodes must be 1 to ${MAX_SUBSET_EPISODES} distinct comma-separated ids`,
+                    },
+                ]);
+            }
+            const subset = subsetParsed ? [...subsetParsed].sort() : null;
 
             const internalId = await resolveCatalogInternalId(event);
             if (!internalId) return ApiProblem.notFound('Media item not found');
@@ -329,7 +362,7 @@ export const def = defineEndpoint({
             const isHead = event.request.method === 'HEAD';
             const userId = event.locals.user?.userId ?? 'anonymous';
             const denied = await deniedLibraryGroupsFor(sql, accessUser);
-            const cacheKey = `${userId}|${internalId}|${season ?? ''}|${specials ? 1 : 0}|${scopeKey(denied, accessUser, true)}`;
+            const cacheKey = `${userId}|${internalId}|${season ?? ''}|${specials ? 1 : 0}|${scopeKey(denied, accessUser, true)}|${subset ? crypto.createHash('sha1').update(subset.join(',')).digest('hex') : ''}`;
 
             // GET holds its download slot (lease) from here on, so every later step counts
             // against the parallel limit. A HEAD takes none.
@@ -414,6 +447,7 @@ export const def = defineEndpoint({
                         accessUser,
                         season,
                         specials,
+                        subset,
                         prepAbort.signal,
                     );
                     void work.then(
@@ -493,6 +527,7 @@ async function prepare(
     accessUser: Parameters<typeof buildDownloadList>[2],
     season: number | null,
     specials: boolean,
+    subset: string[] | null,
     signal: AbortSignal,
 ): Promise<PrepareResult> {
     const refuse = (response: Response): PrepareResult => ({ kind: 'response', response });
@@ -509,6 +544,27 @@ async function prepare(
                 { status: 400 },
             ),
         );
+    }
+    if (subset) {
+        // Any id outside the list built for the requested season/specials refuses the whole
+        // request (see the file header).
+        const known = new Set(list.items.map((i) => i.mediaItemId));
+        if (!subset.every((id) => known.has(id))) {
+            return refuse(ApiProblem.notFound('Episode not found'));
+        }
+        const wanted = new Set(subset);
+        list.items = list.items.filter((i) => wanted.has(i.mediaItemId));
+        // An explicitly named episode that cannot be served is a 409 like a season's, never a
+        // shorter archive (and never a 404 when all of them are unavailable).
+        const gone = list.items.filter((i) => !i.available).length;
+        if (gone > 0) {
+            return refuse(
+                ApiProblem.conflict('Some files of this download are not available', {
+                    reason: 'files_unavailable',
+                    details: `${gone} of ${list.items.length} files are not available`,
+                }),
+            );
+        }
     }
     if (list.items.length > MAX_ARCHIVE_ENTRIES) {
         return refuse(
@@ -551,6 +607,8 @@ async function prepare(
         (season !== null || list.root.media_type === 'season') && seasonFolders.size === 1
             ? [...seasonFolders][0]
             : null;
-    const zipName = `${list.seriesFolder}${oneSeason ? ` - ${oneSeason}` : ''}.zip`;
+    const zipName = subset
+        ? `${list.seriesFolder} - Selection.zip`
+        : `${list.seriesFolder}${oneSeason ? ` - ${oneSeason}` : ''}.zip`;
     return { kind: 'ok', prepared: { files, names, contentLength, zipName } };
 }
