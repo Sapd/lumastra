@@ -1867,8 +1867,9 @@ export async function setUserLiveTvAllowed(
 
 /**
  * Per-user download override plus the user's synced groups (`[]` when none).
- * allowDownloads null = follow DOWNLOAD_GROUPS / `DOWNLOADS_ALLOWED_BY_DEFAULT`; undefined = no such user, or the user is
- * disabled / soft-deleted (so canDownload denies them).
+ * allowDownloads null = follow DOWNLOAD_GROUPS / `DOWNLOADS_ALLOWED_BY_DEFAULT`;
+ * undefined = no such user, or the user is disabled / soft-deleted (so
+ * canDownload denies them).
  */
 export async function getUserAllowDownloads(
     sql: postgres.Sql,

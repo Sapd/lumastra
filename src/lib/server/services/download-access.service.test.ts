@@ -11,7 +11,8 @@ const cfg = vi.hoisted(() => ({
 const getUserAllowDownloads = vi.hoisted(() => vi.fn());
 
 vi.mock('$lib/server/config.js', () => ({ config: cfg }));
-vi.mock('$lib/server/database/connection.js', () => ({ getDb: () => ({}) }));
+const dbHolder = vi.hoisted(() => ({ db: {} as object | null }));
+vi.mock('$lib/server/database/connection.js', () => ({ getDb: () => dbHolder.db }));
 vi.mock('$lib/server/database/queries/users.queries.js', () => ({ getUserAllowDownloads }));
 
 import {
@@ -223,6 +224,31 @@ describe('explainDownloadAccess', () => {
         cfg.DOWNLOAD_GROUPS = ['family'];
         expect(explainDownloadAccess({ allowDownloads: null, groups: null }, false).allowed).toBe(
             false,
+        );
+    });
+});
+
+describe('fail closed and blank groups', () => {
+    beforeEach(() => {
+        cfg.FEATURE_MEDIA_DOWNLOAD = true;
+        cfg.DOWNLOADS_ALLOWED_BY_DEFAULT = true;
+        cfg.DOWNLOAD_GROUPS = [];
+        dbHolder.db = {};
+        getUserAllowDownloads.mockReset();
+    });
+
+    it('is false when there is no database, without querying', async () => {
+        dbHolder.db = null;
+        expect(await userMayDownload(user())).toBe(false);
+        expect(getUserAllowDownloads).not.toHaveBeenCalled();
+    });
+
+    it('ignores empty / whitespace DOWNLOAD_GROUPS entries', async () => {
+        cfg.DOWNLOAD_GROUPS = ['', '  '];
+        mockRow(null, ['kids']);
+        expect(await userMayDownload(user())).toBe(true);
+        expect(explainDownloadAccess({ allowDownloads: null, groups: [] }, false).reason).toBe(
+            'default',
         );
     });
 });

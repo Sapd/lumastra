@@ -36,7 +36,7 @@ async function loadRow(userId: string): Promise<AccessRow | undefined> {
     const hit = cache.get(userId);
     if (hit && hit.expires > now) return hit.row;
     const db = getDb();
-    if (!db) return false; // fail closed, uncached
+    if (!db) return undefined; // fail closed (treated as no such user), uncached
     const row = await getUserAllowDownloads(db, userId);
     if (cache.size >= MAX_ENTRIES) {
         for (const [k, v] of cache) if (v.expires <= now) cache.delete(k);
@@ -59,7 +59,7 @@ export function explainDownloadAccess(
 ): { allowed: boolean; reason: 'admin' | 'override' | 'group' | 'default' } {
     if (isAdmin) return { allowed: true, reason: 'admin' };
     if (row.allowDownloads !== null) return { allowed: row.allowDownloads, reason: 'override' };
-    const allowedGroups = config.DOWNLOAD_GROUPS;
+    const allowedGroups = config.DOWNLOAD_GROUPS.filter((g) => g.trim() !== '');
     if (allowedGroups.length > 0) {
         return { allowed: hasGroupPermission(row.groups ?? [], allowedGroups), reason: 'group' };
     }
