@@ -14,9 +14,9 @@
  * ## Shared state
  *
  * Valkey (coordination instance), when connected:
- *   `dl:lease:{userId}`  hash, one field per connection `${fileId}|${deviceKey}#${token}`,
+ *   `dl:v2:lease:{userId}`  hash, one field per connection `${fileId}|${deviceKey}#${token}`,
  *                        value `expiresAtMs|bytesSent|startedAt|bytesPerSec`
- *   `dl:users`           sorted set, member userId, score = latest lease expiry of that user
+ *   `dl:v2:users`           sorted set, member userId, score = latest lease expiry of that user
  * All reads and writes go through one Lua script per operation, so two replicas
  * racing for the last slot cannot both win. Expired fields are dropped inside
  * every script. Every key carries a TTL, so a crashed replica leaks nothing.
@@ -60,8 +60,8 @@ const VALKEY_TIMEOUT_MS = 2_000;
 /** Connections one slot (file+device) may hold at once; the next one is refused like the parallel limit. */
 export const MAX_SLOT_CONNECTIONS = 4;
 
-const LEASE_KEY_PREFIX = 'dl:lease:';
-const USERS_KEY = 'dl:users';
+const LEASE_KEY_PREFIX = 'dl:v2:lease:';
+const USERS_KEY = 'dl:v2:users';
 
 export type LeaseKey = { userId: string; fileId: string; deviceKey: string };
 export type AcquireResult =

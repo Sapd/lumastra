@@ -227,7 +227,7 @@ describe('hung Valkey', () => {
         if (!r.ok) throw new Error('expected ok');
         // acquire script, then the release script for the same lease key
         expect(calls).toHaveLength(2);
-        expect(calls[1]).toContain('dl:lease:u');
+        expect(calls[1]).toContain('dl:v2:lease:u');
         expect(isDownloadLeasingDegraded()).toBe(true);
         await r.lease.release();
         expect(isDownloadLeasingDegraded()).toBe(false);

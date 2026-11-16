@@ -32,16 +32,16 @@ type Cmd = { customCommand: (c: string[]) => Promise<unknown> };
 /** Valkey's clock cannot be faked: age a lease by rewriting its stored expiry. */
 async function expireField(userId: string, slot: string): Promise<void> {
     const c = getCoordinationClient() as unknown as Cmd;
-    const fields = ((await c.customCommand(['HKEYS', `dl:lease:${userId}`])) as string[]).map(
+    const fields = ((await c.customCommand(['HKEYS', `dl:v2:lease:${userId}`])) as string[]).map(
         String,
     );
     for (const f of fields) {
         if (!f.startsWith(`${slot}#`)) continue;
-        const v = String(await c.customCommand(['HGET', `dl:lease:${userId}`, f]));
+        const v = String(await c.customCommand(['HGET', `dl:v2:lease:${userId}`, f]));
         const rest = v.split('|').slice(1).join('|');
-        await c.customCommand(['HSET', `dl:lease:${userId}`, f, `1|${rest}`]);
+        await c.customCommand(['HSET', `dl:v2:lease:${userId}`, f, `1|${rest}`]);
     }
-    await c.customCommand(['ZADD', 'dl:users', '1', userId]); // its dl:users score ages too
+    await c.customCommand(['ZADD', 'dl:v2:users', '1', userId]); // its dl:v2:users score ages too
 }
 
 describe.runIf(RUN)('download leases, real Valkey', () => {
@@ -78,8 +78,8 @@ describe.runIf(RUN)('download leases, real Valkey', () => {
         vi.useRealTimers();
         const c = getCoordinationClient() as unknown as Cmd;
         for (const u of users) {
-            await c.customCommand(['DEL', `dl:lease:${u}`]);
-            await c.customCommand(['ZREM', 'dl:users', u]);
+            await c.customCommand(['DEL', `dl:v2:lease:${u}`]);
+            await c.customCommand(['ZREM', 'dl:v2:users', u]);
         }
     });
 
@@ -207,8 +207,8 @@ describe.runIf(RUN)('download leases, real Valkey', () => {
         const u = user();
         await must(u, 'f1');
         const c = getCoordinationClient() as unknown as Cmd;
-        expect(Number(await c.customCommand(['PTTL', `dl:lease:${u}`]))).toBeGreaterThan(0);
-        expect(Number(await c.customCommand(['PTTL', 'dl:users']))).toBeGreaterThan(0);
+        expect(Number(await c.customCommand(['PTTL', `dl:v2:lease:${u}`]))).toBeGreaterThan(0);
+        expect(Number(await c.customCommand(['PTTL', 'dl:v2:users']))).toBeGreaterThan(0);
     });
 
     it('splits one slot share over its connections and caps a slot at 4 connections', async () => {
@@ -286,5 +286,26 @@ describe.runIf(RUN)('download leases, real Valkey', () => {
         const [d] = (await listActiveDownloads()).filter((x) => x.userId === u);
         expect(d!.bytesSent).toBe(200 * KB);
         expect(d!.bytesPerSec).toBeGreaterThan(0);
+    });
+
+    it('a legacy-format key under the old dl:lease: prefix never affects v2 leases or the list', async () => {
+        const u = user();
+        const c = getCoordinationClient() as unknown as Cmd;
+        // old format: expires|refCount|bytes|started|bps, field without a token
+        const future = String(Date.now() + 600_000);
+        await c.customCommand(['HSET', `dl:lease:${u}`, 'f9|dev', `${future}|1|0|${future}|0`]);
+        await c.customCommand(['ZADD', 'dl:users', future, u]);
+        cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 1;
+        try {
+            const a = await must(u, 'f1'); // the legacy slot does not count against the limit
+            expect((await listActiveDownloads()).filter((d) => d.userId === u).map((d) => d.fileId)).toEqual([
+                'f1',
+            ]);
+            await a.refresh(10);
+            await a.release();
+        } finally {
+            await c.customCommand(['DEL', `dl:lease:${u}`]);
+            await c.customCommand(['ZREM', 'dl:users', u]);
+        }
     });
 });
