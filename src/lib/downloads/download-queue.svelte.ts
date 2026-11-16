@@ -316,6 +316,7 @@ export class DownloadQueue {
             // Anything else (SecurityError, NotAllowedError, TypeError...): the picker does
             // not work here, fall back to links for the rest of the session.
             this.pickerReason = 'blocked';
+            this.forgetFolder();
             return false;
         }
     }

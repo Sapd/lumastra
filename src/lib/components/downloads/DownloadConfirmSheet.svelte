@@ -36,7 +36,12 @@
     // (blocked by default or just failed), else the one for this browser.
     let batchSize = $derived(downloadQueue.profile.batchSize(pending?.list.maxParallel ?? 0));
     let browserHint = $derived.by(() => {
-        if (!downloadQueue.supportsFolderPicker && downloadQueue.isBrave) return m.downloads_hint_brave();
+        if (
+            !downloadQueue.supportsFolderPicker &&
+            downloadQueue.isBrave &&
+            downloadQueue.profile.hint !== 'ios'
+        )
+            return m.downloads_hint_brave();
         switch (downloadQueue.profile.hint) {
             case 'ios':
                 return m.downloads_hint_ios();

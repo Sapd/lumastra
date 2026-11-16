@@ -331,6 +331,28 @@ describe('DownloadQueue folder picker errors', () => {
     });
 });
 
+describe('DownloadQueue picker error after a successful pick', () => {
+    test('falls back to link hand-off and forgets the folder', async () => {
+        const fs = new FakeFs();
+        let n = 0;
+        const { q, links, fetchFn } = setup(list([item(1)]), () => fileResponse(5), {
+            fs,
+            pick: async () => {
+                if (n++ === 0) return fs.root();
+                throw new DOMException('blocked', 'SecurityError');
+            },
+        });
+        expect(await q.chooseFolder()).toBe(true);
+        expect(await q.chooseFolder()).toBe(false);
+        expect(q.folderName).toBeNull();
+        await q.enqueue('series-1');
+        await q.start();
+        expect(q.mode).toBe('links');
+        expect(links).toHaveLength(1);
+        expect(fetchFn).toHaveBeenCalledTimes(1); // list only, no file fetch
+    });
+});
+
 describe('DownloadQueue iOS link profile', () => {
     const ios: BrowserEnv = {
         userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) Safari/604.1',

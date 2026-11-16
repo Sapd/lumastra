@@ -296,4 +296,26 @@ describe('link batches in the UI', () => {
             Reflect.deleteProperty(navigator, 'brave');
         }
     });
+
+    test('Brave on iPhone shows the iOS hint, not the desktop flag', async () => {
+        stubList(listBody());
+        const q = downloadQueue as unknown as { deps: { pickDirectory: unknown; env: unknown } };
+        const saved = { p: q.deps.pickDirectory, e: q.deps.env };
+        q.deps.pickDirectory = null;
+        q.deps.env = () => ({
+            userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) Safari/604.1',
+            maxTouchPoints: 5,
+            brave: true,
+        });
+        try {
+            await downloadQueue.enqueue('series-brave-ios');
+            render(DownloadConfirmSheet);
+            const hint = await screen.findByTestId('download-browser-hint');
+            expect(hint.textContent).toContain('Files');
+            expect(hint.textContent).not.toContain('brave://flags');
+        } finally {
+            q.deps.pickDirectory = saved.p;
+            q.deps.env = saved.e;
+        }
+    });
 });
