@@ -38,6 +38,15 @@ export function resetDownloadPathWarningsForTests(): void {
     warnedAt.clear();
 }
 
+/** One warning per hour for a server-wide condition. */
+function warnOnce(key: string, message: string): void {
+    const now = Date.now();
+    const last = warnedAt.get(key);
+    if (last !== undefined && now - last < WARN_EVERY_MS) return;
+    warnedAt.set(key, now);
+    logger.warn(message);
+}
+
 /** Warn once per (item, hour); the hint names the setting. The HTTP response never carries the path. */
 function warnOutsideRoots(itemKey: string, filePath: string, target: string): void {
     const now = Date.now();
@@ -110,7 +119,12 @@ export async function resolveDownloadablePath(
 export interface OpenHooks {
     /** Test seam: runs between the path check and the open, where a swap would land. */
     afterCheck?: () => Promise<void> | void;
+    /** Test seam: reads `/proc/self/fd/<fd>`. */
+    readFdLink?: (fd: number) => Promise<string>;
 }
+
+/** Dev server / tests: the racy realpath fallback is tolerated there. NODE_ENV only, so the sandbox bundle stays free of $app. */
+const isDevEnvironment = (): boolean => process.env.NODE_ENV !== 'production';
 
 /**
  * Check, then OPEN ONCE, then verify the descriptor: the file is opened O_NOFOLLOW on the
@@ -142,8 +156,16 @@ export async function openDownloadableFileIn(
         if (!st.isFile()) throw new Error('not a regular file');
         let real: string;
         try {
-            real = await readlink(`/proc/self/fd/${handle.fd}`);
+            real = await (hooks.readFdLink ?? ((fd) => readlink(`/proc/self/fd/${fd}`)))(handle.fd);
         } catch {
+            // Without /proc/self/fd, open -> realpath -> stat is racy: fail closed in production.
+            if (!isDevEnvironment()) {
+                warnOnce(
+                    'no-proc',
+                    'downloads refused: /proc/self/fd is unavailable, so the opened file cannot be verified race-free (only the dev server tolerates that)',
+                );
+                throw new Error('no /proc/self/fd');
+            }
             real = await safeRealpath(canonical);
             const again = await stat(real);
             if (again.ino !== st.ino || again.dev !== st.dev) throw new Error('inode changed');

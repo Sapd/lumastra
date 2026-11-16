@@ -3,7 +3,7 @@
 
 // Strict download containment on real temp dirs and symlinks; playback keeps its own rule.
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     mkdirSync,
     mkdtempSync,
@@ -187,6 +187,42 @@ describe('openDownloadableFileIn: open once, verify the descriptor', () => {
             },
         });
         expect(f?.size).toBe(6);
+        await f?.handle.close();
+    });
+});
+
+describe('openDownloadableFileIn without /proc/self/fd', () => {
+    const noProc = async () => {
+        throw Object.assign(new Error('no /proc'), { code: 'ENOENT' });
+    };
+    const prevEnv = process.env.NODE_ENV;
+    beforeEach(() => {
+        warn.mockClear();
+        resetDownloadPathWarningsForTests();
+    });
+    afterEach(() => {
+        process.env.NODE_ENV = prevEnv;
+    });
+
+    it('production fails closed (null) and warns once an hour naming the reason', async () => {
+        process.env.NODE_ENV = 'production';
+        expect(await openDownloadableFileIn(join(lib, 'real.mkv'), [lib], 'a', { readFdLink: noProc })).toBeNull();
+        expect(await openDownloadableFileIn(join(lib, 'real.mkv'), [lib], 'b', { readFdLink: noProc })).toBeNull();
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(String(warn.mock.calls[0]![0])).toContain('/proc/self/fd');
+    });
+
+    it('the dev server keeps the realpath + inode fallback', async () => {
+        process.env.NODE_ENV = 'development';
+        const f = await openDownloadableFileIn(join(lib, 'real.mkv'), [lib], 'c', { readFdLink: noProc });
+        expect(f?.size).toBe(1);
+        await f?.handle.close();
+    });
+
+    it('with /proc available production behaves as before', async () => {
+        process.env.NODE_ENV = 'production';
+        const f = await openDownloadableFileIn(join(lib, 'real.mkv'), [lib], 'd');
+        expect(f?.size).toBe(1);
         await f?.handle.close();
     });
 });

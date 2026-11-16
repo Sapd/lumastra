@@ -378,6 +378,35 @@ describe('download path containment', () => {
     });
 });
 
+describe('web hand-off nonce: only a returned 200/206 marks started', () => {
+    const withNonce = () => {
+        const e = event('/api/media/media/download?h=abcdef123456') as unknown as { locals: unknown };
+        e.locals = { user: { userId: 'u1' } };
+        return e as unknown as RequestEvent;
+    };
+    beforeEach(() => {
+        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
+    });
+
+    it('a 416 does not mark the hand-off started', async () => {
+        mocks.serve.mockResolvedValue(new Response(null, { status: 416 }));
+        await handleDownloadFile(withNonce(), { surface: 'web' });
+        expect(handoff.noted).toEqual([]);
+    });
+
+    it('a containment 404 does not mark it started', async () => {
+        dlPath.result = null;
+        expect((await handleDownloadFile(withNonce(), { surface: 'web' })).status).toBe(404);
+        expect(handoff.noted).toEqual([]);
+    });
+
+    it('a 206 does', async () => {
+        mocks.serve.mockResolvedValue(new Response('x', { status: 206 }));
+        await handleDownloadFile(withNonce(), { surface: 'web' });
+        expect(handoff.noted).toEqual([['u1', 'abcdef123456']]);
+    });
+});
+
 describe('web hand-off nonce', () => {
     const withLocals = (path: string) => {
         const e = event(path) as unknown as { locals: unknown };

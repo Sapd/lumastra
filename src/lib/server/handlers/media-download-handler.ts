@@ -226,12 +226,6 @@ export async function handleDownloadFile(
         });
         if (!tracked.ok) return tracked.response;
         const { tracker } = tracked;
-        // The web queue's hand-off nonce: now that a slot is held and bytes are about to flow,
-        // tell the slots endpoint THIS hand-off reached the server.
-        const handoff = parseHandoffNonce(event.url.searchParams.get('h'));
-        const handoffUser = event.locals?.user?.userId;
-        if (handoff && handoffUser) void noteHandoff(handoffUser, handoff);
-
         // Open once and verify the descriptor (no second path resolution): a link or
         // directory swapped in after the check above cannot redirect the read.
         let response: Response | null = null;
@@ -263,7 +257,15 @@ export async function handleDownloadFile(
         }
         // 416 and a refused path stream nothing, so no lease is held and nothing is logged.
         if (!response || response.status === 416) tracker.discard();
-        else tracker.served(response.status);
+        else {
+            tracker.served(response.status);
+            // The web queue's hand-off nonce, recorded only now: the file is opened and
+            // verified and the Range accepted, a 200/206 stream is about to be returned.
+            // A 404 / 416 / 403 never marks a hand-off as started.
+            const handoff = parseHandoffNonce(event.url.searchParams.get('h'));
+            const handoffUser = event.locals?.user?.userId;
+            if (handoff && handoffUser) void noteHandoff(handoffUser, handoff);
+        }
         return response ?? ApiResponses.notFound('Media not found');
     } catch (err) {
         logger.error('Failed to serve download', undefined, {
