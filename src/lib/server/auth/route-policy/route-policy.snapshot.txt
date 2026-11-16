@@ -1851,6 +1851,7 @@
 /api/livetv/stations/[stationId]/feeds GET user  <- /api/livetv/**
 /api/livetv/stations/[stationId]/programs GET user  <- /api/livetv/**
 /api/me GET user  <- /api/me/**
+/api/me/downloads/slots GET user  <- /api/me/**
 /api/me/manual-runs GET user  <- /api/me/**
 /api/me/music/pinned-genres DELETE user  <- /api/me/**
 /api/me/music/pinned-genres GET user  <- /api/me/**
