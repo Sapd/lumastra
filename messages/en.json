@@ -1980,6 +1980,7 @@
     "request_submitted_toast": "\"{title}\" has been requested!",
     "request_failed": "Request failed",
     "request_network_error": "Network error during request",
+    "request_nothing_left": "Already requested or available. There is nothing left to request.",
     "request_days": "{days} days",
     "request_limit_reached": "Your limit has been reached",
     "request_no_more_available": "No more requests available",

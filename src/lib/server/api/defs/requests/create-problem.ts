@@ -47,6 +47,10 @@ export function createOutcomeToProblem(outcome: CreateRequestOutcome): Response 
                     error: `${outcome.bucket === 'movie' ? 'Movie' : 'Series'} request quota exhausted — resets in ${outcome.days} day(s).`,
                 },
             );
+        case 'already_requested':
+            return ApiProblem.conflict(
+                'Already requested or available: there is nothing left to request.',
+            );
         case 'create_failed':
             return ApiProblem.badGateway(outcome.error);
     }

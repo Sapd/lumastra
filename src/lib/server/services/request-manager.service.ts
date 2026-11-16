@@ -71,6 +71,11 @@ export type CreateRequestOutcome =
           /** Length of the rolling quota window, in days. */
           days: number;
       }
+    /**
+     * Jellyseerr had nothing left to request: every asked-for season (or the
+     * movie) is already requested or available. Nothing was created.
+     */
+    | { kind: 'already_requested' }
     /** Jellyseerr accepted the call but refused or returned nothing usable. */
     | { kind: 'create_failed'; error: string };
 
@@ -215,6 +220,7 @@ class RequestManager {
             seasons,
         );
         if (!result.success) {
+            if (result.nothingToRequest) return { kind: 'already_requested' };
             return { kind: 'create_failed', error: result.error ?? 'Failed to create request' };
         }
 

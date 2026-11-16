@@ -1943,6 +1943,7 @@
     "request_submitted_toast": "\"{title}\" wurde angefragt!",
     "request_failed": "Anfrage fehlgeschlagen",
     "request_network_error": "Netzwerkfehler bei der Anfrage",
+    "request_nothing_left": "Bereits angefragt oder verfügbar. Es gibt nichts mehr anzufragen.",
     "request_days": "{days} Tage",
     "request_limit_reached": "Dein Limit ist erreicht",
     "request_no_more_available": "Keine Anfragen mehr verfügbar",

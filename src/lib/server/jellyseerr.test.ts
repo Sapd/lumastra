@@ -231,3 +231,66 @@ describe('jellyseerr.ts JellyseerrClient — "not reachable" latch', () => {
         expect(fetchWithTimeout).toHaveBeenCalledTimes(2);
     });
 });
+
+describe('jellyseerr.ts JellyseerrClient — nothing left to request', () => {
+    afterEach(() => {
+        vi.doUnmock('$lib/server/config.js');
+        vi.doUnmock('$lib/server/utils/fetch-utils.js');
+        vi.restoreAllMocks();
+    });
+
+    async function clientAnswering(status: number, body: unknown) {
+        const fetchWithTimeout = vi.fn(
+            async () =>
+                new Response(JSON.stringify(body), {
+                    status,
+                    headers: { 'Content-Type': 'application/json' },
+                }),
+        );
+        vi.doMock('$lib/server/utils/fetch-utils.js', async (importOriginal) => ({
+            ...(await importOriginal<typeof import('$lib/server/utils/fetch-utils.js')>()),
+            fetchWithTimeout,
+        }));
+        return loadClient('http://seerr.example');
+    }
+
+    it("reports Seerr's 202 'No seasons available to request' as nothing to request, not a created request", async () => {
+        const client = await clientAnswering(202, { message: 'No seasons available to request' });
+        const result = await client.createRequest(4242, 'tv', 7, [1, 2]);
+        expect(result.success).toBe(false);
+        expect(result.nothingToRequest).toBe(true);
+        expect(result.requestId).toBeUndefined();
+    });
+
+    it('still returns the request id when Seerr created one', async () => {
+        const client = await clientAnswering(201, { id: 55, status: 1 });
+        const result = await client.createRequest(4242, 'tv', 7, [3]);
+        expect(result).toEqual({ success: true, requestId: 55 });
+    });
+
+    it('does not offer seasons Seerr already tracks (partly available, blocklisted) as requestable', async () => {
+        const client = await clientAnswering(200, {
+            seasons: [1, 2, 3, 4, 5].map((n) => ({
+                seasonNumber: n,
+                name: `Season ${n}`,
+                episodeCount: 8,
+            })),
+            mediaInfo: {
+                seasons: [
+                    { seasonNumber: 1, status: 4 },
+                    { seasonNumber: 2, status: 6 },
+                    { seasonNumber: 3, status: 1 },
+                    { seasonNumber: 4, status: 7 },
+                ],
+            },
+        });
+        const seasons = await client.getRequestSeasons(4242);
+        expect(seasons?.map((s) => [s.seasonNumber, s.isPending])).toEqual([
+            [1, true],
+            [2, true],
+            [3, false],
+            [4, false],
+            [5, false],
+        ]);
+    });
+});

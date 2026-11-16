@@ -246,6 +246,11 @@ export const createRequestTool: AssistantTool<CreateRequestArgs> = {
                     'no_tmdb_id',
                     `"${row.title}" could not be matched to a TMDB entry, so it cannot be requested. ${NOTHING_HAPPENED}`,
                 );
+            case 'already_requested':
+                return refuse(
+                    'already_requested',
+                    `"${row.title}" is already requested or available, so there was nothing left to request. ${NOTHING_HAPPENED}`,
+                );
             case 'create_failed':
                 ctx.logger?.warn('create_request rejected by Jellyseerr', {
                     title: row.title,

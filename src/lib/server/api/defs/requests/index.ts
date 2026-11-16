@@ -264,6 +264,7 @@ export const def = defineEndpoint({
                 'Creates a new media request via Jellyseerr. ' +
                 'Requires `hasRequestPermission` (configured via `REQUEST_GROUPS`). ' +
                 'Pre-checks quota before submitting — returns 422 `quota_exceeded` if exhausted. ' +
+                'Returns 409 `conflict` when everything asked for (the movie, or every listed season) is already requested or available. ' +
                 'Rate-limited: 20 requests per 60 seconds per user. ' +
                 'Returns 201 + `Location` header pointing to the created request.',
             body: CreateRequestBodySchemaFromDocs,
@@ -275,6 +276,7 @@ export const def = defineEndpoint({
                 400: 'Validation error or unresolvable media ID',
                 401: 'Authentication required',
                 403: 'No request permission',
+                409: 'Nothing left to request: already requested or available',
                 422: 'Request quota exhausted',
                 429: 'Rate limit exceeded',
                 502: 'Jellyseerr API error',

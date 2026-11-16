@@ -383,6 +383,31 @@ describe('POST /requests — quota_exceeded', () => {
     });
 });
 
+// ── POST /requests — nothing left to request ─────────────────────────────────
+
+describe('POST /requests — nothing left to request', () => {
+    it('returns 409 conflict (not 502) when Seerr had nothing left to request', async () => {
+        mockResolveToTmdb.mockResolvedValue({ success: true, tmdbId: 4242 });
+        mockResolveUserLink.mockResolvedValue({ state: 'linked', user: { id: 1 } });
+        mockGetUserQuota.mockResolvedValue(null);
+        mockCreateRequestForUser.mockResolvedValue({
+            success: false,
+            nothingToRequest: true,
+            error: 'Everything asked for is already requested or available',
+        });
+        mockDeleteDismissal.mockResolvedValue(undefined);
+
+        const event = makeEvent({
+            body: { externalIds: { tmdb: '4242' }, mediaType: 'series', seasons: [1, 2] },
+        });
+        const res = (await requestsDef.handlers.POST!(event, CTX_V1)) as Response;
+        expect(res.status).toBe(409);
+        const body = (await res.json()) as { code: string };
+        expect(body.code).toBe('conflict');
+        expect(mockDeleteDismissal).not.toHaveBeenCalled();
+    });
+});
+
 // ── POST /requests — 201 + Location header ────────────────────────────────────
 
 describe('POST /requests — 201 + Location header', () => {

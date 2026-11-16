@@ -139243,8 +139243,10 @@ paths:
       summary: Create a media request
       x-stability: beta
       description: "Creates a new media request via Jellyseerr. Requires `hasRequestPermission` (configured via
-        `REQUEST_GROUPS`). Pre-checks quota before submitting — returns 422 `quota_exceeded` if exhausted. Rate-limited:
-        20 requests per 60 seconds per user. Returns 201 + `Location` header pointing to the created request."
+        `REQUEST_GROUPS`). Pre-checks quota before submitting — returns 422 `quota_exceeded` if exhausted. Returns 409
+        `conflict` when everything asked for (the movie, or every listed season) is already requested or available.
+        Rate-limited: 20 requests per 60 seconds per user. Returns 201 + `Location` header pointing to the created
+        request."
       security: *a2
       x-required-grant: write
       operationId: createRequest
@@ -139549,6 +139551,106 @@ paths:
                     type: integer
                     description: HTTP status code, mirrored into the body.
                     example: 403
+                  details:
+                    description: "Structured detail: field-level validation errors, quota info, or a freeform string."
+                    anyOf:
+                      - type: array
+                        items:
+                          type: object
+                          properties:
+                            field:
+                              type: string
+                            message:
+                              type: string
+                            value: {}
+                          required:
+                            - field
+                            - message
+                          additionalProperties: false
+                      - type: object
+                        properties:
+                          bucket:
+                            type: string
+                          limit:
+                            type: integer
+                          used:
+                            type: integer
+                          remaining:
+                            type:
+                              - integer
+                              - "null"
+                        required:
+                          - bucket
+                          - limit
+                          - used
+                          - remaining
+                        additionalProperties: false
+                      - type: string
+                  requestId:
+                    description: Correlation ID, when available.
+                    type: string
+                  retryAfter:
+                    description: Seconds until retry (mirrors Retry-After header).
+                    type: integer
+                required:
+                  - code
+                  - error
+                  - status
+                additionalProperties: false
+        "409":
+          description: "Nothing left to request: already requested or available"
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - unauthorized
+                      - invalid_token
+                      - invalid_grant
+                      - ip_mismatch
+                      - forbidden
+                      - scope_required
+                      - not_found
+                      - conflict
+                      - gone
+                      - payload_too_large
+                      - validation_failed
+                      - quota_exceeded
+                      - rate_limited
+                      - internal_error
+                      - bad_gateway
+                      - server_id_unavailable
+                      - dependency_unavailable
+                      - shutting_down
+                      - stream_limit
+                      - cap_unavailable
+                      - channel_offline
+                      - provider_auth_failed
+                      - provider_connection_limit
+                      - provider_unreachable
+                      - geo_blocked
+                      - no_video
+                      - encoder_failed
+                      - all_feeds_failed
+                      - upstream_stalled
+                      - ip_restricted
+                      - plugin_denied
+                      - prefetch_requires_current_session
+                      - route_retired
+                      - source_incompatible
+                      - transcode_not_allowed
+                    description: Stable, machine-parseable error code (switch on this).
+                    example: conflict
+                  error:
+                    type: string
+                    description: Human-readable description — display only.
+                  status:
+                    type: integer
+                    description: HTTP status code, mirrored into the body.
+                    example: 409
                   details:
                     description: "Structured detail: field-level validation errors, quota info, or a freeform string."
                     anyOf:

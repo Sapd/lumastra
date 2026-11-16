@@ -102,6 +102,8 @@ export enum MediaStatus {
     PROCESSING = 3,
     PARTIALLY_AVAILABLE = 4,
     AVAILABLE = 5,
+    BLOCKLISTED = 6,
+    DELETED = 7,
 }
 
 export interface JellyseerrRequest {
@@ -187,6 +189,14 @@ export interface JellyseerrQuota {
         remaining: number;
         restricted: boolean;
     };
+}
+
+/** `nothingToRequest`: Seerr accepted the call but had nothing left to request. */
+export interface CreateRequestResult {
+    success: boolean;
+    requestId?: number;
+    nothingToRequest?: boolean;
+    error?: string;
 }
 
 export interface JellyseerrCreateRequestResponse {
@@ -611,7 +621,7 @@ class JellyseerrClient {
         mediaType: 'movie' | 'tv',
         userId: number,
         seasons?: number[],
-    ): Promise<{ success: boolean; requestId?: number; error?: string }> {
+    ): Promise<CreateRequestResult> {
         if (!this.isConfigured()) {
             return { success: false, error: 'Jellyseerr not configured' };
         }
@@ -628,10 +638,28 @@ class JellyseerrClient {
                 body.seasons = seasons;
             }
 
-            const response = await this.makeRequest<JellyseerrCreateRequestResponse>('/request', {
+            const response = await this.makeRequest<
+                JellyseerrCreateRequestResponse | { id?: undefined; message?: string }
+            >('/request', {
                 method: 'POST',
                 body,
             });
+
+            if (typeof response.id !== 'number') {
+                // Seerr answers 202 `{ message: 'No seasons available to request' }`
+                // (no request id) when every asked-for season is already requested,
+                // available, partly available or blocklisted. Nothing was created.
+                const message =
+                    'message' in response && typeof response.message === 'string'
+                        ? response.message
+                        : undefined;
+                logger.info('Seerr created no request', { mediaType, tmdbId, message });
+                return {
+                    success: false,
+                    nothingToRequest: true,
+                    error: 'Everything asked for is already requested or available',
+                };
+            }
 
             return {
                 success: true,
@@ -758,7 +786,14 @@ class JellyseerrClient {
                     overview: season.overview ?? null,
                     posterPath: season.posterPath ?? null,
                     isAvailable: status === MediaStatus.AVAILABLE,
-                    isPending: status === MediaStatus.PENDING || status === MediaStatus.PROCESSING,
+                    // Anything Seerr already tracks (requested, processing, partly
+                    // available, blocklisted) is refused by POST /request, so it must
+                    // not be offered — or preselected — as requestable.
+                    isPending:
+                        status !== undefined &&
+                        status !== MediaStatus.UNKNOWN &&
+                        status !== MediaStatus.AVAILABLE &&
+                        status !== MediaStatus.DELETED,
                 };
             });
         } catch (error) {
@@ -887,7 +922,7 @@ class JellyseerrClient {
         mediaType: 'movie' | 'tv',
         username: string,
         seasons?: number[],
-    ): Promise<{ success: boolean; requestId?: number; error?: string }> {
+    ): Promise<CreateRequestResult> {
         if (!this.isConfigured()) {
             return { success: false, error: 'Jellyseerr not configured' };
         }

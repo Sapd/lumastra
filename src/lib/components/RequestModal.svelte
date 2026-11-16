@@ -196,6 +196,7 @@
             const {
                 data: responseData,
                 error: apiError,
+                status,
                 validationError,
             } = await contentApi.submitRequest(requestBody);
 
@@ -221,7 +222,9 @@
                 toasts.success(m.request_submitted_toast({ title }), 4000);
             } else {
                 errorMessage =
-                    apiError || (validationError ? m.error_generic() : m.request_failed());
+                    status === 409
+                        ? m.request_nothing_left()
+                        : apiError || (validationError ? m.error_generic() : m.request_failed());
                 viewState = 'error';
             }
         } catch (err) {
