@@ -117,6 +117,43 @@ describe('throttleNodeStream', () => {
     });
 });
 
+describe('throttleNodeStream with a changing rate', () => {
+    // The rate function is read on each refill, so a lease manager can raise or
+    // lower the cap while the download runs.
+    it('doubles throughput within a second of the rate going from 1000 to 2000 B/s', async () => {
+        let clock = 0;
+        const now = () => clock;
+        const sleep = (ms: number) => {
+            clock += ms;
+            return Promise.resolve();
+        };
+        let rate = 1000;
+        const reader = throttleNodeStream(source(60, 100), () => rate, now, sleep).getReader();
+        const measure = async (chunks: number) => {
+            const t0 = clock;
+            for (let i = 0; i < chunks; i++) await reader.read();
+            return (chunks * 100) / ((clock - t0) / 1000);
+        };
+        await measure(10); // drain the initial burst
+        const slow = await measure(10);
+        rate = 2000;
+        await measure(5); // let the new rate settle
+        const fast = await measure(20);
+        expect(slow).toBeGreaterThan(900);
+        expect(slow).toBeLessThan(1100);
+        expect(fast).toBeGreaterThan(1800);
+        expect(fast).toBeLessThan(2200);
+    });
+
+    it('treats a rate function returning 0 as unlimited', async () => {
+        const { bytes, elapsedMs } = await drainVirtual((now, sleep) =>
+            throttleNodeStream(source(10, 1000), () => 0, now, sleep),
+        );
+        expect(bytes).toBe(10_000);
+        expect(elapsedMs).toBe(0);
+    });
+});
+
 describe('kbpsToBytesPerSecond', () => {
     it('converts KB/s to bytes/sec', () => {
         expect(kbpsToBytesPerSecond(1024)).toBe(1024 * 1024);

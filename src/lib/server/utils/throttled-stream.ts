@@ -44,27 +44,49 @@ const BURST_SECONDS = 1;
  * Wrap a Node readable in a web `ReadableStream` that emits at most
  * `bytesPerSecond`.
  *
- * `bytesPerSecond <= 0` means unlimited and returns a plain passthrough — the
+ * `bytesPerSecond <= 0` means unlimited (a function is re-read on each refill) and returns a plain passthrough — the
  * throttle must be free to disable, since that is the default configuration.
  */
 export function throttleNodeStream(
     source: Readable,
-    bytesPerSecond: number,
+    bytesPerSecond: number | (() => number),
     now: () => number = Date.now,
     sleep: (ms: number) => Promise<void> = defaultSleep,
 ): ReadableStream<Uint8Array> {
-    if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) {
+    if (
+        typeof bytesPerSecond === 'number' &&
+        !(Number.isFinite(bytesPerSecond) && bytesPerSecond > 0)
+    ) {
         return nodeToWeb(source);
     }
 
-    const capacity = bytesPerSecond * BURST_SECONDS;
-    let tokens = capacity;
+    // The function form is read on every refill, so a lease manager can raise or
+    // lower the cap while the download runs. 0 (or invalid) = unlimited for now.
+    const currentRate = (): number => {
+        const r = typeof bytesPerSecond === 'function' ? bytesPerSecond() : bytesPerSecond;
+        return Number.isFinite(r) && r > 0 ? r : 0;
+    };
+
+    let rate = currentRate();
+    let tokens = rate * BURST_SECONDS;
     let lastRefill = now();
 
     function refill(): void {
         const at = now();
-        tokens = Math.min(capacity, tokens + ((at - lastRefill) / 1000) * bytesPerSecond);
+        const elapsed = (at - lastRefill) / 1000;
         lastRefill = at;
+        const next = currentRate();
+        if (next === 0) {
+            rate = 0;
+            tokens = 0;
+            return;
+        }
+        // Coming from unlimited: start with a full bucket at the new rate.
+        if (rate === 0) tokens = next * BURST_SECONDS;
+        else tokens += elapsed * rate;
+        rate = next;
+        // A debt (negative tokens) carries over; only the surplus is capped.
+        tokens = Math.min(rate * BURST_SECONDS, tokens);
     }
 
     /**
@@ -75,14 +97,16 @@ export function throttleNodeStream(
      * `capacity`, so a chunk larger than the bucket could never satisfy a
      * "wait until you have enough" condition and would spin forever. Spending
      * into debt and then waiting for it to drain handles any chunk size, and
-     * still yields exactly `bytesPerSecond` on average.
+     * still yields exactly the configured rate on average.
      */
     async function spend(needed: number): Promise<void> {
         refill();
+        if (rate === 0) return;
         tokens -= needed;
         while (tokens < 0) {
-            await sleep(Math.max(1, Math.ceil((-tokens / bytesPerSecond) * 1000)));
+            await sleep(Math.max(1, Math.ceil((-tokens / rate) * 1000)));
             refill();
+            if (rate === 0) return;
         }
     }
 
