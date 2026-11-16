@@ -5,6 +5,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { withJellyfinAuth } from '$lib/server/jellyfin-compat/middleware';
 import { serializeUser } from '$lib/server/jellyfin-compat/serializers/user';
+import { withDownloadPermissionFor } from '$lib/server/jellyfin-compat/user-download-permission';
 import { loadUserPlaybackPreferences } from '$lib/server/jellyfin-compat/user-playback-preferences';
 import { getUserByUsername, listUsers } from '$lib/server/database/queries/users.queries';
 import { getDb } from '$lib/server/database';
@@ -22,17 +23,23 @@ export const GET: RequestHandler = withJellyfinAuth(async (event) => {
         const users = await listUsers(sql);
         return json(
             await Promise.all(
-                users.map(async (u) =>
-                    serializeUser(
-                        {
-                            id: u.id,
-                            username: u.username,
-                            is_admin: u.is_admin,
-                            display_name: u.display_name,
-                        },
-                        await loadUserPlaybackPreferences(u.id, sql),
-                    ),
-                ),
+                users.map(async (u) => {
+                    const playback = await loadUserPlaybackPreferences(u.id, sql);
+                    // Each row carries THAT user's download permission, not the caller's.
+                    return withDownloadPermissionFor(
+                        { userId: u.id, username: u.username, isAdmin: u.is_admin },
+                        () =>
+                            serializeUser(
+                                {
+                                    id: u.id,
+                                    username: u.username,
+                                    is_admin: u.is_admin,
+                                    display_name: u.display_name,
+                                },
+                                playback,
+                            ),
+                    );
+                }),
             ),
         );
     }

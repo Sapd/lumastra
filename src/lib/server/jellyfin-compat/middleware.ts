@@ -27,9 +27,8 @@ import { liveTvCredentialFingerprint } from '$lib/server/services/livetv/livetv-
 import { localsIsAdmin } from '$lib/server/auth/locals-admin.js';
 import { routedPathname } from '$lib/server/auth/routed-pathname';
 import { buildPrincipal } from '$lib/server/api/principal.js';
-import { canDownload } from '$lib/server/services/download-access.service.js';
 import { downloadSubjectOf } from '$lib/server/services/download-access-guard.js';
-import { runWithJellyfinRequestContext } from './request-context';
+import { withDownloadPermissionFor } from './user-download-permission';
 
 const logger = Logger.for('JellyfinCompat:Middleware');
 
@@ -38,28 +37,6 @@ const logger = Logger.for('JellyfinCompat:Middleware');
 // (so legitimate PAT holders cannot poison their own bucket by hitting a deny-route).
 const FAILED_AUTH_LIMIT_PER_MINUTE = 60;
 const FAILED_AUTH_WINDOW_SECONDS = 60;
-
-/**
- * Resolves the caller's download permission ONCE for this request and runs the
- * handler inside that request context, which the serializers read for
- * CanDownload and Policy.EnableContentDownloading. Called only after auth has
- * succeeded. A failed lookup denies (fail closed) and is logged; it does not
- * fail the request.
- */
-async function runWithDownloadPermission(
-    event: RequestEvent,
-    handler: RequestHandler,
-): Promise<Response> {
-    const allowed = await canDownload(downloadSubjectOf(event.locals)).catch((error: unknown) => {
-        logger.error(
-            'Jellyfin compat: download permission lookup failed; denying',
-            error as Error,
-            { endpoint: getEndpointName(event) },
-        );
-        return false;
-    });
-    return runWithJellyfinRequestContext({ canDownload: allowed }, () => handler(event));
-}
 
 /**
  * Options for withJellyfinAuth.
@@ -430,7 +407,8 @@ export function withJellyfinAuth(
             // Accept both UUID forms emitted by Jellyfin, and reject a foreign
             // path before any read or mutation. Only a real admin principal is exempt.
             if (!pathUserAllowed(event)) return ApiResponses.notFound('User');
-            return runWithDownloadPermission(event, handler);
+            // The caller's own permission, resolved once per request after auth.
+            return withDownloadPermissionFor(downloadSubjectOf(event.locals), () => handler(event));
         }
 
         // Step 2: PAT validation — header-source tokens only.
@@ -561,7 +539,10 @@ export function withJellyfinAuth(
                 // Accept both UUID forms emitted by Jellyfin, and reject a foreign
                 // path before any read or mutation. Only a real admin principal is exempt.
                 if (!pathUserAllowed(event)) return ApiResponses.notFound('User');
-                return runWithDownloadPermission(event, handler);
+                // The caller's own permission, resolved once per request after auth.
+                return withDownloadPermissionFor(downloadSubjectOf(event.locals), () =>
+                    handler(event),
+                );
             }
         }
 

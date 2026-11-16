@@ -18,6 +18,7 @@ import { validatePassword, createSession } from '$lib/server/jellyfin-compat/aut
 import { hasGroupPermission } from '$lib/server/auth';
 import { config } from '$lib/server/config';
 import { serializeUser } from '$lib/server/jellyfin-compat/serializers/user';
+import { withDownloadPermissionFor } from '$lib/server/jellyfin-compat/user-download-permission';
 import { loadUserPlaybackPreferences } from '$lib/server/jellyfin-compat/user-playback-preferences';
 import { JELLYFIN_SERVER_ID } from '$lib/server/jellyfin-compat/constants';
 import type { JellyfinAuthResponse } from '$lib/server/jellyfin-compat/types';
@@ -130,17 +131,25 @@ const handler: RequestHandler = async (event) => {
     }
 
     const playback = await loadUserPlaybackPreferences(userResult.userId);
-    const user = serializeUser(
-        {
-            id: userResult.userId,
-            username: userResult.username,
-            is_admin: userResult.isAdmin,
-            display_name: userResult.displayName,
-            hasLiveTvPermission:
-                (await userAllowsLiveTv(userResult.username)) &&
-                (userResult.isAdmin || hasGroupPermission(userResult.groups, config.LIVETV_GROUPS)),
-        },
-        playback,
+    const hasLiveTvPermission =
+        (await userAllowsLiveTv(userResult.username)) &&
+        (userResult.isAdmin || hasGroupPermission(userResult.groups, config.LIVETV_GROUPS));
+    // The DTO describes the user who just logged in, so its download policy is
+    // that user's own permission. The admin verdict is the same one the session
+    // principal is minted with (createSession above, origin = password).
+    const user = await withDownloadPermissionFor(
+        { userId: userResult.userId, username: userResult.username, isAdmin: userResult.isAdmin },
+        () =>
+            serializeUser(
+                {
+                    id: userResult.userId,
+                    username: userResult.username,
+                    is_admin: userResult.isAdmin,
+                    display_name: userResult.displayName,
+                    hasLiveTvPermission,
+                },
+                playback,
+            ),
     );
 
     const response: JellyfinAuthResponse = {

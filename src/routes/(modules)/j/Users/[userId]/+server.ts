@@ -6,6 +6,7 @@ import type { RequestHandler } from './$types';
 import { ApiResponses } from '$lib/server/utils/api-responses';
 import { withJellyfinAuth } from '$lib/server/jellyfin-compat/middleware';
 import { serializeUser } from '$lib/server/jellyfin-compat/serializers/user';
+import { withDownloadPermissionFor } from '$lib/server/jellyfin-compat/user-download-permission';
 import { loadUserPlaybackPreferences } from '$lib/server/jellyfin-compat/user-playback-preferences';
 import { getUserByUsername } from '$lib/server/database/queries/users.queries';
 import type { UserRow } from '$lib/server/database/queries/users.queries';
@@ -73,18 +74,28 @@ export const GET: RequestHandler = withJellyfinAuth(async (event) => {
         return ApiResponses.notFound('User');
     }
 
+    const playback = await loadUserPlaybackPreferences(targetUser.id, sql);
+    // The target's DTO carries the TARGET's download permission, not the admin's.
     return json(
-        serializeUser(
+        await withDownloadPermissionFor(
             {
-                id: targetUser.id,
+                userId: targetUser.id,
                 username: targetUser.username,
-                is_admin: targetUser.is_admin,
-                display_name: targetUser.display_name,
-                hasLiveTvPermission:
-                    targetUser.is_admin ||
-                    hasGroupPermission(targetUser.groups ?? [], config.LIVETV_GROUPS),
+                isAdmin: targetUser.is_admin,
             },
-            await loadUserPlaybackPreferences(targetUser.id, sql),
+            () =>
+                serializeUser(
+                    {
+                        id: targetUser.id,
+                        username: targetUser.username,
+                        is_admin: targetUser.is_admin,
+                        display_name: targetUser.display_name,
+                        hasLiveTvPermission:
+                            targetUser.is_admin ||
+                            hasGroupPermission(targetUser.groups ?? [], config.LIVETV_GROUPS),
+                    },
+                    playback,
+                ),
         ),
     );
 });

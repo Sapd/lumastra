@@ -10,6 +10,7 @@ import { createSession } from '$lib/server/jellyfin-compat/auth';
 import { hasGroupPermission } from '$lib/server/auth';
 import { config } from '$lib/server/config';
 import { serializeUser } from '$lib/server/jellyfin-compat/serializers/user';
+import { withDownloadPermissionFor } from '$lib/server/jellyfin-compat/user-download-permission';
 import { loadUserPlaybackPreferences } from '$lib/server/jellyfin-compat/user-playback-preferences';
 import { JELLYFIN_SERVER_ID } from '$lib/server/jellyfin-compat/constants';
 import { parseEmbyAuthHeader } from '$lib/server/jellyfin-compat/middleware';
@@ -117,18 +118,29 @@ const handler: RequestHandler = async (event) => {
         deviceName: params['Device'],
     });
 
-    const playback = await loadUserPlaybackPreferences(data.userId);
-    const user = serializeUser(
-        {
-            id: data.userId,
-            username: data.username,
-            is_admin: data.isAdmin,
-            display_name: data.displayName,
-            hasLiveTvPermission:
-                (await userAllowsLiveTv(data.username)) &&
-                (data.isAdmin || hasGroupPermission(data.groups ?? [], config.LIVETV_GROUPS)),
-        },
-        playback,
+    // Narrowed by the guard above; consts keep the types inside the closure below.
+    const approvedUserId: string = data.userId;
+    const approvedUsername: string = data.username;
+    const playback = await loadUserPlaybackPreferences(approvedUserId);
+    const hasLiveTvPermission =
+        (await userAllowsLiveTv(approvedUsername)) &&
+        (data.isAdmin || hasGroupPermission(data.groups ?? [], config.LIVETV_GROUPS));
+    // The DTO describes the user who just logged in, so its download policy is
+    // that user's own permission. A Quick Connect session is never admin for
+    // downloads (its principal sets sessionIsAdmin false), so pin isAdmin false.
+    const user = await withDownloadPermissionFor(
+        { userId: approvedUserId, username: approvedUsername, isAdmin: false },
+        () =>
+            serializeUser(
+                {
+                    id: approvedUserId,
+                    username: approvedUsername,
+                    is_admin: data.isAdmin,
+                    display_name: data.displayName,
+                    hasLiveTvPermission,
+                },
+                playback,
+            ),
     );
 
     const response: JellyfinAuthResponse = {

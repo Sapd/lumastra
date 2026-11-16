@@ -28,6 +28,14 @@ const { mockAllowsLiveTv } = vi.hoisted(() => ({
 }));
 vi.mock('$lib/server/auth/livetv-user-policy.js', () => ({ userAllowsLiveTv: mockAllowsLiveTv }));
 
+// The login handler now resolves the logging-in user's download permission
+// (user-download-permission -> download-access.service). These tests cover rate
+// limiting / body caps, not downloads, so stub the service out.
+vi.mock('$lib/server/services/download-access.service.js', () => ({
+    canDownload: async () => false,
+    userMayDownload: async () => false,
+}));
+
 vi.mock('$lib/server/utils/logger', () => ({
     Logger: {
         for: () => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }),
