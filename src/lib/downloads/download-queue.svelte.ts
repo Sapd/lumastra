@@ -63,7 +63,15 @@ export type QueueItemStatus =
 
 /** Why an item failed. The panel shows a message per reason. */
 export type FailureReason =
-    'limit' | 'http' | 'network' | 'size_mismatch' | 'write' | 'fat32' | 'forbidden';
+    | 'limit'
+    | 'http'
+    | 'network'
+    | 'size_mismatch'
+    | 'write'
+    | 'fat32'
+    | 'forbidden'
+    /** Link mode: the server never saw the handed-over download start. */
+    | 'not_started';
 
 /** FAT32 cannot hold a file of 4 GiB or more. */
 export const FAT32_LIMIT_BYTES = 4 * 1024 ** 3;
@@ -106,6 +114,13 @@ const MAX_429_ATTEMPTS = 10;
 const MAX_NETWORK_RETRIES = 2;
 /** Permission probes kept; the oldest is dropped beyond this. */
 const MAX_INFO_CACHE = 200;
+/** Link mode: how often to ask for a free slot while the user's limit is reached. */
+const SLOT_POLL_MS = 3_000;
+/** Link mode: how long a handed-over download has to show up on the server. */
+const START_CONFIRM_MS = 10_000;
+const START_CONFIRM_POLL_MS = 1_000;
+/** Link mode: extra hand-offs for a download the server did not see start. */
+const MAX_HANDOFF_RETRIES = 2;
 
 function defaultDeps(): QueueDeps {
     const hasPicker = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
@@ -149,6 +164,10 @@ function defaultDeps(): QueueDeps {
 
 export function downloadUrl(mediaItemId: string, fileId: string): string {
     return `${base}/api/media/${encodeURIComponent(mediaItemId)}/download?fileId=${encodeURIComponent(fileId)}`;
+}
+
+function slotsUrl(fileId?: string): string {
+    return `${base}/api/me/downloads/slots${fileId ? `?fileId=${encodeURIComponent(fileId)}` : ''}`;
 }
 
 function listUrl(mediaItemId: string, opts: EnqueueOptions & { summary?: boolean }): string {
@@ -644,6 +663,56 @@ export class DownloadQueue {
         ]);
     }
 
+    /** The user's own slots, or null when they cannot be read (then nothing can be observed). */
+    private async slotsInfo(
+        fileId?: string,
+    ): Promise<{ maxParallel: number; inUse: number; started: boolean } | null> {
+        try {
+            const res = await this.deps.fetch(slotsUrl(fileId), { signal: this.abort?.signal });
+            if (!res.ok) return null;
+            const b = (await res.json()) as {
+                maxParallel?: number;
+                inUse?: number;
+                started?: boolean;
+            };
+            if (typeof b.maxParallel !== 'number' || typeof b.inUse !== 'number') return null;
+            return { maxParallel: b.maxParallel, inUse: b.inUse, started: b.started === true };
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Link mode: wait (polling, abortable) until the user has a free download slot, so the
+     * next hand-off is not refused with a 429 that nothing here could see. False = stopped.
+     */
+    private async waitForFreeSlot(item: QueueItem): Promise<boolean> {
+        for (;;) {
+            if (this.stopRequested) return false;
+            const info = await this.slotsInfo();
+            if (this.stopRequested) return false;
+            if (!info || info.maxParallel === 0 || info.inUse < info.maxParallel) {
+                if (item.status === 'waiting') item.status = 'queued';
+                return true;
+            }
+            item.status = 'waiting';
+            await this.sleep(SLOT_POLL_MS);
+        }
+    }
+
+    /** Link mode: true once the server reports the file's download running or logged. */
+    private async confirmStarted(item: QueueItem): Promise<boolean> {
+        for (let waited = 0; waited < START_CONFIRM_MS; waited += START_CONFIRM_POLL_MS) {
+            await this.sleep(START_CONFIRM_POLL_MS);
+            if (this.stopRequested) return true;
+            const info = await this.slotsInfo(item.fileId);
+            // Cannot be observed (old server, endpoint failing): trust the hand-off.
+            if (!info) return true;
+            if (info.started) return true;
+        }
+        return false;
+    }
+
     /** Hands over the next `linkBatch` queued items, one after another with a gap. */
     private async runLinks(): Promise<void> {
         const { gapMs } = this.profile;
@@ -652,9 +721,24 @@ export class DownloadQueue {
             if (this.stopRequested) return;
             const item = batch[i];
             this.current = item;
-            this.deps.triggerLink(downloadUrl(item.mediaItemId, item.fileId), item.fileName);
-            item.status = 'handed';
-            this.bytesDone += item.sizeBytes;
+            let started = false;
+            for (let attempt = 0; attempt <= MAX_HANDOFF_RETRIES; attempt++) {
+                if (!(await this.waitForFreeSlot(item))) return;
+                this.deps.triggerLink(downloadUrl(item.mediaItemId, item.fileId), item.fileName);
+                started = await this.confirmStarted(item);
+                if (started || this.stopRequested) break;
+            }
+            if (this.stopRequested) {
+                if (item.status === 'waiting') item.status = 'queued';
+                return;
+            }
+            if (started) {
+                item.status = 'handed';
+                this.bytesDone += item.sizeBytes;
+            } else {
+                item.status = 'failed';
+                item.reason = 'not_started';
+            }
             if (i < batch.length - 1) await this.sleep(gapMs);
         }
     }

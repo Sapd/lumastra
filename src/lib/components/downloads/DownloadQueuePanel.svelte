@@ -40,6 +40,8 @@
                 return m.downloads_error_not_allowed();
             case 'write':
                 return m.downloads_reason_write();
+            case 'not_started':
+                return m.downloads_reason_not_started();
             default:
                 return m.downloads_reason_http();
         }

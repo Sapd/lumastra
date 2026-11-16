@@ -109,6 +109,8 @@ function setup(
         sleep?: (ms: number) => Promise<void>;
         pick?: () => Promise<FileSystemDirectoryHandle>;
         env?: BrowserEnv;
+        /** Answers GET /api/me/downloads/slots[?fileId=]; default: free slots, every file started */
+        slots?: (fileId: string | null, call: number) => Response | Promise<Response>;
     } = {},
 ) {
     const fs = opts.fs ?? new FakeFs();
@@ -116,9 +118,16 @@ function setup(
     const sleeps: number[] = [];
     const links: Array<{ url: string; fileName: string }> = [];
     const counts = new Map<string, number>();
+    const slotCalls: string[] = [];
     const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
         if (url.includes('/download-list')) return json(l);
+        if (url.includes('/downloads/slots')) {
+            slotCalls.push(url);
+            const f = new URL(url, 'http://x').searchParams.get('fileId');
+            if (opts.slots) return opts.slots(f, slotCalls.length);
+            return json({ maxParallel: l.maxParallel, inUse: 0, ...(f ? { started: true } : {}) });
+        }
         const fileId = new URL(url, 'http://x').searchParams.get('fileId') ?? '';
         calls.push(fileId);
         const c = (counts.get(fileId) ?? 0) + 1;
@@ -136,7 +145,7 @@ function setup(
         ...(opts.env ? { env: () => opts.env as BrowserEnv } : {}),
         triggerLink: (url, fileName) => links.push({ url, fileName }),
     });
-    return { q, fs, calls, sleeps, links, fetchFn };
+    return { q, fs, calls, sleeps, links, fetchFn, slotCalls };
 }
 
 describe('DownloadQueue folder mode', () => {
@@ -289,11 +298,12 @@ describe('DownloadQueue link mode', () => {
             { url: '/api/media/ep-1/download?fileId=f-1', fileName: 'Show - S01E01 - T1.mkv' },
             { url: '/api/media/ep-2/download?fileId=f-2', fileName: 'Show - S01E02 - T2.mkv' },
         ]);
-        expect(sleeps).toEqual([1500]);
+        // a 1 s confirmation poll after each hand-off, and the gap between the two
+        expect(sleeps).toEqual([1000, 1500, 1000]);
         expect(q.state).toBe('done');
         expect(q.mode).toBe('links');
-        // only the list was fetched, the browser does the downloads
-        expect(fetchFn).toHaveBeenCalledTimes(1);
+        // only the list and the slot probes were fetched, the browser does the downloads
+        expect(fetchFn.mock.calls.filter((c) => !String(c[0]).includes('/downloads/slots'))).toHaveLength(1);
     });
 });
 
@@ -732,5 +742,118 @@ describe('DownloadQueue permission probe cache', () => {
         expect(f).toHaveBeenCalledTimes(205);
         await q.downloadInfo('id-0'); // evicted: probed again
         expect(f).toHaveBeenCalledTimes(206);
+    });
+});
+
+
+describe('DownloadQueue link mode watches the server', () => {
+    const linkSetup = (
+        n: number,
+        slots: (f: string | null, call: number) => Response | Promise<Response>,
+        maxParallel = 2,
+    ) =>
+        setup(list(Array.from({ length: n }, (_, i) => item(i + 1)), { maxParallel }), () => fileResponse(5), {
+            noPicker: true,
+            slots,
+        });
+
+    test('waits for a free slot before handing over, polling every 3 s', async () => {
+        let inUse = 2; // another device holds both slots
+        const { q, links, sleeps } = linkSetup(1, (f) =>
+            json({ maxParallel: 2, inUse, ...(f ? { started: true } : {}) }),
+        );
+        await q.enqueue('s');
+        const run = q.start();
+        await vi.waitFor(() => expect(sleeps).toEqual([3000]));
+        expect(links).toHaveLength(0);
+        expect(q.items[0].status).toBe('waiting');
+        inUse = 1; // a slot frees up
+        await vi.waitFor(() => expect(links).toHaveLength(1));
+        await run;
+        expect(q.items[0].status).toBe('handed');
+        expect(sleeps.filter((ms) => ms === 3000)).toHaveLength(1);
+    });
+
+    test('unlimited (maxParallel 0) never waits', async () => {
+        const { q, links, sleeps } = linkSetup(
+            1,
+            (f) => json({ maxParallel: 0, inUse: 9, ...(f ? { started: true } : {}) }),
+            0,
+        );
+        await q.enqueue('s');
+        await q.start();
+        expect(links).toHaveLength(1);
+        expect(sleeps).not.toContain(3000);
+    });
+
+    test('a hand-off the server never saw is retried, then marked failed as not_started', async () => {
+        const { q, links, sleeps } = linkSetup(1, (f) =>
+            json({ maxParallel: 2, inUse: 0, ...(f ? { started: false } : {}) }),
+        );
+        await q.enqueue('s');
+        await q.start();
+        expect(links).toHaveLength(3); // the first hand-off plus two retries
+        expect(sleeps.filter((ms) => ms === 1000)).toHaveLength(30); // 10 polls per attempt
+        expect(q.items[0]).toMatchObject({ status: 'failed', reason: 'not_started' });
+        expect(q.bytesDone).toBe(0);
+        expect(q.failedCount).toBe(1);
+    });
+
+    test('a retry that the server then sees ends as handed', async () => {
+        let seen = 0;
+        const { q, links } = linkSetup(1, (f) => {
+            if (!f) return json({ maxParallel: 2, inUse: 0 });
+            seen += 1;
+            return json({ maxParallel: 2, inUse: 0, started: seen > 10 }); // second attempt succeeds
+        });
+        await q.enqueue('s');
+        await q.start();
+        expect(links).toHaveLength(2);
+        expect(q.items[0].status).toBe('handed');
+        expect(q.bytesDone).toBe(5);
+    });
+
+    test('a download that already finished (log row) counts as started', async () => {
+        // inUse never rose, but the server has the transfer in the log: started = true
+        const { q, links } = linkSetup(1, (f) =>
+            json({ maxParallel: 2, inUse: 0, ...(f ? { started: true } : {}) }),
+        );
+        await q.enqueue('s');
+        await q.start();
+        expect(links).toHaveLength(1);
+        expect(q.items[0].status).toBe('handed');
+    });
+
+    test('when the slots endpoint fails, hand-offs are trusted as before', async () => {
+        const { q, links } = linkSetup(2, () => new Response('nope', { status: 500 }));
+        await q.enqueue('s');
+        await q.start();
+        expect(links).toHaveLength(2);
+        expect(q.items.map((i) => i.status)).toEqual(['handed', 'handed']);
+    });
+
+    test('cancelling while waiting for a slot hands nothing over', async () => {
+        const { q, links, sleeps } = linkSetup(1, (f) =>
+            json({ maxParallel: 1, inUse: 1, ...(f ? { started: true } : {}) }),
+            1,
+        );
+        await q.enqueue('s');
+        const run = q.start();
+        await vi.waitFor(() => expect(sleeps).toContain(3000));
+        q.cancel();
+        await run;
+        expect(links).toHaveLength(0);
+        expect(q.state).toBe('stopped');
+        expect(q.items[0].status).toBe('queued');
+    });
+
+    test('the browser-profile batch size still caps one run', async () => {
+        const { q, links } = linkSetup(5, (f) =>
+            json({ maxParallel: 2, inUse: 0, ...(f ? { started: true } : {}) }),
+        );
+        await q.enqueue('s');
+        await q.start();
+        expect(links).toHaveLength(2);
+        expect(q.linksRemaining).toBe(3);
     });
 });

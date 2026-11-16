@@ -13125,6 +13125,7 @@
     "downloads_reason_http": "Der Server hat die Datei abgelehnt",
     "downloads_reason_network": "Netzwerkfehler",
     "downloads_reason_size": "Datei unvollständig (Größe stimmt nicht)",
+    "downloads_reason_not_started": "Der Download hat nicht gestartet. Versuch diese Datei noch einmal.",
     "downloads_reason_write": "Schreiben in den Ordner fehlgeschlagen",
     "downloads_reason_fat32": "Datei über 4 GB passt nicht auf diesen Stick. Nimm einen exFAT-Stick.",
     "downloads_fat32_warning": "Dateien über 4 GB passen nicht auf FAT32-Sticks. Nimm einen exFAT-Stick.",

@@ -13125,6 +13125,7 @@
     "downloads_reason_http": "The server refused the file",
     "downloads_reason_network": "Network error",
     "downloads_reason_size": "File incomplete (size mismatch)",
+    "downloads_reason_not_started": "The download never started. Try this one again.",
     "downloads_reason_write": "Could not write to the folder",
     "downloads_reason_fat32": "File over 4 GB does not fit on this stick. Use an exFAT stick.",
     "downloads_fat32_warning": "Files over 4 GB don't fit on FAT32 sticks. Use an exFAT stick.",
