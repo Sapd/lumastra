@@ -38,6 +38,7 @@
     import { getLocale } from '$lib/paraglide/runtime';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import EpisodeStill from './EpisodeStill.svelte';
+    import DownloadButton from '$lib/components/downloads/DownloadButton.svelte';
     import EpisodeLanguageBadges from './EpisodeLanguageBadges.svelte';
     import EpisodeHoverPanel from './EpisodeHoverPanel.svelte';
     import { modalCount } from '$lib/stores/modal.store';
@@ -1112,6 +1113,15 @@
                             </button>
                         </Tooltip>
                     {/if}
+                    {#if !playlistMode && currentSeason && resolvedSeriesId}
+                        <DownloadButton
+                            mediaItemId={resolvedSeriesId}
+                            season={Number(
+                                currentSeason.IndexNumber ?? currentSeason.seasonNumber ?? 0,
+                            )}
+                            label={m.downloads_season()}
+                            testId="season-download" />
+                    {/if}
                 </div>
             </div>
         {/if}
@@ -1300,6 +1310,13 @@
                                                         {m.episode_picker_undated_badge()}
                                                     </span>
                                                 </Tooltip>
+                                            {/if}
+                                            {#if !playlistMode && episode.id}
+                                                <DownloadButton
+                                                    mediaItemId={episode.id}
+                                                    accessId={resolvedSeriesId}
+                                                    variant="icon"
+                                                    testId="episode-download" />
                                             {/if}
                                             {#if showWatchedToggle}
                                                 <Tooltip

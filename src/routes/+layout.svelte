@@ -22,6 +22,8 @@
     import { openModalFromUrl, reconcileModalsFromUrl } from '$lib/stores/modal-url-sync';
     import { addToPlaylistModal } from '$lib/stores/playlists';
     import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
+    import DownloadQueuePanel from '$lib/components/downloads/DownloadQueuePanel.svelte';
+    import DownloadConfirmSheet from '$lib/components/downloads/DownloadConfirmSheet.svelte';
     import MaintenanceBanner from '$lib/components/MaintenanceBanner.svelte';
     import { toasts } from '$lib/stores/toast.store';
     import {
@@ -639,6 +641,8 @@
 {#if !isAdminPage}
     <ToastContainer />
 {/if}
+<DownloadConfirmSheet />
+<DownloadQueuePanel />
 {#if appChrome}
     {@const GlobalChrome = appChrome.GlobalChrome}
     <GlobalChrome {data} {isAdminPage} {isDevicePage} isStandalone={isAuthPage || isShowcasePage} />

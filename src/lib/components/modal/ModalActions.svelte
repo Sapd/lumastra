@@ -61,6 +61,7 @@
     import { imageFromIds } from '$lib/utils/image-utils';
     import { getPreferredExternalId } from '$lib/utils/external-ids';
     import SeasonSelectorModal from '$lib/components/SeasonSelectorModal.svelte';
+    import DownloadButton from '$lib/components/downloads/DownloadButton.svelte';
     import DebugPanel from './DebugPanel.svelte';
     import ActionPopover from './ActionPopover.svelte';
     import * as m from '$lib/paraglide/messages';
@@ -1364,6 +1365,12 @@
             itemId={externalIds?.internal ?? ''}
             {title}
             mediaType={mediaType || 'movie'} />
+    {/if}
+
+    <!-- Download (movies and single episodes). Hidden unless the server feature is
+         on, the user may download, and the item has a file. -->
+    {#if (isMovie(mediaType) || isEpisode) && externalIds?.internal && UUID_RE.test(externalIds.internal)}
+        <DownloadButton mediaItemId={externalIds.internal} showSize />
     {/if}
 
     <!-- Mark as Watched Button -->
