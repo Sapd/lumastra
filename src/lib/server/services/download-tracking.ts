@@ -44,6 +44,11 @@ import * as m from '$lib/paraglide/messages';
 
 const log = Logger.for('DownloadTracking');
 
+/** Window of the minimum-speed rule: a download is judged once it has run this long. */
+const MIN_SPEED_WINDOW_MS = 10 * 60_000;
+/** Measured speed may sit this far below the configured minimum before a download is ended. */
+const MIN_SPEED_TOLERANCE = 0.8;
+
 /** A stream that sends nothing for this long is ended as aborted so it cannot hold a slot forever. */
 const STALL_LIMIT_MS = 10 * 60_000;
 
@@ -54,6 +59,11 @@ export interface DownloadTarget {
     /** Original file id; for a rendition download leave it out and pass `renditionId`. */
     fileId?: string | null;
     renditionId?: string | null;
+    /**
+     * A ZIP of a season or series: there is no file or rendition, so the lease and the log
+     * row are keyed on `mediaItemId` (the requested series or season id) instead.
+     */
+    archive?: boolean;
     surface: DownloadSurface;
     bytesTotal?: number | null;
     /** First byte of a Range request, when there is one. */
@@ -73,6 +83,13 @@ export interface DownloadTracker {
      * a stale If-Range turns the request into a full send, which must not log a range start.
      */
     served(status: number): void;
+    /**
+     * For an archive whose size is only known after the lease was taken (the files are listed
+     * and sized once the slot is held): set before the first byte is sent.
+     */
+    setBytesTotal(n: number): void;
+    /** True once the transfer ended (stall watchdog, revoked lease, `onEnd`, `discard`). */
+    isFinished(): boolean;
     /** The response turned out not to stream anything (416, 404): release without logging. */
     discard(): void;
 }
@@ -129,7 +146,25 @@ function eventInput(
         clientName: deriveClientName(event),
         bytesTotal: target.bytesTotal ?? null,
         rangeStart: target.rangeStart ?? null,
+        archive: target.archive === true,
     };
+}
+
+const slowWarnedAt = new Map<string, number>();
+
+/** One warning per (user, hour) for a download ended as too slow. */
+function warnSlow(userId: string, kbps: number): void {
+    const now = Date.now();
+    if (slowWarnedAt.size > 1_000) {
+        for (const [k, at] of slowWarnedAt) if (now - at >= 3_600_000) slowWarnedAt.delete(k);
+    }
+    const last = slowWarnedAt.get(userId);
+    if (last !== undefined && now - last < 3_600_000) return;
+    slowWarnedAt.set(userId, now);
+    log.warn('download ended: slower than the minimum speed over 10 minutes', {
+        userId,
+        minKBps: kbps,
+    });
 }
 
 function warn(what: string, err: unknown): void {
@@ -144,6 +179,7 @@ const refusalSeen = new Map<string, number>();
 /** Test hook. */
 export function resetRefusalCoalescingForTests(): void {
     refusalSeen.clear();
+    slowWarnedAt.clear();
     refusalUserCount.clear();
     rowBudget.clear();
 }
@@ -244,7 +280,10 @@ export async function trackDownload(
 ): Promise<TrackResult> {
     const input = eventInput(event, target);
     const userId = (event.locals as unknown as TrackLocals | undefined)?.user?.userId;
-    const leaseFileId = target.renditionId ?? target.fileId;
+    // Every archive request is its own slot: a fresh key per request, so two ZIPs of the same
+    // title from the same device are two leases and both count against the parallel limit.
+    const leaseFileId =
+        target.renditionId ?? target.fileId ?? (target.archive ? crypto.randomUUID() : null);
     // No signed-in user (not reachable through the routes): plain per-download cap, no log.
     if (!userId) return { ok: true, tracker: untrackedDownload() };
     // A signed-in user whose download cannot be tracked (ids that are not UUIDs, no file
@@ -291,6 +330,8 @@ export function untrackedDownload(): DownloadTracker {
         onBytes: () => {},
         onEnd: () => {},
         served: () => {},
+        setBytesTotal: () => {},
+        isFinished: () => false,
         discard: () => {},
     };
 }
@@ -346,8 +387,34 @@ function createTracker(input: DownloadEventInput, lease: DownloadLease | null): 
         return delta;
     };
 
+    // Sliding window for the minimum-speed rule. Measuring starts at the FIRST streamed byte (a
+    // slow start or a long preparation is not the client's speed): samples[0] is the newest
+    // sample at least one window old, once there is one.
+    const samples: Array<{ t: number; total: number; rate: number }> = [];
+    /** True when the last window averaged below 80 % of the minimum although the server allowed it. */
+    const tooSlow = (now: number): boolean => {
+        if (samples.length === 0) return false; // no byte streamed yet
+        const minBps = kbpsToBytesPerSecond(Number(config.DOWNLOAD_MIN_SPEED_KBPS) || 0);
+        samples.push({ t: now, total, rate: rateOf() });
+        while (samples.length > 2 && samples[1].t <= now - MIN_SPEED_WINDOW_MS) samples.shift();
+        if (minBps <= 0) return false;
+        const baseline = samples[0];
+        if (baseline.t > now - MIN_SPEED_WINDOW_MS) return false; // not a whole window yet
+        // The server itself held the download below the minimum during the window: not the client's fault.
+        if (samples.some((s) => s.rate > 0 && s.rate < minBps)) return false;
+        return (
+            (total - baseline.total) / ((now - baseline.t) / 1000) < minBps * MIN_SPEED_TOLERANCE
+        );
+    };
+
     const timer = setInterval(() => {
         if (finished) return;
+        if (tooSlow(Date.now())) {
+            warnSlow(input.userId, Number(config.DOWNLOAD_MIN_SPEED_KBPS) || 0);
+            onEnd('aborted');
+            cancelBody?.();
+            return;
+        }
         if (total > lastTickTotal) {
             lastTickTotal = total;
             lastProgressAt = Date.now();
@@ -391,6 +458,8 @@ function createTracker(input: DownloadEventInput, lease: DownloadLease | null): 
 
     const onBytes = (n: number): void => {
         if (finished) return;
+        // The first streamed byte starts the speed window.
+        if (samples.length === 0) samples.push({ t: Date.now(), total, rate: rateOf() });
         total += n;
         if (!rowId) void ensureRow();
     };
@@ -433,11 +502,17 @@ function createTracker(input: DownloadEventInput, lease: DownloadLease | null): 
             onEnd,
             setCancel: (c) => {
                 cancelBody = c;
+                // Already terminated (stall, revoked lease) before anyone could register: fire now.
+                if (finished) c();
             },
         },
         onBytes,
         onEnd,
         served,
+        setBytesTotal: (n) => {
+            input.bytesTotal = n;
+        },
+        isFinished: () => finished,
         discard: stop,
     };
     return tracker;

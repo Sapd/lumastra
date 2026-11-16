@@ -18,6 +18,7 @@ const DOWNLOAD_KEYS = [
     'DOWNLOAD_LOG_RETENTION_DAYS',
     'DOWNLOAD_GROUPS',
     'DOWNLOAD_ALLOWED_MOUNT_ROOTS',
+    'DOWNLOAD_MIN_SPEED_KBPS',
 ] as const;
 
 type DownloadConfig = {
@@ -28,6 +29,7 @@ type DownloadConfig = {
     DOWNLOAD_LOG_RETENTION_DAYS: number;
     DOWNLOAD_GROUPS: string[];
     DOWNLOAD_ALLOWED_MOUNT_ROOTS: string[];
+    DOWNLOAD_MIN_SPEED_KBPS: number;
 };
 
 /**
@@ -55,6 +57,7 @@ describe('download settings: defaults', () => {
         expect(config.DOWNLOAD_MAX_PARALLEL_PER_USER).toBe(3);
         expect(config.DOWNLOAD_LOG_RETENTION_DAYS).toBe(90);
         expect(config.DOWNLOAD_GROUPS).toEqual([]);
+        expect(config.DOWNLOAD_MIN_SPEED_KBPS).toBe(1);
     });
 });
 
@@ -98,6 +101,32 @@ describe('DOWNLOAD_ALLOWED_MOUNT_ROOTS', () => {
         expect(def?.description).toContain(
             'Downloads only follow symlinks into the library folders.',
         );
+        expect(def?.requiresRestart).not.toBe(true);
+    });
+});
+
+describe('DOWNLOAD_MIN_SPEED_KBPS', () => {
+    it('reads an env override, 0 included (off)', async () => {
+        expect((await loadConfig({ DOWNLOAD_MIN_SPEED_KBPS: '5' })).DOWNLOAD_MIN_SPEED_KBPS).toBe(
+            5,
+        );
+        expect((await loadConfig({ DOWNLOAD_MIN_SPEED_KBPS: '0' })).DOWNLOAD_MIN_SPEED_KBPS).toBe(
+            0,
+        );
+    });
+
+    it('is a downloads-section number setting with the agreed label, description and default 1', () => {
+        const def = configSchema.find((d) => d.key === 'DOWNLOAD_MIN_SPEED_KBPS');
+        expect(def).toMatchObject({
+            type: 'number',
+            defaultValue: 1,
+            section: 'downloads',
+            label: 'Minimum download speed (KB/s)',
+        });
+        expect(def?.description).toContain(
+            'Downloads slower than this over 10 minutes are stopped',
+        );
+        expect(def?.description).toContain('0 turns this off.');
         expect(def?.requiresRestart).not.toBe(true);
     });
 });

@@ -14,10 +14,18 @@ const mocks = vi.hoisted(() => ({
     end: vi.fn(),
     refused: vi.fn(),
     merge: vi.fn(),
+    minSpeedKbps: { v: 0 },
 }));
 
 vi.mock('$lib/server/database/index.js', () => ({ getDb: mocks.getDb }));
-vi.mock('$lib/server/config.js', () => ({ config: { DOWNLOAD_THROTTLE_KBPS: 0 } }));
+vi.mock('$lib/server/config.js', () => ({
+    config: {
+        DOWNLOAD_THROTTLE_KBPS: 0,
+        get DOWNLOAD_MIN_SPEED_KBPS() {
+            return mocks.minSpeedKbps.v;
+        },
+    },
+}));
 vi.mock('$lib/paraglide/messages', () => ({ downloads_limit_reached: () => 'limit' }));
 vi.mock('$lib/server/services/download-leases.js', () => ({
     acquireDownloadLease: mocks.acquire,
@@ -76,6 +84,7 @@ async function flush(): Promise<void> {
 }
 
 beforeEach(() => {
+    mocks.minSpeedKbps.v = 0; // the minimum-speed rule has its own describe
     vi.useFakeTimers();
     resetRefusalCoalescingForTests();
     vi.clearAllMocks();
@@ -321,6 +330,175 @@ describe('stall watchdog', () => {
     });
 });
 
+describe('minimum download speed', () => {
+    const MIN = 60_000;
+    async function start(rate = 0) {
+        const lease = fakeLease(rate);
+        mocks.acquire.mockResolvedValue({ ok: true, lease });
+        const res = await trackDownload(event(), target);
+        if (!res.ok) throw new Error('expected ok');
+        const cancel = vi.fn();
+        res.tracker.observer.setCancel!(cancel);
+        return { res, lease, cancel };
+    }
+
+    it('a trickle of 1 byte per minute is ended as aborted once a whole window has run', async () => {
+        mocks.minSpeedKbps.v = 1;
+        const { res, lease, cancel } = await start();
+        for (let i = 0; i < 9; i++) {
+            res.tracker.onBytes(1);
+            await vi.advanceTimersByTimeAsync(MIN);
+        }
+        expect(cancel).not.toHaveBeenCalled(); // not a full window yet
+        for (let i = 0; i < 3; i++) {
+            res.tracker.onBytes(1);
+            await vi.advanceTimersByTimeAsync(MIN);
+        }
+        expect(cancel).toHaveBeenCalledTimes(1);
+        expect(lease.release).toHaveBeenCalledTimes(1);
+        expect(mocks.end).toHaveBeenCalledWith(
+            expect.anything(),
+            'row-1',
+            'aborted',
+            expect.anything(),
+        );
+    });
+
+    it('a steady 2 KB/s download is kept', async () => {
+        mocks.minSpeedKbps.v = 1;
+        const { res, lease, cancel } = await start();
+        for (let i = 0; i < 12 * 12; i++) {
+            res.tracker.onBytes(2 * 1024 * 5); // 5 s at 2 KB/s
+            await vi.advanceTimersByTimeAsync(5_000);
+        }
+        expect(cancel).not.toHaveBeenCalled();
+        expect(lease.release).not.toHaveBeenCalled();
+        res.tracker.onEnd('aborted');
+    });
+
+    it('a download the server itself holds at 0.5 KB/s is kept (the server is the limiter)', async () => {
+        mocks.minSpeedKbps.v = 1;
+        const { res, cancel } = await start(512);
+        for (let i = 0; i < 15; i++) {
+            res.tracker.onBytes(1);
+            await vi.advanceTimersByTimeAsync(MIN);
+        }
+        expect(cancel).not.toHaveBeenCalled();
+        res.tracker.onEnd('aborted');
+    });
+
+    it('1 s of preparation, then a steady 1 KiB/s with the cap equal to the minimum: kept', async () => {
+        mocks.minSpeedKbps.v = 1;
+        const { res, lease, cancel } = await start(1024); // allowed rate = minimum
+        await vi.advanceTimersByTimeAsync(1_000); // preparation before the first byte
+        for (let i = 0; i < 12 * 12; i++) {
+            res.tracker.onBytes(1024 * 5);
+            await vi.advanceTimersByTimeAsync(5_000);
+        }
+        expect(cancel).not.toHaveBeenCalled();
+        expect(lease.release).not.toHaveBeenCalled();
+        res.tracker.onEnd('aborted');
+    });
+
+    it('the window starts at the first byte, not at creation', async () => {
+        mocks.minSpeedKbps.v = 1;
+        const { res, cancel } = await start();
+        await vi.advanceTimersByTimeAsync(9 * MIN); // long preparation, nothing streamed yet
+        for (let i = 0; i < 9; i++) {
+            res.tracker.onBytes(1);
+            await vi.advanceTimersByTimeAsync(MIN);
+        }
+        // 18 min since creation, 9 since the first byte: still inside the first window
+        expect(cancel).not.toHaveBeenCalled();
+        for (let i = 0; i < 3; i++) {
+            res.tracker.onBytes(1);
+            await vi.advanceTimersByTimeAsync(MIN);
+        }
+        expect(cancel).toHaveBeenCalledTimes(1);
+    });
+
+    it('a speed within 80 % of the minimum is tolerated, below it is not', async () => {
+        mocks.minSpeedKbps.v = 10; // 10 KiB/s, 80 % = 8 KiB/s
+        const ok = await start();
+        for (let i = 0; i < 12 * 12; i++) {
+            ok.res.tracker.onBytes(Math.floor(9 * 1024 * 5)); // 9 KiB/s
+            await vi.advanceTimersByTimeAsync(5_000);
+        }
+        expect(ok.cancel).not.toHaveBeenCalled();
+        ok.res.tracker.onEnd('aborted');
+        const slow = await start();
+        for (let i = 0; i < 12 * 12; i++) {
+            slow.res.tracker.onBytes(Math.floor(7 * 1024 * 5)); // 7 KiB/s
+            await vi.advanceTimersByTimeAsync(5_000);
+        }
+        expect(slow.cancel).toHaveBeenCalledTimes(1);
+    });
+
+    it('setting 0 turns the rule off', async () => {
+        mocks.minSpeedKbps.v = 0;
+        const { res, cancel } = await start();
+        for (let i = 0; i < 20; i++) {
+            res.tracker.onBytes(1);
+            await vi.advanceTimersByTimeAsync(MIN);
+        }
+        expect(cancel).not.toHaveBeenCalled();
+        res.tracker.onEnd('aborted');
+    });
+
+    it('a download that speeds up in time is kept (only the last window counts)', async () => {
+        mocks.minSpeedKbps.v = 1;
+        const { res, cancel } = await start();
+        // 11 slow minutes would trip it at minute 10, so speed up before the first judgement
+        for (let i = 0; i < 9; i++) {
+            res.tracker.onBytes(1);
+            await vi.advanceTimersByTimeAsync(MIN);
+        }
+        for (let i = 0; i < 20 * 12; i++) {
+            res.tracker.onBytes(10 * 1024 * 5);
+            await vi.advanceTimersByTimeAsync(5_000);
+        }
+        expect(cancel).not.toHaveBeenCalled();
+        res.tracker.onEnd('aborted');
+    });
+});
+
+describe('a cancel hook registered after the tracker ended fires immediately', () => {
+    it('after onEnd', async () => {
+        mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
+        const res = await trackDownload(event(), target);
+        if (!res.ok) throw new Error('expected ok');
+        expect(res.tracker.isFinished()).toBe(false);
+        res.tracker.onEnd('aborted');
+        expect(res.tracker.isFinished()).toBe(true);
+        const cancel = vi.fn();
+        res.tracker.observer.setCancel!(cancel);
+        expect(cancel).toHaveBeenCalledTimes(1);
+    });
+
+    it('after the stall watchdog or a revoked lease ended it during preparation', async () => {
+        const lease = fakeLease();
+        mocks.acquire.mockResolvedValue({ ok: true, lease });
+        const res = await trackDownload(event(), target);
+        if (!res.ok) throw new Error('expected ok');
+        lease.revoked.mockReturnValue(true);
+        await vi.advanceTimersByTimeAsync(5_000);
+        expect(res.tracker.isFinished()).toBe(true);
+        const cancel = vi.fn();
+        res.tracker.observer.setCancel!(cancel);
+        expect(cancel).toHaveBeenCalledTimes(1);
+    });
+
+    it('a hook registered while running is not called until the end', async () => {
+        mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
+        const res = await trackDownload(event(), target);
+        if (!res.ok) throw new Error('expected ok');
+        const cancel = vi.fn();
+        res.tracker.observer.setCancel!(cancel);
+        expect(cancel).not.toHaveBeenCalled();
+        res.tracker.discard();
+    });
+});
+
 describe('stall and revoked lease tear the body down', () => {
     it('a stall cancels the body through the observer hook', async () => {
         mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
@@ -365,6 +543,63 @@ describe('untrackable downloads', () => {
     it('no file or rendition id is refused with 503', async () => {
         const res = await trackDownload(event(), { ...target, fileId: null });
         expect(res.ok).toBe(false);
+    });
+
+    it('an archive target (ZIP of a season/series) is tracked: a fresh lease key per request, no file id', async () => {
+        const lease = fakeLease();
+        mocks.acquire.mockResolvedValue({ ok: true, lease });
+        const res = await trackDownload(event(), {
+            mediaItemId: ITEM,
+            archive: true,
+            surface: 'web',
+            bytesTotal: 5000,
+        });
+        expect(res.ok).toBe(true);
+        const leaseKey = (mocks.acquire.mock.calls[0]![0] as { fileId: string }).fileId;
+        expect(leaseKey).toMatch(/^[0-9a-f-]{36}$/);
+        expect(leaseKey).not.toBe(ITEM);
+        if (!res.ok) return;
+        res.tracker.onBytes(10);
+        await flush();
+        expect(mocks.start).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                mediaItemId: ITEM,
+                fileId: null,
+                renditionId: null,
+                archive: true,
+                surface: 'web',
+                bytesTotal: 5000,
+            }),
+            expect.anything(),
+        );
+    });
+
+    it('two archives of the same title from one device are two lease keys (each counts against the limit)', async () => {
+        mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
+        const t = { mediaItemId: ITEM, archive: true, surface: 'web' as const };
+        await trackDownload(event(), t);
+        await trackDownload(event(), t);
+        const [a, b] = mocks.acquire.mock.calls.map((c) => (c[0] as { fileId: string }).fileId);
+        expect(a).not.toBe(b);
+    });
+
+    it('an archive whose size is set after the lease is logged with that size', async () => {
+        mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
+        const res = await trackDownload(event(), {
+            mediaItemId: ITEM,
+            archive: true,
+            surface: 'web',
+        });
+        if (!res.ok) throw new Error('expected ok');
+        res.tracker.setBytesTotal(777);
+        res.tracker.onBytes(1);
+        await flush();
+        expect(mocks.start).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ bytesTotal: 777, archive: true }),
+            expect.anything(),
+        );
     });
 
     it('no user at all stays untracked', async () => {

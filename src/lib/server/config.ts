@@ -2020,6 +2020,14 @@ export const config = {
         return getNumber('DOWNLOAD_THROTTLE_KBPS', env.DOWNLOAD_THROTTLE_KBPS, 0);
     },
 
+    // Minimum average speed of a running download, in KB/s, over a 10-minute window (after the
+    // download has run that long). Slower downloads are ended so a stalled or deliberately slow
+    // client cannot hold a slot forever. 0 = off. Skipped while the server itself limits the
+    // download below this value.
+    get DOWNLOAD_MIN_SPEED_KBPS(): number {
+        return getNumber('DOWNLOAD_MIN_SPEED_KBPS', env.DOWNLOAD_MIN_SPEED_KBPS, 1);
+    },
+
     // Download permission default. Consulted by canDownload only when
     // FEATURE_MEDIA_DOWNLOAD is on; admins always may download. A user's own
     // allow_downloads value overrides this.

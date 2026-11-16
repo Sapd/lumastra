@@ -793,7 +793,8 @@ Configure these settings in your \`config/settings.json\` file:
     {
         id: 'licensing',
         label: 'Push relay',
-        description: 'Whether this server contacts lumastra.org (update check and push relay token)',
+        description:
+            'Whether this server contacts lumastra.org (update check and push relay token)',
         icon: 'Key',
         order: 25,
     },
@@ -2106,6 +2107,16 @@ export const configSchema: SettingDefinition[] = [
             'When a per-user speed limit is also set, a download runs at the lower of the two.',
         defaultValue: 0,
         section: 'downloads',
+    },
+    {
+        key: 'DOWNLOAD_MIN_SPEED_KBPS',
+        type: 'number',
+        label: 'Minimum download speed (KB/s)',
+        description:
+            'Downloads slower than this over 10 minutes are stopped, so a stalled or deliberately slow client can’t hold a slot forever. 0 turns this off.',
+        defaultValue: 1,
+        section: 'downloads',
+        validation: { min: 0, integer: true },
     },
     {
         key: 'DOWNLOAD_USER_BANDWIDTH_KBPS',
