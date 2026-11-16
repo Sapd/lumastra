@@ -271,7 +271,29 @@ describe('link batches in the UI', () => {
         // no folder picked in this test: link mode
         await downloadQueue.start();
         const next = await screen.findByTestId('download-start-next');
-        expect(next.textContent).toContain('3');
+        expect(next.textContent).toContain('2'); // 3 left, batch of 2
         expect(screen.queryByTestId('download-state')).toBeNull();
+    });
+
+    test('shows the Brave hint upfront when the picker is missing', async () => {
+        stubList(listBody());
+        const q = downloadQueue as unknown as { deps: { pickDirectory: unknown } };
+        const savedPicker = q.deps.pickDirectory;
+        q.deps.pickDirectory = null;
+        Object.defineProperty(navigator, 'brave', {
+            value: { isBrave: async () => true },
+            configurable: true,
+        });
+        try {
+            await downloadQueue.enqueue('series-brave');
+            render(DownloadConfirmSheet);
+            const hint = await screen.findByTestId('download-browser-hint');
+            expect(hint.textContent).toContain('brave://flags/#file-system-access-api');
+            // only one browser hint paragraph
+            expect(screen.getAllByTestId('download-browser-hint')).toHaveLength(1);
+        } finally {
+            q.deps.pickDirectory = savedPicker;
+            Reflect.deleteProperty(navigator, 'brave');
+        }
     });
 });

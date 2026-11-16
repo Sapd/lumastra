@@ -22,6 +22,16 @@
 import { base } from '$app/paths';
 import { SvelteMap, SvelteSet, SvelteURLSearchParams } from 'svelte/reactivity';
 import { sanitizePathSegment } from './path-sanitize';
+import {
+    detectBrowserEnv,
+    linkBatchSize,
+    linkModeProfile,
+    UNLIMITED_PARALLEL_CEILING,
+    type BrowserEnv,
+    type LinkModeProfile,
+} from './browser-profile';
+
+export { linkBatchSize };
 
 export interface DownloadListItem {
     mediaItemId: string;
@@ -79,6 +89,8 @@ export interface QueueDeps {
     /** null = browser has no folder picker */
     pickDirectory: (() => Promise<FileSystemDirectoryHandle>) | null;
     triggerLink: (url: string, fileName: string) => void;
+    /** Read lazily: decides the link-mode profile and the Brave hint */
+    env: () => BrowserEnv;
 }
 
 export interface DownloadInfo {
@@ -87,25 +99,18 @@ export interface DownloadInfo {
 }
 const NO_DOWNLOAD: DownloadInfo = { allowed: false, maxParallel: 0 };
 
-const LINK_GAP_MS = 1500;
 const MAX_RETRY_MS = 60_000;
 const BACKOFF_BASE_MS = 1000;
 const MAX_429_ATTEMPTS = 10;
-/** Client-side ceiling when the server's limit is "unlimited" (0). */
-const UNLIMITED_PARALLEL_CEILING = 4;
 /** A dropped connection is retried this many times, from the start of the file. */
 const MAX_NETWORK_RETRIES = 2;
 /** Permission probes kept; the oldest is dropped beyond this. */
 const MAX_INFO_CACHE = 200;
 
-/** Links handed to the browser per batch (link mode). */
-export function linkBatchSize(maxParallel: number): number {
-    return maxParallel > 0 ? maxParallel : UNLIMITED_PARALLEL_CEILING;
-}
-
 function defaultDeps(): QueueDeps {
     const hasPicker = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
     return {
+        env: detectBrowserEnv,
         fetch: (...args) => globalThis.fetch(...args),
         sleep: (ms, signal) =>
             new Promise((resolve) => {
@@ -184,6 +189,9 @@ export class DownloadQueue {
     folderName = $state<string | null>(null);
     loading = $state(false);
 
+    /** Why the folder picker is off despite being present: it threw something other than a cancel */
+    pickerReason = $state<'blocked' | null>(null);
+
     private deps: QueueDeps;
     private dirHandle: FileSystemDirectoryHandle | null = null;
     private abort: AbortController | null = null;
@@ -198,7 +206,17 @@ export class DownloadQueue {
     }
 
     get supportsFolderPicker(): boolean {
-        return this.deps.pickDirectory !== null;
+        return this.deps.pickDirectory !== null && this.pickerReason === null;
+    }
+
+    /** Brave blocks the File System Access API by default. */
+    get isBrave(): boolean {
+        return this.deps.env().brave;
+    }
+
+    /** Link-mode settings for this browser. */
+    get profile(): LinkModeProfile {
+        return linkModeProfile(this.deps.env());
     }
 
     /**
@@ -286,13 +304,18 @@ export class DownloadQueue {
 
     /** Must be called from a click handler (user activation). */
     async chooseFolder(): Promise<boolean> {
-        if (!this.deps.pickDirectory) return false;
+        if (!this.supportsFolderPicker || !this.deps.pickDirectory) return false;
         try {
             this.dirHandle = await this.deps.pickDirectory();
             this.folderName = this.dirHandle.name || null;
             return true;
-        } catch {
-            // AbortError: the user closed the picker
+        } catch (e) {
+            // AbortError: the user closed the picker, nothing changes.
+            if (e instanceof DOMException && e.name === 'AbortError') return false;
+            if ((e as { name?: string } | null)?.name === 'AbortError') return false;
+            // Anything else (SecurityError, NotAllowedError, TypeError...): the picker does
+            // not work here, fall back to links for the rest of the session.
+            this.pickerReason = 'blocked';
             return false;
         }
     }
@@ -327,7 +350,7 @@ export class DownloadQueue {
 
     /** Link mode: how many links one batch hands over. */
     get linkBatch(): number {
-        return linkBatchSize(this.maxParallel);
+        return this.profile.batchSize(this.maxParallel);
     }
 
     /** Items that ended in 'failed' (a finished run can still be 'done'). */
@@ -622,6 +645,7 @@ export class DownloadQueue {
 
     /** Hands over the next `linkBatch` queued items, one after another with a gap. */
     private async runLinks(): Promise<void> {
+        const { gapMs } = this.profile;
         const batch = this.items.filter((i) => i.status === 'queued').slice(0, this.linkBatch);
         for (let i = 0; i < batch.length; i++) {
             if (this.stopRequested) return;
@@ -630,7 +654,7 @@ export class DownloadQueue {
             this.deps.triggerLink(downloadUrl(item.mediaItemId, item.fileId), item.fileName);
             item.status = 'handed';
             this.bytesDone += item.sizeBytes;
-            if (i < batch.length - 1) await this.sleep(LINK_GAP_MS);
+            if (i < batch.length - 1) await this.sleep(gapMs);
         }
     }
 

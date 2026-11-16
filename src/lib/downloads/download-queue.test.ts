@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { describe, expect, test, vi } from 'vitest';
+import type { BrowserEnv } from './browser-profile';
 import {
     DownloadQueue,
     retryDelayMs,
@@ -102,7 +103,13 @@ function fileResponse(size: number) {
 function setup(
     l: DownloadList,
     onDownload: (fileId: string, call: number) => Response | Promise<Response>,
-    opts: { fs?: FakeFs; noPicker?: boolean; sleep?: (ms: number) => Promise<void> } = {},
+    opts: {
+        fs?: FakeFs;
+        noPicker?: boolean;
+        sleep?: (ms: number) => Promise<void>;
+        pick?: () => Promise<FileSystemDirectoryHandle>;
+        env?: BrowserEnv;
+    } = {},
 ) {
     const fs = opts.fs ?? new FakeFs();
     const calls: string[] = [];
@@ -125,7 +132,8 @@ function setup(
             (async (ms) => {
                 sleeps.push(ms);
             }),
-        pickDirectory: opts.noPicker ? null : async () => fs.root(),
+        pickDirectory: opts.noPicker ? null : (opts.pick ?? (async () => fs.root())),
+        ...(opts.env ? { env: () => opts.env as BrowserEnv } : {}),
         triggerLink: (url, fileName) => links.push({ url, fileName }),
     });
     return { q, fs, calls, sleeps, links, fetchFn };
@@ -286,6 +294,65 @@ describe('DownloadQueue link mode', () => {
         expect(q.mode).toBe('links');
         // only the list was fetched, the browser does the downloads
         expect(fetchFn).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('DownloadQueue folder picker errors', () => {
+    test('AbortError (user cancelled) keeps the picker available', async () => {
+        const { q } = setup(list([item(1)]), () => fileResponse(5), {
+            pick: async () => {
+                throw new DOMException('cancelled', 'AbortError');
+            },
+        });
+        expect(await q.chooseFolder()).toBe(false);
+        expect(q.supportsFolderPicker).toBe(true);
+        expect(q.pickerReason).toBeNull();
+    });
+
+    test('SecurityError disables the picker for the session and sets blocked', async () => {
+        const { q } = setup(list([item(1)]), () => fileResponse(5), {
+            pick: async () => {
+                throw new DOMException('blocked', 'SecurityError');
+            },
+        });
+        expect(await q.chooseFolder()).toBe(false);
+        expect(q.supportsFolderPicker).toBe(false);
+        expect(q.pickerReason).toBe('blocked');
+    });
+
+    test('TypeError also disables it', async () => {
+        const { q } = setup(list([item(1)]), () => fileResponse(5), {
+            pick: async () => {
+                throw new TypeError('nope');
+            },
+        });
+        await q.chooseFolder();
+        expect(q.supportsFolderPicker).toBe(false);
+    });
+});
+
+describe('DownloadQueue iOS link profile', () => {
+    const ios: BrowserEnv = {
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) Safari/604.1',
+        maxTouchPoints: 5,
+        brave: false,
+    };
+
+    test('hands off one file per "next" click', async () => {
+        const { q, links } = setup(
+            list([item(1), item(2), item(3)], { maxParallel: 3 }),
+            () => fileResponse(5),
+            { noPicker: true, env: ios },
+        );
+        await q.enqueue('series-1');
+        await q.start();
+        expect(links).toHaveLength(1);
+        expect(q.linksRemaining).toBe(2);
+        await q.startNextLinks();
+        expect(links).toHaveLength(2);
+        await q.startNextLinks();
+        expect(links).toHaveLength(3);
+        expect(q.linksRemaining).toBe(0);
     });
 });
 

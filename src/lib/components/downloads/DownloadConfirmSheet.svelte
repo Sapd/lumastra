@@ -10,11 +10,7 @@
      * target folder (needs a click, so it lives here and not in the queue start).
      */
     import { tick } from 'svelte';
-    import {
-        downloadQueue,
-        FAT32_LIMIT_BYTES,
-        linkBatchSize,
-    } from '$lib/downloads/download-queue.svelte';
+    import { downloadQueue, FAT32_LIMIT_BYTES } from '$lib/downloads/download-queue.svelte';
     import { formatFileSize } from '$lib/utils/metric-formatters';
     import { Z } from '$lib/utils/z-index';
     import * as m from '$lib/paraglide/messages';
@@ -35,6 +31,23 @@
         downloadQueue.supportsFolderPicker &&
             available.some((i) => i.sizeBytes >= FAT32_LIMIT_BYTES),
     );
+
+    // Exactly one browser-specific hint: the Brave one when the picker is off in Brave
+    // (blocked by default or just failed), else the one for this browser.
+    let batchSize = $derived(downloadQueue.profile.batchSize(pending?.list.maxParallel ?? 0));
+    let browserHint = $derived.by(() => {
+        if (!downloadQueue.supportsFolderPicker && downloadQueue.isBrave) return m.downloads_hint_brave();
+        switch (downloadQueue.profile.hint) {
+            case 'ios':
+                return m.downloads_hint_ios();
+            case 'safari':
+                return m.downloads_hint_safari();
+            case 'firefox':
+                return m.downloads_hint_firefox();
+            default:
+                return m.downloads_hint_generic();
+        }
+    });
 
     // Focus moves into the sheet when it opens and back to the trigger when it closes.
     let dialogEl = $state<HTMLElement | null>(null);
@@ -135,11 +148,12 @@
                         ? m.downloads_links_hint_no_folder()
                         : m.downloads_links_hint()}
                 </p>
-                {#if available.length > linkBatchSize(pending.list.maxParallel)}
+                <p class="text-xs text-surface-400" data-testid="download-browser-hint">
+                    {browserHint}
+                </p>
+                {#if batchSize > 1 && available.length > batchSize}
                     <p class="text-xs text-surface-400" data-testid="download-batch-hint">
-                        {m.downloads_links_batch_hint({
-                            count: linkBatchSize(pending.list.maxParallel),
-                        })}
+                        {m.downloads_links_batch_hint({ count: batchSize })}
                     </p>
                 {/if}
             {/if}

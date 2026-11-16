@@ -151,7 +151,9 @@
                         class="btn btn-sm variant-filled-primary"
                         data-testid="download-start-next"
                         onclick={() => void q.startNextLinks()}>
-                        {m.downloads_start_next({ count: nextBatch })}
+                        {q.profile.hint === 'ios'
+                            ? m.downloads_start_next_one()
+                            : m.downloads_start_next({ count: nextBatch })}
                     </button>
                 {/if}
             {/if}
