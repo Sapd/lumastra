@@ -52,7 +52,10 @@ vi.mock('$lib/server/utils/download-path.js', () => ({
 const scope = vi.hoisted(() => ({
     denied: null as string[] | null,
     allowed: new Set<string>(),
-    selection: { files: [] as { id: string; file_path: string; is_default?: boolean }[], fileId: 'file-1' as string | null },
+    selection: {
+        files: [] as { id: string; file_path: string; is_default?: boolean }[],
+        fileId: 'file-1' as string | null,
+    },
 }));
 vi.mock('$lib/server/services/download-file-scope.js', () => ({
     deniedLibraryGroupsFor: async () => scope.denied,
@@ -65,7 +68,10 @@ vi.mock('$lib/server/services/download-file-scope.js', () => ({
         if (!files.length) return { files: [], fileId: null };
         return {
             files,
-            fileId: sel.fileId && ok.has(sel.fileId) ? sel.fileId : (files.find((f) => f.is_default) ?? files[0]!).id,
+            fileId:
+                sel.fileId && ok.has(sel.fileId)
+                    ? sel.fileId
+                    : (files.find((f) => f.is_default) ?? files[0]!).id,
         };
     },
 }));
@@ -252,7 +258,10 @@ describe('download.view', () => {
     it('a track whose every file is in a denied library is "song not found": no lease, no stream', async () => {
         scope.denied = ['g-denied'];
         scope.allowed = new Set();
-        scope.selection = { files: [{ id: 'file-1', file_path: '/music/a.flac' }], fileId: 'file-1' };
+        scope.selection = {
+            files: [{ id: 'file-1', file_path: '/music/a.flac' }],
+            fileId: 'file-1',
+        };
         const res = await handleDownload(ev(), auth, {} as never);
         const body = await res.json();
         expect(body['subsonic-response'].error.code).toBe(70);
@@ -289,6 +298,8 @@ describe('download.view', () => {
     it('serves the canonical path', async () => {
         dlPath.result = '/music/.real/01.flac';
         await handleDownload(ev(), auth, {} as never);
-        expect(m.serve.mock.calls[0]![0]).toMatchObject({ handle: { path: '/music/.real/01.flac' } });
+        expect(m.serve.mock.calls[0]![0]).toMatchObject({
+            handle: { path: '/music/.real/01.flac' },
+        });
     });
 });

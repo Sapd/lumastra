@@ -438,7 +438,11 @@ describe('download-events queries', () => {
             expect(await listDownloadEvents(sql, { userId, limit: 10 })).toHaveLength(0);
             const id = (await startDownloadEvent(sql, base()))!;
             // a join and a re-open never ask
-            expect(await startDownloadEvent(sql, base(), { allowInsert: () => (asked.push(1), false) })).toBe(id);
+            expect(
+                await startDownloadEvent(sql, base(), {
+                    allowInsert: () => (asked.push(1), false),
+                }),
+            ).toBe(id);
             expect(asked).toHaveLength(1);
         });
     });

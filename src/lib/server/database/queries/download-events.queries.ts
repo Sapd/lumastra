@@ -223,7 +223,9 @@ export async function mergeTinyRangeEvent(sql: postgres.Sql, id: string): Promis
         };
         // The row's identity is immutable, so it can be read before the lock only to build
         // the lock key; its STATE (closed or reopened by a join) is read again after it.
-        const [probe] = await tx<Pick<SourceRow, 'user_id' | 'device_key' | 'file_id' | 'rendition_id'>[]>`
+        const [probe] = await tx<
+            Pick<SourceRow, 'user_id' | 'device_key' | 'file_id' | 'rendition_id'>[]
+        >`
             SELECT user_id, device_key, file_id, rendition_id FROM download_events WHERE id = ${id}`;
         if (!probe) return false;
         const lockKey = `${probe.user_id}|${probe.device_key}|${probe.file_id ?? probe.rendition_id ?? ''}`;

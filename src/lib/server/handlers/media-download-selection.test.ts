@@ -389,7 +389,9 @@ describe('web hand-off nonce', () => {
     });
 
     it('records a well-formed h once serving starts, for the signed-in user', async () => {
-        await handleDownloadFile(withLocals('/api/media/media/download?h=abcdef123456'), { surface: 'web' });
+        await handleDownloadFile(withLocals('/api/media/media/download?h=abcdef123456'), {
+            surface: 'web',
+        });
         expect(handoff.noted).toEqual([['u1', 'abcdef123456']]);
     });
 
@@ -397,7 +399,9 @@ describe('web hand-off nonce', () => {
         await handleDownloadFile(withLocals('/api/media/media/download?h=%24'), { surface: 'web' });
         await handleDownloadFile(withLocals('/api/media/media/download'), { surface: 'web' });
         mocks.track.mockResolvedValue({ ok: false, response: new Response(null, { status: 429 }) });
-        await handleDownloadFile(withLocals('/api/media/media/download?h=abcdef123456'), { surface: 'web' });
+        await handleDownloadFile(withLocals('/api/media/media/download?h=abcdef123456'), {
+            surface: 'web',
+        });
         expect(handoff.noted).toEqual([]);
     });
 });

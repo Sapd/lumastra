@@ -12,7 +12,8 @@ const mockSeen = vi.fn();
 
 vi.mock('$lib/server/config.js', () => ({ config: cfg }));
 vi.mock('$lib/server/services/download-handoff.js', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('$lib/server/services/download-handoff.js')>();
+    const actual =
+        await importOriginal<typeof import('$lib/server/services/download-handoff.js')>();
     return { ...actual, handoffSeen: (...a: unknown[]) => mockSeen(...a) };
 });
 vi.mock('$lib/server/services/download-leases.js', () => ({

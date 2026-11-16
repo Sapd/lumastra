@@ -298,11 +298,15 @@ describe('DownloadQueue link mode', () => {
         await q.start();
         expect(links).toEqual([
             {
-                url: expect.stringMatching(/^\/api\/media\/ep-1\/download\?fileId=f-1&h=[0-9a-f]{32}$/),
+                url: expect.stringMatching(
+                    /^\/api\/media\/ep-1\/download\?fileId=f-1&h=[0-9a-f]{32}$/,
+                ),
                 fileName: 'Show - S01E01 - T1.mkv',
             },
             {
-                url: expect.stringMatching(/^\/api\/media\/ep-2\/download\?fileId=f-2&h=[0-9a-f]{32}$/),
+                url: expect.stringMatching(
+                    /^\/api\/media\/ep-2\/download\?fileId=f-2&h=[0-9a-f]{32}$/,
+                ),
                 fileName: 'Show - S01E02 - T2.mkv',
             },
         ]);

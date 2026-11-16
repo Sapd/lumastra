@@ -81,8 +81,9 @@ beforeEach(() => {
     vi.clearAllMocks();
     mocks.getDb.mockReturnValue({});
     // like the real query: ask before a new row, null when refused
-    mocks.start.mockImplementation(async (_s: unknown, _i: unknown, opts?: { allowInsert?: () => boolean }) =>
-        opts?.allowInsert && !opts.allowInsert() ? null : 'row-1',
+    mocks.start.mockImplementation(
+        async (_s: unknown, _i: unknown, opts?: { allowInsert?: () => boolean }) =>
+            opts?.allowInsert && !opts.allowInsert() ? null : 'row-1',
     );
     mocks.update.mockResolvedValue(undefined);
     mocks.end.mockResolvedValue(undefined);

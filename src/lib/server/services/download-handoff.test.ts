@@ -18,7 +18,12 @@ vi.mock('$lib/server/cache/valkey.js', () => ({
     }),
 }));
 
-import { handoffSeen, noteHandoff, parseHandoffNonce, resetHandoffsForTests } from './download-handoff';
+import {
+    handoffSeen,
+    noteHandoff,
+    parseHandoffNonce,
+    resetHandoffsForTests,
+} from './download-handoff';
 
 beforeEach(() => {
     resetHandoffsForTests();
@@ -40,7 +45,7 @@ describe('download hand-off nonces', () => {
         expect(await handoffSeen('u1', 'nonce-aaaa1111')).toBe(true);
     });
 
-    it('a Valkey outage neither throws nor loses this replica\'s own notes', async () => {
+    it("a Valkey outage neither throws nor loses this replica's own notes", async () => {
         coord.broken = true;
         await noteHandoff('u1', 'nonce-aaaa1111');
         expect(await handoffSeen('u1', 'nonce-aaaa1111')).toBe(true);

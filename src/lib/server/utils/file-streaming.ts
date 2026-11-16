@@ -449,10 +449,7 @@ async function serveFile(
         bandwidthTracker.trackDirectPlay(fileSize);
         if (sessionId) bandwidthTracker.trackSession(sessionId, fileSize);
         return new Response(
-            observeStream(
-                throttleNodeStream(await source(), throttleBytesPerSec),
-                observer,
-            ),
+            observeStream(throttleNodeStream(await source(), throttleBytesPerSec), observer),
             {
                 status: 200,
                 headers: {

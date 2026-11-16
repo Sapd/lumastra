@@ -298,9 +298,9 @@ describe.runIf(RUN)('download leases, real Valkey', () => {
         cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 1;
         try {
             const a = await must(u, 'f1'); // the legacy slot does not count against the limit
-            expect((await listActiveDownloads()).filter((d) => d.userId === u).map((d) => d.fileId)).toEqual([
-                'f1',
-            ]);
+            expect(
+                (await listActiveDownloads()).filter((d) => d.userId === u).map((d) => d.fileId),
+            ).toEqual(['f1']);
             await a.refresh(10);
             await a.release();
         } finally {
