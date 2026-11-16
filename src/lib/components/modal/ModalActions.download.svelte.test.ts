@@ -3,7 +3,7 @@
 
 // @vitest-environment happy-dom
 
-import { render, screen, cleanup } from '@testing-library/svelte';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { readable } from 'svelte/store';
 
@@ -90,5 +90,27 @@ describe('movie download button', () => {
         await Promise.resolve();
         await new Promise((r) => setTimeout(r, 20));
         expect(screen.queryByTestId('download-button')).toBeNull();
+    });
+});
+
+describe('movie download icon placement and tooltip', () => {
+    test('is an icon-only Share-style button before Close and carries the size once known', async () => {
+        stubList(true);
+        const { container } = render(ModalActions, {
+            mediaType: 'movie',
+            externalIds: { internal: 'a3f5e8c7-1234-5678-90ab-cdef12345603' },
+            title: 'Film',
+            isAvailable: true,
+        });
+        const btn = await screen.findByRole('button', { name: 'Download' });
+        expect(btn.className).toContain('btn-icon');
+        expect(btn.className).toContain('variant-ghost-surface');
+        expect(btn.textContent?.trim()).toBe('');
+        // the close button stays the last control of the row
+        const buttons: HTMLElement[] = Array.from(container.querySelectorAll('button'));
+        expect(buttons[buttons.length - 1].getAttribute('aria-label')).toBe('Close');
+        expect(buttons.indexOf(btn)).toBeLessThan(buttons.length - 1);
+        await fireEvent.pointerEnter(btn);
+        await waitFor(() => expect(btn.getAttribute('aria-label')).toBe('Download (4.2 GB)'));
     });
 });

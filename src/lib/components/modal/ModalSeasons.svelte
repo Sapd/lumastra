@@ -14,7 +14,6 @@
     import { goto } from '$app/navigation';
     import { Icon, ChevronDown, ChevronUp } from 'svelte-hero-icons';
     import { SeriesEpisodePicker } from '$lib/components/media';
-    import DownloadButton from '$lib/components/downloads/DownloadButton.svelte';
     import { navigateToWatch } from '$lib/stores/watch-navigation';
     import { openMediaModal } from '$lib/utils/modal-utils';
     import { asInternalUuid } from '$lib/utils/id-patterns';
@@ -206,11 +205,6 @@
                     {/if}
                 </button>
             {/if}
-
-            <DownloadButton
-                mediaItemId={seriesData.seriesId}
-                label={m.downloads_series()}
-                testId="series-download" />
 
             {#if canToggleLayout}
                 <div

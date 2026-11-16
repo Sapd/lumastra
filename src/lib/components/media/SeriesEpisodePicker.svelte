@@ -1120,12 +1120,12 @@
                             </button>
                         </Tooltip>
                     {/if}
-                    {#if !playlistMode && currentSeason && resolvedSeriesId && downloadSeason !== undefined}
+                    {#if !playlistMode && resolvedSeriesId && downloadSeason !== undefined}
                         <DownloadButton
                             mediaItemId={resolvedSeriesId}
                             season={downloadSeason}
-                            label={m.downloads_season()}
-                            testId="season-download" />
+                            label={m.downloads_season_or_series()}
+                            testId="series-download" />
                     {/if}
                 </div>
             </div>
@@ -1170,7 +1170,7 @@
                         {@const isUnplayable = availability !== 'available'}
                         <!-- svelte-ignore a11y_no_static_element_interactions -->
                         <div
-                            class="episode-item w-full px-3 py-2.5 flex items-start gap-4 text-left transition-colors border-b border-surface-800/50 min-h-[76px] {isCurrentEpisode
+                            class="episode-item download-row w-full px-3 py-2.5 flex items-start gap-4 text-left transition-colors border-b border-surface-800/50 min-h-[76px] {isCurrentEpisode
                                 ? 'bg-surface-800 episode-current'
                                 : ''} {isInitialEpisode ? 'episode-initial bg-primary-500/10' : ''}"
                             data-episode={episode.episodeNumber}
@@ -1316,11 +1316,11 @@
                                                     </span>
                                                 </Tooltip>
                                             {/if}
-                                            {#if !playlistMode && episode.id}
+                                            {#if !playlistMode && episode.id && !isMissingOnDisk && !isUnreleased}
                                                 <DownloadButton
                                                     mediaItemId={episode.id}
                                                     accessId={resolvedSeriesId}
-                                                    variant="icon"
+                                                    revealOnHover
                                                     testId="episode-download" />
                                             {/if}
                                             {#if showWatchedToggle}

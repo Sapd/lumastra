@@ -11,6 +11,10 @@ import {
 } from './download-queue.svelte';
 
 vi.mock('$app/paths', () => ({ base: '' }));
+const { toast } = vi.hoisted(() => ({
+    toast: { info: vi.fn(), warning: vi.fn(), error: vi.fn(), success: vi.fn() },
+}));
+vi.mock('$lib/stores/toast.store', () => ({ toasts: toast }));
 
 // ---- fake File System Access API -------------------------------------------------
 
@@ -405,11 +409,42 @@ describe('DownloadQueue iOS link profile', () => {
 });
 
 describe('DownloadQueue enqueue', () => {
-    test('not allowed: no sheet, error set', async () => {
+    test('not allowed: no sheet, a warning toast', async () => {
         const { q } = setup(list([item(1)], { allowed: false }), () => fileResponse(5));
+        toast.warning.mockClear();
         await q.enqueue('series-1');
         expect(q.pending).toBeNull();
-        expect(q.error).toBe('downloads_not_allowed');
+        expect(q.error).toBeUndefined();
+        expect(toast.warning).toHaveBeenCalledWith('Downloads are not allowed for this account.');
+    });
+
+    test('nothing to download: an info toast', async () => {
+        const { q } = setup(list([]), () => fileResponse(5));
+        toast.info.mockClear();
+        await q.enqueue('series-1');
+        expect(q.pending).toBeNull();
+        expect(toast.info).toHaveBeenCalledWith('There is nothing to download here.');
+    });
+
+    test('a failed list call: an error toast with a diagnostic key', async () => {
+        const { q } = setup(list([item(1)]), () => fileResponse(5));
+        (q as unknown as { deps: { fetch: unknown } }).deps.fetch = async () =>
+            new Response('x', { status: 500 });
+        toast.error.mockClear();
+        await q.enqueue('series-1');
+        expect(toast.error).toHaveBeenCalledWith('Could not load the download list.', {
+            diagnosticKey: 'downloads_error_list',
+        });
+    });
+
+    test('switching scope keeps the season hint and re-lists', async () => {
+        const { q } = setup(list([item(1), item(2)]), () => fileResponse(5));
+        await q.enqueue('series-1', { season: 2 }, 2);
+        await q.setScope(undefined);
+        expect(q.pending?.opts).toEqual({});
+        expect(q.pending?.scopeSeason).toBe(2);
+        await q.setScope(2);
+        expect(q.pending?.opts).toEqual({ season: 2 });
     });
 
     test('cancel stops a running queue', async () => {
@@ -436,7 +471,7 @@ describe('DownloadQueue failures and limits', () => {
         await q.start();
         expect(q.state).toBe('done');
         expect(q.error).toBeUndefined();
-        expect(q.notice).toBe('busy');
+        expect(toast.info).toHaveBeenCalledWith('A download is already running.');
         expect(q.pending).toBeNull();
     });
 

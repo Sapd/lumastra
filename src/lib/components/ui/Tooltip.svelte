@@ -408,6 +408,17 @@
         portalElement.appendChild(outer);
     }
 
+    // A `fixed` bubble is built imperatively when it opens: rebuild it when the text changes
+    // while it is open (e.g. a size that arrives during the hover).
+    $effect(() => {
+        void text;
+        void lines;
+        if (fixed && isVisible && portalElement) {
+            createPortalContent();
+            requestAnimationFrame(() => updatePosition());
+        }
+    });
+
     // Update position reactively when visible
     $effect(() => {
         if (isVisible && triggerElement) {

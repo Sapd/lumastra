@@ -5,24 +5,37 @@
 
 <script lang="ts">
     /**
-     * DownloadButton - starts the web download flow for a movie, episode,
-     * season or series. Renders nothing unless the server feature is on AND the
-     * download-list endpoint says this user is allowed (hides all download UI
-     * otherwise).
+     * DownloadButton - a small icon-only ghost button (tooltip + aria-label) that starts the
+     * web download flow for a movie, episode or (single-season) series. Renders nothing
+     * unless the server feature is on AND the download-list endpoint says this user is
+     * allowed (hides all download UI otherwise).
      *
-     * `accessId` lets many buttons (one per episode) share ONE cached
-     * permission check on the series instead of listing every episode.
+     * `accessId` lets many buttons (one per episode) share ONE cached permission check on
+     * the series instead of listing every episode. `showSize` adds "(<size>)" to the
+     * tooltip, loaded lazily on first hover/focus.
      */
     import { page } from '$app/stores';
     import { Icon, ArrowDownTray } from 'svelte-hero-icons';
+    import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import { downloadQueue } from '$lib/downloads/download-queue.svelte';
+    import { formatFileSize } from '$lib/utils/metric-formatters';
     import * as m from '$lib/paraglide/messages';
 
     interface Props {
         mediaItemId: string;
         accessId?: string;
-        variant?: 'button' | 'icon';
+        /** Accessible name and tooltip (default "Download", or "Download episode") */
         label?: string;
+        /**
+         * 'ghost' (default): the quiet 16 px icon (season picker, episode rows).
+         * 'action': the modal's icon button, same classes as the Share button.
+         */
+        variant?: 'ghost' | 'action';
+        /** Tooltip/label gets "(<size>)", loaded lazily on first hover/focus */
+        showSize?: boolean;
+        /** Episode rows: icon only shows on row hover/focus (always on touch). */
+        revealOnHover?: boolean;
+        /** Start from this season of a series; the sheet can widen it to the series. */
         season?: number;
         testId?: string;
     }
@@ -30,16 +43,18 @@
     let {
         mediaItemId,
         accessId = undefined,
-        variant = 'button',
         label = undefined,
+        variant = 'ghost',
+        showSize = false,
+        revealOnHover = false,
         season = undefined,
         testId = 'download-button',
     }: Props = $props();
 
     let featureOn = $derived($page.data?.features?.mediaDownload === true);
     let info = $state<{ allowed: boolean } | null>(null);
-    // One run at a time: starting another while the queue runs would only be refused.
-    let busy = $derived(downloadQueue.state === 'running');
+    let sizeBytes = $state<number | null>(null);
+    let sizeRequested = false;
 
     $effect(() => {
         info = null;
@@ -54,35 +69,91 @@
         };
     });
 
-    let text = $derived(label ?? m.downloads_button());
+    function loadSize() {
+        if (!showSize || sizeRequested) return;
+        sizeRequested = true;
+        const id = mediaItemId;
+        void downloadQueue.fetchList(id).then((list) => {
+            if (!list) {
+                sizeRequested = false;
+                return;
+            }
+            sizeBytes = list.items.filter((i) => i.available).reduce((s, i) => s + i.sizeBytes, 0);
+        });
+    }
+
+    let base = $derived(label ?? (showSize ? m.downloads_button() : m.downloads_episode_aria()));
+    let text = $derived(
+        showSize && sizeBytes !== null && sizeBytes > 0
+            ? m.downloads_with_size({ size: formatFileSize(sizeBytes) })
+            : base,
+    );
 
     function start(e: MouseEvent) {
         e.stopPropagation();
-        void downloadQueue.enqueue(mediaItemId, season === undefined ? {} : { season });
+        // While a run is going enqueue() answers with the "already running" toast.
+        void downloadQueue.enqueue(
+            mediaItemId,
+            season === undefined ? {} : season === 0 ? { season, specials: true } : { season },
+            season,
+        );
     }
 </script>
 
 {#if featureOn && info?.allowed}
-    {#if variant === 'icon'}
+    <Tooltip {text} position="top" inline fixed>
         <button
             type="button"
             data-testid={testId}
-            class="p-1 rounded hover:bg-surface-600 transition-colors shrink-0 text-surface-500 hover:text-surface-200"
-            aria-label={label ?? m.downloads_episode_aria()}
-            title={label ?? m.downloads_episode_aria()}
-            disabled={busy}
+            class={variant === 'action' ? 'btn-icon variant-ghost-surface' : 'download-ghost'}
+            class:download-reveal={revealOnHover}
+            aria-label={text}
+            onpointerenter={loadSize}
+            onfocus={loadSize}
             onclick={start}>
-            <Icon src={ArrowDownTray} class="w-4 h-4" aria-hidden="true" />
+            <Icon
+                src={ArrowDownTray}
+                class={variant === 'action' ? 'w-5 h-5' : 'w-4 h-4'}
+                aria-hidden="true" />
         </button>
-    {:else}
-        <button
-            type="button"
-            data-testid={testId}
-            class="btn variant-ghost-surface inline-flex items-center gap-1.5"
-            disabled={busy}
-            onclick={start}>
-            <Icon src={ArrowDownTray} class="w-4 h-4" aria-hidden="true" />
-            <span>{text}</span>
-        </button>
-    {/if}
+    </Tooltip>
 {/if}
+
+<style>
+    .download-ghost {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        min-height: 2rem;
+        flex-shrink: 0;
+        border-radius: 0.25rem;
+        color: var(--color-surface-400);
+        transition:
+            color 0.15s,
+            opacity 0.15s;
+    }
+    .download-ghost:hover {
+        color: var(--color-surface-100);
+    }
+    .download-ghost:focus-visible {
+        outline: 2px solid var(--color-primary-500);
+        outline-offset: 1px;
+        opacity: 1;
+    }
+    @media (hover: hover) {
+        .download-reveal {
+            opacity: 0;
+        }
+        :global(.download-row:hover) .download-reveal,
+        :global(.download-row:focus-within) .download-reveal {
+            opacity: 1;
+        }
+    }
+    @media (hover: none) {
+        .download-reveal {
+            min-width: 2.5rem;
+            min-height: 2.5rem;
+        }
+    }
+</style>

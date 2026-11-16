@@ -27,6 +27,8 @@
 import { base } from '$app/paths';
 import { SvelteMap, SvelteSet, SvelteURLSearchParams } from 'svelte/reactivity';
 import { sanitizePathSegment } from './path-sanitize';
+import { toasts } from '$lib/stores/toast.store';
+import * as m from '$lib/paraglide/messages';
 import {
     detectBrowserEnv,
     linkBatchSize,
@@ -98,6 +100,11 @@ export interface PendingDownload {
     mediaItemId: string;
     opts: EnqueueOptions;
     list: DownloadList;
+    /**
+     * Set when the download started from a season of a series: the sheet can switch between
+     * this season and the whole series (and back).
+     */
+    scopeSeason?: number;
 }
 
 export interface QueueDeps {
@@ -232,8 +239,6 @@ export class DownloadQueue {
     speed = $state(0);
     state = $state<QueueState>('idle');
     error = $state<string | undefined>(undefined);
-    /** Transient message that never changes the run's outcome (e.g. 'busy') */
-    notice = $state<string | undefined>(undefined);
     mode = $state<'folder' | 'links' | 'zip' | null>(null);
     /** The sheet's choice (browsers without a folder picker): one ZIP instead of separate files */
     archive = $state(false);
@@ -313,39 +318,63 @@ export class DownloadQueue {
         return value;
     }
 
-    /** Fetch the list for a title/season and open the confirm sheet. */
-    async enqueue(mediaItemId: string, opts: EnqueueOptions = {}): Promise<void> {
+    /**
+     * The full list for a title/season/series without opening the sheet (size hints, menu
+     * counts). Null on any failure or when downloads are not allowed.
+     */
+    async fetchList(mediaItemId: string, opts: EnqueueOptions = {}): Promise<DownloadList | null> {
+        try {
+            const res = await this.deps.fetch(listUrl(mediaItemId, opts));
+            if (!res.ok) return null;
+            const list = (await res.json()) as DownloadList;
+            return list.allowed ? list : null;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Fetch the list for a title/season and open the confirm sheet. `scopeSeason` marks a
+     * season of a series the sheet may widen to the whole series. Outcomes without a run
+     * (busy, not allowed, empty, failed) are toasts, never queue state.
+     */
+    async enqueue(
+        mediaItemId: string,
+        opts: EnqueueOptions = {},
+        scopeSeason?: number,
+    ): Promise<void> {
         if (this.state === 'running') {
             // Never touch `error`/`state`: they describe the run in progress.
-            this.notice = 'busy';
+            toasts.info(m.downloads_error_busy());
             return;
         }
-        this.notice = undefined;
         this.error = undefined;
         this.archive = false;
         this.loading = true;
+        const failed = () =>
+            toasts.error(m.downloads_error_list(), { diagnosticKey: 'downloads_error_list' });
         try {
             const res = await this.deps.fetch(listUrl(mediaItemId, opts));
             if (res.status === 403 || res.status === 404) {
-                this.error = 'downloads_not_allowed';
+                toasts.warning(m.downloads_error_not_allowed());
                 return;
             }
             if (!res.ok) {
-                this.error = 'list_failed';
+                failed();
                 return;
             }
             const list = (await res.json()) as DownloadList;
             if (!list.allowed) {
-                this.error = 'downloads_not_allowed';
+                toasts.warning(m.downloads_error_not_allowed());
                 return;
             }
             if (list.items.length === 0) {
-                this.error = 'nothing_to_download';
+                toasts.info(m.downloads_error_empty());
                 return;
             }
-            this.pending = { mediaItemId, opts, list };
+            this.pending = { mediaItemId, opts, list, scopeSeason };
         } catch {
-            this.error = 'list_failed';
+            failed();
         } finally {
             this.loading = false;
         }
@@ -370,7 +399,22 @@ export class DownloadQueue {
     async setSpecials(include: boolean): Promise<void> {
         const p = this.pending;
         if (!p) return;
-        await this.enqueue(p.mediaItemId, { ...p.opts, specials: include });
+        await this.enqueue(p.mediaItemId, { ...p.opts, specials: include }, p.scopeSeason);
+    }
+
+    /** Sheet radio: the scope season, or (undefined) the whole series. */
+    async setScope(season: number | undefined): Promise<void> {
+        const p = this.pending;
+        if (!p || p.scopeSeason === undefined) return;
+        const opts: EnqueueOptions =
+            season === undefined
+                ? p.opts.specials
+                    ? { specials: true }
+                    : {}
+                : season === 0
+                  ? { season, specials: true }
+                  : { season };
+        await this.enqueue(p.mediaItemId, opts, p.scopeSeason);
     }
 
     /** Must be called from a click handler (user activation). */
@@ -412,7 +456,6 @@ export class DownloadQueue {
         this.speed = 0;
         this.state = 'idle';
         this.error = undefined;
-        this.notice = undefined;
         this.mode = null;
     }
 
@@ -453,7 +496,6 @@ export class DownloadQueue {
         this.error = undefined;
         this.current = null;
         this.stopRequested = false;
-        this.notice = undefined;
         this.abort = new AbortController();
         this.state = 'running';
         this.windowStart = Date.now();
@@ -476,7 +518,6 @@ export class DownloadQueue {
     async startNextLinks(): Promise<void> {
         if (this.state === 'running' || this.mode !== 'links' || this.linksRemaining === 0) return;
         this.stopRequested = false;
-        this.notice = undefined;
         this.abort = new AbortController();
         this.state = 'running';
         this.addUnloadGuard();

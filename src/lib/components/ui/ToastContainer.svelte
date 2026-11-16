@@ -15,6 +15,8 @@
         type IconSource,
     } from 'svelte-hero-icons';
     import { fly } from 'svelte/transition';
+    import DownloadQueuePanel from '$lib/components/downloads/DownloadQueuePanel.svelte';
+    import { downloadQueue } from '$lib/downloads/download-queue.svelte';
 
     type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -28,9 +30,17 @@
          * original bottom-right placement.
          */
         corner?: 'bottom-right' | 'bottom-left';
+        /** Hide the download card (the fullscreen player page); its announcer stays. */
+        hideDownloadQueue?: boolean;
     }
 
-    let { corner = 'bottom-right' }: Props = $props();
+    let { corner = 'bottom-right', hideDownloadQueue = false }: Props = $props();
+
+    // The download card also hides while any element is fullscreen (the player).
+    let fullscreen = $state(false);
+    function syncFullscreen() {
+        fullscreen = typeof document !== 'undefined' && !!document.fullscreenElement;
+    }
 
     interface ToastStyle {
         bgClass: string;
@@ -78,7 +88,9 @@
     }
 </script>
 
-{#if $toasts.length > 0}
+<svelte:document onfullscreenchange={syncFullscreen} />
+
+{#if $toasts.length > 0 || downloadQueue.state !== 'idle'}
     <!--
         The stack container is `pointer-events-none` — its own box (which can
         be taller/wider than the toasts actually visible, e.g. right after one
@@ -156,5 +168,7 @@
                 {/if}
             </div>
         {/each}
+        <!-- Persistent download card: the bottom item, so toasts pile above it. -->
+        <DownloadQueuePanel hidden={hideDownloadQueue || fullscreen} />
     </div>
 {/if}

@@ -9,8 +9,12 @@
      * total size, unavailable episodes) and, in Chromium, lets the user pick the
      * target folder (needs a click, so it lives here and not in the queue start).
      */
-    import { tick } from 'svelte';
-    import { downloadQueue, FAT32_LIMIT_BYTES } from '$lib/downloads/download-queue.svelte';
+    import { tick, untrack } from 'svelte';
+    import {
+        downloadQueue,
+        FAT32_LIMIT_BYTES,
+        type DownloadList,
+    } from '$lib/downloads/download-queue.svelte';
     import { formatFileSize } from '$lib/utils/metric-formatters';
     import { Z } from '$lib/utils/z-index';
     import * as m from '$lib/paraglide/messages';
@@ -24,6 +28,52 @@
         !!pending &&
             pending.opts.season === undefined &&
             pending.list.items.some((i) => i.seasonFolder !== null),
+    );
+
+    // Season <-> whole series: only for a season of a series with more than one season
+    // (specials do not count). Counts and sizes come from ONE series list (with specials).
+    let scopeSeason = $derived(pending?.scopeSeason);
+    let seriesList = $state<DownloadList | null>(null);
+    let seriesFor: string | undefined;
+    $effect(() => {
+        const p = pending;
+        untrack(() => {
+            if (!p || p.scopeSeason === undefined) {
+                seriesList = null;
+                seriesFor = undefined;
+                return;
+            }
+            // Switching scope re-lists the same series: keep the counts.
+            const id: string = p.mediaItemId;
+            if (seriesFor === id) return;
+            seriesFor = id;
+            seriesList = null;
+            void downloadQueue.fetchList(id, { specials: true }).then((l) => {
+                if (seriesFor === id) seriesList = l;
+            });
+        });
+    });
+    let seriesItems = $derived((seriesList?.items ?? []).filter((i) => i.available));
+    let realSeasons = $derived(
+        new Set((seriesList?.items ?? []).filter((i) => i.season !== 0).map((i) => i.season)),
+    );
+    let showScope = $derived(scopeSeason !== undefined && realSeasons.size > 1);
+    function tally(items: typeof seriesItems) {
+        return {
+            count: items.length,
+            size: formatFileSize(items.reduce((s, i) => s + i.sizeBytes, 0)),
+        };
+    }
+    let seasonTally = $derived(tally(seriesItems.filter((i) => i.season === scopeSeason)));
+    let seriesTally = $derived(
+        tally(pending?.opts.specials ? seriesItems : seriesItems.filter((i) => i.season !== 0)),
+    );
+    let seasonScoped = $derived(pending?.opts.season !== undefined);
+    let titleName = $derived(pending?.list.seriesFolder ?? '');
+    let startLabel = $derived(
+        available.length === 1
+            ? m.downloads_start_one({ size: formatFileSize(totalBytes) })
+            : m.downloads_start_n({ count: available.length, size: formatFileSize(totalBytes) }),
     );
 
     // FAT32 sticks cannot hold a file of 4 GiB or more. Only matters when saving to a folder.
@@ -101,15 +151,42 @@
             data-testid="download-confirm-sheet"
             class="w-full sm:max-w-md bg-surface-800 rounded-t-xl sm:rounded-xl p-5 shadow-xl space-y-3">
             <h3 id="download-sheet-title" class="text-lg font-semibold text-white">
-                {m.downloads_confirm_title()}
+                {m.downloads_confirm_title({ name: titleName })}
             </h3>
 
-            <p class="text-sm text-surface-200" data-testid="download-summary">
-                {m.downloads_confirm_summary({
-                    count: available.length,
-                    size: formatFileSize(totalBytes),
-                })}
-            </p>
+            {#if showScope}
+                <fieldset
+                    class="space-y-1"
+                    data-testid="download-scope"
+                    disabled={downloadQueue.loading}>
+                    <legend class="sr-only">{m.downloads_scope_legend()}</legend>
+                    <label class="flex items-center gap-2 text-sm text-surface-200">
+                        <input
+                            type="radio"
+                            name="download-scope"
+                            class="radio"
+                            data-testid="download-scope-season"
+                            checked={seasonScoped}
+                            onchange={() => void downloadQueue.setScope(scopeSeason)} />
+                        {scopeSeason === 0
+                            ? m.downloads_scope_specials(seasonTally)
+                            : m.downloads_scope_season({
+                                  season: scopeSeason ?? 0,
+                                  ...seasonTally,
+                              })}
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-surface-200">
+                        <input
+                            type="radio"
+                            name="download-scope"
+                            class="radio"
+                            data-testid="download-scope-series"
+                            checked={!seasonScoped}
+                            onchange={() => void downloadQueue.setScope(undefined)} />
+                        {m.downloads_scope_series(seriesTally)}
+                    </label>
+                </fieldset>
+            {/if}
 
             {#if pending.list.missingCount > 0}
                 <p class="text-sm text-amber-300" data-testid="download-missing">
@@ -229,7 +306,7 @@
                     data-testid="download-start"
                     disabled={available.length === 0}
                     onclick={() => void downloadQueue.start()}>
-                    {m.downloads_start()}
+                    {startLabel}
                 </button>
             </div>
         </div>

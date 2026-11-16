@@ -1367,10 +1367,13 @@
             mediaType={mediaType || 'movie'} />
     {/if}
 
-    <!-- Download (movies and single episodes). Hidden unless the server feature is
-         on, the user may download, and the item has a file. -->
+    <!-- Download (movies and single episodes): icon-only like Share, after Send to TV.
+         Hidden below `sm` (the row is tight there) and unless the server feature is on,
+         the user may download, and the item has a file. -->
     {#if (isMovie(mediaType) || isEpisode) && isAvailable && externalIds?.internal && UUID_RE.test(externalIds.internal)}
-        <DownloadButton mediaItemId={externalIds.internal} />
+        <span class="hidden sm:inline-flex">
+            <DownloadButton mediaItemId={externalIds.internal} variant="action" showSize />
+        </span>
     {/if}
 
     <!-- Mark as Watched Button -->
