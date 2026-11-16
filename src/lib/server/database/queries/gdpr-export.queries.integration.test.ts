@@ -167,6 +167,9 @@ describe('GDPR Export Queries', () => {
             (result.account as Record<string, unknown> | undefined)?.share_listening_activity,
         ).toBe(false);
 
+        // The download permission override is exported (null = follows the default).
+        expect(result.account as Record<string, unknown>).toHaveProperty('allow_downloads');
+
         // Stream policy — subject row present, __default__ absent
         expect(result.stream_policy.rows.length).toBeGreaterThanOrEqual(1);
         const policyUserIds = result.stream_policy.rows.map(

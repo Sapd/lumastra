@@ -29,6 +29,11 @@ const UserAccountSchema = z
             .nullable()
             .optional()
             .describe('Live TV switch (null = default allowed)'),
+        allow_downloads: z
+            .boolean()
+            .nullable()
+            .optional()
+            .describe('Download permission override (null = follow the server default)'),
         display_name: z.string().nullable().optional().describe('Display name'),
         email: z.string().nullable().optional().describe('Email address'),
         hide_streams: z.boolean().optional().describe('Hide-streams flag'),

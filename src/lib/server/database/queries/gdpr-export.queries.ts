@@ -560,7 +560,7 @@ export async function collectUserExport(
     ] = await Promise.all([
         // account — exclude avatar_data, password_hash, password_updated_at
         sql<NonNullable<UserDataExport['account']>[]>`
-            SELECT id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv,
+            SELECT id, username, is_admin, admin_pinned, max_age_rating, age_rating_pinned, allow_live_tv, allow_downloads,
                    display_name, email, hide_streams, share_listening_activity,
                    share_audiobook_activity,
                    groups, groups_updated_at,
