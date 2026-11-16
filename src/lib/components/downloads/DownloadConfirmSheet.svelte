@@ -32,6 +32,12 @@
             available.some((i) => i.sizeBytes >= FAT32_LIMIT_BYTES),
     );
 
+    // No folder picker and a season/series: the user may take one ZIP (folders kept) instead.
+    let zipOffered = $derived(downloadQueue.zipOffered);
+    let zipChosen = $derived(zipOffered && downloadQueue.archive);
+    let zipOverFat32 = $derived(totalBytes >= FAT32_LIMIT_BYTES);
+    let isIosBrowser = $derived(downloadQueue.profile.hint === 'ios');
+
     // Exactly one browser-specific hint: the Brave one when the picker is off in Brave
     // (blocked by default or just failed), else the one for this browser.
     let batchSize = $derived(downloadQueue.profile.batchSize(pending?.list.maxParallel ?? 0));
@@ -156,7 +162,54 @@
                 <p class="text-xs text-surface-400" data-testid="download-browser-hint">
                     {browserHint}
                 </p>
-                {#if batchSize > 1 && available.length > batchSize}
+                {#if zipOffered}
+                    <fieldset class="space-y-1" data-testid="download-format">
+                        <legend class="text-sm text-surface-200"
+                            >{m.downloads_format_legend()}</legend>
+                        <label class="flex items-center gap-2 text-sm text-surface-200">
+                            <input
+                                type="radio"
+                                name="download-format"
+                                class="radio"
+                                data-testid="download-format-files"
+                                checked={!zipChosen}
+                                onchange={() => downloadQueue.setArchive(false)} />
+                            {m.downloads_format_files()}
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-surface-200">
+                            <input
+                                type="radio"
+                                name="download-format"
+                                class="radio"
+                                data-testid="download-format-zip"
+                                checked={zipChosen}
+                                onchange={() => downloadQueue.setArchive(true)} />
+                            {m.downloads_format_zip()}
+                        </label>
+                        {#if zipChosen}
+                            <p
+                                class="text-xs text-surface-400"
+                                data-testid="download-zip-note-resume">
+                                {m.downloads_zip_note_resume()}
+                            </p>
+                            {#if zipOverFat32}
+                                <p
+                                    class="text-xs text-amber-300"
+                                    data-testid="download-zip-note-big">
+                                    {m.downloads_zip_note_big()}
+                                </p>
+                            {/if}
+                            {#if isIosBrowser}
+                                <p
+                                    class="text-xs text-surface-400"
+                                    data-testid="download-zip-note-ios">
+                                    {m.downloads_zip_note_ios()}
+                                </p>
+                            {/if}
+                        {/if}
+                    </fieldset>
+                {/if}
+                {#if batchSize > 1 && available.length > batchSize && !zipChosen}
                     <p class="text-xs text-surface-400" data-testid="download-batch-hint">
                         {m.downloads_links_batch_hint({ count: batchSize })}
                     </p>

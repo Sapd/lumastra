@@ -17,6 +17,11 @@
  *    limits still apply to each request). Only `linkBatchSize` links are handed
  *    over at a time (the user's parallel limit, 4 when unlimited) so a long
  *    season does not run into 429s; the panel offers "Start next N" for the rest.
+ *  - zip: links mode for a season or series with ONE hand-off of
+ *    /api/media/{id}/download-zip (the server builds an uncompressed ZIP that keeps
+ *    the Show/Season folders). Offered by the confirm sheet when there is no folder
+ *    picker. A HEAD probe first surfaces what a link cannot (409 files unavailable,
+ *    403, 429); the hand-off is then confirmed through the slots endpoint like a link.
  */
 
 import { base } from '$app/paths';
@@ -71,7 +76,11 @@ export type FailureReason =
     | 'fat32'
     | 'forbidden'
     /** Link mode: the server never saw the handed-over download start. */
-    | 'not_started';
+    | 'not_started'
+    /** ZIP: a file of the season is missing or unreadable on the server (409). */
+    | 'files_unavailable'
+    /** ZIP: too many files or too large for one archive (413). */
+    | 'too_large';
 
 /** FAT32 cannot hold a file of 4 GiB or more. */
 export const FAT32_LIMIT_BYTES = 4 * 1024 ** 3;
@@ -119,6 +128,11 @@ const SLOT_POLL_MS = 3_000;
 /** Link mode: how long a handed-over download has to show up on the server. */
 const START_CONFIRM_MS = 10_000;
 const START_CONFIRM_POLL_MS = 1_000;
+/**
+ * ZIP hand-off: the server lists and stats every file before it answers (up to ~60 s), so ONE
+ * hand-off is observed this long. The GET is never re-issued while it may still be preparing.
+ */
+const ZIP_CONFIRM_MS = 180_000;
 /** Link mode: extra hand-offs for a download the server did not see start. */
 const MAX_HANDOFF_RETRIES = 2;
 
@@ -167,6 +181,16 @@ export function downloadUrl(mediaItemId: string, fileId: string, handoff?: strin
     return `${base}/api/media/${encodeURIComponent(mediaItemId)}/download?fileId=${encodeURIComponent(fileId)}${handoff ? `&h=${encodeURIComponent(handoff)}` : ''}`;
 }
 
+/** The ZIP of a season or series (`opts` as for the list). */
+export function archiveUrl(mediaItemId: string, opts: EnqueueOptions, handoff?: string): string {
+    const q = new SvelteURLSearchParams();
+    if (opts.season !== undefined) q.set('season', String(opts.season));
+    if (opts.specials) q.set('specials', '1');
+    if (handoff) q.set('h', handoff);
+    const qs = q.toString();
+    return `${base}/api/media/${encodeURIComponent(mediaItemId)}/download-zip${qs ? `?${qs}` : ''}`;
+}
+
 function slotsUrl(handoff?: string): string {
     return `${base}/api/me/downloads/slots${handoff ? `?h=${encodeURIComponent(handoff)}` : ''}`;
 }
@@ -210,7 +234,9 @@ export class DownloadQueue {
     error = $state<string | undefined>(undefined);
     /** Transient message that never changes the run's outcome (e.g. 'busy') */
     notice = $state<string | undefined>(undefined);
-    mode = $state<'folder' | 'links' | null>(null);
+    mode = $state<'folder' | 'links' | 'zip' | null>(null);
+    /** The sheet's choice (browsers without a folder picker): one ZIP instead of separate files */
+    archive = $state(false);
     /** Set by enqueue(); the confirm sheet shows it */
     pending = $state<PendingDownload | null>(null);
     folderName = $state<string | null>(null);
@@ -220,6 +246,7 @@ export class DownloadQueue {
     pickerReason = $state<'blocked' | null>(null);
 
     private deps: QueueDeps;
+    private lastArchive: PendingDownload | null = null;
     private dirHandle: FileSystemDirectoryHandle | null = null;
     private abort: AbortController | null = null;
     private stopRequested = false;
@@ -295,6 +322,7 @@ export class DownloadQueue {
         }
         this.notice = undefined;
         this.error = undefined;
+        this.archive = false;
         this.loading = true;
         try {
             const res = await this.deps.fetch(listUrl(mediaItemId, opts));
@@ -321,6 +349,21 @@ export class DownloadQueue {
         } finally {
             this.loading = false;
         }
+    }
+
+    /**
+     * Whether the sheet offers "One ZIP file": no folder picker, and a season or series with
+     * at least two downloadable files (a movie or a single episode is one file already).
+     */
+    get zipOffered(): boolean {
+        const p = this.pending;
+        if (!p || this.supportsFolderPicker) return false;
+        const available = p.list.items.filter((i) => i.available);
+        return available.length >= 2 && available.some((i) => i.seasonFolder !== null);
+    }
+
+    setArchive(on: boolean): void {
+        this.archive = on;
     }
 
     /** Sheet checkbox: re-list the same series with or without season 0. */
@@ -356,6 +399,7 @@ export class DownloadQueue {
 
     dismissPending(): void {
         this.pending = null;
+        this.archive = false;
     }
 
     /** Clear a finished/stopped run so the panel goes away. */
@@ -395,12 +439,14 @@ export class DownloadQueue {
     async start(): Promise<void> {
         const pending = this.pending;
         if (!pending || this.state === 'running') return;
+        const zip = this.archive && this.zipOffered;
         this.pending = null;
 
         const { list } = pending;
+        this.archive = false;
         this.maxParallel = list.maxParallel;
-        this.mode = this.dirHandle ? 'folder' : 'links';
-        this.items = this.buildItems(list);
+        this.mode = zip ? 'zip' : this.dirHandle ? 'folder' : 'links';
+        this.items = zip ? this.buildArchiveItem(pending) : this.buildItems(list);
         this.bytesDone = 0;
         this.bytesTotal = this.items.reduce((s, i) => s + i.sizeBytes, 0);
         this.speed = 0;
@@ -416,6 +462,7 @@ export class DownloadQueue {
 
         try {
             if (this.mode === 'folder') await this.runFolder(list);
+            else if (this.mode === 'zip') await this.runArchive(pending);
             else await this.runLinks();
         } finally {
             this.removeUnloadGuard();
@@ -468,6 +515,120 @@ export class DownloadQueue {
                     bytesDone: 0,
                 };
             });
+    }
+
+    /** One pseudo item standing for the whole archive. */
+    private buildArchiveItem(p: PendingDownload): QueueItem[] {
+        const files = p.list.items.filter((i) => i.available);
+        const folders = new SvelteSet(files.map((i) => i.seasonFolder));
+        const [only] = [...folders];
+        const fileName = `${sanitizePathSegment(p.list.seriesFolder)}${
+            folders.size === 1 && only ? ` - ${sanitizePathSegment(only)}` : ''
+        }.zip`;
+        return [
+            {
+                mediaItemId: p.mediaItemId,
+                fileId: 'archive',
+                season: p.opts.season ?? null,
+                episode: null,
+                seasonFolder: null,
+                fileName,
+                sizeBytes: files.reduce((s, i) => s + i.sizeBytes, 0),
+                available: true,
+                path: [fileName],
+                status: 'queued',
+                bytesDone: 0,
+            },
+        ];
+    }
+
+    /**
+     * HEAD probe of the archive URL: the server does its whole preparation (access, every file
+     * checked) and answers with the status a plain link would hide. 'ok' carries the exact size.
+     */
+    private async probeArchive(
+        url: string,
+    ): Promise<{ ok: true; size: number | null } | { ok: false; reason: FailureReason }> {
+        let res: Response;
+        try {
+            res = await this.deps.fetch(url, { method: 'HEAD', signal: this.abort?.signal });
+        } catch {
+            return { ok: false, reason: 'network' };
+        }
+        if (res.ok) {
+            const len = Number(res.headers.get('content-length'));
+            return { ok: true, size: Number.isFinite(len) && len > 0 ? len : null };
+        }
+        if (res.status === 409) return { ok: false, reason: 'files_unavailable' };
+        if (res.status === 403) return { ok: false, reason: 'forbidden' };
+        if (res.status === 429) return { ok: false, reason: 'limit' };
+        if (res.status === 413) return { ok: false, reason: 'too_large' };
+        return { ok: false, reason: 'http' };
+    }
+
+    /**
+     * ZIP mode: probe, then ONE link hand-off confirmed through the slots endpoint. The same
+     * nonce is observed for up to ZIP_CONFIRM_MS (preparation can take a minute); the GET is
+     * not issued again, a second one would only start a second preparation. Not seen in time
+     * is a failure the user can retry explicitly (`retryArchive`).
+     */
+    private async runArchive(p: PendingDownload): Promise<void> {
+        this.lastArchive = p;
+        const item = this.items[0];
+        if (!item) return;
+        this.current = item;
+        if (!(await this.waitForFreeSlot(item))) return;
+        const probe = await this.probeArchive(archiveUrl(p.mediaItemId, p.opts));
+        if (this.stopRequested) {
+            if (item.status === 'waiting') item.status = 'queued';
+            return;
+        }
+        if (!probe.ok) {
+            item.status = 'failed';
+            item.reason = probe.reason;
+            if (probe.reason === 'forbidden') this.error = 'downloads_not_allowed';
+            return;
+        }
+        if (probe.size) {
+            item.sizeBytes = probe.size;
+            this.bytesTotal = probe.size;
+        }
+        const handoff = newHandoffNonce();
+        this.deps.triggerLink(archiveUrl(p.mediaItemId, p.opts, handoff), item.fileName);
+        const started = await this.confirmStarted(handoff, ZIP_CONFIRM_MS);
+        if (this.stopRequested) {
+            if (item.status === 'waiting') item.status = 'queued';
+            return;
+        }
+        if (started) {
+            item.status = 'handed';
+            this.bytesDone += item.sizeBytes;
+        } else {
+            item.status = 'failed';
+            item.reason = 'not_started';
+        }
+    }
+
+    /** ZIP mode: the user's explicit "Retry" after a failed archive (a fresh probe and hand-off). */
+    async retryArchive(): Promise<void> {
+        const p = this.lastArchive;
+        if (this.state === 'running' || this.mode !== 'zip' || !p) return;
+        const item = this.items[0];
+        if (!item || item.status !== 'failed') return;
+        item.status = 'queued';
+        item.reason = undefined;
+        this.error = undefined;
+        this.stopRequested = false;
+        this.abort = new AbortController();
+        this.state = 'running';
+        this.addUnloadGuard();
+        try {
+            await this.runArchive(p);
+        } finally {
+            this.removeUnloadGuard();
+            this.current = null;
+            this.state = this.stopRequested || this.error ? 'stopped' : 'done';
+        }
     }
 
     private fail(reason: string): void {
@@ -719,8 +880,11 @@ export class DownloadQueue {
      * Link mode: true once the server reports THIS hand-off (its nonce) as started. A failing
      * slots endpoint or network is not success: the observation is retried within the window.
      */
-    private async confirmStarted(handoff: string): Promise<boolean> {
-        for (let waited = 0; waited < START_CONFIRM_MS; waited += START_CONFIRM_POLL_MS) {
+    private async confirmStarted(
+        handoff: string,
+        windowMs: number = START_CONFIRM_MS,
+    ): Promise<boolean> {
+        for (let waited = 0; waited < windowMs; waited += START_CONFIRM_POLL_MS) {
             await this.sleep(START_CONFIRM_POLL_MS);
             if (this.stopRequested) return true;
             const info = await this.slotsInfo(handoff);

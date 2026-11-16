@@ -328,3 +328,130 @@ describe('link batches in the UI', () => {
         }
     });
 });
+
+describe('DownloadConfirmSheet ZIP choice (no folder picker)', () => {
+    const season = (n: number, size = 1_000_000_000) => ({
+        ...listBody({
+            items: Array.from({ length: n }, (_, i) => ({
+                mediaItemId: `ep-${i + 1}`,
+                fileId: `f-${i + 1}`,
+                season: 1,
+                episode: i + 1,
+                seasonFolder: 'Season 01',
+                fileName: `Show - S01E0${i + 1}.mkv`,
+                sizeBytes: size,
+                available: true,
+            })),
+        }),
+    });
+
+    async function open(body: unknown) {
+        // the picker is not usable here (as in Safari/Firefox/Brave)
+        downloadQueue.pickerReason = 'blocked';
+        stubList(body);
+        render(DownloadConfirmSheet);
+        await downloadQueue.enqueue('series-1');
+        return screen.findByTestId('download-confirm-sheet');
+    }
+
+    afterEach(() => {
+        downloadQueue.pickerReason = null;
+    });
+
+    test('offers separate files (default) or one ZIP, with the resume note only under ZIP', async () => {
+        await open(season(2));
+        const files = screen.getByTestId('download-format-files') as HTMLInputElement;
+        const zip = screen.getByTestId('download-format-zip') as HTMLInputElement;
+        expect(files.checked).toBe(true);
+        expect(screen.getByText('Separate files')).toBeTruthy();
+        expect(screen.getByText('One ZIP file (keeps Show/Season folders)')).toBeTruthy();
+        expect(screen.queryByTestId('download-zip-note-resume')).toBeNull();
+        await fireEvent.click(zip);
+        await waitFor(() => expect(downloadQueue.archive).toBe(true));
+        expect(screen.getByText("Can't resume if the connection drops.")).toBeTruthy();
+        // 2 GB in total: no exFAT note
+        expect(screen.queryByTestId('download-zip-note-big')).toBeNull();
+        await fireEvent.click(files);
+        await waitFor(() => expect(downloadQueue.archive).toBe(false));
+    });
+
+    test('over 4 GB adds the exFAT note', async () => {
+        await open(season(3, 2_000_000_000));
+        await fireEvent.click(screen.getByTestId('download-format-zip'));
+        expect(
+            await screen.findByText('Over 4 GB: needs an exFAT stick (not FAT32).'),
+        ).toBeTruthy();
+    });
+
+    test('is not offered for a single file', async () => {
+        await open(season(1));
+        expect(screen.queryByTestId('download-format')).toBeNull();
+    });
+
+    test('is not offered when the folder picker works', async () => {
+        stubList(season(2));
+        render(DownloadConfirmSheet);
+        await downloadQueue.enqueue('series-1');
+        await screen.findByTestId('download-confirm-sheet');
+        expect(screen.queryByTestId('download-format')).toBeNull();
+    });
+});
+
+describe('DownloadQueuePanel ZIP failures', () => {
+    test.each([
+        ['files_unavailable', /missing on the server/],
+        ['limit', /Too many downloads at once/],
+        ['forbidden', /not allowed/],
+    ] as const)('shows the %s reason for the archive', async (reason, text) => {
+        downloadQueue.items = [
+            {
+                mediaItemId: 's',
+                fileId: 'archive',
+                season: null,
+                episode: null,
+                seasonFolder: null,
+                fileName: 'Show.zip',
+                sizeBytes: 1,
+                available: true,
+                path: ['Show.zip'],
+                status: 'failed',
+                bytesDone: 0,
+                reason,
+            },
+        ];
+        downloadQueue.mode = 'zip';
+        downloadQueue.state = 'done';
+        render(DownloadQueuePanel);
+        const failures = await screen.findByTestId('download-failures');
+        expect(failures.textContent).toContain('Show.zip');
+        expect(failures.textContent).toMatch(text);
+    });
+});
+
+describe('DownloadQueuePanel ZIP retry', () => {
+    test('a failed archive offers Retry that hands the ZIP over again', async () => {
+        const retry = vi.spyOn(downloadQueue, 'retryArchive').mockResolvedValue();
+        downloadQueue.items = [
+            {
+                mediaItemId: 's',
+                fileId: 'archive',
+                season: null,
+                episode: null,
+                seasonFolder: null,
+                fileName: 'Show.zip',
+                sizeBytes: 1,
+                available: true,
+                path: ['Show.zip'],
+                status: 'failed',
+                bytesDone: 0,
+                reason: 'not_started',
+            },
+        ];
+        downloadQueue.mode = 'zip';
+        downloadQueue.state = 'done';
+        render(DownloadQueuePanel);
+        await fireEvent.click(await screen.findByTestId('download-retry'));
+        expect(retry).toHaveBeenCalledTimes(1);
+        retry.mockRestore();
+    });
+});

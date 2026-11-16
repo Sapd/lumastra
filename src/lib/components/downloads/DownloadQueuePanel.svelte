@@ -42,6 +42,10 @@
                 return m.downloads_reason_write();
             case 'not_started':
                 return m.downloads_reason_not_started();
+            case 'files_unavailable':
+                return m.downloads_reason_zip_unavailable();
+            case 'too_large':
+                return m.downloads_reason_zip_too_large();
             default:
                 return m.downloads_reason_http();
         }
@@ -143,7 +147,7 @@
                     )}{#if q.state === 'running' && q.speed > 0}
                         · {formatFileSize(q.speed)}/s{/if}
                 </p>
-            {:else if q.mode === 'links'}
+            {:else if q.mode === 'links' || q.mode === 'zip'}
                 <p class="text-xs text-surface-400">{m.downloads_handed()}</p>
                 {#if nextBatch > 0}
                     <button
@@ -156,6 +160,15 @@
                             : m.downloads_start_next({ count: nextBatch })}
                     </button>
                 {/if}
+            {/if}
+            {#if q.mode === 'zip' && q.state !== 'running' && failed.length > 0 && !q.error}
+                <button
+                    type="button"
+                    class="btn btn-sm variant-filled-primary"
+                    data-testid="download-retry"
+                    onclick={() => void q.retryArchive()}>
+                    {m.downloads_retry()}
+                </button>
             {/if}
             {#if failed.length > 0}
                 <ul class="text-xs text-amber-300 space-y-0.5" data-testid="download-failures">

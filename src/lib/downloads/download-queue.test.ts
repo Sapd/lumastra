@@ -930,3 +930,178 @@ describe('DownloadQueue link mode watches the server', () => {
         expect(q.linksRemaining).toBe(3);
     });
 });
+
+describe('DownloadQueue ZIP mode (no folder picker, season or series)', () => {
+    const zipSetup = (
+        n: number,
+        head: (call: number) => Response | Promise<Response> = () =>
+            new Response(null, { status: 200, headers: { 'content-length': '12345' } }),
+        slots?: (f: string | null, call: number) => Response | Promise<Response>,
+    ) => {
+        let heads = 0;
+        const r = setup(
+            list(
+                Array.from({ length: n }, (_, i) => item(i + 1, 1000)),
+                { maxParallel: 2 },
+            ),
+            () => {
+                heads += 1;
+                return head(heads);
+            },
+            { noPicker: true, slots },
+        );
+        return { ...r, heads: () => heads };
+    };
+
+    test('is offered for a season/series with 2+ files and no folder picker only', async () => {
+        const a = zipSetup(2);
+        await a.q.enqueue('series-1');
+        expect(a.q.zipOffered).toBe(true);
+        const one = zipSetup(1);
+        await one.q.enqueue('series-1');
+        expect(one.q.zipOffered).toBe(false);
+        const withPicker = setup(list([item(1), item(2)]), () => fileResponse(5));
+        await withPicker.q.enqueue('series-1');
+        expect(withPicker.q.zipOffered).toBe(false);
+        const movie = setup(
+            list([
+                { ...item(1), seasonFolder: null },
+                { ...item(2), seasonFolder: null },
+            ]),
+            () => fileResponse(5),
+            { noPicker: true },
+        );
+        await movie.q.enqueue('m');
+        expect(movie.q.zipOffered).toBe(false);
+    });
+
+    test('hands over ONE link to download-zip with season, specials and the nonce, confirmed by the slots endpoint', async () => {
+        const { q, links, slotCalls } = zipSetup(3);
+        await q.enqueue('series-1', { season: 2, specials: true });
+        q.setArchive(true);
+        await q.start();
+        expect(q.mode).toBe('zip');
+        expect(links).toHaveLength(1);
+        expect(links[0].url).toMatch(
+            /^\/api\/media\/series-1\/download-zip\?season=2&specials=1&h=[0-9a-f]{32}$/,
+        );
+        expect(links[0].fileName).toBe('Show (2020) - Season 01.zip');
+        const sent = new URL(links[0].url, 'http://x').searchParams.get('h');
+        expect(slotCalls.some((u) => u.includes(`h=${sent}`))).toBe(true);
+        expect(q.items).toHaveLength(1);
+        expect(q.items[0]).toMatchObject({ status: 'handed', sizeBytes: 12345 });
+        expect(q.state).toBe('done');
+        expect(q.archive).toBe(false);
+    });
+
+    test('without the choice the files are handed over separately as before', async () => {
+        const { q, links } = zipSetup(2);
+        await q.enqueue('series-1');
+        await q.start();
+        expect(q.mode).toBe('links');
+        expect(links).toHaveLength(2);
+        expect(links[0].url).toContain('/download?fileId=');
+    });
+
+    test('a HEAD probe comes before the hand-off; its 409 fails the archive and hands nothing over', async () => {
+        const { q, links, fetchFn } = zipSetup(2, () => new Response('x', { status: 409 }));
+        await q.enqueue('series-1');
+        q.setArchive(true);
+        await q.start();
+        expect(links).toHaveLength(0);
+        expect(q.items[0]).toMatchObject({ status: 'failed', reason: 'files_unavailable' });
+        const headCall = fetchFn.mock.calls.find(
+            (c) => ((c as unknown[])[1] as RequestInit | undefined)?.method === 'HEAD',
+        );
+        expect(String(headCall?.[0])).toBe('/api/media/series-1/download-zip');
+        expect(q.state).toBe('done');
+        expect(q.failedCount).toBe(1);
+    });
+
+    test.each([
+        [403, 'forbidden'],
+        [429, 'limit'],
+        [413, 'too_large'],
+        [500, 'http'],
+    ])('probe status %i is shown as %s', async (status, reason) => {
+        const { q, links } = zipSetup(2, () => new Response('x', { status }));
+        await q.enqueue('series-1');
+        q.setArchive(true);
+        await q.start();
+        expect(links).toHaveLength(0);
+        expect(q.items[0]).toMatchObject({ status: 'failed', reason });
+        if (status === 403) expect(q.error).toBe('downloads_not_allowed');
+    });
+
+    test('a 41 s preparation: ONE GET, the same nonce is observed until the server confirms', async () => {
+        let seen = 0;
+        const { q, links, slotCalls } = zipSetup(2, undefined, (f) => {
+            if (!f) return json({ maxParallel: 2, inUse: 0 });
+            seen += 1; // one observation per second
+            return json({ maxParallel: 2, inUse: 0, started: seen >= 41 });
+        });
+        await q.enqueue('series-1');
+        q.setArchive(true);
+        await q.start();
+        expect(links).toHaveLength(1);
+        expect(q.items[0].status).toBe('handed');
+        const nonce = new URL(links[0].url, 'http://x').searchParams.get('h');
+        const observed = slotCalls.filter((u) => u.includes('h='));
+        expect(observed.length).toBeGreaterThanOrEqual(41);
+        expect(observed.every((u) => u.includes(`h=${nonce}`))).toBe(true);
+    });
+
+    test('never seen within 3 minutes: no second GET, a failure the user retries explicitly', async () => {
+        let started = false;
+        const { q, links, sleeps } = zipSetup(2, undefined, (f) =>
+            json({ maxParallel: 2, inUse: 0, ...(f ? { started } : {}) }),
+        );
+        await q.enqueue('series-1');
+        q.setArchive(true);
+        await q.start();
+        expect(links).toHaveLength(1);
+        expect(sleeps.filter((ms) => ms === 1000)).toHaveLength(180);
+        expect(q.items[0]).toMatchObject({ status: 'failed', reason: 'not_started' });
+        // the explicit Retry: a fresh probe and hand-off
+        started = true;
+        await q.retryArchive();
+        expect(links).toHaveLength(2);
+        expect(q.items[0].status).toBe('handed');
+        expect(q.failedCount).toBe(0);
+    });
+
+    test('retryArchive does nothing unless a ZIP failed', async () => {
+        const { q, links } = zipSetup(2);
+        await q.enqueue('series-1');
+        q.setArchive(true);
+        await q.start();
+        await q.retryArchive();
+        expect(links).toHaveLength(1);
+    });
+
+    test('waits for a free slot first, and cancel while waiting hands nothing over', async () => {
+        const { q, links, sleeps } = zipSetup(2, undefined, (f) =>
+            json({ maxParallel: 1, inUse: 1, ...(f ? { started: true } : {}) }),
+        );
+        await q.enqueue('series-1');
+        q.setArchive(true);
+        const run = q.start();
+        await vi.waitFor(() => expect(sleeps).toContain(3000));
+        q.cancel();
+        await run;
+        expect(links).toHaveLength(0);
+        expect(q.state).toBe('stopped');
+    });
+
+    test('the choice resets when the sheet is dismissed or a new list is loaded', async () => {
+        const { q } = zipSetup(2);
+        await q.enqueue('series-1');
+        q.setArchive(true);
+        q.dismissPending();
+        expect(q.archive).toBe(false);
+        await q.enqueue('series-1');
+        q.setArchive(true);
+        await q.enqueue('series-1');
+        expect(q.archive).toBe(false);
+    });
+});
