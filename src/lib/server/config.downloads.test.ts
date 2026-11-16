@@ -16,6 +16,7 @@ const DOWNLOAD_KEYS = [
     'DOWNLOAD_TOTAL_BANDWIDTH_KBPS',
     'DOWNLOAD_MAX_PARALLEL_PER_USER',
     'DOWNLOAD_LOG_RETENTION_DAYS',
+    'DOWNLOAD_GROUPS',
 ] as const;
 
 type DownloadConfig = {
@@ -24,6 +25,7 @@ type DownloadConfig = {
     DOWNLOAD_TOTAL_BANDWIDTH_KBPS: number;
     DOWNLOAD_MAX_PARALLEL_PER_USER: number;
     DOWNLOAD_LOG_RETENTION_DAYS: number;
+    DOWNLOAD_GROUPS: string[];
 };
 
 /**
@@ -50,6 +52,24 @@ describe('download settings: defaults', () => {
         expect(config.DOWNLOAD_TOTAL_BANDWIDTH_KBPS).toBe(0);
         expect(config.DOWNLOAD_MAX_PARALLEL_PER_USER).toBe(3);
         expect(config.DOWNLOAD_LOG_RETENTION_DAYS).toBe(90);
+        expect(config.DOWNLOAD_GROUPS).toEqual([]);
+    });
+});
+
+describe('DOWNLOAD_GROUPS', () => {
+    it('parses a comma list', async () => {
+        const config = await loadConfig({ DOWNLOAD_GROUPS: 'family, admin' });
+        expect(config.DOWNLOAD_GROUPS).toEqual(['family', 'admin']);
+    });
+
+    it('treats an explicitly empty value as not used', async () => {
+        const config = await loadConfig({ DOWNLOAD_GROUPS: '' });
+        expect(config.DOWNLOAD_GROUPS).toEqual([]);
+    });
+
+    it('is a groups-section array setting with an empty default', () => {
+        const def = configSchema.find((d) => d.key === 'DOWNLOAD_GROUPS');
+        expect(def).toMatchObject({ type: 'array', defaultValue: '', section: 'groups' });
     });
 });
 

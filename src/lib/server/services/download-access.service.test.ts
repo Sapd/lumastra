@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const cfg = vi.hoisted(() => ({
     FEATURE_MEDIA_DOWNLOAD: true,
     DOWNLOADS_ALLOWED_BY_DEFAULT: true,
+    DOWNLOAD_GROUPS: [] as string[],
 }));
 const getUserAllowDownloads = vi.hoisted(() => vi.fn());
 
@@ -15,9 +16,13 @@ vi.mock('$lib/server/database/queries/users.queries.js', () => ({ getUserAllowDo
 
 import {
     canDownload,
+    explainDownloadAccess,
     userMayDownload,
     invalidateDownloadAccess,
 } from './download-access.service.js';
+
+const mockRow = (allowDownloads: boolean | null, groups: string[] = []) =>
+    getUserAllowDownloads.mockResolvedValue({ allowDownloads, groups });
 
 let n = 0;
 const user = (isAdmin = false) => ({ userId: `u${++n}`, username: `name${n}`, isAdmin });
@@ -26,8 +31,9 @@ describe('userMayDownload (no master switch)', () => {
     beforeEach(() => {
         cfg.FEATURE_MEDIA_DOWNLOAD = false;
         cfg.DOWNLOADS_ALLOWED_BY_DEFAULT = true;
+        cfg.DOWNLOAD_GROUPS = [];
         getUserAllowDownloads.mockReset();
-        getUserAllowDownloads.mockResolvedValue(null);
+        mockRow(null);
     });
 
     it('ignores FEATURE_MEDIA_DOWNLOAD', async () => {
@@ -43,10 +49,10 @@ describe('userMayDownload (no master switch)', () => {
     });
 
     it('override false beats default true; override true beats default false', async () => {
-        getUserAllowDownloads.mockResolvedValue(false);
+        mockRow(false);
         expect(await userMayDownload(user())).toBe(false);
         cfg.DOWNLOADS_ALLOWED_BY_DEFAULT = false;
-        getUserAllowDownloads.mockResolvedValue(true);
+        mockRow(true);
         expect(await userMayDownload(user())).toBe(true);
         getUserAllowDownloads.mockResolvedValue(undefined);
         expect(await userMayDownload(user())).toBe(false);
@@ -57,8 +63,9 @@ describe('canDownload', () => {
     beforeEach(() => {
         cfg.FEATURE_MEDIA_DOWNLOAD = true;
         cfg.DOWNLOADS_ALLOWED_BY_DEFAULT = true;
+        cfg.DOWNLOAD_GROUPS = [];
         getUserAllowDownloads.mockReset();
-        getUserAllowDownloads.mockResolvedValue(null);
+        mockRow(null);
     });
 
     it('is false when the feature is off, even for admins', async () => {
@@ -83,7 +90,7 @@ describe('canDownload', () => {
     });
 
     it('override false beats default true', async () => {
-        getUserAllowDownloads.mockResolvedValue(false);
+        mockRow(false);
         expect(await canDownload(user())).toBe(false);
     });
 
@@ -95,7 +102,7 @@ describe('canDownload', () => {
 
     it('default false plus override true is true', async () => {
         cfg.DOWNLOADS_ALLOWED_BY_DEFAULT = false;
-        getUserAllowDownloads.mockResolvedValue(true);
+        mockRow(true);
         expect(await canDownload(user())).toBe(true);
     });
 
@@ -120,5 +127,102 @@ describe('canDownload', () => {
         } finally {
             vi.useRealTimers();
         }
+    });
+});
+
+describe('download groups', () => {
+    beforeEach(() => {
+        cfg.FEATURE_MEDIA_DOWNLOAD = true;
+        cfg.DOWNLOADS_ALLOWED_BY_DEFAULT = true;
+        cfg.DOWNLOAD_GROUPS = ['family'];
+        getUserAllowDownloads.mockReset();
+    });
+
+    it('user in the group, no override -> true even when default is false', async () => {
+        cfg.DOWNLOADS_ALLOWED_BY_DEFAULT = false;
+        mockRow(null, ['family']);
+        expect(await userMayDownload(user())).toBe(true);
+    });
+
+    it('user not in the group -> false even with default true', async () => {
+        mockRow(null, ['kids']);
+        expect(await userMayDownload(user())).toBe(false);
+        mockRow(null, []);
+        expect(await userMayDownload(user())).toBe(false);
+    });
+
+    it('override true beats a group miss; override false beats a group hit', async () => {
+        mockRow(true, ['kids']);
+        expect(await userMayDownload(user())).toBe(true);
+        mockRow(false, ['family']);
+        expect(await userMayDownload(user())).toBe(false);
+    });
+
+    it('empty DOWNLOAD_GROUPS falls back to the default', async () => {
+        cfg.DOWNLOAD_GROUPS = [];
+        mockRow(null, ['kids']);
+        expect(await userMayDownload(user())).toBe(true);
+        cfg.DOWNLOADS_ALLOWED_BY_DEFAULT = false;
+        expect(await userMayDownload(user())).toBe(false);
+    });
+
+    it('admin outside the group is allowed without a query', async () => {
+        expect(await userMayDownload(user(true))).toBe(true);
+        expect(getUserAllowDownloads).not.toHaveBeenCalled();
+    });
+
+    it('group match is case-insensitive like hasGroupPermission', async () => {
+        cfg.DOWNLOAD_GROUPS = [' Family '];
+        mockRow(null, ['FAMILY']);
+        expect(await userMayDownload(user())).toBe(true);
+    });
+
+    it('applies a group change after the cache expires or is invalidated', async () => {
+        const u = user();
+        mockRow(null, ['kids']);
+        expect(await canDownload(u)).toBe(false);
+        mockRow(null, ['family']);
+        invalidateDownloadAccess(u.userId);
+        expect(await canDownload(u)).toBe(true);
+    });
+});
+
+describe('explainDownloadAccess', () => {
+    beforeEach(() => {
+        cfg.DOWNLOADS_ALLOWED_BY_DEFAULT = true;
+        cfg.DOWNLOAD_GROUPS = [];
+    });
+
+    it('reports admin, override, group and default', () => {
+        expect(explainDownloadAccess({ allowDownloads: false, groups: [] }, true)).toEqual({
+            allowed: true,
+            reason: 'admin',
+        });
+        expect(explainDownloadAccess({ allowDownloads: false, groups: ['x'] }, false)).toEqual({
+            allowed: false,
+            reason: 'override',
+        });
+        cfg.DOWNLOAD_GROUPS = ['family'];
+        expect(explainDownloadAccess({ allowDownloads: null, groups: ['family'] }, false)).toEqual({
+            allowed: true,
+            reason: 'group',
+        });
+        expect(explainDownloadAccess({ allowDownloads: null, groups: [] }, false)).toEqual({
+            allowed: false,
+            reason: 'group',
+        });
+        cfg.DOWNLOAD_GROUPS = [];
+        cfg.DOWNLOADS_ALLOWED_BY_DEFAULT = false;
+        expect(explainDownloadAccess({ allowDownloads: null, groups: ['family'] }, false)).toEqual({
+            allowed: false,
+            reason: 'default',
+        });
+    });
+
+    it('treats a null groups column as no groups', () => {
+        cfg.DOWNLOAD_GROUPS = ['family'];
+        expect(explainDownloadAccess({ allowDownloads: null, groups: null }, false).allowed).toBe(
+            false,
+        );
     });
 });

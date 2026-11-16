@@ -6609,6 +6609,16 @@ export const configSchema: SettingDefinition[] = [
         uiHints: { placeholder: 'livetv,admin', groups: true },
     },
     {
+        key: 'DOWNLOAD_GROUPS',
+        type: 'array',
+        label: 'Download Groups',
+        description:
+            "Groups allowed to download (empty = use 'Allow downloads by default'). A per-user setting overrides this.",
+        defaultValue: '',
+        section: 'groups',
+        uiHints: { placeholder: 'family,admin', groups: true },
+    },
+    {
         key: 'ARR_MANAGER_GROUPS',
         type: 'array',
         label: 'Media Manager Groups',

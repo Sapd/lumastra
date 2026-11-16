@@ -14,6 +14,7 @@ import type { RequestEvent } from '@sveltejs/kit';
 const cfg = vi.hoisted(() => ({
     FEATURE_MEDIA_DOWNLOAD: true,
     DOWNLOADS_ALLOWED_BY_DEFAULT: true,
+    DOWNLOAD_GROUPS: [] as string[],
     UNRATED_CONTENT_VISIBLE: true,
     FEATURE_LIVETV: false,
     LIVETV_GROUPS: [] as string[],
@@ -24,7 +25,7 @@ vi.mock('$lib/server/config', () => ({ config: cfg }));
 vi.mock('$lib/server/config.js', () => ({ config: cfg }));
 vi.mock('$lib/server/database/connection.js', () => ({ getDb: () => ({}) }));
 vi.mock('$lib/server/database/queries/users.queries.js', () => ({
-    getUserAllowDownloads: async (_db: unknown, userId: string) => overrides.get(userId) ?? null,
+    getUserAllowDownloads: async (_db: unknown, userId: string) => ({ allowDownloads: overrides.get(userId) ?? null, groups: [] }),
 }));
 
 const { mockAllowsLiveTv } = vi.hoisted(() => ({

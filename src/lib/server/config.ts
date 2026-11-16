@@ -530,6 +530,10 @@ export const config = {
     get LIVETV_GROUPS(): string[] {
         return getArray('LIVETV_GROUPS', env.LIVETV_GROUPS, 'livetv,admin');
     },
+    // Groups allowed to download (empty = not used, DOWNLOADS_ALLOWED_BY_DEFAULT applies)
+    get DOWNLOAD_GROUPS(): string[] {
+        return getArray('DOWNLOAD_GROUPS', env.DOWNLOAD_GROUPS, '');
+    },
     // Groups that can request media via Jellyseerr (empty = all users allowed)
     get REQUEST_GROUPS(): string[] {
         return getArray('REQUEST_GROUPS', env.REQUEST_GROUPS, '');

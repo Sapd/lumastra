@@ -24,6 +24,7 @@ vi.mock('$lib/server/config.js', async (importOriginal) => {
             FEATURE_DOWNLOAD_RENDITIONS: true,
             DOWNLOAD_THROTTLE_KBPS: 0,
             DOWNLOADS_ALLOWED_BY_DEFAULT: true,
+            DOWNLOAD_GROUPS: [] as string[],
             get FEATURE_MEDIA_DOWNLOAD() {
                 return cfgOverrides.FEATURE_MEDIA_DOWNLOAD;
             },
@@ -41,7 +42,10 @@ vi.mock('$lib/server/services/download-rendition/service.js', () => ({
 }));
 vi.mock('$lib/server/database/connection.js', () => ({ getDb: () => ({}) }));
 vi.mock('$lib/server/database/queries/users.queries.js', () => ({
-    getUserAllowDownloads: (...a: unknown[]) => mockOverride(...a),
+    getUserAllowDownloads: async (...a: unknown[]) => {
+        const v = await mockOverride(...a);
+        return v === undefined ? undefined : { allowDownloads: v, groups: [] };
+    },
 }));
 vi.mock('$lib/server/database/queries/download-renditions.queries.js', () => ({
     getRendition: (...a: unknown[]) => mockGetRendition(...a),

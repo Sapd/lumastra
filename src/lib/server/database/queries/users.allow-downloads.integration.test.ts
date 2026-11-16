@@ -34,13 +34,24 @@ describe('users.allow_downloads', () => {
 
     it('defaults to null, sets true/false and back to null', async () => {
         const u = await mk();
-        expect(await getUserAllowDownloads(sql, u.id)).toBeNull();
+        expect((await getUserAllowDownloads(sql, u.id))?.allowDownloads).toBeNull();
         expect(await setUserAllowDownloads(sql, u.username, false)).toBe(true);
-        expect(await getUserAllowDownloads(sql, u.id)).toBe(false);
+        expect((await getUserAllowDownloads(sql, u.id))?.allowDownloads).toBe(false);
         expect(await setUserAllowDownloads(sql, u.username.toUpperCase(), true)).toBe(true);
-        expect(await getUserAllowDownloads(sql, u.id)).toBe(true);
+        expect((await getUserAllowDownloads(sql, u.id))?.allowDownloads).toBe(true);
         expect(await setUserAllowDownloads(sql, u.username, null)).toBe(true);
-        expect(await getUserAllowDownloads(sql, u.id)).toBeNull();
+        expect((await getUserAllowDownloads(sql, u.id))?.allowDownloads).toBeNull();
+    });
+
+    it('returns the synced groups, [] when the column is null', async () => {
+        const u = await mk();
+        await sql`UPDATE users SET groups = NULL WHERE id = ${u.id}`;
+        expect((await getUserAllowDownloads(sql, u.id))?.groups).toEqual([]);
+        await sql`UPDATE users SET groups = ${['family', 'kids']} WHERE id = ${u.id}`;
+        expect(await getUserAllowDownloads(sql, u.id)).toEqual({
+            allowDownloads: null,
+            groups: ['family', 'kids'],
+        });
     });
 
     it('returns undefined / false for an unknown user', async () => {
