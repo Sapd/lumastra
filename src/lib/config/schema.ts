@@ -2074,15 +2074,69 @@ export const configSchema: SettingDefinition[] = [
         section: 'downloads',
     },
     {
+        key: 'DOWNLOADS_ALLOWED_BY_DEFAULT',
+        type: 'boolean',
+        label: 'Allow downloads by default',
+        description:
+            'Whether users may download files unless an admin has set download permission for them ' +
+            'individually. Admins can always download. Applies only while Original File Download is on.',
+        defaultValue: true,
+        section: 'downloads',
+    },
+    {
         key: 'DOWNLOAD_THROTTLE_KBPS',
         type: 'number',
-        label: 'Download Speed Limit (KB/s)',
+        label: 'Download speed per download (KB/s)',
         description:
             'Bandwidth cap applied to each file download — original files via both the public API and ' +
             'the Jellyfin-compatible surface, plus finished offline renditions. 0 disables the limit. ' +
-            'Stops a single large download from saturating your uplink and starving live playback.',
+            'Stops a single large download from saturating your uplink and starving live playback. ' +
+            'When a per-user speed limit is also set, a download runs at the lower of the two.',
         defaultValue: 0,
         section: 'downloads',
+    },
+    {
+        key: 'DOWNLOAD_USER_BANDWIDTH_KBPS',
+        type: 'number',
+        label: 'Download speed per user (KB/s, all downloads together)',
+        description:
+            'Total speed for all of one user’s running file downloads together. 0 disables the limit. ' +
+            'Each download still obeys the per-download speed limit, and the lower limit applies.',
+        defaultValue: 0,
+        section: 'downloads',
+        validation: { min: 0, integer: true },
+    },
+    {
+        key: 'DOWNLOAD_TOTAL_BANDWIDTH_KBPS',
+        type: 'number',
+        label: 'Total download speed (KB/s, all users together)',
+        description:
+            'Total speed for all file downloads of all users together, shared fairly among active ' +
+            'users. 0 disables the limit.',
+        defaultValue: 0,
+        section: 'downloads',
+        validation: { min: 0, integer: true },
+    },
+    {
+        key: 'DOWNLOAD_MAX_PARALLEL_PER_USER',
+        type: 'number',
+        label: 'Parallel downloads per user',
+        description:
+            'How many file downloads one user may run at the same time. One file on one device counts ' +
+            'once, however many connections that download uses. 0 disables the limit.',
+        defaultValue: 3,
+        section: 'downloads',
+        validation: { min: 0, integer: true },
+    },
+    {
+        key: 'DOWNLOAD_LOG_RETENTION_DAYS',
+        type: 'number',
+        label: 'Download log retention (days)',
+        description: 'How many days the download log keeps its entries before they are deleted.',
+        defaultValue: 90,
+        section: 'downloads',
+        validation: { min: 1, max: 3650, integer: true },
+        uiHints: { suffix: 'days' },
     },
     {
         key: 'JELLYFIN_PROGRESSIVE_TRANSCODE_MAX_CONCURRENT',

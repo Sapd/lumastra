@@ -2010,6 +2010,37 @@ export const config = {
         return getNumber('DOWNLOAD_THROTTLE_KBPS', env.DOWNLOAD_THROTTLE_KBPS, 0);
     },
 
+    // Download permission default. Consulted by canDownload only when
+    // FEATURE_MEDIA_DOWNLOAD is on; admins always may download. A user's own
+    // allow_downloads value overrides this.
+    get DOWNLOADS_ALLOWED_BY_DEFAULT(): boolean {
+        return getBool('DOWNLOADS_ALLOWED_BY_DEFAULT', env.DOWNLOADS_ALLOWED_BY_DEFAULT, true);
+    },
+
+    // Total KB/s for all running file downloads of ONE user, together. 0 = unlimited.
+    // Applied on top of DOWNLOAD_THROTTLE_KBPS (per download); a download runs at the
+    // lower of the two.
+    get DOWNLOAD_USER_BANDWIDTH_KBPS(): number {
+        return getNumber('DOWNLOAD_USER_BANDWIDTH_KBPS', env.DOWNLOAD_USER_BANDWIDTH_KBPS, 0);
+    },
+
+    // Total KB/s for all running file downloads of ALL users together, shared fairly
+    // among active users. 0 = unlimited.
+    get DOWNLOAD_TOTAL_BANDWIDTH_KBPS(): number {
+        return getNumber('DOWNLOAD_TOTAL_BANDWIDTH_KBPS', env.DOWNLOAD_TOTAL_BANDWIDTH_KBPS, 0);
+    },
+
+    // How many file downloads one user may run at once (one lease per user, file and
+    // device). 0 = unlimited.
+    get DOWNLOAD_MAX_PARALLEL_PER_USER(): number {
+        return getNumber('DOWNLOAD_MAX_PARALLEL_PER_USER', env.DOWNLOAD_MAX_PARALLEL_PER_USER, 3);
+    },
+
+    // Days the download log keeps its rows before they are deleted.
+    get DOWNLOAD_LOG_RETENTION_DAYS(): number {
+        return getNumber('DOWNLOAD_LOG_RETENTION_DAYS', env.DOWNLOAD_LOG_RETENTION_DAYS, 90);
+    },
+
     // Per-replica cap on progressive (non-HLS) transcodes served by
     // /j/Videos/{id}/stream?Static=false&container=… — what Jellyfin clients like
     // Moonfin request for a reduced-quality download. 0 disables them: such
