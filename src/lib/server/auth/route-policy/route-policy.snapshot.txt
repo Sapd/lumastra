@@ -1884,6 +1884,8 @@
 /api/media/[id]/annotations POST user  <- /api/media/**
 /api/media/[id]/annotations/[annotationId] DELETE user  <- /api/media/**
 /api/media/[id]/context GET user  <- /api/media/**
+/api/media/[id]/download GET user  <- /api/media/**
+/api/media/[id]/download-list GET user  <- /api/media/**
 /api/media/[id]/files GET user  <- /api/media/**
 /api/media/[id]/images/[role] GET user  <- /api/media/**
 /api/media/[id]/listening-sharing GET user  <- /api/media/**

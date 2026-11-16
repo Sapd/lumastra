@@ -47,7 +47,7 @@ const logger = Logger.for('MediaDownloadHandler');
 const FS_UNSAFE_CHARS = /[\x00-\x1F<>:"/\\|?*]/g;
 const MAX_NAME_LENGTH = 180;
 
-function sanitizeFilenamePart(value: string): string {
+export function sanitizeFilenamePart(value: string): string {
     return value.replace(FS_UNSAFE_CHARS, '').replace(/\s+/g, ' ').trim();
 }
 

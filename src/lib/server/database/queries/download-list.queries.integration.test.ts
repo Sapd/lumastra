@@ -1,0 +1,69 @@
+// SPDX-FileCopyrightText: 2026 Denis Arnst (Sapd)
+// SPDX-License-Identifier: AGPL-3.0-only
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import type postgres from 'postgres';
+import { getTestDb, closeTestDb } from '../../../../../tests/integration/setup/test-database.js';
+import {
+    getDownloadListRoot,
+    getSingleDownloadRow,
+    listEpisodeDownloadRows,
+} from './download-list.queries.js';
+
+describe('download-list queries', () => {
+    let sql: postgres.Sql;
+    const ids = {
+        series: crypto.randomUUID(),
+        s1: crypto.randomUUID(),
+        e1: crypto.randomUUID(),
+        e2: crypto.randomUUID(),
+        e3: crypto.randomUUID(),
+        fa: crypto.randomUUID(),
+        fb: crypto.randomUUID(),
+        fc: crypto.randomUUID(),
+    };
+
+    beforeAll(async () => {
+        sql = getTestDb();
+        await sql`INSERT INTO media_items (id, title, media_type, year, status) VALUES (${ids.series}, 'DL Show', 'tv', 2004, 'active')`;
+        await sql`INSERT INTO media_items (id, title, media_type, parent_id, season_number, status) VALUES (${ids.s1}, 'S1', 'season', ${ids.series}, 1, 'active')`;
+        for (const [id, n] of [
+            [ids.e1, 1],
+            [ids.e2, 2],
+            [ids.e3, 3],
+        ] as const) {
+            await sql`INSERT INTO media_items (id, title, media_type, parent_id, season_number, episode_number, status) VALUES (${id}, ${'Ep' + n}, 'episode', ${ids.s1}, 1, ${n}, 'active')`;
+        }
+        // e1: two files, the second is the default; e2: one missing file; e3: no file.
+        await sql`INSERT INTO media_files (id, file_path, file_size_bytes, created_at, updated_at) VALUES (${ids.fa}, '/dl/a.mkv', 10, now(), now()), (${ids.fb}, '/dl/b.mp4', 20, now(), now()), (${ids.fc}, '/dl/c.mkv', 30, now(), now())`;
+        await sql`UPDATE media_files SET is_missing = true WHERE id = ${ids.fc}`;
+        await sql`INSERT INTO media_file_items (file_id, media_item_id, is_default, sort_order) VALUES (${ids.fa}, ${ids.e1}, false, 0), (${ids.fb}, ${ids.e1}, true, 1), (${ids.fc}, ${ids.e2}, true, 0)`;
+    });
+
+    afterAll(async () => {
+        await sql`DELETE FROM media_items WHERE id = ANY(${[ids.e1, ids.e2, ids.e3, ids.s1, ids.series]}::uuid[])`;
+        await sql`DELETE FROM media_files WHERE id = ANY(${[ids.fa, ids.fb, ids.fc]}::uuid[])`;
+        await closeTestDb();
+    });
+
+    it('root lookup', async () => {
+        expect(await getDownloadListRoot(sql, ids.series)).toMatchObject({
+            title: 'DL Show',
+            year: 2004,
+            media_type: 'tv',
+        });
+    });
+
+    it('episodes of a series: default file, series title, files only, ordered', async () => {
+        const rows = await listEpisodeDownloadRows(sql, ids.series);
+        expect(rows.map((r) => r.id)).toEqual([ids.e1, ids.e2]);
+        expect(rows[0]).toMatchObject({ file_id: ids.fb, series_title: 'DL Show' });
+        expect(rows[1]).toMatchObject({ file_id: ids.fc, is_missing: true });
+        expect((await listEpisodeDownloadRows(sql, ids.s1)).length).toBe(2);
+    });
+
+    it('single item row', async () => {
+        expect(await getSingleDownloadRow(sql, ids.e1)).toMatchObject({ file_id: ids.fb });
+        expect(await getSingleDownloadRow(sql, ids.e3)).toBeNull();
+    });
+});

@@ -14,11 +14,12 @@
  * as every other per-item media route (404 on denial, not 403 — avoids an
  * existence leak).
  *
- * v1-only: no internal (browser-session) twin — the web UI has its own
- * inline-play route at /api/playback/{itemId}/file; this is the
- * token-authenticated download surface for TV apps / scripts / PATs,
+ * Token-authenticated download surface for TV apps / scripts / PATs,
  * mirroring the Jellyfin-compat `/j/Items/{itemId}/Download` route (which
- * shares this same handler).
+ * shares this same handler). The browser has its own session-authenticated
+ * twin, GET /api/media/{id}/download (`download-internal.ts`), which calls the
+ * same handler with surface `web`; the inline-play route is
+ * /api/playback/{itemId}/file.
  */
 
 import { z } from 'zod';
