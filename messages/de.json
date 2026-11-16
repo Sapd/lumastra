@@ -13082,7 +13082,6 @@
     "admin_downloads_load_failed": "Downloads konnten nicht geladen werden.",
     "admin_downloads_episode": "S{season}E{episode}",
     "downloads_button": "Herunterladen",
-    "downloads_button_size": "Herunterladen ({size})",
     "downloads_episode_aria": "Episode herunterladen",
     "downloads_season": "Staffel herunterladen",
     "downloads_series": "Serie herunterladen",
@@ -13106,5 +13105,15 @@
     "downloads_error_not_allowed": "Downloads sind für dieses Konto nicht erlaubt.",
     "downloads_error_busy": "Es läuft bereits ein Download.",
     "downloads_error_list": "Die Download-Liste konnte nicht geladen werden.",
-    "downloads_error_empty": "Hier gibt es nichts herunterzuladen."
+    "downloads_error_empty": "Hier gibt es nichts herunterzuladen.",
+    "downloads_state_done_failed": "Fertig, {count} fehlgeschlagen",
+    "downloads_waiting": "Warte auf einen freien Platz…",
+    "downloads_reason_limit": "Zu viele gleichzeitige Downloads, aufgegeben",
+    "downloads_reason_http": "Der Server hat die Datei abgelehnt",
+    "downloads_reason_network": "Netzwerkfehler",
+    "downloads_reason_size": "Datei unvollständig (Größe stimmt nicht)",
+    "downloads_reason_write": "Schreiben in den Ordner fehlgeschlagen",
+    "downloads_reason_fat32": "Datei über 4 GB passt nicht auf diesen Stick. Nimm einen exFAT-Stick.",
+    "downloads_fat32_warning": "Dateien über 4 GB passen nicht auf FAT32-Sticks. Nimm einen exFAT-Stick.",
+    "downloads_more": "+{count} weitere"
 }

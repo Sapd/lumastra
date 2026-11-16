@@ -13082,7 +13082,6 @@
     "admin_downloads_load_failed": "Could not load downloads.",
     "admin_downloads_episode": "S{season}E{episode}",
     "downloads_button": "Download",
-    "downloads_button_size": "Download ({size})",
     "downloads_episode_aria": "Download episode",
     "downloads_season": "Download season",
     "downloads_series": "Download series",
@@ -13106,5 +13105,15 @@
     "downloads_error_not_allowed": "Downloads are not allowed for this account.",
     "downloads_error_busy": "A download is already running.",
     "downloads_error_list": "Could not load the download list.",
-    "downloads_error_empty": "There is nothing to download here."
+    "downloads_error_empty": "There is nothing to download here.",
+    "downloads_state_done_failed": "Done, {count} failed",
+    "downloads_waiting": "Waiting for a free slot…",
+    "downloads_reason_limit": "Too many downloads at once, gave up",
+    "downloads_reason_http": "The server refused the file",
+    "downloads_reason_network": "Network error",
+    "downloads_reason_size": "File incomplete (size mismatch)",
+    "downloads_reason_write": "Could not write to the folder",
+    "downloads_reason_fat32": "File over 4 GB does not fit on this stick. Use an exFAT stick.",
+    "downloads_fat32_warning": "Files over 4 GB don't fit on FAT32 sticks. Use an exFAT stick.",
+    "downloads_more": "+{count} more"
 }

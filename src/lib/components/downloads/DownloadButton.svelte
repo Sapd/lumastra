@@ -16,7 +16,6 @@
     import { page } from '$app/stores';
     import { Icon, ArrowDownTray } from 'svelte-hero-icons';
     import { downloadQueue } from '$lib/downloads/download-queue.svelte';
-    import { formatFileSize } from '$lib/utils/metric-formatters';
     import * as m from '$lib/paraglide/messages';
 
     interface Props {
@@ -24,7 +23,6 @@
         accessId?: string;
         variant?: 'button' | 'icon';
         label?: string;
-        showSize?: boolean;
         season?: number;
         testId?: string;
     }
@@ -34,13 +32,14 @@
         accessId = undefined,
         variant = 'button',
         label = undefined,
-        showSize = false,
         season = undefined,
         testId = 'download-button',
     }: Props = $props();
 
     let featureOn = $derived($page.data?.features?.mediaDownload === true);
-    let info = $state<{ allowed: boolean; sizeBytes: number } | null>(null);
+    let info = $state<{ allowed: boolean } | null>(null);
+    // One run at a time: starting another while the queue runs would only be refused.
+    let busy = $derived(downloadQueue.state === 'running');
 
     $effect(() => {
         info = null;
@@ -55,11 +54,7 @@
         };
     });
 
-    let text = $derived(
-        showSize && info && info.sizeBytes > 0 && !accessId
-            ? m.downloads_button_size({ size: formatFileSize(info.sizeBytes) })
-            : (label ?? m.downloads_button()),
-    );
+    let text = $derived(label ?? m.downloads_button());
 
     function start(e: MouseEvent) {
         e.stopPropagation();
@@ -75,14 +70,16 @@
             class="p-1 rounded hover:bg-surface-600 transition-colors shrink-0 text-surface-500 hover:text-surface-200"
             aria-label={label ?? m.downloads_episode_aria()}
             title={label ?? m.downloads_episode_aria()}
+            disabled={busy}
             onclick={start}>
-            <Icon src={ArrowDownTray} class="w-4 h-4" />
+            <Icon src={ArrowDownTray} class="w-4 h-4" aria-hidden="true" />
         </button>
     {:else}
         <button
             type="button"
             data-testid={testId}
             class="btn variant-ghost-surface inline-flex items-center gap-1.5"
+            disabled={busy}
             onclick={start}>
             <Icon src={ArrowDownTray} class="w-4 h-4" aria-hidden="true" />
             <span>{text}</span>

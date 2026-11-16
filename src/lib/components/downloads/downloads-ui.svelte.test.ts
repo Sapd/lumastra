@@ -7,14 +7,22 @@ import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/sv
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { readable } from 'svelte/store';
 
-const { viewPage } = vi.hoisted(() => ({
-    viewPage: { data: { features: { mediaDownload: true } }, url: new URL('http://localhost/') },
-}));
+const { viewPage } = vi.hoisted(() => {
+    // The queue singleton decides at import time whether the browser has a folder picker.
+    Object.assign(window, { showDirectoryPicker: async () => ({ name: 'USB' }) });
+    return {
+        viewPage: {
+            data: { features: { mediaDownload: true } },
+            url: new URL('http://localhost/'),
+        },
+    };
+});
 vi.mock('$app/stores', () => ({ page: readable(viewPage) }));
 vi.mock('$app/paths', () => ({ base: '' }));
 
 import DownloadButton from './DownloadButton.svelte';
 import DownloadConfirmSheet from './DownloadConfirmSheet.svelte';
+import DownloadQueuePanel from './DownloadQueuePanel.svelte';
 import { downloadQueue } from '$lib/downloads/download-queue.svelte';
 
 function listBody(over: Record<string, unknown> = {}) {
@@ -48,15 +56,36 @@ afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
     downloadQueue.dismissPending();
+    downloadQueue.state = 'idle'; // reset() refuses while 'running'
+    downloadQueue.reset();
     downloadQueue.error = undefined;
+    downloadQueue.notice = undefined;
     viewPage.data.features.mediaDownload = true;
 });
 
 describe('DownloadButton', () => {
-    test('shows the button with the file size only when downloads are allowed', async () => {
-        stubList(listBody({ items: [listBody().items[0]] }));
-        render(DownloadButton, { mediaItemId: 'movie-allowed', showSize: true });
-        expect(await screen.findByRole('button', { name: /Download \(1\.0 GB\)/ })).toBeTruthy();
+    test('shows the button only when downloads are allowed', async () => {
+        stubList(listBody());
+        render(DownloadButton, { mediaItemId: 'movie-allowed' });
+        expect(await screen.findByRole('button', { name: 'Download' })).toBeTruthy();
+    });
+
+    test('visibility uses the summary probe, the full list is fetched on click', async () => {
+        const f = stubList(listBody());
+        render(DownloadButton, { mediaItemId: 'movie-probe' });
+        await fireEvent.click(await screen.findByRole('button', { name: 'Download' }));
+        await waitFor(() => expect(f).toHaveBeenCalledTimes(2));
+        expect(String(f.mock.calls[0][0])).toContain('/download-list?summary=1');
+        expect(String(f.mock.calls[1][0])).toBe('/api/media/movie-probe/download-list');
+    });
+
+    test('is disabled while a queue is running', async () => {
+        stubList(listBody());
+        downloadQueue.state = 'running';
+        render(DownloadButton, { mediaItemId: 'movie-busy', variant: 'icon' });
+        const btn = (await screen.findByTestId('download-button')) as HTMLButtonElement;
+        expect(btn.disabled).toBe(true);
+        expect(btn.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
     });
 
     test('renders nothing when the user may not download', async () => {
@@ -105,7 +134,7 @@ describe('DownloadButton', () => {
             variant: 'icon',
         });
         await screen.findByTestId('download-button');
-        expect(String(f.mock.calls[0][0])).toContain('/api/media/series-shared/download-list');
+        expect(String(f.mock.calls[0][0])).toBe('/api/media/series-shared/download-list?summary=1');
     });
 });
 
@@ -129,5 +158,94 @@ describe('DownloadConfirmSheet', () => {
         render(DownloadConfirmSheet);
         await downloadQueue.enqueue('series-sheet-2');
         expect(await screen.findByText('Include specials')).toBeTruthy();
+    });
+});
+
+describe('DownloadConfirmSheet extras', () => {
+    test('warns about FAT32 when a file is 4 GiB or larger', async () => {
+        const big = { ...listBody().items[0], sizeBytes: 5 * 1024 ** 3 };
+        stubList(listBody({ items: [big] }));
+        render(DownloadConfirmSheet);
+        await downloadQueue.enqueue('series-fat');
+        expect((await screen.findByTestId('download-fat32-warning')).textContent).toContain(
+            'exFAT',
+        );
+    });
+
+    test('no FAT32 warning for small files', async () => {
+        stubList(listBody());
+        render(DownloadConfirmSheet);
+        await downloadQueue.enqueue('series-nofat');
+        await screen.findByTestId('download-summary');
+        expect(screen.queryByTestId('download-fat32-warning')).toBeNull();
+    });
+
+    test('moves focus into the sheet and back to the opener on close', async () => {
+        stubList(listBody());
+        const opener = document.createElement('button');
+        document.body.appendChild(opener);
+        opener.focus();
+        render(DownloadConfirmSheet);
+        await downloadQueue.enqueue('series-focus');
+        const dialog = await screen.findByTestId('download-confirm-sheet');
+        await waitFor(() => expect(document.activeElement).toBe(dialog));
+        downloadQueue.dismissPending();
+        await waitFor(() => expect(document.activeElement).toBe(opener));
+        opener.remove();
+    });
+});
+
+describe('DownloadQueuePanel', () => {
+    function finishedWithFailures() {
+        const base = listBody().items[0];
+        downloadQueue.items = [
+            { ...base, path: ['a'], status: 'failed', bytesDone: 0, reason: 'size_mismatch' },
+            {
+                ...base,
+                fileId: 'f-2',
+                fileName: 'two.mkv',
+                path: ['b'],
+                status: 'failed',
+                bytesDone: 0,
+                reason: 'limit',
+            },
+            { ...base, fileId: 'f-3', path: ['c'], status: 'done', bytesDone: 5 },
+        ];
+        downloadQueue.mode = 'folder';
+        downloadQueue.state = 'done';
+    }
+
+    test('a finished run shows the failure count and a reason per failed item', () => {
+        finishedWithFailures();
+        render(DownloadQueuePanel);
+        expect(screen.getByTestId('download-state').textContent).toBe('Done, 2 failed');
+        const list = screen.getByTestId('download-failures').textContent ?? '';
+        expect(list).toContain('File incomplete (size mismatch)');
+        expect(list).toContain('Too many downloads at once, gave up');
+    });
+
+    test('shows a waiting state', () => {
+        const base = listBody().items[0];
+        downloadQueue.items = [{ ...base, path: ['a'], status: 'waiting', bytesDone: 0 }];
+        downloadQueue.mode = 'folder';
+        downloadQueue.state = 'running';
+        render(DownloadQueuePanel);
+        expect(screen.getByTestId('download-waiting').textContent).toContain('free slot');
+    });
+
+    test('the live region announces state, not byte progress', () => {
+        const base = listBody().items[0];
+        downloadQueue.items = [{ ...base, path: ['a'], status: 'active', bytesDone: 3 }];
+        downloadQueue.current = downloadQueue.items[0];
+        downloadQueue.mode = 'folder';
+        downloadQueue.state = 'running';
+        downloadQueue.bytesTotal = 2_000_000_000;
+        downloadQueue.bytesDone = 123_456;
+        render(DownloadQueuePanel);
+        const live = screen.getByTestId('download-announcer');
+        expect(live.getAttribute('aria-live')).toBe('polite');
+        expect(live.textContent?.trim()).toBe(base.fileName);
+        // the panel root itself is not a live region
+        expect(screen.getByTestId('download-queue-panel').getAttribute('aria-live')).toBeNull();
     });
 });

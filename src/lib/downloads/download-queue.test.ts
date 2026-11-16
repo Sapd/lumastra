@@ -2,13 +2,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { describe, expect, test, vi } from 'vitest';
-import { DownloadQueue, type DownloadList, type DownloadListItem } from './download-queue.svelte';
+import {
+    DownloadQueue,
+    retryDelayMs,
+    type DownloadList,
+    type DownloadListItem,
+} from './download-queue.svelte';
 
 vi.mock('$app/paths', () => ({ base: '' }));
 
 // ---- fake File System Access API -------------------------------------------------
 
 class FakeFs {
+    failWrites = false;
     files = new Map<string, number>(); // 'a/b/c.mkv' -> size
     dirs = new Set<string>();
     root(): FileSystemDirectoryHandle {
@@ -42,6 +48,7 @@ class FakeFs {
                         return { size: fs.files.get(p) ?? 0 };
                     },
                     async createWritable() {
+                        if (fs.failWrites) throw new DOMException('disk', 'NotAllowedError');
                         let size = 0;
                         fs.files.set(p, 0);
                         return new WritableStream<Uint8Array>({
@@ -95,7 +102,7 @@ function fileResponse(size: number) {
 function setup(
     l: DownloadList,
     onDownload: (fileId: string, call: number) => Response | Promise<Response>,
-    opts: { fs?: FakeFs; noPicker?: boolean } = {},
+    opts: { fs?: FakeFs; noPicker?: boolean; sleep?: (ms: number) => Promise<void> } = {},
 ) {
     const fs = opts.fs ?? new FakeFs();
     const calls: string[] = [];
@@ -113,9 +120,11 @@ function setup(
     });
     const q = new DownloadQueue({
         fetch: fetchFn as unknown as typeof fetch,
-        sleep: async (ms) => {
-            sleeps.push(ms);
-        },
+        sleep:
+            opts.sleep ??
+            (async (ms) => {
+                sleeps.push(ms);
+            }),
         pickDirectory: opts.noPicker ? null : async () => fs.root(),
         triggerLink: (url, fileName) => links.push({ url, fileName }),
     });
@@ -298,5 +307,169 @@ describe('DownloadQueue enqueue', () => {
         await q.start();
         expect(calls).toEqual(['f-1']);
         expect(q.state).toBe('stopped');
+    });
+});
+
+describe('DownloadQueue failures and limits', () => {
+    test('enqueue during a run does not change the final state or error', async () => {
+        const { q } = setup(list([item(1), item(2)], { maxParallel: 1 }), (fileId) => {
+            if (fileId === 'f-1') void q.enqueue('other-series');
+            return fileResponse(5);
+        });
+        await q.enqueue('s');
+        await q.chooseFolder();
+        await q.start();
+        expect(q.state).toBe('done');
+        expect(q.error).toBeUndefined();
+        expect(q.notice).toBe('busy');
+        expect(q.pending).toBeNull();
+    });
+
+    test('a failed item is recorded with a reason and the run still ends done', async () => {
+        const { q } = setup(list([item(1), item(2)], { maxParallel: 1 }), (fileId) =>
+            fileId === 'f-1' ? json({}, 500) : fileResponse(5),
+        );
+        await q.enqueue('s');
+        await q.chooseFolder();
+        await q.start();
+        expect(q.state).toBe('done');
+        expect(q.failedCount).toBe(1);
+        expect(q.items[0]).toMatchObject({ status: 'failed', reason: 'http' });
+        expect(q.items[1].status).toBe('done');
+        expect(q.bytesDone).toBe(5);
+    });
+
+    test('a short body is a size mismatch, not done, and its bytes are given back', async () => {
+        const { q } = setup(list([item(1)]), () => fileResponse(3));
+        await q.enqueue('s');
+        await q.chooseFolder();
+        await q.start();
+        expect(q.items[0]).toMatchObject({
+            status: 'failed',
+            reason: 'size_mismatch',
+            bytesDone: 0,
+        });
+        expect(q.bytesDone).toBe(0);
+        expect(q.state).toBe('done');
+    });
+
+    test('a failing write cancels the response body and fails the item', async () => {
+        const fs = new FakeFs();
+        fs.failWrites = true;
+        let cancelled = false;
+        const { q } = setup(
+            list([item(1)]),
+            () =>
+                new Response(
+                    new ReadableStream({
+                        pull(c) {
+                            c.enqueue(new Uint8Array(5));
+                        },
+                        cancel() {
+                            cancelled = true;
+                        },
+                    }),
+                ),
+            { fs },
+        );
+        await q.enqueue('s');
+        await q.chooseFolder();
+        await q.start();
+        expect(cancelled).toBe(true);
+        expect(q.items[0]).toMatchObject({ status: 'failed', reason: 'write' });
+    });
+
+    test('a failed write of a 4 GiB+ file says FAT32', async () => {
+        const fs = new FakeFs();
+        fs.failWrites = true;
+        const big = item(1, 5 * 1024 ** 3);
+        const { q } = setup(list([big]), () => fileResponse(1), { fs });
+        await q.enqueue('s');
+        await q.chooseFolder();
+        await q.start();
+        expect(q.items[0]).toMatchObject({ status: 'failed', reason: 'fat32' });
+    });
+
+    test('429 backs off, honours Retry-After as a floor and gives up after 10 attempts', async () => {
+        const { q, calls, sleeps } = setup(
+            list([item(1), item(2)], { maxParallel: 1 }),
+            (fileId) =>
+                fileId === 'f-1' ? json({}, 429, { 'retry-after': '3' }) : fileResponse(5),
+        );
+        await q.enqueue('s');
+        await q.chooseFolder();
+        await q.start();
+        expect(calls.filter((c) => c === 'f-1')).toHaveLength(10);
+        expect(sleeps).toHaveLength(9);
+        expect(sleeps[0]).toBe(3000); // Retry-After floor beats 1 s backoff
+        expect(sleeps.slice(1, 4)).toEqual([3000, 4000, 8000]);
+        expect(sleeps.every((ms, i) => i === 0 || ms >= sleeps[i - 1])).toBe(true);
+        expect(Math.max(...sleeps)).toBeLessThanOrEqual(60_000);
+        expect(q.items[0]).toMatchObject({ status: 'failed', reason: 'limit' });
+        // the queue goes on with the next item
+        expect(q.items[1].status).toBe('done');
+        expect(q.state).toBe('done');
+    });
+
+    test('retryDelayMs caps at 60 s', () => {
+        const res = new Response(null, { status: 429, headers: { 'retry-after': '120' } });
+        expect(retryDelayMs(res, 1)).toBe(60_000);
+        expect(retryDelayMs(new Response(null, { status: 429 }), 9)).toBe(60_000);
+        expect(retryDelayMs(new Response(null, { status: 429 }), 1)).toBe(1000);
+    });
+
+    test('shows a waiting state during the 429 wait and cancel() ends the wait', async () => {
+        let q!: DownloadQueue;
+        let waitingSeen = false;
+        const s = setup(list([item(1)]), () => json({}, 429), {
+            sleep: () => {
+                waitingSeen = q.items[0].status === 'waiting';
+                return new Promise<void>(() => {}); // never resolves on its own
+            },
+        });
+        q = s.q;
+        await q.enqueue('s');
+        await q.chooseFolder();
+        const run = q.start();
+        await vi.waitFor(() => expect(waitingSeen).toBe(true));
+        q.cancel();
+        await run;
+        expect(q.state).toBe('stopped');
+        expect(q.items[0].status).toBe('cancelled');
+        expect(q.failedCount).toBe(0);
+    });
+
+    test('maxParallel 0 is capped at 4 concurrent fetches', async () => {
+        let open = 0;
+        let max = 0;
+        const releases: Array<() => void> = [];
+        const items = [1, 2, 3, 4, 5, 6].map((n) => item(n));
+        const { q } = setup(list(items, { maxParallel: 0 }), () => {
+            open += 1;
+            max = Math.max(max, open);
+            return new Promise<Response>((resolve) =>
+                releases.push(() => {
+                    open -= 1;
+                    resolve(fileResponse(5));
+                }),
+            );
+        });
+        await q.enqueue('s');
+        await q.chooseFolder();
+        const run = q.start();
+        for (let i = 0; i < 6; i++) {
+            await vi.waitFor(() => expect(releases.length).toBeGreaterThan(i));
+            releases[i]();
+        }
+        await run;
+        expect(max).toBe(4);
+    });
+
+    test('downloadInfo probes with summary=1 and never fetches the item list', async () => {
+        const f = vi.fn(async (_url: string) => json({ allowed: true, maxParallel: 2 }));
+        const q = new DownloadQueue({ fetch: f as unknown as typeof fetch, pickDirectory: null });
+        expect(await q.downloadInfo('movie-1')).toEqual({ allowed: true, maxParallel: 2 });
+        expect(String(f.mock.calls[0][0])).toBe('/api/media/movie-1/download-list?summary=1');
+        expect(f).toHaveBeenCalledTimes(1);
     });
 });

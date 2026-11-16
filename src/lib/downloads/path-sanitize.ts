@@ -18,6 +18,25 @@ function splitExt(name: string): { stem: string; ext: string } {
     return { stem: name.slice(0, dot), ext: name.slice(dot) };
 }
 
+const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+
+/** Cut to at most n UTF-16 units without splitting a surrogate pair. */
+function truncate(s: string, n: number): string {
+    if (s.length <= n) return s;
+    let cut = n;
+    const last = s.charCodeAt(cut - 1);
+    if (last >= 0xd800 && last <= 0xdbff) cut -= 1;
+    return s.slice(0, cut);
+}
+
+/** Windows (and exFAT readers on it) refuse CON, NUL, COM1 ... even with an extension. */
+function avoidReserved(name: string): string {
+    const dot = name.indexOf('.');
+    const first = dot === -1 ? name : name.slice(0, dot);
+    if (!RESERVED.test(first)) return name;
+    return dot === -1 ? `${name}_` : `${first}_${name.slice(dot)}`;
+}
+
 function trimEnd(s: string): string {
     return s.replace(/[. ]+$/, '');
 }
@@ -28,11 +47,11 @@ function trimEnd(s: string): string {
  *   result is added to the set.
  */
 export function sanitizePathSegment(name: string, used?: Set<string>): string {
-    let clean = trimEnd(name.replace(FORBIDDEN, '_'));
+    let clean = avoidReserved(trimEnd(name.replace(FORBIDDEN, '_')));
     if (clean === '') clean = '_';
     if (clean.length > MAX_SEGMENT) {
         const { stem, ext } = splitExt(clean);
-        clean = trimEnd(stem.slice(0, MAX_SEGMENT - ext.length)) + ext;
+        clean = trimEnd(truncate(stem, MAX_SEGMENT - ext.length)) + ext;
         if (clean === '' || clean === ext) clean = '_' + ext;
     }
     if (!used) return clean;
@@ -44,7 +63,7 @@ export function sanitizePathSegment(name: string, used?: Set<string>): string {
         const { stem, ext } = splitExt(clean);
         const suffix = ` (${n})`;
         const room = MAX_SEGMENT - ext.length - suffix.length;
-        candidate = `${trimEnd(stem.slice(0, room))}${suffix}${ext}`;
+        candidate = `${trimEnd(truncate(stem, room))}${suffix}${ext}`;
     }
     used.add(candidate.toLowerCase());
     return candidate;

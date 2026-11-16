@@ -46,7 +46,15 @@ export interface EnqueueOptions {
     specials?: boolean;
 }
 
-export type QueueItemStatus = 'queued' | 'active' | 'done' | 'skipped' | 'failed' | 'handed';
+export type QueueItemStatus =
+    'queued' | 'active' | 'waiting' | 'done' | 'skipped' | 'failed' | 'cancelled' | 'handed';
+
+/** Why an item failed. The panel shows a message per reason. */
+export type FailureReason =
+    'limit' | 'http' | 'network' | 'size_mismatch' | 'write' | 'fat32' | 'forbidden';
+
+/** FAT32 cannot hold a file of 4 GiB or more. */
+export const FAT32_LIMIT_BYTES = 4 * 1024 ** 3;
 export type QueueState = 'idle' | 'running' | 'done' | 'stopped';
 
 export interface QueueItem extends DownloadListItem {
@@ -54,6 +62,7 @@ export interface QueueItem extends DownloadListItem {
     path: string[];
     status: QueueItemStatus;
     bytesDone: number;
+    reason?: FailureReason;
 }
 
 export interface PendingDownload {
@@ -64,7 +73,7 @@ export interface PendingDownload {
 
 export interface QueueDeps {
     fetch: typeof fetch;
-    sleep: (ms: number) => Promise<void>;
+    sleep: (ms: number, signal?: AbortSignal) => Promise<void>;
     /** null = browser has no folder picker */
     pickDirectory: (() => Promise<FileSystemDirectoryHandle>) | null;
     triggerLink: (url: string, fileName: string) => void;
@@ -72,19 +81,33 @@ export interface QueueDeps {
 
 export interface DownloadInfo {
     allowed: boolean;
-    sizeBytes: number;
+    maxParallel: number;
 }
-const NO_DOWNLOAD: DownloadInfo = { allowed: false, sizeBytes: 0 };
+const NO_DOWNLOAD: DownloadInfo = { allowed: false, maxParallel: 0 };
 
 const LINK_GAP_MS = 1500;
-const DEFAULT_RETRY_MS = 5000;
 const MAX_RETRY_MS = 60_000;
+const BACKOFF_BASE_MS = 1000;
+const MAX_429_ATTEMPTS = 10;
+/** Client-side ceiling when the server's limit is "unlimited" (0). */
+const UNLIMITED_PARALLEL_CEILING = 4;
 
 function defaultDeps(): QueueDeps {
     const hasPicker = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
     return {
         fetch: (...args) => globalThis.fetch(...args),
-        sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+        sleep: (ms, signal) =>
+            new Promise((resolve) => {
+                const t = setTimeout(resolve, ms);
+                signal?.addEventListener(
+                    'abort',
+                    () => {
+                        clearTimeout(t);
+                        resolve();
+                    },
+                    { once: true },
+                );
+            }),
         pickDirectory: hasPicker
             ? () =>
                   (
@@ -112,18 +135,21 @@ export function downloadUrl(mediaItemId: string, fileId: string): string {
     return `${base}/api/media/${encodeURIComponent(mediaItemId)}/download?fileId=${encodeURIComponent(fileId)}`;
 }
 
-function listUrl(mediaItemId: string, opts: EnqueueOptions): string {
+function listUrl(mediaItemId: string, opts: EnqueueOptions & { summary?: boolean }): string {
     const q = new SvelteURLSearchParams();
+    if (opts.summary) q.set('summary', '1');
     if (opts.season !== undefined) q.set('season', String(opts.season));
     if (opts.specials) q.set('specials', '1');
     const qs = q.toString();
     return `${base}/api/media/${encodeURIComponent(mediaItemId)}/download-list${qs ? `?${qs}` : ''}`;
 }
 
-function retryDelayMs(res: Response): number {
+/** Exponential backoff; the server's Retry-After is a floor. Max 60 s. */
+export function retryDelayMs(res: Response, attempt: number): number {
+    const backoff = BACKOFF_BASE_MS * 2 ** (attempt - 1);
     const raw = Number(res.headers.get('retry-after'));
-    if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_RETRY_MS;
-    return Math.min(raw * 1000, MAX_RETRY_MS);
+    const floor = Number.isFinite(raw) && raw > 0 ? raw * 1000 : 0;
+    return Math.min(Math.max(backoff, floor), MAX_RETRY_MS);
 }
 
 function isNotFound(e: unknown): boolean {
@@ -139,6 +165,8 @@ export class DownloadQueue {
     speed = $state(0);
     state = $state<QueueState>('idle');
     error = $state<string | undefined>(undefined);
+    /** Transient message that never changes the run's outcome (e.g. 'busy') */
+    notice = $state<string | undefined>(undefined);
     mode = $state<'folder' | 'links' | null>(null);
     /** Set by enqueue(); the confirm sheet shows it */
     pending = $state<PendingDownload | null>(null);
@@ -162,21 +190,21 @@ export class DownloadQueue {
     }
 
     /**
-     * Whether download buttons should show for this item, and how big it is
-     * (a movie's file; a series' total). One list call, cached for a minute;
-     * any failure (feature off, 404, 403) means "no".
+     * Whether download buttons should show for this item. Uses the server's
+     * `summary=1` probe (no item queries), cached for a minute; any failure
+     * (feature off, 404, 403) means "no". The full list is fetched on click.
      */
     downloadInfo(mediaItemId: string): Promise<DownloadInfo> {
         const hit = this.infoCache.get(mediaItemId);
         if (hit && Date.now() - hit.at < 60_000) return hit.value;
         const value: Promise<DownloadInfo> = this.deps
-            .fetch(listUrl(mediaItemId, {}))
+            .fetch(listUrl(mediaItemId, { summary: true }))
             .then(async (res) => {
                 if (!res.ok) return NO_DOWNLOAD;
-                const list = (await res.json()) as DownloadList;
+                const body = (await res.json()) as Partial<DownloadInfo>;
                 return {
-                    allowed: list.allowed === true && list.items.length > 0,
-                    sizeBytes: list.items.reduce((s, i) => s + i.sizeBytes, 0),
+                    allowed: body.allowed === true,
+                    maxParallel: Number(body.maxParallel ?? 0),
                 };
             })
             .catch(() => NO_DOWNLOAD);
@@ -187,9 +215,11 @@ export class DownloadQueue {
     /** Fetch the list for a title/season and open the confirm sheet. */
     async enqueue(mediaItemId: string, opts: EnqueueOptions = {}): Promise<void> {
         if (this.state === 'running') {
-            this.error = 'busy';
+            // Never touch `error`/`state`: they describe the run in progress.
+            this.notice = 'busy';
             return;
         }
+        this.notice = undefined;
         this.error = undefined;
         this.loading = true;
         try {
@@ -258,7 +288,13 @@ export class DownloadQueue {
         this.speed = 0;
         this.state = 'idle';
         this.error = undefined;
+        this.notice = undefined;
         this.mode = null;
+    }
+
+    /** Items that ended in 'failed' (a finished run can still be 'done'). */
+    get failedCount(): number {
+        return this.items.filter((i) => i.status === 'failed').length;
     }
 
     cancel(): void {
@@ -280,6 +316,7 @@ export class DownloadQueue {
         this.error = undefined;
         this.current = null;
         this.stopRequested = false;
+        this.notice = undefined;
         this.abort = new AbortController();
         this.state = 'running';
         this.windowStart = Date.now();
@@ -347,8 +384,8 @@ export class DownloadQueue {
     private async runFolder(list: DownloadList): Promise<void> {
         const root = this.dirHandle as FileSystemDirectoryHandle;
         const queue = this.items;
-        const limit =
-            list.maxParallel > 0 ? Math.min(list.maxParallel, queue.length) : queue.length;
+        const cap = list.maxParallel > 0 ? list.maxParallel : UNLIMITED_PARALLEL_CEILING;
+        const limit = Math.max(1, Math.min(cap, queue.length));
         let next = 0;
         const worker = async () => {
             while (!this.stopRequested) {
@@ -368,6 +405,16 @@ export class DownloadQueue {
             this.items.find(
                 (i) => i.mediaItemId === item.mediaItemId && i.fileId === item.fileId,
             ) ?? item;
+        // Give back what this attempt counted, so totals stay honest.
+        const giveBack = () => {
+            this.bytesDone -= view.bytesDone;
+            view.bytesDone = 0;
+        };
+        const fail = (reason: FailureReason) => {
+            giveBack();
+            view.status = 'failed';
+            view.reason = reason;
+        };
         try {
             let dir = root;
             for (const part of item.path.slice(0, -1)) {
@@ -389,29 +436,57 @@ export class DownloadQueue {
 
             view.status = 'active';
             this.current = view;
+            let limited = 0;
             while (true) {
-                if (this.stopRequested) return;
-                const res = await this.deps.fetch(downloadUrl(item.mediaItemId, item.fileId), {
-                    signal: this.abort?.signal,
-                });
+                if (this.stopRequested) {
+                    view.status = 'cancelled';
+                    return;
+                }
+                let res: Response;
+                try {
+                    res = await this.deps.fetch(downloadUrl(item.mediaItemId, item.fileId), {
+                        signal: this.abort?.signal,
+                    });
+                } catch {
+                    if (this.stopRequested) view.status = 'cancelled';
+                    else fail('network');
+                    return;
+                }
                 if (res.status === 429) {
                     await res.body?.cancel();
-                    await this.deps.sleep(retryDelayMs(res));
+                    limited += 1;
+                    if (limited >= MAX_429_ATTEMPTS) {
+                        fail('limit');
+                        return;
+                    }
+                    view.status = 'waiting';
+                    await this.sleep(retryDelayMs(res, limited));
+                    if (this.stopRequested) {
+                        view.status = 'cancelled';
+                        return;
+                    }
+                    view.status = 'active';
                     continue;
                 }
                 if (res.status === 403) {
                     await res.body?.cancel();
                     this.fail('downloads_not_allowed');
-                    view.status = 'failed';
+                    fail('forbidden');
                     return;
                 }
                 if (!res.ok || !res.body) {
                     await res.body?.cancel();
-                    view.status = 'failed';
+                    fail('http');
                     return;
                 }
-                const handle = await dir.getFileHandle(fileName, { create: true });
-                const writable = await handle.createWritable();
+                let writable: FileSystemWritableFileStream;
+                try {
+                    const handle = await dir.getFileHandle(fileName, { create: true });
+                    writable = await handle.createWritable();
+                } catch (e) {
+                    await res.body.cancel();
+                    throw e;
+                }
                 const counter = new TransformStream<Uint8Array, Uint8Array>({
                     transform: (chunk, controller) => {
                         this.addBytes(view, chunk.byteLength);
@@ -419,15 +494,34 @@ export class DownloadQueue {
                     },
                 });
                 await res.body.pipeThrough(counter).pipeTo(writable as unknown as WritableStream);
+                if (view.bytesDone !== item.sizeBytes) {
+                    fail('size_mismatch');
+                    return;
+                }
                 view.status = 'done';
                 return;
             }
         } catch {
-            // Aborted by cancel()/403, or a disk/network error for this item.
-            view.status = 'failed';
+            // Aborted by cancel()/403, or a disk error for this item.
+            if (this.stopRequested) {
+                giveBack();
+                view.status = 'cancelled';
+            } else fail(item.sizeBytes >= FAT32_LIMIT_BYTES ? 'fat32' : 'write');
         } finally {
             if (this.current === view) this.current = null;
         }
+    }
+
+    /** Sleep that cancel() cuts short. */
+    private async sleep(ms: number): Promise<void> {
+        const signal = this.abort?.signal;
+        if (!signal || signal.aborted) return;
+        await Promise.race([
+            this.deps.sleep(ms, signal),
+            new Promise<void>((resolve) =>
+                signal.addEventListener('abort', () => resolve(), { once: true }),
+            ),
+        ]);
     }
 
     private async runLinks(): Promise<void> {
@@ -438,7 +532,7 @@ export class DownloadQueue {
             this.deps.triggerLink(downloadUrl(item.mediaItemId, item.fileId), item.fileName);
             item.status = 'handed';
             this.bytesDone += item.sizeBytes;
-            if (i < this.items.length - 1) await this.deps.sleep(LINK_GAP_MS);
+            if (i < this.items.length - 1) await this.sleep(LINK_GAP_MS);
         }
     }
 

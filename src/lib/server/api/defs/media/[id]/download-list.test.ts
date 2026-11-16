@@ -172,6 +172,27 @@ describe('media/{id}/download-list', () => {
         });
     });
 
+    it('summary=1 returns only allowed and maxParallel, without item queries', async () => {
+        const { body } = await call('?summary=1');
+        expect(body).toEqual({ allowed: true, maxParallel: 3 });
+        expect(mockRoot).not.toHaveBeenCalled();
+        expect(mockEpisodes).not.toHaveBeenCalled();
+        expect(mockSingle).not.toHaveBeenCalled();
+        expect(mockCheckBatch).not.toHaveBeenCalled();
+    });
+
+    it('summary=1 reflects a closed download gate', async () => {
+        mockCanDownload.mockResolvedValue(false);
+        const { body } = await call('?summary=1');
+        expect(body).toEqual({ allowed: false, maxParallel: 3 });
+    });
+
+    it('summary=1 is still 404 for an item the user cannot access', async () => {
+        mockCheckAccess.mockResolvedValue(false);
+        const { res } = await call('?summary=1');
+        expect(res.status).toBe(404);
+    });
+
     it('404 for an item the user cannot access', async () => {
         mockCheckAccess.mockResolvedValue(false);
         const { res } = await call();

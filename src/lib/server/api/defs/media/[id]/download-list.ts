@@ -14,6 +14,9 @@
  * Only items the user may access are listed, using the same batch library/age
  * check as every other list endpoint.
  *
+ * `?summary=1` returns only `{ allowed, maxParallel }` (no item queries); the web UI
+ * uses it for button visibility and fetches the full list on click.
+ *
  * Auth: user. Surface: internal.
  */
 
@@ -83,6 +86,15 @@ export const def = defineEndpoint({
                 : undefined;
             if (!user || !(await checkMediaAccess(sql, internalId, accessUser))) {
                 return ApiProblem.notFound('Media item not found');
+            }
+
+            // `summary=1`: just the permission, for button visibility. No item
+            // queries; the visibility check above already 404s invisible ids.
+            if (event.url.searchParams.get('summary') === '1') {
+                return json({
+                    allowed: await canDownload(downloadSubjectOf(event.locals)),
+                    maxParallel: config.DOWNLOAD_MAX_PARALLEL_PER_USER,
+                });
             }
 
             const root = await getDownloadListRoot(sql, internalId);

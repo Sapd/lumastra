@@ -9,7 +9,8 @@
      * total size, unavailable episodes) and, in Chromium, lets the user pick the
      * target folder (needs a click, so it lives here and not in the queue start).
      */
-    import { downloadQueue } from '$lib/downloads/download-queue.svelte';
+    import { tick } from 'svelte';
+    import { downloadQueue, FAT32_LIMIT_BYTES } from '$lib/downloads/download-queue.svelte';
     import { formatFileSize } from '$lib/utils/metric-formatters';
     import { Z } from '$lib/utils/z-index';
     import * as m from '$lib/paraglide/messages';
@@ -24,6 +25,29 @@
             pending.opts.season === undefined &&
             pending.list.items.some((i) => i.seasonFolder !== null),
     );
+
+    // FAT32 sticks cannot hold a file of 4 GiB or more. Only matters when saving to a folder.
+    let hasOversize = $derived(
+        downloadQueue.supportsFolderPicker &&
+            available.some((i) => i.sizeBytes >= FAT32_LIMIT_BYTES),
+    );
+
+    // Focus moves into the sheet when it opens and back to the trigger when it closes.
+    let dialogEl = $state<HTMLElement | null>(null);
+    let opener: HTMLElement | null = null;
+    let wasOpen = false;
+    $effect(() => {
+        const open = !!pending;
+        if (open && !wasOpen) {
+            opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            void tick().then(() => dialogEl?.focus());
+        } else if (!open && wasOpen) {
+            const target = opener;
+            opener = null;
+            void tick().then(() => target?.isConnected && target.focus());
+        }
+        wasOpen = open;
+    });
 
     function onKey(e: KeyboardEvent) {
         if (e.key === 'Escape') downloadQueue.dismissPending();
@@ -44,6 +68,8 @@
             role="dialog"
             aria-modal="true"
             aria-labelledby="download-sheet-title"
+            tabindex="-1"
+            bind:this={dialogEl}
             data-testid="download-confirm-sheet"
             class="w-full sm:max-w-md bg-surface-800 rounded-t-xl sm:rounded-xl p-5 shadow-xl space-y-3">
             <h3 id="download-sheet-title" class="text-lg font-semibold text-white">
@@ -92,6 +118,11 @@
                         </p>
                     {/if}
                     <p class="text-xs text-surface-400">{m.downloads_folder_hint()}</p>
+                    {#if hasOversize}
+                        <p class="text-sm text-amber-300" data-testid="download-fat32-warning">
+                            {m.downloads_fat32_warning()}
+                        </p>
+                    {/if}
                 </div>
             {/if}
             {#if !downloadQueue.supportsFolderPicker || !downloadQueue.folderName}

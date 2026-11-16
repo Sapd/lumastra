@@ -68,14 +68,15 @@ afterEach(() => {
 });
 
 describe('movie download button', () => {
-    test('shows with the size when the user may download', async () => {
+    test('shows when the user may download', async () => {
         stubList(true);
         render(ModalActions, {
             mediaType: 'movie',
             externalIds: { internal: 'a3f5e8c7-1234-5678-90ab-cdef12345601' },
             title: 'Film',
+            isAvailable: true,
         });
-        expect(await screen.findByRole('button', { name: /Download \(4\.2 GB\)/ })).toBeTruthy();
+        expect(await screen.findByRole('button', { name: 'Download' })).toBeTruthy();
     });
 
     test('is absent when the user may not download', async () => {
@@ -84,6 +85,7 @@ describe('movie download button', () => {
             mediaType: 'movie',
             externalIds: { internal: 'a3f5e8c7-1234-5678-90ab-cdef12345602' },
             title: 'Film',
+            isAvailable: true,
         });
         await Promise.resolve();
         await new Promise((r) => setTimeout(r, 20));
