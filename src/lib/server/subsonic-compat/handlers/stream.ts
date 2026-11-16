@@ -42,6 +42,10 @@ import { probeAudioSource } from '$lib/server/services/music-transcode/source-me
 import type { MusicCodec } from '$lib/server/services/music-transcode/types.js';
 import { parseMusicCodec } from '$lib/server/services/music-transcode/types.js';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition.js';
+import {
+    deniedLibraryGroupsFor,
+    isFilePathInScope,
+} from '$lib/server/services/download-file-scope.js';
 import { preflightFile, serveContainedMediaFile } from '$lib/server/utils/file-streaming.js';
 import { canDownload } from '$lib/server/services/download-access.service.js';
 import {
@@ -436,6 +440,16 @@ async function serveTrack(
     const filePath = track.file_path;
     if (!filePath) {
         return subsonicError(70, 'Audio file path not available.', auth.format);
+    }
+    // File-level library scope for the original file (the item gate above is item-level).
+    if (disposition === 'attachment') {
+        const denied = await deniedLibraryGroupsFor(sql, {
+            ownerIsAdmin: auth.ownerIsAdmin,
+            userGroups: auth.userGroups,
+        });
+        if (!(await isFilePathInScope(sql, filePath, denied))) {
+            return subsonicError(70, 'Song not found.', auth.format);
+        }
     }
 
     const pathInfo = await resolveMediaPath(filePath, { skipLocalAccessCheck: true }, sql);

@@ -29,6 +29,10 @@ vi.mock('$lib/server/database/queries/download-list.queries.js', () => ({
     getSingleDownloadRow: (...a: unknown[]) => mockSingle(...a),
 }));
 
+const mockDenied = vi.fn();
+vi.mock('$lib/server/services/download-file-scope.js', () => ({
+    deniedLibraryGroupsFor: (...a: unknown[]) => mockDenied(...a),
+}));
 const mockCanDownload = vi.fn();
 vi.mock('$lib/server/services/download-access.service.js', () => ({
     canDownload: (...a: unknown[]) => mockCanDownload(...a),
@@ -88,6 +92,7 @@ async function call(query = '', id = 'series1', headers: Record<string, string> 
 describe('media/{id}/download-list', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockDenied.mockResolvedValue(null);
         mockCanDownload.mockResolvedValue(true);
         mockCheckAccess.mockResolvedValue(true);
         mockCheckBatch.mockImplementation(async (_s: unknown, ids: string[]) => new Set(ids));
@@ -178,6 +183,12 @@ describe('media/{id}/download-list', () => {
         expect(res.status).toBe(403);
         const ok = await call('', 'series1', { referer: 'http://localhost/library' });
         expect(ok.res.status).toBe(200);
+    });
+
+    it('passes the caller\'s denied library groups into the default-file selection', async () => {
+        mockDenied.mockResolvedValue(['g-denied']);
+        await call();
+        expect(mockEpisodes).toHaveBeenCalledWith(expect.anything(), expect.anything(), ['g-denied']);
     });
 
     it('builds the access user from the principal, like the download route (non-admin principal wins)', async () => {

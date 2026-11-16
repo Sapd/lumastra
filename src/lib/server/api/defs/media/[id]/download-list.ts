@@ -43,6 +43,7 @@ import {
     listEpisodeDownloadRows,
     type DownloadListRow,
 } from '$lib/server/database/queries/download-list.queries.js';
+import { deniedLibraryGroupsFor } from '$lib/server/services/download-file-scope.js';
 import { resolveCatalogInternalId } from '../../catalog/resolve-id.js';
 
 function seasonFolder(season: number | null): string | null {
@@ -105,13 +106,15 @@ export const def = defineEndpoint({
                 });
             }
 
+            // File-level library scope, applied inside the default-file selection.
+            const denied = await deniedLibraryGroupsFor(sql, accessUser);
             const root = await getDownloadListRoot(sql, internalId);
             if (!root) return ApiProblem.notFound('Media item not found');
 
             let rows: DownloadListRow[];
             let seriesFolder: string;
             if (root.media_type === 'tv' || root.media_type === 'season') {
-                rows = await listEpisodeDownloadRows(sql, internalId);
+                rows = await listEpisodeDownloadRows(sql, internalId, denied);
                 const seriesTitle = root.media_type === 'tv' ? root.title : rows[0]?.series_title;
                 seriesFolder = folderName(
                     seriesTitle ?? root.title,
@@ -122,7 +125,7 @@ export const def = defineEndpoint({
                     return specials || r.season_number !== 0;
                 });
             } else {
-                const single = await getSingleDownloadRow(sql, internalId);
+                const single = await getSingleDownloadRow(sql, internalId, denied);
                 rows = single ? [single] : [];
                 seriesFolder =
                     single?.media_type === 'episode' && single.series_title

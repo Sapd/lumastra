@@ -40,6 +40,11 @@ vi.mock('$lib/server/services/download-tracking.js', () => ({
         discard() {},
     }),
 }));
+const scope = vi.hoisted(() => ({ inScope: true }));
+vi.mock('$lib/server/services/download-file-scope.js', () => ({
+    deniedLibraryGroupsFor: async () => ['g-denied'],
+    isFilePathInScope: async () => scope.inScope,
+}));
 vi.mock('$lib/server/utils/file-streaming.js', () => ({
     serveContainedMediaFile: (...a: unknown[]) => m.serve(...a),
     preflightFile: (...a: unknown[]) => m.preflight(...a),
@@ -110,6 +115,7 @@ function ev(method = 'GET'): RequestEvent {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    scope.inScope = true;
     m.canDownload.mockResolvedValue(true);
     m.naming.mockResolvedValue({ title: 'Clean Title' });
     m.track.mockResolvedValue({ ok: true, tracker: m.tracker });
@@ -207,6 +213,16 @@ describe('download.view', () => {
         });
         const res = await handleDownload(ev('GET'), auth, {} as never);
         expect(res.status).toBe(304);
+        expect(m.track).not.toHaveBeenCalled();
+        expect(m.serve).not.toHaveBeenCalled();
+    });
+
+    it('a file in a denied library is "song not found": no lease, no stream', async () => {
+        scope.inScope = false;
+        const res = await handleDownload(ev(), auth, {} as never);
+        expect(res.status).toBeGreaterThanOrEqual(200);
+        const body = await res.json();
+        expect(body['subsonic-response'].error.code).toBe(70);
         expect(m.track).not.toHaveBeenCalled();
         expect(m.serve).not.toHaveBeenCalled();
     });

@@ -5,7 +5,7 @@
  * Rows behind GET /api/media/{id}/download-list: the item (or every episode of
  * a series/season) with the file a download takes by default. The default file
  * is the one `resolvePlaybackSelection` picks: the default link, else the first
- * by sort order. Naming columns match `MediaDownloadNamingRow` so
+ * by sort order, among the files the caller's library scope allows. Naming columns match `MediaDownloadNamingRow` so
  * `buildDownloadFilename` gives the same name the download route sends.
  */
 
@@ -28,6 +28,15 @@ export interface DownloadListRow extends MediaDownloadNamingRow {
     is_missing: boolean | null;
 }
 
+/**
+ * The caller's library scope applied to FILE selection, before the ORDER BY / LIMIT 1:
+ * the default file is the best allowed one, never a denied file the item also carries.
+ */
+function fileScope(sql: postgres.Sql, denied: readonly string[] | null) {
+    if (!denied || denied.length === 0) return sql``;
+    return sql`AND (mf.library_group_id IS NULL OR mf.library_group_id != ALL(${[...denied]}::uuid[]))`;
+}
+
 export async function getDownloadListRoot(
     sql: postgres.Sql,
     id: string,
@@ -46,6 +55,7 @@ export async function getDownloadListRoot(
 export async function listEpisodeDownloadRows(
     sql: postgres.Sql,
     containerId: string,
+    denied: readonly string[] | null = null,
 ): Promise<DownloadListRow[]> {
     // eslint-disable-next-line callback-safety/no-unscoped-media-items -- access gated by caller (download-list.ts: checkMediaAccess + checkMediaAccessBatch)
     return sql<DownloadListRow[]>`
@@ -60,6 +70,7 @@ export async function listEpisodeDownloadRows(
             FROM media_file_items mfi
             JOIN media_files mf ON mf.id = mfi.file_id
             WHERE mfi.media_item_id = mi.id
+              ${fileScope(sql, denied)}
             ORDER BY mfi.is_default DESC NULLS LAST, mfi.sort_order, mf.part_number NULLS FIRST, mf.id
             LIMIT 1
         ) f ON true
@@ -73,6 +84,7 @@ export async function listEpisodeDownloadRows(
 export async function getSingleDownloadRow(
     sql: postgres.Sql,
     id: string,
+    denied: readonly string[] | null = null,
 ): Promise<DownloadListRow | null> {
     // eslint-disable-next-line callback-safety/no-unscoped-media-items -- access gated by caller (download-list.ts: checkMediaAccess + checkMediaAccessBatch)
     const rows = await sql<DownloadListRow[]>`
@@ -87,6 +99,7 @@ export async function getSingleDownloadRow(
             FROM media_file_items mfi
             JOIN media_files mf ON mf.id = mfi.file_id
             WHERE mfi.media_item_id = mi.id
+              ${fileScope(sql, denied)}
             ORDER BY mfi.is_default DESC NULLS LAST, mfi.sort_order, mf.part_number NULLS FIRST, mf.id
             LIMIT 1
         ) f ON true

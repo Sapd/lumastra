@@ -38,6 +38,20 @@ vi.mock('$lib/server/utils/file-streaming', () => ({
 }));
 vi.mock('$lib/server/services/download-access-guard.js', () => ({
     downloadForbiddenResponse: async () => null,
+    mediaAccessUserOf: (l: { user?: unknown }) => l?.user,
+}));
+const scope = vi.hoisted(() => ({
+    denied: null as string[] | null,
+    allowed: new Set<string>(),
+}));
+vi.mock('$lib/server/services/download-file-scope.js', () => ({
+    deniedLibraryGroupsFor: async () => scope.denied,
+    allowedFileIds: async () => scope.allowed,
+    scopeSelection: (sel: { files: { id: string }[]; fileId: string | null }, ok: Set<string>) => {
+        const files = sel.files.filter((f) => ok.has(f.id));
+        if (!files.length) return { files: [], fileId: null };
+        return { files, fileId: sel.fileId && ok.has(sel.fileId) ? sel.fileId : files[0]!.id };
+    },
 }));
 vi.mock('$lib/server/services/download-tracking.js', () => ({
     parseRangeStart: () => null,
@@ -65,6 +79,8 @@ function event(path: string): RequestEvent {
 }
 beforeEach(() => {
     vi.clearAllMocks();
+    scope.denied = null;
+    scope.allowed = new Set();
     mocks.serve.mockResolvedValue(new Response('data'));
     mocks.preflight.mockResolvedValue({ kind: 'proceed' });
     mocks.track.mockResolvedValue({ ok: true, tracker: mocks.tracker });
@@ -240,5 +256,50 @@ describe('HEAD and conditional requests', () => {
     it('a GET does take a lease', async () => {
         await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
         expect(mocks.track).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('file-level library scope', () => {
+    const other = '44444444-4444-4444-8444-444444444444';
+    const otherFile = { id: other, file_path: '/media/other.mkv' };
+
+    it('an explicit fileId in a denied library is a 404 with no lease and no bytes', async () => {
+        scope.denied = ['g-denied'];
+        scope.allowed = new Set(); // the named file is denied
+        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
+        const res = await handleDownloadFile(event(`/api/v1/media/media/download?fileId=${selected}`), {
+            surface: 'api',
+        });
+        expect(res.status).toBe(404);
+        expect(mocks.track).not.toHaveBeenCalled();
+        expect(mocks.serve).not.toHaveBeenCalled();
+    });
+
+    it('the default falls to the allowed file when the default one is denied', async () => {
+        scope.denied = ['g-denied'];
+        scope.allowed = new Set([other]); // item has two files, only `other` is allowed
+        mocks.select.mockResolvedValue({ files: [file, otherFile], fileId: selected });
+        const res = await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' });
+        expect(res.status).toBe(200);
+        expect(mocks.track.mock.calls[0]![1]).toMatchObject({ fileId: other });
+    });
+
+    it('a Jellyfin mediaSourceId (play token) naming a denied file is a 404 too', async () => {
+        scope.denied = ['g-denied'];
+        scope.allowed = new Set();
+        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
+        const res = await handleDownloadFile(
+            event(`/j/Items/media/Download?mediaSourceId=${selected}`),
+            { surface: 'jellyfin' },
+        );
+        expect(res.status).toBe(404);
+        expect(mocks.serve).not.toHaveBeenCalled();
+    });
+
+    it('without a denied library the selection is untouched', async () => {
+        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
+        expect(
+            (await handleDownloadFile(event('/api/v1/media/media/download'), { surface: 'api' })).status,
+        ).toBe(200);
     });
 });

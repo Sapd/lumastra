@@ -30,7 +30,15 @@ import type { MediaDownloadNamingRow } from '$lib/server/database/queries/catalo
 import { resolveMediaPath, isPathWithinLibraryRoots } from '$lib/server/utils/media-path-resolver';
 import { preflightFile, serveContainedMediaFile } from '$lib/server/utils/file-streaming';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition';
-import { downloadForbiddenResponse } from '$lib/server/services/download-access-guard.js';
+import {
+    downloadForbiddenResponse,
+    mediaAccessUserOf,
+} from '$lib/server/services/download-access-guard.js';
+import {
+    allowedFileIds,
+    deniedLibraryGroupsFor,
+    scopeSelection,
+} from '$lib/server/services/download-file-scope.js';
 import {
     parseRangeStart,
     recordDownloadRefused,
@@ -133,6 +141,21 @@ export async function handleDownloadFile(
         // A stale/foreign mediaSourceId won't match — fall back to the default file.
         if (protocolAdapter && rawSourceId && selection.files.length === 0) {
             selection = await resolvePlaybackSelection(sql, itemId);
+        }
+        // File-level library scope: the item gate passed, but this FILE may sit in a library
+        // the caller is denied. The default becomes the best allowed file; an explicit
+        // fileId / mediaSourceId / play token naming a denied file is a 404.
+        const denied = await deniedLibraryGroupsFor(sql, mediaAccessUserOf(event.locals));
+        if (denied) {
+            selection = scopeSelection(
+                selection,
+                await allowedFileIds(
+                    sql,
+                    selection.files.map((f) => f.id),
+                    denied,
+                ),
+            );
+            if (selection.files.length === 0) return ApiResponses.notFound('File not found');
         }
         const file = selection.files.find((f) => f.id === selection.fileId);
         const filePath = file?.file_path ?? null;
