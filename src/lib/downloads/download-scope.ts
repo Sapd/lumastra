@@ -95,6 +95,29 @@ export function scopeOptions(s: SeriesScope): ScopeOption[] {
     });
 }
 
+/**
+ * Episodes without a file that belong to the chosen scope, for the sheet's warning. Season
+ * counts come from the list; specials only count when they are part of the scope. One episode,
+ * "from here" and a hand picked list have no gap info of their own (the list has no
+ * per-episode missing data), so they warn about nothing. An older server without per-season counts
+ * only knows the series total.
+ */
+export function missingForScope(s: SeriesScope): number {
+    const by = s.all.missingBySeason;
+    if (!by) return s.scope === 'series' ? s.all.missingCount : 0;
+    switch (s.scope) {
+        case 'season':
+            return s.season === undefined ? 0 : (by[String(s.season)] ?? 0);
+        case 'series':
+            return Object.entries(by).reduce(
+                (n, [season, count]) => n + (season === '0' && !s.specials ? 0 : count),
+                0,
+            );
+        default:
+            return 0;
+    }
+}
+
 /** `S01E02`, or the file name when the item has no numbers. */
 export function episodeCode(i: DownloadListItem): string {
     if (i.season === null || i.episode === null) return i.fileName;
@@ -126,10 +149,28 @@ export function initialSeriesScope(
         specials: false,
     };
     base.custom = episodeId ? [episodeId] : seasonEpisodes(base).map((i) => i.mediaItemId);
+    // A season the user asked for explicitly with nothing downloadable is "nothing to download",
+    // never a quiet switch to other files.
+    if (
+        !episodeId &&
+        season !== undefined &&
+        want.scope !== 'series' &&
+        seasonEpisodes(base).length === 0
+    )
+        return null;
     const options = scopeOptions(base);
     if (options.length === 0) return null;
     if (!options.some((o) => o.scope === base.scope)) {
-        const fallback = options.find((o) => o.scope === 'season') ?? options[options.length - 1]!;
+        // Only a scope holding the same files may stand in for the wished one.
+        const order: DownloadScope[] =
+            base.scope === 'fromHere'
+                ? ['episode', 'season']
+                : base.scope === 'custom'
+                  ? ['season', 'episode']
+                  : ['season', 'series'];
+        const fallback =
+            order.map((sc) => options.find((o) => o.scope === sc)).find(Boolean) ??
+            options[options.length - 1]!;
         base.scope = fallback.scope;
     }
     return base;

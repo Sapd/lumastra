@@ -15,6 +15,7 @@
      * check on it instead of listing every episode, and the sheet lists that series once.
      * Without `accessId` the button downloads `mediaItemId` alone.
      */
+    import { untrack } from 'svelte';
     import { page } from '$app/stores';
     import { Icon, ArrowDownTray } from 'svelte-hero-icons';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
@@ -47,7 +48,8 @@
         if (!featureOn) return;
         const id = accessId ?? mediaItemId;
         let cancelled = false;
-        void downloadQueue.downloadInfo(id).then((r) => {
+        // untrack: see ModalActions (a failed probe mutates the reactive cache).
+        void untrack(() => downloadQueue.downloadInfo(id)).then((r) => {
             if (!cancelled) info = r;
         });
         return () => {

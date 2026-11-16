@@ -1254,6 +1254,9 @@
                                             : undefined}
                                         onclick={() => handleShowEpisodeDetails(episode)}
                                         onkeydown={(e) => {
+                                            // Keys from a control inside the row (e.g. a button) are
+                                            // that control's own, not "open the details".
+                                            if (e.target !== e.currentTarget) return;
                                             if (e.key === 'Enter') {
                                                 handleShowEpisodeDetails(episode);
                                             } else if (e.key === ' ') {
@@ -1319,7 +1322,7 @@
                                                     </span>
                                                 </Tooltip>
                                             {/if}
-                                            {#if !playlistMode && episode.id && !isMissingOnDisk && !isUnreleased}
+                                            {#if !playlistMode && episode.id && availability === 'available'}
                                                 <DownloadButton
                                                     mediaItemId={episode.id}
                                                     accessId={resolvedSeriesId}

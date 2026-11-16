@@ -31,6 +31,7 @@ import { toasts } from '$lib/stores/toast.store';
 import * as m from '$lib/paraglide/messages';
 import {
     initialSeriesScope,
+    missingForScope,
     scopeItems,
     scopeQuery,
     type DownloadScope,
@@ -65,6 +66,8 @@ export interface DownloadList {
     maxParallel: number;
     seriesFolder: string;
     missingCount: number;
+    /** Missing count per season ("0" = specials); absent on an older server. */
+    missingBySeason?: Record<string, number>;
     items: DownloadListItem[];
 }
 
@@ -263,6 +266,8 @@ export class DownloadQueue {
      */
     pickerContext = $state<{ seriesId: string; season: number | undefined } | null>(null);
     loading = $state(false);
+    /** Generation of the latest sheet request; see fetchForSheet. */
+    private sheetGen = 0;
 
     /** Why the folder picker is off despite being present: it threw something other than a cancel */
     pickerReason = $state<'blocked' | null>(null);
@@ -350,6 +355,11 @@ export class DownloadQueue {
         }
     }
 
+    /** A method, so TypeScript does not keep an earlier `state` check's narrowing across an await. */
+    private isRunning(): boolean {
+        return this.state === 'running';
+    }
+
     /**
      * The list for the sheet, or null after a toast: busy, not allowed, empty, failed. Outcomes
      * without a run are toasts, never queue state.
@@ -358,39 +368,52 @@ export class DownloadQueue {
         mediaItemId: string,
         opts: EnqueueOptions,
     ): Promise<DownloadList | null> {
-        if (this.state === 'running') {
+        const polite = { ariaLive: 'polite' } as const;
+        const busy = () => {
             // Never touch `error`/`state`: they describe the run in progress.
-            toasts.info(m.downloads_error_busy());
+            toasts.info(m.downloads_error_busy(), polite);
             return null;
-        }
+        };
+        if (this.state === 'running') return busy();
+        // Each open takes a generation; a dismissal, a start or a newer open invalidates the
+        // older ones, whose late answers are dropped without a toast.
+        const gen = ++this.sheetGen;
+        const stale = () => gen !== this.sheetGen;
         this.error = undefined;
         this.archive = false;
         this.loading = true;
         const failed = () => {
-            toasts.error(m.downloads_error_list(), { diagnosticKey: 'downloads_error_list' });
+            toasts.error(m.downloads_error_list(), {
+                diagnosticKey: 'downloads_error_list',
+                ...polite,
+            });
             return null;
         };
         try {
             const res = await this.deps.fetch(listUrl(mediaItemId, opts));
+            if (stale()) return null;
             if (res.status === 403 || res.status === 404) {
-                toasts.warning(m.downloads_error_not_allowed());
+                toasts.warning(m.downloads_error_not_allowed(), polite);
                 return null;
             }
             if (!res.ok) return failed();
             const list = (await res.json()) as DownloadList;
+            if (stale()) return null;
             if (!list.allowed) {
-                toasts.warning(m.downloads_error_not_allowed());
+                toasts.warning(m.downloads_error_not_allowed(), polite);
                 return null;
             }
             if (list.items.length === 0) {
-                toasts.info(m.downloads_error_empty());
+                toasts.info(m.downloads_error_empty(), polite);
                 return null;
             }
+            // A run may have started while the list was loading: never open a sheet over it.
+            if (this.isRunning()) return busy();
             return list;
         } catch {
-            return failed();
+            return stale() ? null : failed();
         } finally {
-            this.loading = false;
+            if (!stale()) this.loading = false;
         }
     }
 
@@ -414,7 +437,7 @@ export class DownloadQueue {
         if (!all) return;
         const series = initialSeriesScope(all, want);
         if (!series) {
-            toasts.info(m.downloads_error_empty());
+            toasts.info(m.downloads_error_empty(), { ariaLive: 'polite' });
             return;
         }
         this.pending = this.seriesPending(seriesId, series);
@@ -429,8 +452,7 @@ export class DownloadQueue {
             opts: scopeQuery(series),
             list: {
                 ...all,
-                // The server's count covers the whole series; a narrower scope has none of its own.
-                missingCount: series.scope === 'series' ? all.missingCount : 0,
+                missingCount: missingForScope(series),
                 items: chosen,
             },
             series,
@@ -516,6 +538,8 @@ export class DownloadQueue {
     }
 
     dismissPending(): void {
+        this.sheetGen++;
+        this.loading = false;
         this.pending = null;
         this.archive = false;
     }
@@ -557,6 +581,8 @@ export class DownloadQueue {
         const pending = this.pending;
         if (!pending || this.state === 'running') return;
         const zip = this.archive && this.zipOffered;
+        this.sheetGen++;
+        this.loading = false;
         this.pending = null;
 
         const { list } = pending;

@@ -29,7 +29,7 @@
         Eye,
         EyeSlash,
     } from 'svelte-hero-icons';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import type { ExternalIds } from '$lib/types/api-common';
     import { WatchlistButton, SendToTVButton, Tooltip } from '$lib/components/ui';
     import { PlaylistButton } from '$lib/components/playlist';
@@ -763,7 +763,9 @@
         const id = downloadId;
         if (!id || $page.data?.features?.mediaDownload !== true) return;
         let cancelled = false;
-        void downloadQueue.downloadInfo(id).then((r) => {
+        // untrack: downloadInfo reads the reactive probe cache; a failed probe deletes its
+        // entry and would re-run this effect into a request loop.
+        void untrack(() => downloadQueue.downloadInfo(id)).then((r) => {
             if (!cancelled) downloadAllowed = r.allowed;
         });
         return () => {

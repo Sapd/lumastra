@@ -235,7 +235,7 @@
 
 <svelte:window onkeydown={handleGlobalKeydown} />
 
-<ToastContainer />
+<ToastContainer corner="bottom-left" />
 <ShortcutHelpModal bind:open={showShortcuts} groups={shortcuts.groups} />
 <AdminCommandPalette
     bind:open={paletteOpen}

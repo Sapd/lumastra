@@ -415,7 +415,9 @@ describe('DownloadQueue enqueue', () => {
         await q.enqueue('series-1');
         expect(q.pending).toBeNull();
         expect(q.error).toBeUndefined();
-        expect(toast.warning).toHaveBeenCalledWith('Downloads are not allowed for this account.');
+        expect(toast.warning).toHaveBeenCalledWith('Downloads are not allowed for this account.', {
+            ariaLive: 'polite',
+        });
     });
 
     test('nothing to download: an info toast', async () => {
@@ -423,7 +425,9 @@ describe('DownloadQueue enqueue', () => {
         toast.info.mockClear();
         await q.enqueue('series-1');
         expect(q.pending).toBeNull();
-        expect(toast.info).toHaveBeenCalledWith('There is nothing to download here.');
+        expect(toast.info).toHaveBeenCalledWith('There is nothing to download here.', {
+                ariaLive: 'polite',
+            });
     });
 
     test('a failed list call: an error toast with a diagnostic key', async () => {
@@ -434,6 +438,7 @@ describe('DownloadQueue enqueue', () => {
         await q.enqueue('series-1');
         expect(toast.error).toHaveBeenCalledWith('Could not load the download list.', {
             diagnosticKey: 'downloads_error_list',
+            ariaLive: 'polite',
         });
     });
 
@@ -503,23 +508,105 @@ describe('DownloadQueue enqueue', () => {
             expect(q.pending?.opts).toEqual({ episodeIds: [] });
         });
 
+        test('an explicitly requested season with nothing downloadable is "nothing to download", never the series', async () => {
+            const { q } = setup(list(items), () => fileResponse(5));
+            toast.info.mockClear();
+            await q.enqueueSeries('series-1', { scope: 'season', season: 9 });
+            expect(q.pending).toBeNull();
+            expect(toast.info).toHaveBeenCalledWith('There is nothing to download here.', {
+                ariaLive: 'polite',
+            });
+        });
+
+        test('the missing warning follows the selected scope, specials only when included', async () => {
+            const withMissing = list(items, {
+                missingCount: 7,
+                missingBySeason: { '0': 4, '1': 1, '2': 2 },
+            });
+            const { q } = setup(withMissing, () => fileResponse(5));
+            await q.enqueueSeries('series-1', { scope: 'season', season: 2 });
+            expect(q.pending?.list.missingCount).toBe(2);
+            q.setScope('series');
+            expect(q.pending?.list.missingCount).toBe(3);
+            q.setSpecials(true);
+            expect(q.pending?.list.missingCount).toBe(7);
+            q.setScope('episode');
+            expect(q.pending?.list.missingCount).toBe(0);
+            q.setScope('fromHere');
+            expect(q.pending?.list.missingCount).toBe(0);
+        });
+
         test('a scope that does not exist falls back; an unknown or unavailable episode is "nothing to download"', async () => {
             const { q } = setup(list(items), () => fileResponse(5));
-            await q.enqueueSeries('series-1', { scope: 'season', season: 9 });
-            expect(q.pending?.series?.scope).toBe('series');
-            q.dismissPending();
             toast.info.mockClear();
             await q.enqueueSeries('series-1', { scope: 'episode', episodeId: 'nope' });
             expect(q.pending).toBeNull();
-            expect(toast.info).toHaveBeenCalledWith('There is nothing to download here.');
+            expect(toast.info).toHaveBeenCalledWith('There is nothing to download here.', {
+                ariaLive: 'polite',
+            });
         });
 
-        test('a busy queue answers with the toast, no list call', async () => {
+        test('a busy queue answers with a polite toast, no list call', async () => {
             const { q, fetchFn } = setup(list(items), () => fileResponse(5));
             q.state = 'running';
+            toast.info.mockClear();
             await q.enqueueSeries('series-1', { scope: 'series' });
             expect(fetchFn).not.toHaveBeenCalled();
+            expect(toast.info).toHaveBeenCalledWith('A download is already running.', {
+                ariaLive: 'polite',
+            });
             q.state = 'idle';
+        });
+
+        describe('late list answers', () => {
+            function deferredQueue() {
+                const waiting: Array<(r: Response) => void> = [];
+                const q = new DownloadQueue({
+                    fetch: vi.fn(
+                        () => new Promise<Response>((res) => waiting.push(res)),
+                    ) as unknown as typeof fetch,
+                    sleep: async () => {},
+                    pickDirectory: null,
+                    triggerLink: () => {},
+                });
+                return { q, waiting };
+            }
+            const answer = (id: string) =>
+                json(list([{ ...item(1), mediaItemId: id }, { ...item(2), mediaItemId: id + '2' }]));
+
+            test('the slower of two rapid opens never replaces the newer sheet', async () => {
+                const { q, waiting } = deferredQueue();
+                const first = q.enqueue('first');
+                const second = q.enqueue('second');
+                waiting[1]!(answer('second'));
+                await second;
+                waiting[0]!(answer('first'));
+                await first;
+                expect(q.pending?.mediaItemId).toBe('second');
+            });
+
+            test('a dismissal while loading drops the answer', async () => {
+                const { q, waiting } = deferredQueue();
+                const p = q.enqueue('a');
+                q.dismissPending();
+                waiting[0]!(answer('a'));
+                await p;
+                expect(q.pending).toBeNull();
+            });
+
+            test('a run that started while loading is not interrupted by the sheet', async () => {
+                const { q, waiting } = deferredQueue();
+                toast.info.mockClear();
+                const p = q.enqueue('a');
+                q.state = 'running';
+                waiting[0]!(answer('a'));
+                await p;
+                expect(q.pending).toBeNull();
+                expect(toast.info).toHaveBeenCalledWith('A download is already running.', {
+                    ariaLive: 'polite',
+                });
+                q.state = 'idle';
+            });
         });
 
         test('ZIP of a subset passes the ids and is named "Selection"', async () => {
@@ -617,7 +704,9 @@ describe('DownloadQueue failures and limits', () => {
         await q.start();
         expect(q.state).toBe('done');
         expect(q.error).toBeUndefined();
-        expect(toast.info).toHaveBeenCalledWith('A download is already running.');
+        expect(toast.info).toHaveBeenCalledWith('A download is already running.', {
+            ariaLive: 'polite',
+        });
         expect(q.pending).toBeNull();
     });
 

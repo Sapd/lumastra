@@ -110,6 +110,8 @@ beforeEach(() => {
                     availability: { hasFile: false, isAvailable: false },
                 }),
                 ep(3, { context: { airDate: '2999-01-01' } }),
+                // undated: no air date and no file
+                ep(4, { availability: { hasFile: false, isAvailable: false } }),
             ],
         },
         error: null,
@@ -162,9 +164,30 @@ describe('SeriesEpisodePicker download icons', () => {
         await waitFor(() =>
             expect(screen.getAllByRole('button', { name: 'Download episode' })).toHaveLength(1),
         );
-        // missing on disk (Ep 2) and unreleased (Ep 3) get none
+        // missing on disk (Ep 2), unreleased (Ep 3) and undated without a file (Ep 4) get none
         const icon = screen.getByRole('button', { name: 'Download episode' });
         expect(icon.classList.contains('download-reveal')).toBe(true);
         expect(icon.closest('.download-row')).toBeTruthy();
+    });
+
+    test('Enter and Space on the download icon do not also open the episode details', async () => {
+        const onshowEpisodeDetails = vi.fn();
+        vi.spyOn(downloadQueue, 'enqueueSeries').mockResolvedValue();
+        render(SeriesEpisodePicker, {
+            series: { id: 'series-1' },
+            inline: true,
+            onshowEpisodeDetails,
+        });
+        await screen.findByText('Ep 1');
+        const icon = await screen.findByRole('button', { name: 'Download episode' });
+        await fireEvent.keyDown(icon, { key: 'Enter' });
+        await fireEvent.keyDown(icon, { key: ' ' });
+        expect(onshowEpisodeDetails).not.toHaveBeenCalled();
+        // the row's own details control still answers the keyboard
+        const row = icon.closest('[role="button"][tabindex="0"]:not([aria-label])') as HTMLElement;
+        expect(row).toBeTruthy();
+        expect(row).not.toBe(icon);
+        await fireEvent.keyDown(row, { key: 'Enter' });
+        expect(onshowEpisodeDetails).toHaveBeenCalledTimes(1);
     });
 });

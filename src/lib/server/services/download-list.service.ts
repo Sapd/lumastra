@@ -61,6 +61,11 @@ export interface DownloadList {
     seriesFolder: string;
     /** Accessible items that have no file row. */
     missingCount: number;
+    /**
+     * The same count per season ("0" = specials, "unknown" = no season number), only seasons
+     * with something missing. Lets a client warn for the scope it shows, not the whole list.
+     */
+    missingBySeason: Record<string, number>;
     items: DownloadListItem[];
 }
 
@@ -110,6 +115,12 @@ export async function buildDownloadList(
         (a ?? Number.MAX_SAFE_INTEGER) - (b ?? Number.MAX_SAFE_INTEGER);
     const accessible = rows.filter((r) => allowedIds.has(r.id));
     const missingCount = accessible.filter((r) => !r.file_id || !r.file_path).length;
+    const missingBySeason: Record<string, number> = {};
+    for (const r of accessible) {
+        if (r.file_id && r.file_path) continue;
+        const key = r.season_number === null ? 'unknown' : String(r.season_number);
+        missingBySeason[key] = (missingBySeason[key] ?? 0) + 1;
+    }
     const items = [...accessible]
         .sort(
             (a, b) =>
@@ -135,5 +146,5 @@ export async function buildDownloadList(
             available: r.is_missing !== true && Number(r.file_size_bytes ?? 0) > 0,
         }));
 
-    return { root, seriesFolder, missingCount, items };
+    return { root, seriesFolder, missingCount, missingBySeason, items };
 }

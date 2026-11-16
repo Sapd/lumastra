@@ -125,12 +125,78 @@
         wasOpen = open;
     });
 
-    function onKey(e: KeyboardEvent) {
-        if (e.key === 'Escape') downloadQueue.dismissPending();
-    }
-</script>
+    const FOCUSABLE =
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-<svelte:window onkeydown={pending ? onKey : undefined} />
+    /**
+     * What Tab really visits: enabled, visible controls, and of a radio group only the checked
+     * radio (the first one when none is checked).
+     */
+    /** Visible to the user: no display:none / visibility:hidden on the element or an ancestor. */
+    function isRendered(el: HTMLElement): boolean {
+        if (typeof el.checkVisibility === 'function') {
+            return el.checkVisibility({ visibilityProperty: true });
+        }
+        for (let n: HTMLElement | null = el; n; n = n.parentElement) {
+            const s = getComputedStyle(n);
+            if (s.display === 'none' || s.visibility === 'hidden') return false;
+        }
+        return true;
+    }
+
+    function tabStops(root: HTMLElement): HTMLElement[] {
+        const all = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+            (el) => !el.closest('[hidden], [inert]') && isRendered(el),
+        );
+        const radios = all.filter(
+            (el): el is HTMLInputElement => el instanceof HTMLInputElement && el.type === 'radio',
+        );
+        const keep: HTMLElement[] = [];
+        for (const name of [...new Set(radios.map((r) => r.name))]) {
+            const group = radios.filter((r) => r.name === name);
+            keep.push(group.find((r) => r.checked) ?? group[0]!);
+        }
+        return all.filter(
+            (el) => !(el instanceof HTMLInputElement && el.type === 'radio') || keep.includes(el),
+        );
+    }
+
+    // The sheet is the topmost overlay, usually above the media modal. Its keys are handled in
+    // the CAPTURE phase and consumed there, so neither the modal's window Tab trap (which would
+    // pull focus out of the sheet) nor its Escape handler (which would close the modal too)
+    // ever sees them.
+    function onKeyCapture(e: KeyboardEvent) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            downloadQueue.dismissPending();
+            return;
+        }
+        if (e.key !== 'Tab' || !dialogEl) return;
+        e.stopPropagation();
+        const list = tabStops(dialogEl);
+        if (list.length === 0) {
+            e.preventDefault();
+            return;
+        }
+        const first = list[0];
+        const last = list[list.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+        const inside = !!active && dialogEl.contains(active);
+        if (e.shiftKey && (!inside || active === first || active === dialogEl)) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && (!inside || active === last)) {
+            e.preventDefault();
+            first.focus();
+        }
+    }
+    $effect(() => {
+        if (!pending) return;
+        window.addEventListener('keydown', onKeyCapture, true);
+        return () => window.removeEventListener('keydown', onKeyCapture, true);
+    });
+</script>
 
 {#if pending}
     <div
@@ -147,8 +213,9 @@
             tabindex="-1"
             bind:this={dialogEl}
             data-testid="download-confirm-sheet"
-            class="w-full sm:max-w-md bg-surface-800 rounded-t-xl sm:rounded-xl p-5 shadow-xl space-y-3">
-            <h3 id="download-sheet-title" class="text-lg font-semibold text-white">
+            style="max-height: 100dvh; padding-bottom: max(1.25rem, env(safe-area-inset-bottom)); padding-top: max(1.25rem, env(safe-area-inset-top));"
+            class="w-full sm:max-w-md max-h-[100dvh] overflow-y-auto bg-surface-800 rounded-t-xl sm:rounded-xl px-5 shadow-xl space-y-3">
+            <h3 id="download-sheet-title" class="text-lg font-semibold text-white break-words">
                 {m.downloads_confirm_title({ name: titleName })}
             </h3>
 

@@ -75,13 +75,14 @@ export const def = defineEndpoint({
                     maxParallel: config.DOWNLOAD_MAX_PARALLEL_PER_USER,
                     seriesFolder: '',
                     missingCount: 0,
+                    missingBySeason: {},
                     items: [],
                 });
             }
 
             const list = await buildDownloadList(sql, internalId, accessUser, { season, specials });
             if (!list) return ApiProblem.notFound('Media item not found');
-            const { seriesFolder, missingCount } = list;
+            const { seriesFolder, missingCount, missingBySeason } = list;
             // The library path stays on the server.
             const items = list.items.map(({ filePath: _filePath, ...item }) => item);
 
@@ -90,6 +91,7 @@ export const def = defineEndpoint({
                 maxParallel: config.DOWNLOAD_MAX_PARALLEL_PER_USER,
                 seriesFolder,
                 missingCount,
+                missingBySeason,
                 items,
             });
         },

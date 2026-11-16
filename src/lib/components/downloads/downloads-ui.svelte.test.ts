@@ -109,7 +109,9 @@ describe('DownloadButton', () => {
         expect(btn.disabled).toBe(false);
         expect(btn.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
         await fireEvent.click(btn);
-        expect(toast.info).toHaveBeenCalledWith('A download is already running.');
+        expect(toast.info).toHaveBeenCalledWith('A download is already running.', {
+            ariaLive: 'polite',
+        });
     });
 
     test('episode icons reveal on row hover and keep a touch hit area', async () => {
@@ -166,6 +168,14 @@ describe('DownloadButton', () => {
         await waitFor(() => expect(f).toHaveBeenCalled());
         await Promise.resolve();
         expect(screen.queryByTestId('download-button')).toBeNull();
+    });
+
+    test('a failed permission probe is asked once, not in a loop', async () => {
+        const f = stubList({}, 404);
+        render(DownloadButton, { mediaItemId: 'movie-loop' });
+        await waitFor(() => expect(f).toHaveBeenCalled());
+        await new Promise((r) => setTimeout(r, 50));
+        expect(f).toHaveBeenCalledTimes(1);
     });
 
     test('episode icons share the series permission check', async () => {
@@ -382,6 +392,42 @@ describe('DownloadConfirmSheet extras', () => {
         await downloadQueue.enqueue('series-nofat');
         await screen.findByTestId('download-confirm-sheet');
         expect(screen.queryByTestId('download-fat32-warning')).toBeNull();
+    });
+
+    test('the whole sheet stays inside the viewport and scrolls; long titles wrap', async () => {
+        stubList(listBody({ seriesFolder: 'A'.repeat(200) }));
+        render(DownloadConfirmSheet);
+        await downloadQueue.enqueue('series-tall');
+        const dialog = await screen.findByTestId('download-confirm-sheet');
+        expect(dialog.className).toContain('max-h-[100dvh]');
+        expect(dialog.className).toContain('overflow-y-auto');
+        expect(dialog.getAttribute('style')).toContain('safe-area-inset-bottom');
+        expect(screen.getByRole('heading').className).toContain('break-words');
+    });
+
+    test('the missing warning of a season sheet only counts that season', async () => {
+        const mk = (season: number, n: number) => ({
+            ...listBody().items[0],
+            mediaItemId: `s${season}e${n}`,
+            season,
+            episode: n,
+        });
+        stubList(
+            listBody({
+                items: [mk(1, 1), mk(1, 2), mk(2, 1), mk(2, 2)],
+                missingCount: 5,
+                missingBySeason: { '1': 1, '2': 4 },
+            }),
+        );
+        render(DownloadConfirmSheet);
+        await downloadQueue.enqueueSeries('series-miss', { scope: 'season', season: 1 });
+        expect((await screen.findByTestId('download-missing')).textContent).toContain(
+            '1 episodes not available',
+        );
+        await fireEvent.click(screen.getByTestId('download-scope-series'));
+        expect((await screen.findByTestId('download-missing')).textContent).toContain(
+            '5 episodes not available',
+        );
     });
 
     test('moves focus into the sheet and back to the opener on close', async () => {

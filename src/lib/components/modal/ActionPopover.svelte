@@ -142,6 +142,31 @@
         };
     });
 
+    const ITEM_SELECTOR =
+        '[role^="menuitem"]:not([disabled]), button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+
+    // WAI-ARIA menu button: arrows (wrapping), Home/End move between items; Enter/Space are the
+    // items' own click; Tab closes the menu and focus moves on from the trigger (close() puts it
+    // there first, so the modal's boundary trap and the native Tab both see the trigger).
+    function handlePanelKeydown(e: KeyboardEvent): void {
+        if (e.key === 'Tab') {
+            close();
+            return;
+        }
+        if (panelRole !== 'menu' || !panelEl) return;
+        const items = Array.from(panelEl.querySelectorAll<HTMLElement>(ITEM_SELECTOR));
+        if (items.length === 0) return;
+        const at = items.indexOf(document.activeElement as HTMLElement);
+        let next: number | null = null;
+        if (e.key === 'ArrowDown') next = at < 0 ? 0 : (at + 1) % items.length;
+        else if (e.key === 'ArrowUp') next = at <= 0 ? items.length - 1 : at - 1;
+        else if (e.key === 'Home') next = 0;
+        else if (e.key === 'End') next = items.length - 1;
+        if (next === null) return;
+        e.preventDefault();
+        items[next]!.focus();
+    }
+
     function handleWindowPointerDown(e: PointerEvent | TouchEvent): void {
         if (!open || Date.now() - openedAt < OPEN_GUARD_MS) return;
         const target = e.target as Node;
@@ -194,7 +219,8 @@
             class="fixed {panelClass}"
             style="z-index: {Z.CTX_MENU};"
             role={panelRole}
-            tabindex="-1">
+            tabindex="-1"
+            onkeydown={handlePanelKeydown}>
             {@render content({ close })}
         </div>
     </div>

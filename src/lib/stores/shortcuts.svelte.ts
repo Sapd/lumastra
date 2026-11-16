@@ -18,7 +18,9 @@ export interface ShortcutGroup {
     entries: ShortcutEntry[];
 }
 
-let groups = $state<ShortcutGroup[]>([]);
+// Raw, not a deep proxy: teardown finds its own group by identity, which a proxy would break
+// (`state_proxy_equality_mismatch`). Groups are replaced as a whole, never mutated in place.
+let groups = $state.raw<ShortcutGroup[]>([]);
 
 export const shortcuts = {
     register(group: ShortcutGroup): () => void {

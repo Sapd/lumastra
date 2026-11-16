@@ -171,6 +171,7 @@ describe('media/{id}/download-list', () => {
             maxParallel: 3,
             seriesFolder: '',
             missingCount: 0,
+            missingBySeason: {},
             items: [],
         });
         expect(mockEpisodes).not.toHaveBeenCalled();
@@ -271,6 +272,19 @@ describe('media/{id}/download-list', () => {
         const { body } = await call();
         expect(body.items).toHaveLength(1);
         expect(body.missingCount).toBe(1);
+    });
+
+    it('missingBySeason splits the missing count per season, specials under "0"', async () => {
+        mockEpisodes.mockResolvedValue([
+            ep('s0-1', 0, 1, { file_id: null, file_path: null }),
+            ep('e1-1', 1, 1),
+            ep('e1-2', 1, 2, { file_id: null, file_path: null }),
+            ep('e2-1', 2, 1, { file_id: null, file_path: null }),
+            ep('e2-2', 2, 2, { file_id: null, file_path: null }),
+        ]);
+        const { body } = await call('?specials=1');
+        expect(body.missingCount).toBe(4);
+        expect(body.missingBySeason).toEqual({ '0': 1, '1': 1, '2': 2 });
     });
 
     it('a single episode gets the series folder, season folder and the series-prefixed name', async () => {

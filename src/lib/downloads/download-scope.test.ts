@@ -131,3 +131,15 @@ describe('scopeQuery and episodeCode', () => {
         expect(episodeCode(ep(null, null, { fileName: 'Pilot.mkv' }))).toBe('Pilot.mkv');
     });
 });
+
+describe('initialSeriesScope: explicit season without files', () => {
+    test('an explicitly requested season with no downloadable file is null, not the series', () => {
+        expect(initialSeriesScope(multi, { scope: 'season', season: 9 })).toBeNull();
+        const noFiles = all([ep(1, 1), ep(2, 1, { available: false })]);
+        expect(initialSeriesScope(noFiles, { scope: 'season', season: 2 })).toBeNull();
+    });
+
+    test('a series-wide request without a season still opens the series', () => {
+        expect(initialSeriesScope(multi, { scope: 'series' })?.scope).toBe('series');
+    });
+});
