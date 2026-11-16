@@ -19,6 +19,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { TaskContext } from '@sapd/lumastra-plugin-sdk';
 import {
+    config,
     CLIENT_DIAGNOSTICS_RETENTION_DAYS,
     CLIENT_LOG_BUNDLE_RETENTION_DAYS,
     CLIENT_DIAGNOSTICS_MAX_ROWS_PER_USER,
@@ -701,6 +702,24 @@ describe('database-cleanup task', () => {
         expect(days).toBeLessThan(90.1);
         expect(result.result!.message).toContain('7 download log rows');
     });
+
+    it.each([0, -5, Number.NaN])(
+        'never prunes the download log with retention %s: at least 1 day, never an invalid cutoff',
+        async (value) => {
+            const spy = vi
+                .spyOn(config, 'DOWNLOAD_LOG_RETENTION_DAYS', 'get')
+                .mockReturnValue(value);
+            try {
+                await databaseCleanupTask.execute(makeContext());
+            } finally {
+                spy.mockRestore();
+            }
+            const cutoff = pruneDownloadEvents.mock.calls[0]![1] as Date;
+            expect(Number.isNaN(cutoff.getTime())).toBe(false);
+            const days = (Date.now() - cutoff.getTime()) / 86_400_000;
+            expect(days).toBeGreaterThan(Number.isNaN(value) ? 89.9 : 0.99);
+        },
+    );
 
     it('closes download rows left open for 15 minutes as aborted', async () => {
         closeStaleDownloadEvents.mockResolvedValue(3);

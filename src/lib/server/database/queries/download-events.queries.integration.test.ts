@@ -116,6 +116,7 @@ describe('download-events queries', () => {
         expect(await startDownloadEvent(sql, { ...base(), deviceKey: 'dev-2' })).not.toBe(id);
 
         await endDownloadEvent(sql, id, 'aborted');
+        await endDownloadEvent(sql, id, 'aborted'); // two streams joined the row
         await sql`UPDATE download_events SET ended_at = now() - interval '11 minutes'
                   WHERE id = ${id}`;
         expect(await startDownloadEvent(sql, base())).not.toBe(id);
@@ -148,7 +149,7 @@ describe('download-events queries', () => {
         const before = await listDownloadEvents(sql, {
             userId,
             limit: 10,
-            before: new Date(Date.now() - 60_000),
+            before: all[0]!.cursor,
         });
         expect(before.map((r) => r.id)).toEqual([a]);
         expect(await listDownloadEvents(sql, { limit: 10 })).toHaveLength(2);
@@ -243,5 +244,59 @@ describe('download-events queries', () => {
         expect(byId.get(stale)!.endedAt!.getTime()).toBe(byId.get(stale)!.lastActivityAt.getTime());
         expect(byId.get(fresh)!.endedAt).toBeNull();
         expect(byId.get(ended)!.outcome).toBe('completed');
+    });
+
+    it('two concurrent starts for one transfer end up on ONE open row with 2 streams', async () => {
+        const [x, y] = await Promise.all([
+            startDownloadEvent(sql, base()),
+            startDownloadEvent(sql, base()),
+        ]);
+        expect(x).toBe(y);
+        const rows = await sql`SELECT open_streams FROM download_events WHERE user_id = ${userId}`;
+        expect(rows).toHaveLength(1);
+        expect(rows[0]!.open_streams).toBe(2);
+    });
+
+    it('the row only closes when its last stream ends', async () => {
+        const id = await startDownloadEvent(sql, base());
+        await startDownloadEvent(sql, base());
+        await endDownloadEvent(sql, id, 'completed', { bytesSentDelta: 40 });
+        let [row] = await listDownloadEvents(sql, { userId, limit: 10 });
+        expect(row).toMatchObject({ endedAt: null, outcome: null, bytesSent: 40 });
+        await endDownloadEvent(sql, id, 'completed', { bytesSentDelta: 60 });
+        [row] = await listDownloadEvents(sql, { userId, limit: 10 });
+        expect(row).toMatchObject({ outcome: 'completed', bytesSent: 100 });
+        expect(row!.endedAt).not.toBeNull();
+    });
+
+    it('a Range request for the tail that ran to its end completes the row; bytes are capped at the total', async () => {
+        const id = await startDownloadEvent(sql, { ...base(), rangeStart: 50 });
+        await endDownloadEvent(sql, id, 'completed', { bytesSentDelta: 50, reachedEnd: true });
+        let [row] = await listDownloadEvents(sql, { userId, limit: 10 });
+        expect(row!.outcome).toBe('completed');
+
+        const id2 = await startDownloadEvent(sql, { ...base(), deviceKey: 'dev-cap' });
+        await updateDownloadEvent(sql, id2, { bytesSentDelta: 80 });
+        await endDownloadEvent(sql, id2, 'aborted', { bytesSentDelta: 80 });
+        [row] = (await listDownloadEvents(sql, { userId, limit: 10 })).filter((r) => r.id === id2);
+        expect(row!.bytesSent).toBe(100);
+    });
+
+    it('keyset cursor pages rows with identical started_at without gaps or repeats', async () => {
+        const ids: string[] = [];
+        for (let i = 0; i < 5; i++) {
+            ids.push(await startDownloadEvent(sql, { ...base(), deviceKey: `k${i}` }));
+        }
+        await sql`UPDATE download_events SET started_at = '2026-11-16T10:00:00.123456Z'
+                  WHERE user_id = ${userId}`;
+        const seen: string[] = [];
+        let before: string | undefined;
+        for (let i = 0; i < 3; i++) {
+            const page = await listDownloadEvents(sql, { userId, limit: 2, before });
+            seen.push(...page.map((r) => r.id));
+            before = page.at(-1)?.cursor;
+        }
+        expect([...seen].sort()).toEqual([...ids].sort());
+        expect(new Set(seen).size).toBe(5);
     });
 });

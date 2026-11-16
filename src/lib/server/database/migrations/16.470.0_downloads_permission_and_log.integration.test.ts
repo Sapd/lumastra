@@ -53,9 +53,24 @@ describe('downloads permission and log schema', () => {
                 expect.arrayContaining([
                     'idx_download_events_started',
                     'idx_download_events_user_started',
-                    'idx_download_events_open_lease',
+                    'idx_download_events_open_transfer',
                 ]),
             );
+            // open rows are unique per (user, device, file|rendition); ended rows are not
+            const fileId = crypto.randomUUID();
+            await db`INSERT INTO download_events (user_id, media_item_id, file_id, surface, device_key)
+                     VALUES (${userId}, ${mediaId}, ${fileId}, 'web', 'dev-1')`;
+            await expect(
+                db`INSERT INTO download_events (user_id, media_item_id, file_id, surface, device_key)
+                   VALUES (${userId}, ${mediaId}, ${fileId}, 'web', 'dev-1')`,
+            ).rejects.toThrow(/idx_download_events_open_transfer/);
+            await db`INSERT INTO download_events (user_id, media_item_id, file_id, surface, device_key, ended_at, outcome)
+                     VALUES (${userId}, ${mediaId}, ${fileId}, 'web', 'dev-1', now(), 'denied')`;
+            const [cols] = await db<{ column_default: string; is_nullable: string }[]>`
+                SELECT column_default, is_nullable FROM information_schema.columns
+                 WHERE table_name = 'download_events' AND column_name = 'open_streams'`;
+            expect(cols?.column_default).toBe('0');
+            expect(cols?.is_nullable).toBe('NO');
             await db`DELETE FROM users WHERE id = ${userId}`;
             const left = await db`SELECT 1 FROM download_events WHERE user_id = ${userId}`;
             expect(left.length).toBe(0);

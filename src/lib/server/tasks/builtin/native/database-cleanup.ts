@@ -882,9 +882,11 @@ export const databaseCleanupTask = defineTask<DatabaseCleanupInput, DatabaseClea
             50_000,
         );
 
-        const downloadLogCutoff = new Date(
-            Date.now() - config.DOWNLOAD_LOG_RETENTION_DAYS * 86_400_000,
-        );
+        // At least one day, 90 for a non-finite value: 0 or NaN would otherwise move the
+        // cutoff to "now" (or an invalid date) and wipe the whole log.
+        const rawLogDays = Number(config.DOWNLOAD_LOG_RETENTION_DAYS);
+        const downloadLogDays = Math.max(1, Number.isFinite(rawLogDays) ? rawLogDays : 90);
+        const downloadLogCutoff = new Date(Date.now() - downloadLogDays * 86_400_000);
         stats.pruneDownloadEvents = await pruneUntilDrained(
             pruneDownloadEvents,
             sql,

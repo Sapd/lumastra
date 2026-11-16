@@ -51,8 +51,8 @@ export async function listEpisodeDownloadRows(
                series.title AS series_title,
                f.id AS file_id, f.file_path, f.file_size_bytes, f.is_missing
         FROM media_items mi
-        JOIN media_items season ON season.id = mi.parent_id
-        JOIN media_items series ON series.id = season.parent_id
+        LEFT JOIN media_items season ON season.id = mi.parent_id AND season.media_type = 'season'
+        JOIN media_items series ON series.id = COALESCE(season.parent_id, mi.parent_id)
         LEFT JOIN LATERAL (
             SELECT mf.id, mf.file_path, mf.file_size_bytes, mf.is_missing
             FROM media_file_items mfi

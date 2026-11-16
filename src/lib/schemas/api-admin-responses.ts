@@ -1788,7 +1788,11 @@ export const AdminDownloadsResponseSchema = z.object({
             endedAt: z.string().optional(),
         }),
     ),
-    nextBefore: z.string().optional().describe('Pass as `before` to load older rows'),
+    degraded: z
+        .boolean()
+        .optional()
+        .describe('A download currently runs on the process-local fallback (Valkey unavailable): limits apply per replica'),
+    nextBefore: z.string().optional().describe('Opaque keyset cursor: pass as `before` to load older rows'),
 });
 export type AdminDownloadsResponse = z.infer<typeof AdminDownloadsResponseSchema>;
 

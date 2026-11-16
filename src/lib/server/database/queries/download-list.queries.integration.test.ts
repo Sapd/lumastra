@@ -82,4 +82,22 @@ describe('download-list queries', () => {
         expect(buildDownloadFilename(row!, '.mp4')).toBe(buildDownloadFilename(naming!, '.mp4'));
         expect(buildDownloadFilename(row!, '.mp4')).toBe('DL Show - S01E01 - Ep1.mp4');
     });
+
+    it('lists an episode parented directly to the series (no season row) and one with a null season number', async () => {
+        const flat = crypto.randomUUID();
+        const noSeason = crypto.randomUUID();
+        await sql`INSERT INTO media_items (id, title, media_type, parent_id, season_number, episode_number, status) VALUES (${flat}, 'Flat', 'episode', ${ids.series}, 1, 9, 'active'), (${noSeason}, 'NoSeason', 'episode', ${ids.s1}, NULL, 8, 'active')`;
+        try {
+            const rows = await listEpisodeDownloadRows(sql, ids.series);
+            const f = rows.find((r) => r.id === flat);
+            expect(f).toMatchObject({ series_title: 'DL Show', season_number: 1 });
+            expect(rows.find((r) => r.id === noSeason)).toMatchObject({ season_number: null });
+            // a season container does not pick up the flat episode
+            expect((await listEpisodeDownloadRows(sql, ids.s1)).map((r) => r.id)).not.toContain(
+                flat,
+            );
+        } finally {
+            await sql`DELETE FROM media_items WHERE id = ANY(${[flat, noSeason]}::uuid[])`;
+        }
+    });
 });

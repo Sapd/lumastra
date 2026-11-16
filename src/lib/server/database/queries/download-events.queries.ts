@@ -45,12 +45,17 @@ export interface DownloadEventRow {
     lastActivityAt: Date;
     endedAt: Date | null;
     outcome: DownloadOutcome | null;
+    /** Opaque keyset cursor `<started_at, microsecond precision>|<id>`: pass as `before` for older rows. */
+    cursor: string;
 }
 
 /**
- * Start a download row, or re-open the open / recently ended one for the same
- * (user, file|rendition, device). Only an open row or one that ended `aborted`/`error`
- * is re-opened: a `completed` download and refusals (`denied`, `rate_limited`) never are.
+ * Start a download row, or join/re-open the one for the same (user, file|rendition,
+ * device). An open row gains a stream (`open_streams` + 1); a row that ended `aborted`/
+ * `error` within the reopen window is re-opened with one stream; a `completed` download
+ * and refusals (`denied`, `rate_limited`) never are. Serialised per transfer by an
+ * advisory lock, with the unique partial index on open rows (and ON CONFLICT) as the
+ * backstop, so two simultaneous starts end up on ONE row.
  */
 export async function startDownloadEvent(
     sql: postgres.Sql,
@@ -59,36 +64,61 @@ export async function startDownloadEvent(
     const fileId = e.fileId ?? null;
     const renditionId = e.renditionId ?? null;
     const since = new Date(Date.now() - DOWNLOAD_REOPEN_WINDOW_MS);
+    const lockKey = `${e.userId}|${e.deviceKey}|${fileId ?? renditionId ?? ''}`;
 
-    const reopened = await sql<{ id: string }[]>`
-        UPDATE download_events
-        SET ended_at = NULL, outcome = NULL, last_activity_at = now()
-        WHERE id = (
-            SELECT id FROM download_events
-            WHERE user_id = ${e.userId}
-              AND device_key = ${e.deviceKey}
-              AND file_id IS NOT DISTINCT FROM ${fileId}
-              AND rendition_id IS NOT DISTINCT FROM ${renditionId}
-              AND (ended_at IS NULL
-                   OR (ended_at > ${since} AND outcome IN ('aborted', 'error')))
-            ORDER BY started_at DESC
-            LIMIT 1
-        )
-        RETURNING id
-    `;
-    if (reopened[0]) return reopened[0].id;
+    return (await sql.begin(async (tx) => {
+        await tx`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
 
-    const rows = await sql<{ id: string }[]>`
-        INSERT INTO download_events
-            (user_id, media_item_id, file_id, rendition_id, surface, device_key,
-             client_name, bytes_total, range_start)
-        VALUES
-            (${e.userId}, ${e.mediaItemId}, ${fileId}, ${renditionId}, ${e.surface},
-             ${e.deviceKey}, ${e.clientName ?? null}, ${e.bytesTotal ?? null},
-             ${e.rangeStart ?? null})
-        RETURNING id
-    `;
-    return rows[0]!.id;
+        const joined = await tx<{ id: string }[]>`
+            UPDATE download_events
+            SET open_streams = open_streams + 1, last_activity_at = now()
+            WHERE id = (
+                SELECT id FROM download_events
+                WHERE user_id = ${e.userId}
+                  AND device_key = ${e.deviceKey}
+                  AND file_id IS NOT DISTINCT FROM ${fileId}
+                  AND rendition_id IS NOT DISTINCT FROM ${renditionId}
+                  AND ended_at IS NULL
+                ORDER BY started_at DESC
+                LIMIT 1
+            )
+            RETURNING id
+        `;
+        if (joined[0]) return joined[0].id;
+
+        const reopened = await tx<{ id: string }[]>`
+            UPDATE download_events
+            SET ended_at = NULL, outcome = NULL, open_streams = 1, last_activity_at = now()
+            WHERE id = (
+                SELECT id FROM download_events
+                WHERE user_id = ${e.userId}
+                  AND device_key = ${e.deviceKey}
+                  AND file_id IS NOT DISTINCT FROM ${fileId}
+                  AND rendition_id IS NOT DISTINCT FROM ${renditionId}
+                  AND ended_at > ${since} AND outcome IN ('aborted', 'error')
+                ORDER BY started_at DESC
+                LIMIT 1
+            )
+            RETURNING id
+        `;
+        if (reopened[0]) return reopened[0].id;
+
+        const rows = await tx<{ id: string }[]>`
+            INSERT INTO download_events
+                (user_id, media_item_id, file_id, rendition_id, surface, device_key,
+                 client_name, bytes_total, range_start, open_streams)
+            VALUES
+                (${e.userId}, ${e.mediaItemId}, ${fileId}, ${renditionId}, ${e.surface},
+                 ${e.deviceKey}, ${e.clientName ?? null}, ${e.bytesTotal ?? null},
+                 ${e.rangeStart ?? null}, 1)
+            ON CONFLICT (user_id, device_key, (COALESCE(file_id, rendition_id)))
+                WHERE ended_at IS NULL
+            DO UPDATE SET open_streams = download_events.open_streams + 1,
+                          last_activity_at = now()
+            RETURNING id
+        `;
+        return rows[0]!.id;
+    })) as string;
 }
 
 export async function updateDownloadEvent(
@@ -96,35 +126,44 @@ export async function updateDownloadEvent(
     id: string,
     { bytesSentDelta }: { bytesSentDelta: number },
 ): Promise<void> {
+    const delta = Math.max(0, Math.floor(bytesSentDelta));
     await sql`
         UPDATE download_events
-        SET bytes_sent = bytes_sent + ${Math.max(0, Math.floor(bytesSentDelta))},
+        SET bytes_sent = CASE WHEN bytes_total IS NULL THEN bytes_sent + ${delta}
+                              ELSE LEAST(bytes_sent + ${delta}, bytes_total) END,
             last_activity_at = now()
         WHERE id = ${id}
     `;
 }
 
 /**
- * Close a row. `completed` when everything has been sent (bytes_sent >= bytes_total,
- * counting earlier segments of the same transfer), otherwise the given outcome; a
- * stream that merely ended naturally but did not cover the file is recorded as
- * `aborted` so the next segment re-opens it.
+ * End one stream of a row. The row itself is only closed (ended_at / outcome set) when its
+ * last open stream ends; until then it stays open. `completed` when everything was sent
+ * (bytes_sent >= bytes_total, counting earlier segments), or when this stream ran to its
+ * natural end and `reachedEnd` says its range covered the end of the file (a Range
+ * request for the tail). Otherwise the given outcome; a stream that merely ended naturally
+ * without covering the file is recorded as `aborted` so the next segment re-opens it.
+ * bytes_sent never exceeds bytes_total (overlapping retries).
  */
 export async function endDownloadEvent(
     sql: postgres.Sql,
     id: string,
     outcome: DownloadOutcome,
-    { bytesSentDelta = 0 }: { bytesSentDelta?: number } = {},
+    { bytesSentDelta = 0, reachedEnd = false }: { bytesSentDelta?: number; reachedEnd?: boolean } = {},
 ): Promise<void> {
+    const delta = Math.max(0, Math.floor(bytesSentDelta));
     await sql`
         UPDATE download_events
-        SET bytes_sent = bytes_sent + ${Math.max(0, Math.floor(bytesSentDelta))},
-            ended_at = now(),
+        SET bytes_sent = CASE WHEN bytes_total IS NULL THEN bytes_sent + ${delta}
+                              ELSE LEAST(bytes_sent + ${delta}, bytes_total) END,
             last_activity_at = now(),
+            open_streams = GREATEST(open_streams - 1, 0),
+            ended_at = CASE WHEN open_streams <= 1 THEN now() ELSE NULL END,
             outcome = CASE
+                WHEN open_streams > 1 THEN NULL
                 WHEN bytes_total IS NULL THEN ${outcome}::text
-                WHEN bytes_sent + ${Math.max(0, Math.floor(bytesSentDelta))} >= bytes_total
-                    THEN 'completed'
+                WHEN bytes_sent + ${delta} >= bytes_total THEN 'completed'
+                WHEN ${outcome}::text = 'completed' AND ${reachedEnd}::boolean THEN 'completed'
                 WHEN ${outcome}::text = 'completed' THEN 'aborted'
                 ELSE ${outcome}::text
             END
@@ -140,11 +179,11 @@ export async function recordRefusedDownload(
     await sql`
         INSERT INTO download_events
             (user_id, media_item_id, file_id, rendition_id, surface, device_key,
-             client_name, bytes_total, range_start, ended_at, outcome)
+             client_name, bytes_total, range_start, ended_at, outcome, open_streams)
         VALUES
             (${e.userId}, ${e.mediaItemId}, ${e.fileId ?? null}, ${e.renditionId ?? null},
              ${e.surface}, ${e.deviceKey}, ${e.clientName ?? null}, ${e.bytesTotal ?? null},
-             ${e.rangeStart ?? null}, now(), ${outcome})
+             ${e.rangeStart ?? null}, now(), ${outcome}, 0)
     `;
 }
 
@@ -166,21 +205,38 @@ function mapEventRow(r: Record<string, unknown>): DownloadEventRow {
         lastActivityAt: r.last_activity_at as Date,
         endedAt: (r.ended_at as Date | null) ?? null,
         outcome: (r.outcome as DownloadOutcome | null) ?? null,
+        cursor: (r.cursor as string | undefined) ?? '',
     };
+}
+
+const CURSOR_RE = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z)\|([0-9a-f-]{36})$/i;
+
+/** True for a cursor string as produced by `listDownloadEvents` (`DownloadEventRow.cursor`). */
+export function isDownloadCursor(v: string): boolean {
+    return CURSOR_RE.test(v);
 }
 
 export async function listDownloadEvents(
     sql: postgres.Sql,
-    opts: { userId?: string; limit: number; before?: Date },
+    opts: { userId?: string; limit: number; before?: string },
 ): Promise<DownloadEventRow[]> {
+    const m = opts.before ? CURSOR_RE.exec(opts.before) : null;
+    if (opts.before && !m) throw new Error('invalid download cursor');
+    const ts = m?.[1] ?? null;
+    const cursorId = m?.[2] ?? null;
+    // The cursor timestamp goes in as text (cast in SQL): postgres.js would turn a
+    // `::timestamptz` parameter into a JS Date and cut it to milliseconds.
     const rows = await sql<Record<string, unknown>[]>`
         SELECT id, user_id, media_item_id, file_id, rendition_id, surface, device_key,
                client_name, bytes_total, bytes_sent, range_start, started_at,
-               last_activity_at, ended_at, outcome
+               last_activity_at, ended_at, outcome,
+               to_char(started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+                   || '|' || id::text AS cursor
         FROM download_events
         WHERE (${opts.userId ?? null}::uuid IS NULL OR user_id = ${opts.userId ?? null})
-          AND (${opts.before ?? null}::timestamptz IS NULL OR started_at < ${opts.before ?? null})
-        ORDER BY started_at DESC
+          AND (${ts}::text IS NULL
+               OR (started_at, id) < (${ts}::text::timestamptz, ${cursorId}::uuid))
+        ORDER BY started_at DESC, id DESC
         LIMIT ${opts.limit}
     `;
     return rows.map(mapEventRow);
@@ -215,7 +271,7 @@ export async function closeStaleDownloadEvents(
 ): Promise<number> {
     const result = await sql`
         UPDATE download_events
-        SET ended_at = last_activity_at, outcome = 'aborted'
+        SET ended_at = last_activity_at, outcome = 'aborted', open_streams = 0
         WHERE id IN (
             SELECT id FROM download_events
             WHERE ended_at IS NULL AND last_activity_at < ${idleBefore}

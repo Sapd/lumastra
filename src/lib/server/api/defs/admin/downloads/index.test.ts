@@ -16,6 +16,7 @@ const m = vi.hoisted(() => ({
     userByName: vi.fn(),
     active: vi.fn(),
     cap: { v: 0 },
+    degraded: { v: false },
 }));
 
 vi.mock('$lib/server/database/connection.js', () => ({ getDb: () => ({}) }));
@@ -23,6 +24,7 @@ vi.mock('$lib/server/database/queries/download-events.queries.js', () => ({
     listDownloadEvents: m.listEvents,
     listOpenDownloadEvents: m.listOpen,
     getDownloadTitles: m.titles,
+    isDownloadCursor: (v: string) => /^\d{4}-.*\|[0-9a-f-]{36}$/.test(v),
     getUsernamesByIds: m.names,
 }));
 vi.mock('$lib/server/database/queries/users.queries.js', () => ({
@@ -30,6 +32,7 @@ vi.mock('$lib/server/database/queries/users.queries.js', () => ({
 }));
 vi.mock('$lib/server/services/download-leases.js', () => ({
     listActiveDownloads: m.active,
+    isDownloadLeasingDegraded: () => m.degraded.v,
 }));
 vi.mock('$lib/server/config.js', () => ({
     config: {
@@ -58,6 +61,7 @@ function row(over: Partial<DownloadEventRow>): DownloadEventRow {
         lastActivityAt: new Date('2026-11-16T10:01:00Z'),
         endedAt: new Date('2026-11-16T10:01:00Z'),
         outcome: 'completed',
+        cursor: '2026-11-16T10:00:00.000000Z|00000000-0000-4000-8000-000000000001',
         ...over,
     };
 }
@@ -73,6 +77,7 @@ const event = { url: new URL('http://localhost/api/admin/downloads') } as unknow
 beforeEach(() => {
     vi.clearAllMocks();
     m.cap.v = 0;
+    m.degraded.v = false;
     m.listEvents.mockResolvedValue([]);
     m.listOpen.mockResolvedValue([]);
     m.active.mockResolvedValue([]);
@@ -156,9 +161,20 @@ describe('GET /api/admin/downloads', () => {
     });
 
     it('passes the before cursor through', async () => {
-        const before = new Date('2026-11-16T09:00:00Z');
+        const before = '2026-11-16T09:00:00.123456Z|00000000-0000-4000-8000-000000000002';
         await def.handlers.GET!(event, ctx({ before }));
         expect(m.listEvents).toHaveBeenCalledWith({}, { userId: undefined, limit: 50, before });
+    });
+
+    it('exposes degraded and a keyset nextBefore', async () => {
+        m.degraded.v = true;
+        m.listEvents.mockResolvedValue([row({})]);
+        const res = await def.handlers.GET!(event, ctx({ limit: 1 }));
+        const body = await (res as Response).json();
+        expect(body.degraded).toBe(true);
+        expect(body.nextBefore).toBe(
+            '2026-11-16T10:00:00.000000Z|00000000-0000-4000-8000-000000000001',
+        );
     });
 
     it('reports running downloads with titles, speeds and the total against the cap', async () => {

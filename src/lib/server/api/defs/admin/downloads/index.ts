@@ -19,6 +19,7 @@ import { AdminDownloadsResponseSchema } from '$lib/schemas/api-admin-responses.j
 import { getDb } from '$lib/server/database/connection.js';
 import {
     getDownloadTitles,
+    isDownloadCursor,
     getUsernamesByIds,
     listDownloadEvents,
     listOpenDownloadEvents,
@@ -26,7 +27,7 @@ import {
     type DownloadTitleInfo,
 } from '$lib/server/database/queries/download-events.queries.js';
 import { getUserByUsername } from '$lib/server/database/queries/users.queries.js';
-import { listActiveDownloads } from '$lib/server/services/download-leases.js';
+import { isDownloadLeasingDegraded, listActiveDownloads } from '$lib/server/services/download-leases.js';
 import { kbpsToBytesPerSecond } from '$lib/server/utils/throttled-stream.js';
 import { config } from '$lib/server/config.js';
 
@@ -34,7 +35,10 @@ const MAX_LIMIT = 200;
 
 const QuerySchema = z.object({
     user: z.string().min(1).optional(),
-    before: z.coerce.date().optional(),
+    before: z
+        .string()
+        .refine(isDownloadCursor, 'before must be a cursor from nextBefore')
+        .optional(),
     limit: z.coerce.number().int().min(1).max(MAX_LIMIT).optional().default(50),
 });
 
@@ -87,6 +91,7 @@ export const def = defineEndpoint({
                             ),
                             active: [],
                             events: [],
+                            degraded: isDownloadLeasingDegraded(),
                         }),
                     );
                 }
@@ -125,6 +130,7 @@ export const def = defineEndpoint({
             const body = {
                 totalBytesPerSec,
                 totalCapBytesPerSec: kbpsToBytesPerSecond(config.DOWNLOAD_TOTAL_BANDWIDTH_KBPS),
+                degraded: isDownloadLeasingDegraded(),
                 active: matched.map(({ lease, event }) => ({
                     userId: lease.userId,
                     username: names.get(lease.userId),
@@ -150,10 +156,7 @@ export const def = defineEndpoint({
                     startedAt: r.startedAt.toISOString(),
                     endedAt: r.endedAt?.toISOString(),
                 })),
-                nextBefore:
-                    rows.length === limit
-                        ? rows[rows.length - 1].startedAt.toISOString()
-                        : undefined,
+                nextBefore: rows.length === limit ? rows[rows.length - 1].cursor : undefined,
             };
             return json(AdminDownloadsResponseSchema.parse(body));
         },
