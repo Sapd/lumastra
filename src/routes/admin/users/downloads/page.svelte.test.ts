@@ -210,6 +210,10 @@ describe('admin downloads page', () => {
             expect(screen.queryByText('Brand New')).toBeNull();
             // the next page continues from the answer's cursor, not from the shifted refresh
             getAdminDownloads.mockClear();
+            getAdminDownloads.mockResolvedValueOnce({
+                data: { ...payload, active: [], events: [] },
+                error: null,
+            });
             await fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
             expect(getAdminDownloads).toHaveBeenCalledWith(
                 expect.objectContaining({ before: 'cursor-B' }),
