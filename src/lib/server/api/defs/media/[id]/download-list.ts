@@ -104,7 +104,10 @@ export const def = defineEndpoint({
             } else {
                 const single = await getSingleDownloadRow(sql, internalId);
                 rows = single ? [single] : [];
-                seriesFolder = folderName(root.title, root.year);
+                seriesFolder =
+                    single?.media_type === 'episode' && single.series_title
+                        ? folderName(single.series_title, single.series_year ?? null)
+                        : folderName(root.title, root.year);
             }
 
             const allowedIds = await checkMediaAccessBatch(
@@ -112,23 +115,30 @@ export const def = defineEndpoint({
                 rows.map((r) => r.id),
                 accessUser,
             );
-            const isContainer = root.media_type === 'tv' || root.media_type === 'season';
+            // A lone episode lands in the same Show/Season folder as in a season list.
+            const inSeasonFolder =
+                root.media_type === 'tv' ||
+                root.media_type === 'season' ||
+                root.media_type === 'episode';
 
             const byNumber = (a: number | null, b: number | null) =>
                 (a ?? Number.MAX_SAFE_INTEGER) - (b ?? Number.MAX_SAFE_INTEGER);
-            const items = [...rows]
+            const accessible = rows.filter((r) => allowedIds.has(r.id));
+            const missingCount = accessible.filter((r) => !r.file_id || !r.file_path).length;
+            const items = [...accessible]
                 .sort(
                     (a, b) =>
                         byNumber(a.season_number, b.season_number) ||
                         byNumber(a.episode_number, b.episode_number),
                 )
-                .filter((r) => allowedIds.has(r.id) && r.file_id && r.file_path)
+                .filter((r) => r.file_id && r.file_path)
                 .map((r) => ({
                     mediaItemId: r.id,
                     fileId: r.file_id as string,
                     season: r.season_number,
                     episode: r.episode_number,
-                    seasonFolder: isContainer ? seasonFolder(r.season_number) : null,
+                    seasonFolder: inSeasonFolder ? seasonFolder(r.season_number) : null,
+                    // extname(file_path) assumes path mapping keeps the extension (the route uses the mapped path).
                     fileName: buildDownloadFilename(r, extname(r.file_path as string)),
                     sizeBytes: Number(r.file_size_bytes ?? 0),
                     available: r.is_missing !== true && Number(r.file_size_bytes ?? 0) > 0,
@@ -138,6 +148,7 @@ export const def = defineEndpoint({
                 allowed: await canDownload(downloadSubjectOf(event.locals)),
                 maxParallel: config.DOWNLOAD_MAX_PARALLEL_PER_USER,
                 seriesFolder,
+                missingCount,
                 items,
             });
         },

@@ -177,4 +177,32 @@ describe('media/{id}/download-list', () => {
         const { res } = await call();
         expect(res.status).toBe(404);
     });
+
+    it('missingCount counts accessible episodes without a file row', async () => {
+        mockEpisodes.mockResolvedValue([
+            ep('e1-1', 1, 1),
+            ep('e1-2', 1, 2, { file_id: null, file_path: null }),
+            ep('e1-3', 1, 3, { file_id: null, file_path: null }),
+        ]);
+        mockCheckBatch.mockImplementation(
+            async (_s: unknown, ids: string[]) => new Set(ids.filter((i) => i !== 'e1-3')),
+        );
+        const { body } = await call();
+        expect(body.items).toHaveLength(1);
+        expect(body.missingCount).toBe(1);
+    });
+
+    it('a single episode gets the series folder, season folder and the series-prefixed name', async () => {
+        mockRoot.mockResolvedValue({ id: 'e1', title: 'Pilot', year: null, media_type: 'episode' });
+        mockSingle.mockResolvedValue(
+            ep('e1', 1, 1, { title: 'Pilot', series_title: 'Show', series_year: 2004 }),
+        );
+        const { body } = await call('', 'e1');
+        expect(body.seriesFolder).toBe('Show (2004)');
+        expect(body.missingCount).toBe(0);
+        expect(body.items[0]).toMatchObject({
+            seasonFolder: 'Season 01',
+            fileName: 'Show - S01E01 - Pilot.mkv',
+        });
+    });
 });

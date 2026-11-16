@@ -4,6 +4,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type postgres from 'postgres';
 import { getTestDb, closeTestDb } from '../../../../../tests/integration/setup/test-database.js';
+import { getMediaItemForDownloadNaming } from './catalog-operations.queries.js';
+import { buildDownloadFilename } from '../../handlers/media-download-handler.js';
 import {
     getDownloadListRoot,
     getSingleDownloadRow,
@@ -54,16 +56,30 @@ describe('download-list queries', () => {
         });
     });
 
-    it('episodes of a series: default file, series title, files only, ordered', async () => {
+    it('episodes of a series: default file, series title, ordered', async () => {
         const rows = await listEpisodeDownloadRows(sql, ids.series);
-        expect(rows.map((r) => r.id)).toEqual([ids.e1, ids.e2]);
+        expect(rows.map((r) => r.id)).toEqual([ids.e1, ids.e2, ids.e3]);
         expect(rows[0]).toMatchObject({ file_id: ids.fb, series_title: 'DL Show' });
         expect(rows[1]).toMatchObject({ file_id: ids.fc, is_missing: true });
-        expect((await listEpisodeDownloadRows(sql, ids.s1)).length).toBe(2);
+        expect((await listEpisodeDownloadRows(sql, ids.s1)).length).toBe(3);
     });
 
     it('single item row', async () => {
         expect(await getSingleDownloadRow(sql, ids.e1)).toMatchObject({ file_id: ids.fb });
-        expect(await getSingleDownloadRow(sql, ids.e3)).toBeNull();
+        expect(await getSingleDownloadRow(sql, ids.e3)).toMatchObject({ file_id: null });
+    });
+
+    it('episodes without a file row come back with file_id null', async () => {
+        const rows = await listEpisodeDownloadRows(sql, ids.series);
+        expect(rows.map((r) => r.id)).toEqual([ids.e1, ids.e2, ids.e3]);
+        expect(rows[2].file_id).toBeNull();
+    });
+
+    it('a single episode row names itself like the download route and carries the series', async () => {
+        const row = await getSingleDownloadRow(sql, ids.e1);
+        const naming = await getMediaItemForDownloadNaming(sql, ids.e1);
+        expect(row).toMatchObject({ series_title: 'DL Show', series_year: 2004 });
+        expect(buildDownloadFilename(row!, '.mp4')).toBe(buildDownloadFilename(naming!, '.mp4'));
+        expect(buildDownloadFilename(row!, '.mp4')).toBe('DL Show - S01E01 - Ep1.mp4');
     });
 });

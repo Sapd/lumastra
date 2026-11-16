@@ -20,6 +20,8 @@ export interface DownloadListRoot {
 }
 
 export interface DownloadListRow extends MediaDownloadNamingRow {
+    /** Year of the owning series; only set by getSingleDownloadRow for an episode. */
+    series_year?: number | null;
     file_id: string | null;
     file_path: string | null;
     file_size_bytes: number | string | null;
@@ -39,7 +41,7 @@ export async function getDownloadListRoot(
     return rows[0] ?? null;
 }
 
-/** Every active episode under a series (or one season) that has at least one file row. */
+/** Every active episode under a series (or one season) (file_id null when it has no file row). */
 export async function listEpisodeDownloadRows(
     sql: postgres.Sql,
     containerId: string,
@@ -51,7 +53,7 @@ export async function listEpisodeDownloadRows(
         FROM media_items mi
         JOIN media_items season ON season.id = mi.parent_id
         JOIN media_items series ON series.id = season.parent_id
-        JOIN LATERAL (
+        LEFT JOIN LATERAL (
             SELECT mf.id, mf.file_path, mf.file_size_bytes, mf.is_missing
             FROM media_file_items mfi
             JOIN media_files mf ON mf.id = mfi.file_id
@@ -65,17 +67,19 @@ export async function listEpisodeDownloadRows(
     `;
 }
 
-/** One non-container item (movie, ...) with its default file; null without any file row. */
+/** One non-container item (movie, ...) with its default file. */
 export async function getSingleDownloadRow(
     sql: postgres.Sql,
     id: string,
 ): Promise<DownloadListRow | null> {
     const rows = await sql<DownloadListRow[]>`
         SELECT mi.id, mi.title, mi.year, mi.media_type, mi.season_number, mi.episode_number,
-               NULL::text AS series_title,
+               series.title AS series_title, series.year AS series_year,
                f.id AS file_id, f.file_path, f.file_size_bytes, f.is_missing
         FROM media_items mi
-        JOIN LATERAL (
+        LEFT JOIN media_items season ON mi.media_type = 'episode' AND season.id = mi.parent_id
+        LEFT JOIN media_items series ON mi.media_type = 'episode' AND series.id = season.parent_id
+        LEFT JOIN LATERAL (
             SELECT mf.id, mf.file_path, mf.file_size_bytes, mf.is_missing
             FROM media_file_items mfi
             JOIN media_files mf ON mf.id = mfi.file_id
