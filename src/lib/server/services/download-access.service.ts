@@ -39,14 +39,26 @@ async function loadOverride(userId: string): Promise<boolean | null | undefined>
     return override;
 }
 
-export async function canDownload(
+/**
+ * Per-user part of the gate (no master switch): no user -> false, admin -> true,
+ * else the per-user override falling back to DOWNLOADS_ALLOWED_BY_DEFAULT.
+ * Rendition routes use this on top of their own FEATURE_DOWNLOAD_RENDITIONS flag.
+ */
+export async function userMayDownload(
     user: { userId?: string; username?: string; isAdmin?: boolean } | null | undefined,
 ): Promise<boolean> {
-    if (!config.FEATURE_MEDIA_DOWNLOAD) return false;
     if (!user) return false;
     if (user.isAdmin) return true;
     if (!user.userId) return false;
     const override = await loadOverride(user.userId);
     if (override === undefined) return false; // no such user
     return override ?? config.DOWNLOADS_ALLOWED_BY_DEFAULT;
+}
+
+/** Original-file downloads: FEATURE_MEDIA_DOWNLOAD master switch plus the per-user part. */
+export async function canDownload(
+    user: { userId?: string; username?: string; isAdmin?: boolean } | null | undefined,
+): Promise<boolean> {
+    if (!config.FEATURE_MEDIA_DOWNLOAD) return false;
+    return userMayDownload(user);
 }

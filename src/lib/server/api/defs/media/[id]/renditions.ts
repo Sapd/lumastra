@@ -325,7 +325,9 @@ export const def = defineEndpoint({
                 return ApiProblem.notFound('Media item not found');
             }
 
-            const forbidden = await downloadForbiddenResponse(event.locals);
+            const forbidden = await downloadForbiddenResponse(event.locals, {
+                kind: 'rendition',
+            });
             if (forbidden) return forbidden;
 
             const body = ctx.input?.body;

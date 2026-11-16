@@ -3,17 +3,55 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const cfg = vi.hoisted(() => ({ FEATURE_MEDIA_DOWNLOAD: true, DOWNLOADS_ALLOWED_BY_DEFAULT: true }));
+const cfg = vi.hoisted(() => ({
+    FEATURE_MEDIA_DOWNLOAD: true,
+    DOWNLOADS_ALLOWED_BY_DEFAULT: true,
+}));
 const getUserAllowDownloads = vi.hoisted(() => vi.fn());
 
 vi.mock('$lib/server/config.js', () => ({ config: cfg }));
 vi.mock('$lib/server/database/connection.js', () => ({ getDb: () => ({}) }));
 vi.mock('$lib/server/database/queries/users.queries.js', () => ({ getUserAllowDownloads }));
 
-import { canDownload, invalidateDownloadAccess } from './download-access.service.js';
+import {
+    canDownload,
+    userMayDownload,
+    invalidateDownloadAccess,
+} from './download-access.service.js';
 
 let n = 0;
 const user = (isAdmin = false) => ({ userId: `u${++n}`, username: `name${n}`, isAdmin });
+
+describe('userMayDownload (no master switch)', () => {
+    beforeEach(() => {
+        cfg.FEATURE_MEDIA_DOWNLOAD = false;
+        cfg.DOWNLOADS_ALLOWED_BY_DEFAULT = true;
+        getUserAllowDownloads.mockReset();
+        getUserAllowDownloads.mockResolvedValue(null);
+    });
+
+    it('ignores FEATURE_MEDIA_DOWNLOAD', async () => {
+        expect(await userMayDownload(user())).toBe(true);
+        expect(await userMayDownload(user(true))).toBe(true);
+        expect(await canDownload(user())).toBe(false);
+    });
+
+    it('is false without a user or userId, true for admins', async () => {
+        expect(await userMayDownload(null)).toBe(false);
+        expect(await userMayDownload({ username: 'x' })).toBe(false);
+        expect(await userMayDownload({ username: 'x', isAdmin: true })).toBe(true);
+    });
+
+    it('override false beats default true; override true beats default false', async () => {
+        getUserAllowDownloads.mockResolvedValue(false);
+        expect(await userMayDownload(user())).toBe(false);
+        cfg.DOWNLOADS_ALLOWED_BY_DEFAULT = false;
+        getUserAllowDownloads.mockResolvedValue(true);
+        expect(await userMayDownload(user())).toBe(true);
+        getUserAllowDownloads.mockResolvedValue(undefined);
+        expect(await userMayDownload(user())).toBe(false);
+    });
+});
 
 describe('canDownload', () => {
     beforeEach(() => {

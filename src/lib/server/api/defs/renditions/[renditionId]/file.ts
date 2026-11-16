@@ -84,7 +84,9 @@ export const def = defineEndpoint({
                 return ApiProblem.notFound('Rendition not found');
             }
 
-            const forbidden = await downloadForbiddenResponse(event.locals);
+            const forbidden = await downloadForbiddenResponse(event.locals, {
+                kind: 'rendition',
+            });
             if (forbidden) return forbidden;
 
             if (row.status !== 'ready' || !row.artifact_name) {

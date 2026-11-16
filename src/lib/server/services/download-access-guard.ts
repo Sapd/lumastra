@@ -9,7 +9,7 @@
  */
 
 import { ApiProblem } from '$lib/server/api/problem.js';
-import { canDownload } from '$lib/server/services/download-access.service.js';
+import { canDownload, userMayDownload } from '$lib/server/services/download-access.service.js';
 import { localsIsAdmin } from '$lib/server/auth/locals-admin.js';
 import * as m from '$lib/paraglide/messages';
 
@@ -19,9 +19,14 @@ type GuardLocals = Parameters<typeof localsIsAdmin>[0] & {
 
 export async function downloadForbiddenResponse(
     locals: GuardLocals | null | undefined,
+    opts: { kind: 'original' | 'rendition' } = { kind: 'original' },
 ): Promise<Response | null> {
     const user = locals?.user;
-    const allowed = await canDownload(
+    // Admin is decided by the principal: an admin using a Quick Connect session or
+    // a /j API key is treated as a normal user. 'rendition' skips the
+    // FEATURE_MEDIA_DOWNLOAD switch (renditions have FEATURE_DOWNLOAD_RENDITIONS).
+    const check = opts.kind === 'rendition' ? userMayDownload : canDownload;
+    const allowed = await check(
         user
             ? { userId: user.userId, username: user.username, isAdmin: localsIsAdmin(locals) }
             : null,
