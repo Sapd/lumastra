@@ -145,10 +145,11 @@
 
     // Clearing deletes rows for good, so it takes a second click on an inline
     // confirm strip rather than firing straight away. Reset whenever the
-    // drawer closes so it never reopens half-armed.
+    // drawer closes (so it never reopens half-armed) or the list empties some
+    // other way (so it never asks to delete nothing).
     let confirmingClear = $state(false);
     $effect(() => {
-        if (!open) confirmingClear = false;
+        if (!open || items.length === 0) confirmingClear = false;
     });
 
     function clearAll(): void {

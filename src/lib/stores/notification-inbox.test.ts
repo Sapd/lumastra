@@ -204,6 +204,16 @@ describe('notificationInbox.clearAll', () => {
         await notificationInbox.loadInitial();
 
         mockClearAll.mockResolvedValue({ data: { deleted: 41 }, error: null });
+        // The post-clear refetch returns what the server now holds.
+        mockGetUnreadCount.mockResolvedValue({ data: { count: 1 }, error: null });
+        mockGetNotifications.mockResolvedValue({
+            data: {
+                items: [],
+                pinned: [makeItem({ id: 'p1', pinnedAt: '2026-08-01T00:00:00.000Z' })],
+                page: { limit: 30, hasMore: false, nextCursor: null },
+            },
+            error: null,
+        });
         await notificationInbox.clearAll();
 
         let snapshot: import('./notification-inbox.js').NotificationInboxState | undefined;
@@ -214,6 +224,51 @@ describe('notificationInbox.clearAll', () => {
         expect(snapshot?.nextCursor).toBeNull();
         expect(snapshot?.pinned.map((p) => p.id)).toEqual(['p1']);
         expect(snapshot?.unreadCount).toBe(1);
+    });
+
+    it('drops a loadMore page that was requested before the clear', async () => {
+        mockGetUnreadCount.mockResolvedValue({ data: { count: 2 }, error: null });
+        mockGetNotifications.mockResolvedValueOnce({
+            data: {
+                items: [makeItem({ id: 'n1' })],
+                page: { limit: 30, hasMore: true, nextCursor: 'c1' },
+            },
+            error: null,
+        });
+        const { notificationInbox } = await freshStore();
+        await notificationInbox.loadInitial();
+
+        let resolvePage!: (v: unknown) => void;
+        mockGetNotifications.mockReturnValueOnce(
+            new Promise((resolve) => {
+                resolvePage = resolve;
+            }),
+        );
+        const pendingPage = notificationInbox.loadMore();
+
+        mockClearAll.mockResolvedValue({ data: { deleted: 2 }, error: null });
+        mockGetUnreadCount.mockResolvedValue({ data: { count: 0 }, error: null });
+        mockGetNotifications.mockResolvedValueOnce({
+            data: { items: [], page: { limit: 30, hasMore: false, nextCursor: null } },
+            error: null,
+        });
+        await notificationInbox.clearAll();
+
+        resolvePage({
+            data: {
+                items: [makeItem({ id: 'n2' })],
+                page: { limit: 30, hasMore: true, nextCursor: 'c2' },
+            },
+            error: null,
+        });
+        await pendingPage;
+
+        let snapshot: import('./notification-inbox.js').NotificationInboxState | undefined;
+        notificationInbox.subscribe((s) => (snapshot = s))();
+        expect(snapshot?.items).toEqual([]);
+        expect(snapshot?.hasMore).toBe(false);
+        expect(snapshot?.nextCursor).toBeNull();
+        expect(snapshot?.loading).toBe(false);
     });
 
     it('refetches the inbox when the server call fails', async () => {

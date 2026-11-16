@@ -243,6 +243,12 @@ function createNotificationInboxStore() {
     let unsubscribeLive: (() => void) | null = null;
     let removeFocusListeners: (() => void) | null = null;
     let lastReconcileAt = 0;
+    /**
+     * Bumped by clearAll(). A loadMore() page that was requested before a
+     * clear must not be appended after it: those rows are gone on the server,
+     * and appending them would also restore the stale cursor.
+     */
+    let clearGeneration = 0;
 
     /**
      * The durable row's id, when the frame is one that has a row.
@@ -454,10 +460,15 @@ function createNotificationInboxStore() {
         if (!state.hasMore || state.loading || !state.nextCursor) return;
 
         update((s) => ({ ...s, loading: true, error: null }));
+        const generation = clearGeneration;
         const { data, error } = await getNotifications({
             limit: PAGE_SIZE,
             cursor: state.nextCursor,
         });
+        if (generation !== clearGeneration) {
+            update((s) => ({ ...s, loading: false }));
+            return;
+        }
         update((s) => ({
             ...s,
             loading: false,
@@ -642,11 +653,13 @@ function createNotificationInboxStore() {
     /**
      * Delete every notification except currently-pinned announcements — the
      * server clears rows not yet paged in too, so the list ends empty with no
-     * further page. Optimistic; on failure the inbox is refetched rather than
-     * restored from a snapshot, since the server may have deleted some rows
-     * and live frames may have arrived meanwhile.
+     * further page. Optimistic, then refetched either way: on failure the
+     * server may still have deleted some rows, and on success the refetch
+     * picks up a pin that lapsed (its row is now gone) or a notification
+     * that arrived while the delete ran.
      */
     async function clearAll(): Promise<void> {
+        clearGeneration++;
         update((state) => ({
             ...state,
             items: [],
@@ -655,8 +668,8 @@ function createNotificationInboxStore() {
             unreadCount: state.pinned.filter((item) => item.readAt === null).length,
         }));
 
-        const { error } = await clearAllNotifications();
-        if (error) await loadInitial();
+        await clearAllNotifications();
+        await loadInitial();
     }
 
     /**
