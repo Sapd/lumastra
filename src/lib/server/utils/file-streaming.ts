@@ -9,6 +9,7 @@
 
 import { extname } from 'node:path';
 import { createReadStream } from 'node:fs';
+import type { Readable } from 'node:stream';
 import { stat } from 'node:fs/promises';
 import type { FileHandle } from 'node:fs/promises';
 import { parseRangeHeader } from '$lib/server/utils/hls-request-utils.js';
@@ -325,6 +326,11 @@ export interface OpenedFile {
     mtimeMs: number | null;
 }
 
+/** The bytes of an {@link OpenedFile} as a Node stream (the descriptor is closed with it). */
+export function openedFileStream(opened: OpenedFile): Readable {
+    return opened.handle.createReadStream();
+}
+
 /**
  * {@link serveFileByPath} for a download whose file was opened and verified once by
  * `openDownloadableFile`: no second path resolution, so a swap after the check cannot redirect it.
@@ -339,7 +345,7 @@ export async function serveOpenedDownload(
 }
 
 /** Wrap a body so `observer` sees every chunk and the end. Identity when there is no observer. */
-function observeStream(
+export function observeStream(
     body: ReadableStream<Uint8Array>,
     observer: StreamObserver | undefined,
 ): ReadableStream<Uint8Array> {

@@ -1887,6 +1887,7 @@
 /api/media/[id]/context GET user  <- /api/media/**
 /api/media/[id]/download GET user  <- /api/media/**
 /api/media/[id]/download-list GET user  <- /api/media/**
+/api/media/[id]/download-zip GET user  <- /api/media/**
 /api/media/[id]/files GET user  <- /api/media/**
 /api/media/[id]/images/[role] GET user  <- /api/media/**
 /api/media/[id]/listening-sharing GET user  <- /api/media/**
