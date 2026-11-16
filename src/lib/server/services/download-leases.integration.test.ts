@@ -164,6 +164,36 @@ describe.runIf(RUN)('download leases, real Valkey', () => {
         expect(mine[0].startedAt).toBeGreaterThan(0);
     });
 
+    it('a rejected acquire keeps the user in U and in the active list', async () => {
+        cfg.DOWNLOAD_MAX_PARALLEL_PER_USER = 1;
+        cfg.DOWNLOAD_TOTAL_BANDWIDTH_KBPS = 4000;
+        const aUser = user();
+        await must(aUser, 'f1');
+        const rejected = await acquireDownloadLease({
+            userId: aUser,
+            fileId: 'f2',
+            deviceKey: 'd',
+        });
+        expect(rejected.ok).toBe(false);
+        const b = await must(user(), 'f1');
+        expect(await b.refresh(0)).toBe(2000 * KB); // U = 2
+        const mine = (await listActiveDownloads()).filter((d) => d.userId === aUser);
+        expect(mine).toHaveLength(1);
+    });
+
+    it('a user whose lease expired without release stops counting toward U', async () => {
+        cfg.DOWNLOAD_TOTAL_BANDWIDTH_KBPS = 4000;
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(Date.now());
+        const a = await must(user(), 'f1');
+        await must(user(), 'f1'); // B never refreshes
+        expect(await a.refresh(0)).toBe(2000 * KB);
+        vi.setSystemTime(Date.now() + 20_000);
+        await a.refresh(0);
+        vi.setSystemTime(Date.now() + 15_000);
+        expect(await a.refresh(0)).toBe(4000 * KB);
+    });
+
     it('every key has a TTL', async () => {
         const u = user();
         await must(u, 'f1');

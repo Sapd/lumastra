@@ -26,7 +26,8 @@
  *
  * ## Rate
  *
- * With U = users holding at least one live lease and L = this user's live leases:
+ * With U = users holding at least one live slot and L = this user's live slots
+ * (a slot is a distinct file+device; repeat requests for it share one):
  *   min(per-download cap, user cap / L, total cap / U / L), ignoring caps that are 0.
  * The total is split per user first, so three parallel downloads do not get three
  * times the share of someone with one. Not work-conserving: bandwidth a capped
@@ -49,6 +50,8 @@ export const LEASE_TTL_MS = 30_000;
 export const LEASE_REFRESH_INTERVAL_MS = 5_000;
 /** Hint for a rejected client; a live download frees its slot at an unknown time. */
 const RETRY_AFTER_SEC = 5;
+/** Upper bound for one Valkey round trip; a timeout counts as an error (fail open to process-local). */
+const VALKEY_TIMEOUT_MS = 2_000;
 
 const LEASE_KEY_PREFIX = 'dl:lease:';
 const USERS_KEY = 'dl:users';
@@ -70,7 +73,7 @@ export interface DownloadLease {
     release(): Promise<void>;
 }
 
-/** Pure rate formula, see the file header. */
+/** Pure rate formula, see the file header. `liveLeases` counts slots (distinct file+device). */
 export function computeRate(liveLeases: number, liveUsers: number): number {
     const l = Math.max(1, liveLeases);
     const u = Math.max(1, liveUsers);
@@ -247,14 +250,16 @@ const LUA_ACQUIRE =
     LUA_COMMON +
     `
 local now, ttl, limit = tonumber(ARGV[1]), tonumber(ARGV[2]), tonumber(ARGV[3])
-local live = sweep(KEYS[1], now)
+local live, liveMaxExp = sweep(KEYS[1], now)
 local v = redis.call('HGET', KEYS[1], ARGV[4])
 if v then
     local p = parse(v)
     redis.call('HSET', KEYS[1], ARGV[4], pack(now + ttl, p[2] + 1, p[3], p[4], p[5]))
 else
     if limit > 0 and live >= limit then
-        syncUsers(KEYS[2], ARGV[5], live, 0, now, ttl)
+        -- Keep the user's real latest expiry: a score of 0 would drop a user who still
+        -- holds live leases from dl:users (U undercounted, hidden from the list).
+        syncUsers(KEYS[2], ARGV[5], live, liveMaxExp, now, ttl)
         return {0}
     end
     redis.call('HSET', KEYS[1], ARGV[4], pack(now + ttl, 1, 0, now, 0))
@@ -340,6 +345,24 @@ const SCRIPTS = {
 
 /** EVALSHA fast path, plain EVAL on first use and after NOSCRIPT (server restart / failover). */
 async function run(
+    client: ValkeyLike,
+    s: Script,
+    keys: string[],
+    args: Array<string | number>,
+): Promise<unknown> {
+    return withTimeout(runUnbounded(client, s, keys, args), VALKEY_TIMEOUT_MS);
+}
+
+/** Reject if `p` does not settle in `ms`, so a hung Valkey cannot stall a download. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+    let timer: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`Valkey call timed out after ${ms} ms`)), ms);
+    });
+    return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
+}
+
+async function runUnbounded(
     client: ValkeyLike,
     s: Script,
     keys: string[],

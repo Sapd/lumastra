@@ -44,8 +44,9 @@ const BURST_SECONDS = 1;
  * Wrap a Node readable in a web `ReadableStream` that emits at most
  * `bytesPerSecond`.
  *
- * `bytesPerSecond <= 0` means unlimited (a function is re-read on each refill) and returns a plain passthrough — the
+ * `bytesPerSecond <= 0` means unlimited and returns a plain passthrough: the
  * throttle must be free to disable, since that is the default configuration.
+ * A function is re-read on each refill, so the cap can change while it runs.
  */
 export function throttleNodeStream(
     source: Readable,

@@ -13,7 +13,10 @@ const cfg = vi.hoisted(() => ({
 }));
 
 vi.mock('$lib/server/config.js', () => ({ config: cfg }));
-vi.mock('$lib/server/cache/valkey.js', () => ({ getCoordinationClient: () => null }));
+const coord = vi.hoisted(() => ({
+    client: null as null | { customCommand: () => Promise<unknown> },
+}));
+vi.mock('$lib/server/cache/valkey.js', () => ({ getCoordinationClient: () => coord.client }));
 
 import {
     acquireDownloadLease,
@@ -34,6 +37,7 @@ beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-11-16T10:00:00Z'));
     resetDownloadLeasesForTests();
+    coord.client = null;
     cfg.DOWNLOAD_THROTTLE_KBPS = 0;
     cfg.DOWNLOAD_USER_BANDWIDTH_KBPS = 0;
     cfg.DOWNLOAD_TOTAL_BANDWIDTH_KBPS = 0;
@@ -180,6 +184,49 @@ describe('rate', () => {
         expect(await a.refresh(0)).toBe(2000 * KB);
         await b.release();
         expect(await a.refresh(0)).toBe(4000 * KB);
+    });
+});
+
+describe('expiry without release', () => {
+    it('a user whose lease expired without release stops counting toward U', async () => {
+        cfg.DOWNLOAD_TOTAL_BANDWIDTH_KBPS = 4000;
+        const a = await must('A', 'f1');
+        await must('B', 'f1');
+        expect(await a.refresh(0)).toBe(2000 * KB);
+        vi.advanceTimersByTime(20_000);
+        await a.refresh(0); // A stays alive, B is silent
+        vi.advanceTimersByTime(15_000);
+        expect(await a.refresh(0)).toBe(4000 * KB);
+    });
+});
+
+describe('hung Valkey', () => {
+    const hung = { customCommand: () => new Promise<unknown>(() => {}) };
+
+    it('acquire times out after 2 s and falls back to process-local leases', async () => {
+        coord.client = hung;
+        const p = acquireDownloadLease({ userId: 'u', fileId: 'f1', deviceKey: 'd' });
+        await vi.advanceTimersByTimeAsync(2_000);
+        expect((await p).ok).toBe(true);
+        coord.client = null;
+        expect(await listActiveDownloads()).toHaveLength(1);
+    });
+
+    it('refresh times out, keeps the previous rate and does not throw', async () => {
+        cfg.DOWNLOAD_USER_BANDWIDTH_KBPS = 3000;
+        // First call (acquire) answers {1, L=2, U=1}; every later call hangs.
+        let calls = 0;
+        coord.client = {
+            customCommand: () =>
+                ++calls === 1 ? Promise.resolve([1, 2, 1]) : new Promise<unknown>(() => {}),
+        };
+        const r = await acquireDownloadLease({ userId: 'u', fileId: 'f1', deviceKey: 'd' });
+        if (!r.ok) throw new Error('expected ok');
+        const before = r.lease.rateBytesPerSec();
+        expect(before).toBe(1500 * KB);
+        const p = r.lease.refresh(10);
+        await vi.advanceTimersByTimeAsync(2_000);
+        expect(await p).toBe(before);
     });
 });
 
