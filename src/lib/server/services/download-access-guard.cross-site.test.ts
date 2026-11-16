@@ -23,8 +23,13 @@ describe('crossSiteForbiddenResponse', () => {
         expect(check({ 'sec-fetch-site': 'cross-site' })?.status).toBe(403);
     });
 
-    it.each(['same-origin', 'same-site', 'none'])('allows Sec-Fetch-Site: %s', (v) => {
+    it.each(['same-origin', 'none'])('allows Sec-Fetch-Site: %s', (v) => {
         expect(check({ 'sec-fetch-site': v })).toBeNull();
+    });
+
+    it('refuses Sec-Fetch-Site: same-site and unknown values', () => {
+        expect(check({ 'sec-fetch-site': 'same-site' })?.status).toBe(403);
+        expect(check({ 'sec-fetch-site': 'weird' })?.status).toBe(403);
     });
 
     it('the header wins: same-origin passes even with a foreign Referer', () => {

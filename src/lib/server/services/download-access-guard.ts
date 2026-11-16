@@ -63,7 +63,8 @@ export async function downloadForbiddenResponse(
  * Browser-session download routes are plain GET links, so a cookie-authenticated GET
  * from another site (an <a>, <img> or navigation on a page we do not control) would
  * start a download as the signed-in user. Browsers label that `Sec-Fetch-Site: cross-site`;
- * `same-origin`, `same-site` and `none` (typed URL) pass.
+ * only `same-origin` and `none` (typed URL) pass: `same-site` (a sibling subdomain) is
+ * refused too.
  *
  * A request WITHOUT the header (an old browser, or a client that strips it) is not trusted
  * blindly: it must then prove it is ours through `Origin` or `Referer`, whose host has to
@@ -78,7 +79,7 @@ export function crossSiteForbiddenResponse(
     const refuse = (): Response =>
         ApiProblem.forbidden(m.downloads_not_allowed(), { reason: 'cross_site_request' });
     const site = request.headers.get('sec-fetch-site');
-    if (site !== null) return site === 'cross-site' ? refuse() : null;
+    if (site !== null) return site === 'same-origin' || site === 'none' ? null : refuse();
 
     const hostOf = (value: string | null): string | null => {
         if (!value) return null;
