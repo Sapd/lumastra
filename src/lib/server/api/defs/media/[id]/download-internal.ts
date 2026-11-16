@@ -23,7 +23,9 @@ import {
 import { resolveCatalogInternalId } from '../../catalog/resolve-id.js';
 import { handleDownloadFile } from '$lib/server/handlers/media-download-handler.js';
 
-const DownloadQuery = z.object({ fileId: z.string().optional() }).strict();
+const DownloadQuery = z
+    .object({ fileId: z.string().optional(), h: z.string().max(100).optional() })
+    .strict();
 
 export const def = defineEndpoint({
     auth: { kind: 'user' },

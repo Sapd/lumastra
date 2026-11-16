@@ -162,12 +162,20 @@ function defaultDeps(): QueueDeps {
     };
 }
 
-export function downloadUrl(mediaItemId: string, fileId: string): string {
-    return `${base}/api/media/${encodeURIComponent(mediaItemId)}/download?fileId=${encodeURIComponent(fileId)}`;
+/** `handoff` is the link mode's per-hand-off nonce: the server echoes it back through the slots endpoint. */
+export function downloadUrl(mediaItemId: string, fileId: string, handoff?: string): string {
+    return `${base}/api/media/${encodeURIComponent(mediaItemId)}/download?fileId=${encodeURIComponent(fileId)}${handoff ? `&h=${encodeURIComponent(handoff)}` : ''}`;
 }
 
-function slotsUrl(fileId?: string): string {
-    return `${base}/api/me/downloads/slots${fileId ? `?fileId=${encodeURIComponent(fileId)}` : ''}`;
+function slotsUrl(handoff?: string): string {
+    return `${base}/api/me/downloads/slots${handoff ? `?h=${encodeURIComponent(handoff)}` : ''}`;
+}
+
+/** A fresh random id for one hand-off (URL-safe, 22+ chars). */
+function newHandoffNonce(): string {
+    const bytes = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 function listUrl(mediaItemId: string, opts: EnqueueOptions & { summary?: boolean }): string {
@@ -666,10 +674,10 @@ export class DownloadQueue {
 
     /** The user's own slots, or null when they cannot be read (then nothing can be observed). */
     private async slotsInfo(
-        fileId?: string,
+        handoff?: string,
     ): Promise<{ maxParallel: number; inUse: number; started: boolean } | null> {
         try {
-            const res = await this.deps.fetch(slotsUrl(fileId), { signal: this.abort?.signal });
+            const res = await this.deps.fetch(slotsUrl(handoff), { signal: this.abort?.signal });
             if (!res.ok) return null;
             const b = (await res.json()) as {
                 maxParallel?: number;
@@ -707,15 +715,16 @@ export class DownloadQueue {
         }
     }
 
-    /** Link mode: true once the server reports the file's download running or logged. */
-    private async confirmStarted(item: QueueItem): Promise<boolean> {
+    /**
+     * Link mode: true once the server reports THIS hand-off (its nonce) as started. A failing
+     * slots endpoint or network is not success: the observation is retried within the window.
+     */
+    private async confirmStarted(handoff: string): Promise<boolean> {
         for (let waited = 0; waited < START_CONFIRM_MS; waited += START_CONFIRM_POLL_MS) {
             await this.sleep(START_CONFIRM_POLL_MS);
             if (this.stopRequested) return true;
-            const info = await this.slotsInfo(item.fileId);
-            // Cannot be observed (old server, endpoint failing): trust the hand-off.
-            if (!info) return true;
-            if (info.started) return true;
+            const info = await this.slotsInfo(handoff);
+            if (info?.started) return true;
         }
         return false;
     }
@@ -731,8 +740,12 @@ export class DownloadQueue {
             let started = false;
             for (let attempt = 0; attempt <= MAX_HANDOFF_RETRIES; attempt++) {
                 if (!(await this.waitForFreeSlot(item))) return;
-                this.deps.triggerLink(downloadUrl(item.mediaItemId, item.fileId), item.fileName);
-                started = await this.confirmStarted(item);
+                const handoff = newHandoffNonce();
+                this.deps.triggerLink(
+                    downloadUrl(item.mediaItemId, item.fileId, handoff),
+                    item.fileName,
+                );
+                started = await this.confirmStarted(handoff);
                 if (started || this.stopRequested) break;
             }
             if (this.stopRequested) {

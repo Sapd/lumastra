@@ -124,7 +124,7 @@ function setup(
         if (url.includes('/download-list')) return json(l);
         if (url.includes('/downloads/slots')) {
             slotCalls.push(url);
-            const f = new URL(url, 'http://x').searchParams.get('fileId');
+            const f = new URL(url, 'http://x').searchParams.get('h');
             if (opts.slots) return opts.slots(f, slotCalls.length);
             return json({ maxParallel: l.maxParallel, inUse: 0, ...(f ? { started: true } : {}) });
         }
@@ -297,8 +297,14 @@ describe('DownloadQueue link mode', () => {
         expect(q.supportsFolderPicker).toBe(false);
         await q.start();
         expect(links).toEqual([
-            { url: '/api/media/ep-1/download?fileId=f-1', fileName: 'Show - S01E01 - T1.mkv' },
-            { url: '/api/media/ep-2/download?fileId=f-2', fileName: 'Show - S01E02 - T2.mkv' },
+            {
+                url: expect.stringMatching(/^\/api\/media\/ep-1\/download\?fileId=f-1&h=[0-9a-f]{32}$/),
+                fileName: 'Show - S01E01 - T1.mkv',
+            },
+            {
+                url: expect.stringMatching(/^\/api\/media\/ep-2\/download\?fileId=f-2&h=[0-9a-f]{32}$/),
+                fileName: 'Show - S01E02 - T2.mkv',
+            },
         ]);
         // a 1 s confirmation poll after each hand-off, and the gap between the two
         expect(sleeps).toEqual([1000, 1500, 1000]);
@@ -843,12 +849,55 @@ describe('DownloadQueue link mode watches the server', () => {
         expect(q.items[0].status).toBe('handed');
     });
 
-    test('when the slots endpoint fails, hand-offs are trusted as before', async () => {
-        const { q, links } = linkSetup(2, () => new Response('nope', { status: 500 }));
+    test('a failing slots endpoint during observation is retried, never counted as success', async () => {
+        let n = 0;
+        const { q, links } = linkSetup(1, (f) => {
+            if (!f) return json({ maxParallel: 2, inUse: 0 }); // the pre-hand-off slot check works
+            n += 1;
+            // the first observations fail (500 / network), then the server confirms
+            if (n <= 3) return new Response('nope', { status: 500 });
+            return json({ maxParallel: 2, inUse: 0, started: true });
+        });
         await q.enqueue('s');
         await q.start();
-        expect(links).toHaveLength(2);
-        expect(q.items.map((i) => i.status)).toEqual(['handed', 'handed']);
+        expect(links).toHaveLength(1); // retried the OBSERVATION, not the hand-off
+        expect(q.items[0].status).toBe('handed');
+    });
+
+    test('an endpoint that never answers ends as not_started after the bounded retries', async () => {
+        const { q, links } = linkSetup(1, (f) =>
+            f ? new Response('nope', { status: 500 }) : json({ maxParallel: 2, inUse: 0 }),
+        );
+        await q.enqueue('s');
+        await q.start();
+        expect(links).toHaveLength(3);
+        expect(q.items[0]).toMatchObject({ status: 'failed', reason: 'not_started' });
+    });
+
+    test('confirmation is correlated to THIS hand-off: a different nonce does not count', async () => {
+        // the server has only ever seen an unrelated nonce (e.g. another device's download)
+        const { q, links } = linkSetup(1, (f) =>
+            json({ maxParallel: 2, inUse: 0, ...(f ? { started: f === 'someone-elses' } : {}) }),
+        );
+        await q.enqueue('s');
+        await q.start();
+        expect(q.items[0]).toMatchObject({ status: 'failed', reason: 'not_started' });
+        // every hand-off carried its own fresh nonce
+        const nonces = links.map((l) => new URL(l.url, 'http://x').searchParams.get('h'));
+        expect(new Set(nonces).size).toBe(3);
+        expect(nonces.every((n) => /^[0-9a-f]{32}$/.test(n ?? ''))).toBe(true);
+    });
+
+    test('the nonce on the link is the one the queue asks the slots endpoint about', async () => {
+        const asked: Array<string | null> = [];
+        const { q, links } = linkSetup(1, (f) => {
+            asked.push(f);
+            return json({ maxParallel: 2, inUse: 0, ...(f ? { started: true } : {}) });
+        });
+        await q.enqueue('s');
+        await q.start();
+        const sent = new URL(links[0].url, 'http://x').searchParams.get('h');
+        expect(asked).toContain(sent);
     });
 
     test('cancelling while waiting for a slot hands nothing over', async () => {

@@ -8,13 +8,13 @@ import type { RequestEvent } from '@sveltejs/kit';
 
 const cfg = vi.hoisted(() => ({ DOWNLOAD_MAX_PARALLEL_PER_USER: 3 }));
 const mockList = vi.fn();
-const mockRecent = vi.fn();
+const mockSeen = vi.fn();
 
 vi.mock('$lib/server/config.js', () => ({ config: cfg }));
-vi.mock('$lib/server/database/connection.js', () => ({ getDb: () => ({}) }));
-vi.mock('$lib/server/database/queries/download-events.queries.js', () => ({
-    hasRecentDownloadStart: (...a: unknown[]) => mockRecent(...a),
-}));
+vi.mock('$lib/server/services/download-handoff.js', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('$lib/server/services/download-handoff.js')>();
+    return { ...actual, handoffSeen: (...a: unknown[]) => mockSeen(...a) };
+});
 vi.mock('$lib/server/services/download-leases.js', () => ({
     listActiveDownloads: (...a: unknown[]) => mockList(...a),
 }));
@@ -32,14 +32,14 @@ async function call(
     headers: Record<string, string> = { 'sec-fetch-site': 'same-origin' },
 ) {
     const url = `http://localhost/api/me/downloads/slots${query}`;
-    const fileId = new URL(url).searchParams.get('fileId') ?? undefined;
+    const h = new URL(url).searchParams.get('h') ?? undefined;
     const res = await def.handlers.GET!(
         {
             locals: { user: { userId: 'u1' } },
             url: new URL(url),
             request: new Request(url, { headers }),
         } as unknown as RequestEvent,
-        { input: { query: fileId ? { fileId } : {} } } as never,
+        { input: { query: h ? { h } : {} } } as never,
     );
     return { res, body: res.status === 200 ? await res.json() : null };
 }
@@ -59,7 +59,7 @@ beforeEach(() => {
             bytesPerSec: 0,
         },
     ]);
-    mockRecent.mockResolvedValue(false);
+    mockSeen.mockResolvedValue(false);
 });
 
 describe('me/downloads/slots', () => {
@@ -80,20 +80,26 @@ describe('me/downloads/slots', () => {
         expect(mockList).toHaveBeenCalledTimes(1);
     });
 
-    it('fileId: started is true for a running slot without asking the log', async () => {
-        const { body } = await call('?fileId=f1');
+    it('h: started only when THAT nonce was seen for this user', async () => {
+        mockSeen.mockResolvedValue(true);
+        const { body } = await call('?h=abcdef123456');
         expect(body.started).toBe(true);
-        expect(mockRecent).not.toHaveBeenCalled();
+        expect(mockSeen).toHaveBeenCalledWith('u1', 'abcdef123456');
     });
 
-    it('fileId: a finished short download shows as started through the log', async () => {
-        mockRecent.mockResolvedValue(true);
-        const { body } = await call('?fileId=f3');
-        expect(body.started).toBe(true);
-        expect(mockRecent).toHaveBeenCalledWith(expect.anything(), 'u1', 'f3', expect.any(Date));
+    it('h: an unknown nonce is not started, even while the same file runs on another device', async () => {
+        // f1 is running (another device) but this hand-off was never seen
+        const { body } = await call('?h=abcdef123456');
+        expect(body.started).toBe(false);
     });
 
-    it('fileId: nothing running and nothing logged is not started', async () => {
-        expect((await call('?fileId=f3')).body.started).toBe(false);
+    it('a malformed nonce is ignored (no started field, no lookup)', async () => {
+        const { body } = await call('?h=%24%24');
+        expect(body.started).toBeUndefined();
+        expect(mockSeen).not.toHaveBeenCalled();
+    });
+
+    it('without h there is no started field', async () => {
+        expect((await call()).body).not.toHaveProperty('started');
     });
 });

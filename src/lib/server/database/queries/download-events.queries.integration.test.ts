@@ -11,7 +11,6 @@ import {
     listOpenDownloadEvents,
     deleteDownloadEventsOlderThan,
     endDownloadEvent,
-    hasRecentDownloadStart,
     listDownloadEvents,
     mergeTinyRangeEvent,
     recordRefusedDownload,
@@ -19,7 +18,6 @@ import {
     updateDownloadEvent,
 } from './download-events.queries.js';
 
-const randomUserId = '99999999-9999-4999-8999-999999999999';
 const ITEM = '22222222-2222-4222-8222-222222222222';
 const FILE = '33333333-3333-4333-8333-333333333333';
 
@@ -442,28 +440,6 @@ describe('download-events queries', () => {
             // a join and a re-open never ask
             expect(await startDownloadEvent(sql, base(), { allowInsert: () => (asked.push(1), false) })).toBe(id);
             expect(asked).toHaveLength(1);
-        });
-    });
-
-    describe('hasRecentDownloadStart', () => {
-        const minuteAgo = () => new Date(Date.now() - 60_000);
-
-        it('sees an open or just-ended transfer of the file, not a refusal, another user or a stale row', async () => {
-            expect(await hasRecentDownloadStart(sql, userId, FILE, minuteAgo())).toBe(false);
-            await recordRefusedDownload(sql, base(), 'rate_limited');
-            expect(await hasRecentDownloadStart(sql, userId, FILE, minuteAgo())).toBe(false);
-            const id = await startDownloadEvent(sql, base());
-            expect(await hasRecentDownloadStart(sql, userId, FILE, minuteAgo())).toBe(true);
-            expect(await hasRecentDownloadStart(sql, randomUserId, FILE, minuteAgo())).toBe(false);
-            await endDownloadEvent(sql, id, 'completed', { bytesSentDelta: 100 });
-            expect(await hasRecentDownloadStart(sql, userId, FILE, minuteAgo())).toBe(true);
-            await sql`UPDATE download_events SET last_activity_at = now() - interval '5 minutes'
-                      WHERE id = ${id}`;
-            expect(await hasRecentDownloadStart(sql, userId, FILE, minuteAgo())).toBe(false);
-        });
-
-        it('rejects a malformed id without querying', async () => {
-            expect(await hasRecentDownloadStart(sql, userId, "x'; --", minuteAgo())).toBe(false);
         });
     });
 });

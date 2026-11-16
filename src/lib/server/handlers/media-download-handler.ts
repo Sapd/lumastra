@@ -28,6 +28,7 @@ import { resolvePlaybackSelection } from '$lib/server/database/queries/media-fil
 import { getMediaItemForDownloadNaming } from '$lib/server/database/queries/catalog-operations.queries';
 import type { MediaDownloadNamingRow } from '$lib/server/database/queries/catalog-operations.queries';
 import { resolveMediaPath } from '$lib/server/utils/media-path-resolver';
+import { noteHandoff, parseHandoffNonce } from '$lib/server/services/download-handoff.js';
 import { openDownloadableFile, resolveDownloadablePath } from '$lib/server/utils/download-path';
 import { preflightFile, serveOpenedDownload } from '$lib/server/utils/file-streaming';
 import { attachmentDisposition } from '$lib/server/utils/content-disposition';
@@ -225,6 +226,11 @@ export async function handleDownloadFile(
         });
         if (!tracked.ok) return tracked.response;
         const { tracker } = tracked;
+        // The web queue's hand-off nonce: now that a slot is held and bytes are about to flow,
+        // tell the slots endpoint THIS hand-off reached the server.
+        const handoff = parseHandoffNonce(event.url.searchParams.get('h'));
+        const handoffUser = event.locals.user?.userId;
+        if (handoff && handoffUser) void noteHandoff(handoffUser, handoff);
 
         // Open once and verify the descriptor (no second path resolution): a link or
         // directory swapped in after the check above cannot redirect the read.

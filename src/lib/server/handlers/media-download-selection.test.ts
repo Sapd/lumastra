@@ -39,6 +39,11 @@ const dlPath = vi.hoisted(() => ({
     calls: [] as unknown[][],
     refused: [] as unknown[][],
 }));
+const handoff = vi.hoisted(() => ({ noted: [] as unknown[][] }));
+vi.mock('$lib/server/services/download-handoff.js', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('$lib/server/services/download-handoff.js')>();
+    return { ...actual, noteHandoff: async (...a: unknown[]) => void handoff.noted.push(a) };
+});
 vi.mock('$lib/server/utils/download-path', () => ({
     resolveDownloadablePath: async (...a: unknown[]) => {
         dlPath.calls.push(a);
@@ -100,6 +105,7 @@ beforeEach(() => {
     vi.clearAllMocks();
     scope.denied = null;
     scope.allowed = new Set();
+    handoff.noted = [];
     dlPath.result = '/media/source.mkv';
     dlPath.calls = [];
     dlPath.refused = [];
@@ -369,5 +375,29 @@ describe('download path containment', () => {
             handle: { path: '/media/.store/abc123' },
         });
         expect(mocks.preflight.mock.calls[0]![0]).toBe('/media/.store/abc123');
+    });
+});
+
+describe('web hand-off nonce', () => {
+    const withLocals = (path: string) => {
+        const e = event(path) as unknown as { locals: unknown };
+        e.locals = { user: { userId: 'u1' } };
+        return e as unknown as RequestEvent;
+    };
+    beforeEach(() => {
+        mocks.select.mockResolvedValue({ files: [file], fileId: selected });
+    });
+
+    it('records a well-formed h once serving starts, for the signed-in user', async () => {
+        await handleDownloadFile(withLocals('/api/media/media/download?h=abcdef123456'), { surface: 'web' });
+        expect(handoff.noted).toEqual([['u1', 'abcdef123456']]);
+    });
+
+    it('records nothing for a malformed h, without h, or when the lease is refused', async () => {
+        await handleDownloadFile(withLocals('/api/media/media/download?h=%24'), { surface: 'web' });
+        await handleDownloadFile(withLocals('/api/media/media/download'), { surface: 'web' });
+        mocks.track.mockResolvedValue({ ok: false, response: new Response(null, { status: 429 }) });
+        await handleDownloadFile(withLocals('/api/media/media/download?h=abcdef123456'), { surface: 'web' });
+        expect(handoff.noted).toEqual([]);
     });
 });

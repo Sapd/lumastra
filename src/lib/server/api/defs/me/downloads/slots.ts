@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * GET /api/me/downloads/slots[?fileId=<file or rendition id>]
+ * GET /api/me/downloads/slots[?h=<hand-off nonce>]
  *
  * The caller's own download slots: `maxParallel` (0 = unlimited) and `inUse` (live
- * slots, counted across devices and replicas). With `fileId`, `started` says whether a
- * download of that file is running or was logged within the last minute.
+ * slots, counted across devices and replicas). With `h`, `started` says whether the
+ * download the queue handed over with THAT nonce reached the server (see
+ * services/download-handoff.ts): another device's download of the same file cannot confirm it.
  *
  * The web queue's link mode cannot observe the browser's download manager, so it asks
  * here before handing over the next link (a free slot?) and afterwards (did the server
@@ -21,15 +22,11 @@ import { json } from '@sveltejs/kit';
 import { defineEndpoint } from '$lib/server/api/define.js';
 import { ApiProblem } from '$lib/server/api/problem.js';
 import { config } from '$lib/server/config.js';
-import { getDb } from '$lib/server/database/connection.js';
-import { hasRecentDownloadStart } from '$lib/server/database/queries/download-events.queries.js';
+import { handoffSeen, parseHandoffNonce } from '$lib/server/services/download-handoff.js';
 import { crossSiteForbiddenResponse } from '$lib/server/services/download-access-guard.js';
 import { listActiveDownloads } from '$lib/server/services/download-leases.js';
 
-/** A download logged within this window counts as "the server saw it start". */
-const STARTED_WINDOW_MS = 60_000;
-
-const Query = z.object({ fileId: z.string().min(1).max(100).optional() }).strict();
+const Query = z.object({ h: z.string().max(100).optional() }).strict();
 
 export const def = defineEndpoint({
     auth: { kind: 'user' },
@@ -49,22 +46,8 @@ export const def = defineEndpoint({
                 inUse: mine.length,
             };
 
-            const fileId = ctx.input?.query?.fileId;
-            if (fileId) {
-                let started = mine.some((d) => d.fileId === fileId);
-                if (!started) {
-                    const sql = getDb();
-                    if (sql) {
-                        started = await hasRecentDownloadStart(
-                            sql,
-                            userId,
-                            fileId,
-                            new Date(Date.now() - STARTED_WINDOW_MS),
-                        );
-                    }
-                }
-                body.started = started;
-            }
+            const nonce = parseHandoffNonce(ctx.input?.query?.h);
+            if (nonce) body.started = await handoffSeen(userId, nonce);
             return json(body);
         },
     },
