@@ -22,6 +22,16 @@ vi.mock('$lib/server/services/download-access.service.js', () => ({
     canDownload: async () => true,
     userMayDownload: async () => true,
 }));
+// Downloads only serve files inside a library root; the FLAC fixture's folder stands in for one.
+vi.mock('$lib/server/utils/media-path-resolver.js', async (importOriginal) => {
+    const { dirname: dir, resolve: res } = await import('node:path');
+    const { fileURLToPath: toPath } = await import('node:url');
+    const fixtureRoot = res(dir(toPath(import.meta.url)), '../../../../../tests/fixtures/music');
+    return {
+        ...(await importOriginal<typeof import('$lib/server/utils/media-path-resolver.js')>()),
+        getLibraryRootPaths: async () => [fixtureRoot],
+    };
+});
 import { randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync, existsSync, statSync, writeFileSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
