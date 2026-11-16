@@ -26,6 +26,10 @@
     // replace it, or rows pushed off it by new downloads would fall between the pages.
     let frozenFirst = $state<Row[] | null>(null);
     let nextBefore = $state<string | undefined>(undefined);
+    // One "Load more" request at a time; the generation drops an answer that a filter
+    // change made obsolete.
+    let loadingMore = $state(false);
+    let moreGen = 0;
     let userFilter = $state('');
     let filterTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -43,32 +47,45 @@
             return;
         }
         data = res;
-        // A refresh replaces the first page only; "Load more" pages stay below it.
-        if (older.length === 0) nextBefore = res.nextBefore;
+        // A refresh replaces the first page only. Once the first page is frozen (Load more
+        // was used, even if its answer is still on the way) the cursor belongs to the
+        // frozen page and a refresh must not move it.
+        if (frozenFirst === null) nextBefore = res.nextBefore;
     }
 
     async function loadMore(): Promise<void> {
-        if (!nextBefore) return;
+        if (!nextBefore || loadingMore) return;
         const user = userFilter.trim() || undefined;
-        const { data: res, error } = await getAdminDownloads({
-            user,
-            before: nextBefore,
-            limit: PAGE_SIZE,
-        });
-        // The filter changed while this page was loading: it belongs to the old filter.
-        if (user !== (userFilter.trim() || undefined)) return;
-        if (error || !res) {
-            toasts.error(m.admin_downloads_load_failed());
-            return;
-        }
+        const cursor = nextBefore;
+        const gen = moreGen;
+        // Freeze the first page BEFORE awaiting: a refresh that lands while this request
+        // is in flight must neither replace the page nor move the cursor under it.
         if (!frozenFirst) frozenFirst = (data?.events ?? []).filter((e) => e.outcome);
-        older = [...older, ...res.events];
-        nextBefore = res.nextBefore;
+        loadingMore = true;
+        try {
+            const { data: res, error } = await getAdminDownloads({
+                user,
+                before: cursor,
+                limit: PAGE_SIZE,
+            });
+            // The filter changed while this page was loading: it belongs to the old filter.
+            if (gen !== moreGen || user !== (userFilter.trim() || undefined)) return;
+            if (error || !res) {
+                toasts.error(m.admin_downloads_load_failed());
+                return;
+            }
+            older = [...older, ...res.events];
+            nextBefore = res.nextBefore;
+        } finally {
+            if (gen === moreGen) loadingMore = false;
+        }
     }
 
     function onFilterInput(): void {
         clearTimeout(filterTimer);
         filterTimer = setTimeout(() => {
+            moreGen++;
+            loadingMore = false;
             older = [];
             frozenFirst = null;
             void load();
@@ -257,7 +274,8 @@
             </div>
             {#if nextBefore}
                 <button
-                    class="text-sm text-primary-300 underline underline-offset-4"
+                    class="text-sm text-primary-300 underline underline-offset-4 disabled:opacity-50"
+                    disabled={loadingMore}
                     onclick={() => void loadMore()}>{m.admin_downloads_load_more()}</button>
             {/if}
         {:else if data}

@@ -176,6 +176,65 @@ describe('admin downloads page', () => {
         }
     });
 
+    it('a refresh landing while Load more is in flight neither moves the cursor nor the first page', async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        try {
+            const first = { ...payload, nextBefore: 'cursor-A' };
+            const shifted = {
+                ...first,
+                nextBefore: 'cursor-SHIFTED',
+                events: [{ ...first.events[2], id: 'new', title: 'Brand New' }, ...first.events],
+            };
+            let resolveMore!: (v: unknown) => void;
+            const morePending = new Promise((r) => (resolveMore = r));
+            getAdminDownloads
+                .mockReset()
+                .mockResolvedValueOnce({ data: first, error: null })
+                .mockReturnValueOnce(morePending) // Load more, hangs
+                .mockResolvedValue({ data: shifted, error: null }); // refreshes meanwhile
+            render(DownloadsPage);
+            await screen.findByText('A Movie');
+            await fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+            await vi.advanceTimersByTimeAsync(5_100); // a refresh lands while it is loading
+            expect(screen.queryByText('Brand New')).toBeNull();
+            resolveMore({
+                data: {
+                    ...payload,
+                    active: [],
+                    events: [{ ...payload.events[2], id: 'old1', title: 'Older Movie' }],
+                    nextBefore: 'cursor-B',
+                },
+                error: null,
+            });
+            await screen.findByText('Older Movie');
+            expect(screen.queryByText('Brand New')).toBeNull();
+            // the next page continues from the answer's cursor, not from the shifted refresh
+            getAdminDownloads.mockClear();
+            await fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+            expect(getAdminDownloads).toHaveBeenCalledWith(
+                expect.objectContaining({ before: 'cursor-B' }),
+            );
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('serialises Load more: a second click while one is loading sends no second request', async () => {
+        const first = { ...payload, nextBefore: 'cursor-A' };
+        let resolveMore!: (v: unknown) => void;
+        getAdminDownloads
+            .mockReset()
+            .mockResolvedValueOnce({ data: first, error: null })
+            .mockReturnValueOnce(new Promise((r) => (resolveMore = r)));
+        render(DownloadsPage);
+        await screen.findByText('A Movie');
+        const button = screen.getByRole('button', { name: 'Load more' });
+        await fireEvent.click(button);
+        await fireEvent.click(button);
+        expect(getAdminDownloads).toHaveBeenCalledTimes(2); // first page + ONE load-more
+        resolveMore({ data: { ...payload, active: [], events: [] }, error: null });
+    });
+
     it('shows a warning when limits run on the local fallback', async () => {
         getAdminDownloads.mockResolvedValue({ data: { ...payload, degraded: true }, error: null });
         render(DownloadsPage);
