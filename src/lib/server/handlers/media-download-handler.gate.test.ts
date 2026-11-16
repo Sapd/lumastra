@@ -16,6 +16,9 @@ vi.mock('$lib/server/config', async (importOriginal) => {
     return { ...actual, config: { ...actual.config, FEATURE_MEDIA_DOWNLOAD: true } };
 });
 vi.mock('$lib/server/database', () => ({ getDb: () => ({}) }));
+vi.mock('$lib/server/services/download-file-scope.js', () => ({
+    deniedLibraryGroupsFor: async () => null,
+}));
 vi.mock('$lib/server/services/download-access.service.js', () => ({
     canDownload: (...a: unknown[]) => mockCanDownload(...a),
 }));
