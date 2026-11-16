@@ -21,7 +21,9 @@ import { ApiProblem } from '$lib/server/api/problem.js';
 import { getDb } from '$lib/server/database/index.js';
 import {
     endDownloadEvent,
+    mergeTinyRangeEvent,
     recordRefusedDownload,
+    TINY_RANGE_MERGE_BYTES,
     startDownloadEvent,
     updateDownloadEvent,
     type DownloadEventInput,
@@ -143,6 +145,27 @@ const refusalSeen = new Map<string, number>();
 export function resetRefusalCoalescingForTests(): void {
     refusalSeen.clear();
     refusalUserCount.clear();
+    rowBudget.clear();
+}
+
+/** New log rows (any outcome) one user may open per minute; beyond it the download is served unlogged. */
+const ROW_BUDGET_PER_MIN = 120;
+const rowBudget = new Map<string, { count: number; resetAt: number }>();
+
+/** Counts one new row for `userId`; false once the user is over the per-minute budget. Bounded map. */
+function takeRowBudget(userId: string): boolean {
+    const now = Date.now();
+    if (rowBudget.size > 1_000) {
+        for (const [k, v] of rowBudget) if (v.resetAt <= now) rowBudget.delete(k);
+    }
+    const cur = rowBudget.get(userId);
+    if (!cur || cur.resetAt <= now) {
+        rowBudget.set(userId, { count: 1, resetAt: now + REFUSAL_COALESCE_MS });
+        return true;
+    }
+    if (cur.count >= ROW_BUDGET_PER_MIN) return false;
+    cur.count += 1;
+    return true;
 }
 
 /** True once a user already has REFUSAL_USER_CAP_PER_MIN rows of this outcome in the current minute (else counts this one). */
@@ -196,6 +219,7 @@ export function recordDownloadRefused(
         const sql = getDb();
         if (!input || !sql || refusalCoalesced(input, outcome) || refusalOverUserCap(input, outcome))
             return;
+        if (!takeRowBudget(input.userId)) return;
         void Promise.resolve()
             .then(() => recordRefusedDownload(sql, input, outcome))
             .catch((err) => warn(outcome, err));
@@ -289,7 +313,9 @@ function createTracker(input: DownloadEventInput, lease: DownloadLease | null): 
             rowId = Promise.resolve()
                 .then(async () => {
                     const sql = getDb();
-                    return sql ? await startDownloadEvent(sql, input) : null;
+                    // Over the per-user row budget: serve the download, skip the log row.
+                    if (!sql || !takeRowBudget(input.userId)) return null;
+                    return await startDownloadEvent(sql, input);
                 })
                 .catch((err) => {
                     warn('start', err);
@@ -375,6 +401,16 @@ function createTracker(input: DownloadEventInput, lease: DownloadLease | null): 
                     input.bytesTotal != null &&
                     input.rangeStart + total >= input.bytesTotal;
                 await endDownloadEvent(sql, id, outcome, { bytesSentDelta: delta, reachedEnd });
+                // A tiny successful range (not from byte 0) folds into the transfer's previous
+                // row instead of leaving one row per request.
+                if (
+                    outcome === 'completed' &&
+                    input.rangeStart != null &&
+                    input.rangeStart > 0 &&
+                    total < TINY_RANGE_MERGE_BYTES
+                ) {
+                    await mergeTinyRangeEvent(sql, id);
+                }
             }
         });
     };

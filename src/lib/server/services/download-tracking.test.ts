@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
     update: vi.fn(),
     end: vi.fn(),
     refused: vi.fn(),
+    merge: vi.fn(),
 }));
 
 vi.mock('$lib/server/database/index.js', () => ({ getDb: mocks.getDb }));
@@ -27,6 +28,8 @@ vi.mock('$lib/server/database/queries/download-events.queries.js', () => ({
     updateDownloadEvent: mocks.update,
     endDownloadEvent: mocks.end,
     recordRefusedDownload: mocks.refused,
+    mergeTinyRangeEvent: mocks.merge,
+    TINY_RANGE_MERGE_BYTES: 1024 * 1024,
 }));
 
 import {
@@ -74,6 +77,7 @@ beforeEach(() => {
     mocks.update.mockResolvedValue(undefined);
     mocks.end.mockResolvedValue(undefined);
     mocks.refused.mockResolvedValue(undefined);
+    mocks.merge.mockResolvedValue(false);
 });
 afterEach(() => vi.useRealTimers());
 
@@ -391,6 +395,68 @@ describe('range accounting', () => {
             bytesSentDelta: 50,
             reachedEnd: true,
         });
+    });
+});
+
+describe('tiny successful ranges', () => {
+    const run = async (rangeStart: number | null, bytes: number, outcome: 'completed' | 'aborted') => {
+        mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
+        const res = await trackDownload(event(), { ...target, bytesTotal: 50_000_000, rangeStart });
+        if (!res.ok) throw new Error('expected ok');
+        res.tracker.served(rangeStart == null ? 200 : 206);
+        res.tracker.onBytes(bytes);
+        res.tracker.onEnd(outcome);
+        await flush();
+    };
+
+    it('a completed small range that does not start at 0 is merged into the previous row', async () => {
+        await run(40_000_000, 4096, 'completed');
+        expect(mocks.merge).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'row-1');
+    });
+
+    it('is not merged when it starts at 0, has no range, is large, or did not complete', async () => {
+        await run(0, 4096, 'completed');
+        await run(null, 4096, 'completed');
+        await run(40_000_000, 2 * 1024 * 1024, 'completed');
+        await run(40_000_000, 4096, 'aborted');
+        expect(mocks.merge).not.toHaveBeenCalled();
+    });
+});
+
+describe('per-user row budget', () => {
+    it('allows 120 new rows a minute across outcomes, then serves unlogged', async () => {
+        mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
+        for (let i = 0; i < 130; i++) {
+            const res = await trackDownload(event({ jfDevice: { deviceId: `d${i}` } }), target);
+            if (!res.ok) throw new Error('expected ok'); // the download itself is always served
+            res.tracker.onBytes(1);
+            res.tracker.onEnd('completed');
+        }
+        await flush();
+        expect(mocks.start).toHaveBeenCalledTimes(120);
+        await vi.advanceTimersByTimeAsync(61_000);
+        const res = await trackDownload(event({ jfDevice: { deviceId: 'late' } }), target);
+        if (!res.ok) throw new Error('expected ok');
+        res.tracker.onBytes(1);
+        await flush();
+        expect(mocks.start).toHaveBeenCalledTimes(121);
+    });
+
+    it('refusals count against the same budget', async () => {
+        for (let i = 0; i < 20; i++) {
+            recordDownloadRefused(event({ jfDevice: { deviceId: `a${i}` } }), target, 'denied');
+            recordDownloadRefused(event({ jfDevice: { deviceId: `b${i}` } }), target, 'rate_limited');
+        }
+        mocks.acquire.mockResolvedValue({ ok: true, lease: fakeLease() });
+        for (let i = 0; i < 90; i++) {
+            const res = await trackDownload(event({ jfDevice: { deviceId: `d${i}` } }), target);
+            if (!res.ok) throw new Error('expected ok');
+            res.tracker.onBytes(1);
+        }
+        await flush();
+        // 40 refusals + 80 starts fill the 120 budget
+        expect(mocks.refused).toHaveBeenCalledTimes(40);
+        expect(mocks.start).toHaveBeenCalledTimes(80);
     });
 });
 

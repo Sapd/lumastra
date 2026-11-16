@@ -12,6 +12,7 @@ import {
     deleteDownloadEventsOlderThan,
     endDownloadEvent,
     listDownloadEvents,
+    mergeTinyRangeEvent,
     recordRefusedDownload,
     startDownloadEvent,
     updateDownloadEvent,
@@ -298,5 +299,100 @@ describe('download-events queries', () => {
         }
         expect([...seen].sort()).toEqual([...ids].sort());
         expect(new Set(seen).size).toBe(5);
+    });
+
+    it('joining an abandoned open row (dead replica) resets open_streams instead of inheriting it', async () => {
+        const id = await startDownloadEvent(sql, base());
+        await startDownloadEvent(sql, base());
+        await startDownloadEvent(sql, base()); // 3 streams, then the replica dies
+        await sql`UPDATE download_events SET last_activity_at = now() - interval '2 minutes'
+                  WHERE id = ${id}`;
+        expect(await startDownloadEvent(sql, base())).toBe(id);
+        const [r] = await sql<{ open_streams: number }[]>`
+            SELECT open_streams FROM download_events WHERE id = ${id}`;
+        expect(r!.open_streams).toBe(1);
+        await endDownloadEvent(sql, id, 'completed', { bytesSentDelta: 100 });
+        const [after] = await sql<{ ended_at: Date | null }[]>`
+            SELECT ended_at FROM download_events WHERE id = ${id}`;
+        expect(after!.ended_at).not.toBeNull(); // one end closes it: no ghost streams left
+    });
+
+    it('joining a live open row still adds a stream', async () => {
+        const id = await startDownloadEvent(sql, base());
+        await startDownloadEvent(sql, base());
+        const [r] = await sql<{ open_streams: number }[]>`
+            SELECT open_streams FROM download_events WHERE id = ${id}`;
+        expect(r!.open_streams).toBe(2);
+    });
+
+    describe('tiny successful ranges', () => {
+        const total = 50_000_000;
+        const insertEnded = async (
+            outcome: string,
+            bytes: number,
+            rangeStart: number | null,
+            agoSeconds: number,
+        ): Promise<string> => {
+            const [r] = await sql<{ id: string }[]>`
+                INSERT INTO download_events (user_id, media_item_id, file_id, surface, device_key,
+                    bytes_total, bytes_sent, range_start, started_at, last_activity_at, ended_at,
+                    outcome, open_streams)
+                VALUES (${userId}, ${ITEM}, ${FILE}, 'api', 'dev-1', ${total}, ${bytes},
+                    ${rangeStart}, now() - ${agoSeconds} * interval '1 second', now(), now(),
+                    ${outcome}, 0)
+                RETURNING id`;
+            return r!.id;
+        };
+
+        it('add their bytes to the latest earlier row, keep the better outcome, delete the tiny row', async () => {
+            const first = await insertEnded('error', 3_000_000, 0, 60);
+            const tiny = await insertEnded('completed', 4096, 40_000_000, 0);
+            expect(await mergeTinyRangeEvent(sql, tiny)).toBe(true);
+            const rows = await listDownloadEvents(sql, { userId, limit: 10 });
+            expect(rows).toHaveLength(1);
+            expect(rows[0]).toMatchObject({
+                id: first,
+                bytesSent: 3_000_000 + 4096,
+                outcome: 'completed',
+            });
+        });
+
+        it('never downgrades a completed row', async () => {
+            const first = await insertEnded('completed', 50_000_000, 0, 60);
+            const tiny = await insertEnded('aborted', 10, 5, 0);
+            expect(await mergeTinyRangeEvent(sql, tiny)).toBe(true);
+            const rows = await listDownloadEvents(sql, { userId, limit: 10 });
+            expect(rows).toHaveLength(1);
+            expect(rows[0]).toMatchObject({ id: first, bytesSent: total, outcome: 'completed' });
+        });
+
+        it('a flood of tiny ranges folds into one row', async () => {
+            await insertEnded('aborted', 1000, 0, 120);
+            for (let i = 0; i < 20; i++) {
+                const tiny = await insertEnded('completed', 100, 1000 + i, 0);
+                expect(await mergeTinyRangeEvent(sql, tiny)).toBe(true);
+            }
+            const rows = await listDownloadEvents(sql, { userId, limit: 50 });
+            expect(rows).toHaveLength(1);
+            expect(rows[0]).toMatchObject({ bytesSent: 3000, outcome: 'completed' });
+        });
+
+        it('leaves the row alone when it is still open or nothing earlier exists', async () => {
+            const open = await startDownloadEvent(sql, { ...base(), bytesTotal: total, rangeStart: 10 });
+            expect(await mergeTinyRangeEvent(sql, open)).toBe(false);
+            await endDownloadEvent(sql, open, 'completed', { bytesSentDelta: 10, reachedEnd: true });
+            expect(await mergeTinyRangeEvent(sql, open)).toBe(false);
+            expect(await listDownloadEvents(sql, { userId, limit: 10 })).toHaveLength(1);
+        });
+
+        it('never merges into a refusal row or a row older than the window', async () => {
+            await recordRefusedDownload(sql, { ...base(), bytesTotal: total }, 'denied');
+            const old = await insertEnded('aborted', 10, 0, 3600);
+            await sql`UPDATE download_events SET ended_at = now() - interval '11 minutes'
+                      WHERE id = ${old}`;
+            const tiny = await insertEnded('completed', 100, 5, 0);
+            expect(await mergeTinyRangeEvent(sql, tiny)).toBe(false);
+            expect(await listDownloadEvents(sql, { userId, limit: 10 })).toHaveLength(3);
+        });
     });
 });

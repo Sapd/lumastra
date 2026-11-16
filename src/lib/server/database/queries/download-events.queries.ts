@@ -14,6 +14,15 @@ import type postgres from 'postgres';
 export type DownloadSurface = 'web' | 'jellyfin' | 'api';
 export type DownloadOutcome = 'completed' | 'aborted' | 'denied' | 'rate_limited' | 'error';
 
+/**
+ * An open row with no activity for this long belongs to a dead stream (a crashed replica
+ * never ended it): a new request must not inherit its stream count. Matches the lease TTL.
+ */
+export const OPEN_ROW_STALE_MS = 30_000;
+
+/** A successful ranged request that sent less than this (and does not start at 0) merges into the previous row. */
+export const TINY_RANGE_MERGE_BYTES = 1024 * 1024;
+
 /** An ended row younger than this is re-opened by the next request for the same transfer. */
 export const DOWNLOAD_REOPEN_WINDOW_MS = 10 * 60_000;
 
@@ -64,6 +73,7 @@ export async function startDownloadEvent(
     const fileId = e.fileId ?? null;
     const renditionId = e.renditionId ?? null;
     const since = new Date(Date.now() - DOWNLOAD_REOPEN_WINDOW_MS);
+    const staleBefore = new Date(Date.now() - OPEN_ROW_STALE_MS);
     const lockKey = `${e.userId}|${e.deviceKey}|${fileId ?? renditionId ?? ''}`;
 
     return await sql.begin(async (tx) => {
@@ -71,7 +81,9 @@ export async function startDownloadEvent(
 
         const joined = await tx<{ id: string }[]>`
             UPDATE download_events
-            SET open_streams = open_streams + 1, last_activity_at = now()
+            SET open_streams = CASE WHEN last_activity_at < ${staleBefore}
+                                    THEN 1 ELSE open_streams + 1 END,
+                last_activity_at = now()
             WHERE id = (
                 SELECT id FROM download_events
                 WHERE user_id = ${e.userId}
@@ -113,7 +125,9 @@ export async function startDownloadEvent(
                  ${e.rangeStart ?? null}, 1)
             ON CONFLICT (user_id, device_key, (COALESCE(file_id, rendition_id)))
                 WHERE ended_at IS NULL
-            DO UPDATE SET open_streams = download_events.open_streams + 1,
+            DO UPDATE SET open_streams = CASE
+                              WHEN download_events.last_activity_at < ${staleBefore}
+                              THEN 1 ELSE download_events.open_streams + 1 END,
                           last_activity_at = now()
             RETURNING id
         `;
@@ -169,6 +183,61 @@ export async function endDownloadEvent(
             END
         WHERE id = ${id}
     `;
+}
+
+/**
+ * A just-ended row for a tiny successful range request (not from byte 0, under
+ * TINY_RANGE_MERGE_BYTES) is folded into the latest earlier row of the same transfer within
+ * the reopen window, whatever that row's outcome (refusals aside): bytes are added (capped
+ * at the total), the better outcome wins (completed > aborted > error) and the tiny row is
+ * deleted. Without it a client could write one row per few-byte Range request. Returns true
+ * when merged. No earlier row, or the row is still open, leaves it alone.
+ */
+export async function mergeTinyRangeEvent(sql: postgres.Sql, id: string): Promise<boolean> {
+    const since = new Date(Date.now() - DOWNLOAD_REOPEN_WINDOW_MS);
+    return await sql.begin(async (tx) => {
+        const [row] = await tx<
+            {
+                user_id: string;
+                device_key: string;
+                file_id: string | null;
+                rendition_id: string | null;
+                bytes_sent: string;
+                outcome: DownloadOutcome | null;
+                ended_at: Date | null;
+            }[]
+        >`SELECT user_id, device_key, file_id, rendition_id, bytes_sent, outcome, ended_at
+          FROM download_events WHERE id = ${id}`;
+        if (!row || !row.ended_at) return false;
+        const lockKey = `${row.user_id}|${row.device_key}|${row.file_id ?? row.rendition_id ?? ''}`;
+        await tx`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+        const [target] = await tx<{ id: string; outcome: DownloadOutcome | null }[]>`
+            SELECT id, outcome FROM download_events
+            WHERE user_id = ${row.user_id}
+              AND device_key = ${row.device_key}
+              AND file_id IS NOT DISTINCT FROM ${row.file_id}
+              AND rendition_id IS NOT DISTINCT FROM ${row.rendition_id}
+              AND id <> ${id}
+              AND (ended_at IS NULL OR ended_at > ${since})
+              AND (outcome IS NULL OR outcome IN ('completed', 'aborted', 'error'))
+            ORDER BY started_at DESC
+            LIMIT 1
+        `;
+        if (!target) return false;
+        const rank = (o: DownloadOutcome | null): number =>
+            o === 'completed' ? 3 : o === 'aborted' ? 2 : o === 'error' ? 1 : 0;
+        const better = rank(row.outcome) > rank(target.outcome) ? row.outcome : target.outcome;
+        await tx`
+            UPDATE download_events
+            SET bytes_sent = CASE WHEN bytes_total IS NULL THEN bytes_sent + ${row.bytes_sent}::bigint
+                                  ELSE LEAST(bytes_sent + ${row.bytes_sent}::bigint, bytes_total) END,
+                outcome = CASE WHEN ended_at IS NULL THEN outcome ELSE ${better}::text END,
+                last_activity_at = now()
+            WHERE id = ${target.id}
+        `;
+        await tx`DELETE FROM download_events WHERE id = ${id}`;
+        return true;
+    });
 }
 
 export async function recordRefusedDownload(
