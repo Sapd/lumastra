@@ -93,9 +93,9 @@ export const def = defineEndpoint({
                 userId = found.id;
             }
 
-            const [leases, open, rows] = await Promise.all([
-                listActiveDownloads(),
-                listOpenDownloadEvents(sql),
+            const leases = await listActiveDownloads();
+            const [open, rows] = await Promise.all([
+                listOpenDownloadEvents(sql, [...new Set(leases.map((l) => l.userId))]),
                 listDownloadEvents(sql, { userId, limit, before }),
             ]);
             const totalBytesPerSec = leases.reduce((n, l) => n + l.bytesPerSec, 0);

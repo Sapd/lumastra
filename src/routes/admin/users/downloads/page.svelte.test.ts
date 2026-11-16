@@ -130,4 +130,49 @@ describe('admin downloads page', () => {
             ),
         );
     });
+
+    it('keeps the first page fixed once older rows are loaded, so refreshes do not skip rows', async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        try {
+            const first = { ...payload, nextBefore: '2026-11-16T07:00:00.000Z' };
+            const older: AdminDownloadsResponse = {
+                ...payload,
+                active: [],
+                events: [
+                    {
+                        id: 'old1',
+                        userId: 'u2',
+                        username: 'bob',
+                        title: 'Older Movie',
+                        surface: 'web',
+                        bytesSent: 1,
+                        outcome: 'completed',
+                        startedAt: '2026-11-15T07:00:00.000Z',
+                    },
+                ],
+                nextBefore: undefined,
+            };
+            getAdminDownloads
+                .mockResolvedValueOnce({ data: first, error: null })
+                .mockResolvedValueOnce({ data: older, error: null });
+            render(DownloadsPage);
+            await screen.findByText('A Movie');
+            await fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+            await screen.findByText('Older Movie');
+
+            // A refresh now returns a shifted first page: it must not replace the first page.
+            const shifted = {
+                ...first,
+                events: [{ ...first.events[2], id: 'new', title: 'Brand New' }, ...first.events],
+            };
+            getAdminDownloads.mockResolvedValue({ data: shifted, error: null });
+            await vi.advanceTimersByTimeAsync(5_000);
+            await waitFor(() => expect(getAdminDownloads.mock.calls.length).toBeGreaterThan(2));
+            expect(screen.queryByText('Brand New')).toBeNull();
+            expect(screen.getByText('A Movie')).toBeTruthy();
+            expect(screen.getByText('Older Movie')).toBeTruthy();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });

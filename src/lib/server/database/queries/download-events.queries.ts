@@ -186,21 +186,43 @@ export async function listDownloadEvents(
     return rows.map(mapEventRow);
 }
 
-/** Rows that are still open (no end yet), for matching running transfers to titles. */
+/** Open rows (no end yet) of the given users, for matching running transfers to titles. */
 export async function listOpenDownloadEvents(
     sql: postgres.Sql,
-    limit = 500,
+    userIds: string[],
 ): Promise<DownloadEventRow[]> {
+    if (userIds.length === 0) return [];
     const rows = await sql<Record<string, unknown>[]>`
         SELECT id, user_id, media_item_id, file_id, rendition_id, surface, device_key,
                client_name, bytes_total, bytes_sent, range_start, started_at,
                last_activity_at, ended_at, outcome
         FROM download_events
-        WHERE ended_at IS NULL
+        WHERE ended_at IS NULL AND user_id IN ${sql(userIds)}
         ORDER BY started_at DESC
-        LIMIT ${limit}
     `;
     return rows.map(mapEventRow);
+}
+
+/**
+ * Close rows left open by a crashed process: no activity since `idleBefore` means no
+ * transfer is running. Ends them as `aborted` at their last activity. LIMIT-batched
+ * for `pruneUntilDrained` (the cutoff is a Date).
+ */
+export async function closeStaleDownloadEvents(
+    sql: postgres.Sql,
+    idleBefore: Date,
+    limit = 50_000,
+): Promise<number> {
+    const result = await sql`
+        UPDATE download_events
+        SET ended_at = last_activity_at, outcome = 'aborted'
+        WHERE id IN (
+            SELECT id FROM download_events
+            WHERE ended_at IS NULL AND last_activity_at < ${idleBefore}
+            LIMIT ${limit}
+        )
+    `;
+    return result.count;
 }
 
 export interface DownloadTitleInfo {

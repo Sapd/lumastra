@@ -201,11 +201,13 @@ vi.mock('$lib/server/database/queries/watch-sync-activity.queries.js', () => ({
 const { pruneTranscodeFailureEvents } = vi.hoisted(() => ({
     pruneTranscodeFailureEvents: vi.fn().mockResolvedValue(0),
 }));
-const { pruneDownloadEvents } = vi.hoisted(() => ({
+const { pruneDownloadEvents, closeStaleDownloadEvents } = vi.hoisted(() => ({
     pruneDownloadEvents: vi.fn().mockResolvedValue(0),
+    closeStaleDownloadEvents: vi.fn().mockResolvedValue(0),
 }));
 vi.mock('$lib/server/database/queries/download-events.queries.js', () => ({
     pruneDownloadEvents,
+    closeStaleDownloadEvents,
 }));
 vi.mock('$lib/server/database/queries/transcode-failure-events.queries.js', () => ({
     pruneTranscodeFailureEvents,
@@ -326,6 +328,7 @@ describe('database-cleanup task', () => {
         prunePluginSecretAccessLog.mockResolvedValue(0);
         pruneTranscodeFailureEvents.mockResolvedValue(0);
         pruneDownloadEvents.mockResolvedValue(0);
+        closeStaleDownloadEvents.mockResolvedValue(0);
         pruneLiveTvFailureEvents.mockResolvedValue(0);
         prunePlaybackIncidentEvents.mockResolvedValue(0);
         pruneLegacyPlaybackIncidentEvents.mockResolvedValue(0);
@@ -697,6 +700,19 @@ describe('database-cleanup task', () => {
         expect(days).toBeGreaterThan(89.9);
         expect(days).toBeLessThan(90.1);
         expect(result.result!.message).toContain('7 download log rows');
+    });
+
+    it('closes download rows left open for 15 minutes as aborted', async () => {
+        closeStaleDownloadEvents.mockResolvedValue(3);
+
+        const result = await databaseCleanupTask.execute(makeContext());
+
+        expect(result.result!.stats.closeStaleDownloads).toBe(3);
+        const cutoff = closeStaleDownloadEvents.mock.calls[0]![1] as Date;
+        const minutes = (Date.now() - cutoff.getTime()) / 60_000;
+        expect(minutes).toBeGreaterThan(14.9);
+        expect(minutes).toBeLessThan(15.1);
+        expect(result.result!.message).toContain('3 stale open downloads closed');
     });
 
     it('prunes playback incident events older than retention and enforces the row cap', async () => {

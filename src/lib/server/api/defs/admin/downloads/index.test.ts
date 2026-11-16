@@ -132,6 +132,29 @@ describe('GET /api/admin/downloads', () => {
         expect(m.listEvents).not.toHaveBeenCalled();
     });
 
+    it('looks up open rows only for the users with running downloads', async () => {
+        m.active.mockResolvedValue([
+            {
+                userId: 'u1',
+                fileId: 'f1',
+                deviceKey: 'd1',
+                bytesSent: 1,
+                startedAt: 1,
+                bytesPerSec: 1,
+            },
+            {
+                userId: 'u1',
+                fileId: 'f2',
+                deviceKey: 'd2',
+                bytesSent: 1,
+                startedAt: 1,
+                bytesPerSec: 1,
+            },
+        ]);
+        await def.handlers.GET!(event, ctx());
+        expect(m.listOpen).toHaveBeenCalledWith({}, ['u1']);
+    });
+
     it('passes the before cursor through', async () => {
         const before = new Date('2026-11-16T09:00:00Z');
         await def.handlers.GET!(event, ctx({ before }));

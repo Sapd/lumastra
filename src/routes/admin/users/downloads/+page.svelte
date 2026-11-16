@@ -22,6 +22,9 @@
 
     let data = $state<AdminDownloadsResponse | null>(null);
     let older = $state<Row[]>([]);
+    // First page as it was when "Load more" was first used: the auto-refresh must not
+    // replace it, or rows pushed off it by new downloads would fall between the pages.
+    let frozenFirst = $state<Row[] | null>(null);
     let nextBefore = $state<string | undefined>(undefined);
     let userFilter = $state('');
     let filterTimer: ReturnType<typeof setTimeout> | undefined;
@@ -50,6 +53,7 @@
             toasts.error(m.admin_downloads_load_failed());
             return;
         }
+        if (!frozenFirst) frozenFirst = (data?.events ?? []).filter((e) => e.outcome);
         older = [...older, ...res.events];
         nextBefore = res.nextBefore;
     }
@@ -58,6 +62,7 @@
         clearTimeout(filterTimer);
         filterTimer = setTimeout(() => {
             older = [];
+            frozenFirst = null;
             void load();
         }, 300);
     }
@@ -72,7 +77,10 @@
     });
 
     // Rows still running are shown in "Running now", not repeated in the history.
-    const history = $derived([...(data?.events ?? []).filter((e) => e.outcome), ...older]);
+    const history = $derived([
+        ...(frozenFirst ?? (data?.events ?? []).filter((e) => e.outcome)),
+        ...older,
+    ]);
 
     function speed(bytesPerSec: number): string {
         if (bytesPerSec < 1024) return `${bytesPerSec.toFixed(0)} B/s`;

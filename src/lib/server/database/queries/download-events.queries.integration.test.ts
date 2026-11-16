@@ -5,6 +5,10 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import type postgres from 'postgres';
 import { getTestDb, closeTestDb } from '../../../../../tests/integration/setup/test-database.js';
 import {
+    closeStaleDownloadEvents,
+    getDownloadTitles,
+    getUsernamesByIds,
+    listOpenDownloadEvents,
     deleteDownloadEventsOlderThan,
     endDownloadEvent,
     listDownloadEvents,
@@ -160,5 +164,84 @@ describe('download-events queries', () => {
         expect(await deleteDownloadEventsOlderThan(sql, 90)).toBe(1);
         const rows = await listDownloadEvents(sql, { userId, limit: 10 });
         expect(rows.map((r) => r.deviceKey)).toEqual(['new']);
+    });
+
+    it('lists open rows only for the given users', async () => {
+        const open = await startDownloadEvent(sql, base());
+        const done = await startDownloadEvent(sql, { ...base(), deviceKey: 'dev-2' });
+        await endDownloadEvent(sql, done, 'completed', { bytesSentDelta: 100 });
+        const other = await sql<{ id: string }[]>`
+            INSERT INTO users (username) VALUES (${'dl-o-' + Math.random().toString(36).slice(2)})
+            RETURNING id`;
+        await startDownloadEvent(sql, { ...base(), userId: other[0]!.id, deviceKey: 'dev-3' });
+
+        const rows = await listOpenDownloadEvents(sql, [userId]);
+        expect(rows.map((r) => r.id)).toEqual([open]);
+        expect(await listOpenDownloadEvents(sql, [])).toEqual([]);
+    });
+
+    it('resolves usernames by id', async () => {
+        const map = await getUsernamesByIds(sql, [userId]);
+        expect(map.get(userId)).toMatch(/^dl-/);
+        expect((await getUsernamesByIds(sql, [])).size).toBe(0);
+    });
+
+    it('resolves titles for a movie and for episodes with and without a season row', async () => {
+        const ids = {
+            movie: '44444444-4444-4444-8444-000000000001',
+            series: '44444444-4444-4444-8444-000000000002',
+            season: '44444444-4444-4444-8444-000000000003',
+            ep: '44444444-4444-4444-8444-000000000004',
+            epDirect: '44444444-4444-4444-8444-000000000005',
+        };
+        await sql`DELETE FROM media_items WHERE id IN ${sql(Object.values(ids))}`;
+        await sql`INSERT INTO media_items (id, title, media_type, status) VALUES
+            (${ids.movie}, 'A Movie', 'movie', 'active'),
+            (${ids.series}, 'Example Show', 'tv', 'active')`;
+        await sql`INSERT INTO media_items (id, title, media_type, status, parent_id, season_number) VALUES
+            (${ids.season}, 'Season 2', 'season', 'active', ${ids.series}, 2)`;
+        await sql`INSERT INTO media_items (id, title, media_type, status, parent_id, season_number, episode_number) VALUES
+            (${ids.ep}, 'Pilot', 'episode', 'active', ${ids.season}, 2, 5),
+            (${ids.epDirect}, 'Special', 'episode', 'active', ${ids.series}, 0, 1)`;
+        try {
+            const t = await getDownloadTitles(sql, Object.values(ids));
+            expect(t.get(ids.movie)).toEqual({
+                title: 'A Movie',
+                seriesTitle: null,
+                season: null,
+                episode: null,
+            });
+            expect(t.get(ids.ep)).toEqual({
+                title: 'Pilot',
+                seriesTitle: 'Example Show',
+                season: 2,
+                episode: 5,
+            });
+            expect(t.get(ids.epDirect)).toMatchObject({
+                title: 'Special',
+                seriesTitle: 'Example Show',
+            });
+            expect((await getDownloadTitles(sql, [])).size).toBe(0);
+        } finally {
+            await sql`DELETE FROM media_items WHERE id IN ${sql(Object.values(ids))}`;
+        }
+    });
+
+    it('closes stale open rows as aborted at their last activity, leaving fresh and ended rows', async () => {
+        const stale = await startDownloadEvent(sql, base());
+        const fresh = await startDownloadEvent(sql, { ...base(), deviceKey: 'dev-fresh' });
+        const ended = await startDownloadEvent(sql, { ...base(), deviceKey: 'dev-ended' });
+        await endDownloadEvent(sql, ended, 'completed', { bytesSentDelta: 100 });
+        await sql`UPDATE download_events SET last_activity_at = now() - interval '30 minutes'
+                  WHERE id = ${stale}`;
+
+        const n = await closeStaleDownloadEvents(sql, new Date(Date.now() - 15 * 60_000));
+        expect(n).toBe(1);
+        const rows = await listDownloadEvents(sql, { userId, limit: 10 });
+        const byId = new Map(rows.map((r) => [r.id, r]));
+        expect(byId.get(stale)).toMatchObject({ outcome: 'aborted' });
+        expect(byId.get(stale)!.endedAt!.getTime()).toBe(byId.get(stale)!.lastActivityAt.getTime());
+        expect(byId.get(fresh)!.endedAt).toBeNull();
+        expect(byId.get(ended)!.outcome).toBe('completed');
     });
 });
