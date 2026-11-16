@@ -38,6 +38,7 @@ describe('production migration registry', () => {
         expect(MIGRATIONS.map((m) => ({ version: m.version, name: m.name }))).toEqual([
             { version: '16.468.0', name: 'play_sessions_download_purpose' },
             { version: '16.469.0', name: 'trickplay_measured_height' },
+            { version: '16.470.0', name: 'downloads_permission_and_log' },
         ]);
     });
 });

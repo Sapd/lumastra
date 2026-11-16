@@ -30,6 +30,7 @@
 import { MigrationSystem, type Migration } from './migration-system';
 import { migration_16_468_0 } from './migrations/16.468.0_play_sessions_download_purpose.js';
 import { migration_16_469_0 } from './migrations/16.469.0_trickplay_measured_height.js';
+import { migration_16_470_0 } from './migrations/16.470.0_downloads_permission_and_log.js';
 import { BASE_SCHEMA_MIGRATION } from './base-schema.js';
 import { Logger } from '../utils/logger';
 import { EMBEDDING_SOURCE } from '../utils/embedding-source.js';
@@ -48,6 +49,7 @@ const logger = Logger.for('Migration');
 export const MIGRATIONS: Migration[] = [
     migration_16_468_0,
     migration_16_469_0,
+    migration_16_470_0,
     // Append new migrations above this line, one per line.
 ];
 
