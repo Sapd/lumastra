@@ -31,6 +31,32 @@ function releaseYear(releaseDate: string | undefined): number | undefined {
     return match ? Number(match[1]) : undefined;
 }
 
+/**
+ * The user's `request_dismissed` targets (internal media UUIDs). A failed read
+ * serves the rail without the anti-join rather than failing it.
+ */
+async function loadDismissedRequestIds(ctx: AccessContext): Promise<ReadonlySet<string>> {
+    try {
+        const { getDb } = await import('$lib/server/database/connection.js');
+        const sql = getDb();
+        if (!sql || !ctx.userId) return new Set();
+        const { getActiveFlagTargets } =
+            await import('$lib/server/database/queries/user-media-flags.queries.js');
+        const ids = await getActiveFlagTargets(sql, {
+            userId: ctx.userId,
+            flagType: 'request_dismissed',
+        });
+        return new Set(ids);
+    } catch (err) {
+        logger.warn(
+            'Failed to load request_dismissed flags; serving without anti-join',
+            {},
+            err as Error,
+        );
+        return new Set();
+    }
+}
+
 export class FulfilledRequestsStrategy implements RecommenderStrategy {
     readonly id = 'fulfilled-requests';
     readonly label = m.settings_feed_kind_fulfilled_requests;
@@ -94,6 +120,19 @@ export class FulfilledRequestsStrategy implements RecommenderStrategy {
             if (rawItems === null) {
                 rawItems = await fetchFulfilledRequests(sql, ctx.username, {}, access);
                 if (rawItems.length > 0) await cache.set(cacheKey, rawItems).catch(() => undefined);
+            }
+
+            // "Hide" on a card sets a `request_dismissed` flag on the internal
+            // UUID. Applied AFTER the cache read (the cached rows are
+            // pre-dismissal), so a fresh dismissal takes effect on the next load
+            // without any cache invalidation. Before this, the rail never read the
+            // flags and a hidden card came back on reload.
+            const dismissed = await loadDismissedRequestIds(ctx);
+            if (dismissed.size > 0) {
+                rawItems = rawItems.filter((item) => {
+                    const internal = (item.externalIds as ExternalIds | undefined)?.internal;
+                    return !(internal && dismissed.has(String(internal)));
+                });
             }
 
             if (!ctx.showUnavailableMedia || opts.availableOnly) {

@@ -3853,6 +3853,18 @@ export async function fetchFulfilledRequests(
 
                     UNION
 
+                    -- Movies marked watched without a completed play (manual "Mark as
+                    -- watched", Jellyfin/Trakt sync): user_media_state.is_watched is the
+                    -- movie's watched flag; watch_history only knows about plays.
+                    SELECT DISTINCT primary_ext.external_id as primary_ext_id, primary_ext.media_type
+                    FROM user_media_state ums
+                    JOIN external_ids primary_ext ON primary_ext.media_id = ums.media_id AND primary_ext.provider = ${getPrimaryExternalIdProvider()} AND primary_ext.media_type = 'movie'
+                    WHERE ums.user_id = ${uid}::uuid
+                      AND ums.is_watched = true
+                      AND primary_ext.external_id = ANY(${tmdbIds.map(String)}::text[])
+
+                    UNION
+
                     -- For TV shows: exclude if user has watched any episode
                     -- (simplified check - user_media_state tracks per-show, not per-episode)
                     SELECT DISTINCT primary_ext.external_id as primary_ext_id, primary_ext.media_type

@@ -23,6 +23,11 @@ vi.mock('$lib/server/services/for-you.service.js', () => ({
     fetchFulfilledRequests: (...args: unknown[]) => mockFetchFulfilled(...args),
 }));
 
+const mockFlagTargets = vi.hoisted(() => vi.fn(async (): Promise<string[]> => []));
+vi.mock('$lib/server/database/queries/user-media-flags.queries.js', () => ({
+    getActiveFlagTargets: (...args: unknown[]) => mockFlagTargets(...(args as [])),
+}));
+
 const cacheStore = vi.hoisted(() => new Map<string, unknown>());
 vi.mock('$lib/server/cache/index.js', () => ({
     CACHE_NAMESPACES: { fulfilledRequests: { name: 'for-you-fulfilled-requests-v2' } },
@@ -64,6 +69,8 @@ describe('FulfilledRequestsStrategy cache', () => {
         cacheStore.clear();
         mockFetchFulfilled.mockReset();
         mockFetchFulfilled.mockResolvedValue([row]);
+        mockFlagTargets.mockReset();
+        mockFlagTargets.mockResolvedValue([]);
     });
 
     it('serves a repeat load without asking Seerr again', async () => {
@@ -109,6 +116,32 @@ describe('FulfilledRequestsStrategy cache', () => {
         expect((await fulfilledRequestsStrategy.fetch(ctx(), opts())).items).toEqual([]);
         expect((await fulfilledRequestsStrategy.fetch(ctx(), opts())).items).toHaveLength(1);
         expect(mockFetchFulfilled).toHaveBeenCalledTimes(2);
+    });
+
+    it('drops requests the user hid, on fresh and cached reads', async () => {
+        const other = {
+            ...row,
+            title: 'Other',
+            externalIds: { internal: '33333333-3333-4333-8333-333333333333', tmdb: '3' },
+        };
+        mockFetchFulfilled.mockResolvedValue([row, other]);
+        await fulfilledRequestsStrategy.fetch(ctx(), opts());
+
+        // The user hides "Ready" after the rows were cached.
+        mockFlagTargets.mockResolvedValue([row.externalIds.internal]);
+        const result = await fulfilledRequestsStrategy.fetch(ctx(), opts());
+        expect(result.items.map((i) => i.media.title)).toEqual(['Other']);
+        expect(mockFlagTargets).toHaveBeenLastCalledWith(expect.anything(), {
+            userId: 'u1',
+            flagType: 'request_dismissed',
+        });
+        expect(mockFetchFulfilled).toHaveBeenCalledTimes(1);
+    });
+
+    it('serves the rail when the dismissal flags cannot be read', async () => {
+        mockFlagTargets.mockRejectedValue(new Error('db down'));
+        const result = await fulfilledRequestsStrategy.fetch(ctx(), opts());
+        expect(result.items.map((i) => i.media.title)).toEqual(['Ready']);
     });
 
     it('refresh bypasses the cache', async () => {
