@@ -27,10 +27,14 @@ const mockFlagTargets = vi.hoisted(() => vi.fn(async (): Promise<string[]> => []
 vi.mock('$lib/server/database/queries/user-media-flags.queries.js', () => ({
     getActiveFlagTargets: (...args: unknown[]) => mockFlagTargets(...(args as [])),
 }));
+const mockWatchedAmong = vi.hoisted(() => vi.fn(async (): Promise<string[]> => []));
+vi.mock('$lib/server/database/queries/watch-state.queries.js', () => ({
+    getWatchedAmongMediaIds: (...args: unknown[]) => mockWatchedAmong(...(args as [])),
+}));
 
 const cacheStore = vi.hoisted(() => new Map<string, unknown>());
 vi.mock('$lib/server/cache/index.js', () => ({
-    CACHE_NAMESPACES: { fulfilledRequests: { name: 'for-you-fulfilled-requests-v2' } },
+    CACHE_NAMESPACES: { fulfilledRequests: { name: 'for-you-fulfilled-requests-v3' } },
     cacheManager: {
         for: () => ({
             get: async (k: string) => cacheStore.get(k) ?? null,
@@ -71,6 +75,8 @@ describe('FulfilledRequestsStrategy cache', () => {
         mockFetchFulfilled.mockResolvedValue([row]);
         mockFlagTargets.mockReset();
         mockFlagTargets.mockResolvedValue([]);
+        mockWatchedAmong.mockReset();
+        mockWatchedAmong.mockResolvedValue([]);
     });
 
     it('serves a repeat load without asking Seerr again', async () => {
@@ -135,6 +141,32 @@ describe('FulfilledRequestsStrategy cache', () => {
             userId: 'u1',
             flagType: 'request_dismissed',
         });
+        expect(mockFetchFulfilled).toHaveBeenCalledTimes(1);
+    });
+
+    it('drops a request hidden under its TMDB key (notification popup)', async () => {
+        mockFlagTargets.mockResolvedValue(['tmdb:1:movie']);
+        const result = await fulfilledRequestsStrategy.fetch(ctx(), opts());
+        expect(result.items).toEqual([]);
+        expect(result.hasMore).toBe(false);
+    });
+
+    it('drops a movie marked watched after the rows were cached', async () => {
+        const other = {
+            ...row,
+            title: 'Other',
+            externalIds: { internal: '33333333-3333-4333-8333-333333333333', tmdb: '3' },
+        };
+        mockFetchFulfilled.mockResolvedValue([row, other]);
+        await fulfilledRequestsStrategy.fetch(ctx(), opts());
+
+        mockWatchedAmong.mockResolvedValue([row.externalIds.internal]);
+        const result = await fulfilledRequestsStrategy.fetch(ctx(), opts());
+        expect(result.items.map((i) => i.media.title)).toEqual(['Other']);
+        expect(mockWatchedAmong).toHaveBeenLastCalledWith(expect.anything(), 'u1', [
+            row.externalIds.internal,
+            other.externalIds.internal,
+        ]);
         expect(mockFetchFulfilled).toHaveBeenCalledTimes(1);
     });
 

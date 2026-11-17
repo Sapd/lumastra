@@ -16,12 +16,17 @@ import type {
     RecommendationItem,
     RecommendedMediaRef,
 } from '../recommender.js';
+import type postgres from 'postgres';
 import { Logger } from '$lib/server/utils/logger.js';
 import { DependencyUnavailableError, isDependencyUnavailable } from '$lib/server/api/problem.js';
 import { toPublicMediaType } from '$lib/shared/media-type-domain';
 import type { ExternalIds } from '$lib/types/api-common.js';
 import { resolveMediaRefId } from '../../for-you/item-mapper.js';
 import { m } from '$lib/paraglide/messages.js';
+import {
+    buildRequestDismissalUuidKey,
+    requestDismissalKeys,
+} from '$lib/shared/request-dismissal-key.js';
 
 const logger = Logger.for('FulfilledRequestsStrategy');
 
@@ -32,28 +37,44 @@ function releaseYear(releaseDate: string | undefined): number | undefined {
 }
 
 /**
- * The user's `request_dismissed` targets (internal media UUIDs). A failed read
- * serves the rail without the anti-join rather than failing it.
+ * Rows to drop from the cached list on this load: requests the user hid
+ * (`request_dismissed`, in either key shape, see `request-dismissal-key.ts`)
+ * and titles marked watched since the rows were cached. Both are read per
+ * request, so neither needs a cache invalidation. A failed read serves the
+ * rail unfiltered rather than failing it.
  */
-async function loadDismissedRequestIds(ctx: AccessContext): Promise<ReadonlySet<string>> {
+async function loadHiddenRowFilter(
+    sql: postgres.Sql,
+    ctx: AccessContext,
+    rows: ReadonlyArray<{ externalIds?: unknown; mediaType?: string }>,
+): Promise<((row: { externalIds?: unknown; mediaType?: string }) => boolean) | null> {
+    if (!ctx.userId || rows.length === 0) return null;
     try {
-        const { getDb } = await import('$lib/server/database/connection.js');
-        const sql = getDb();
-        if (!sql || !ctx.userId) return new Set();
-        const { getActiveFlagTargets } =
-            await import('$lib/server/database/queries/user-media-flags.queries.js');
-        const ids = await getActiveFlagTargets(sql, {
-            userId: ctx.userId,
-            flagType: 'request_dismissed',
+        const [{ getActiveFlagTargets }, { getWatchedAmongMediaIds }] = await Promise.all([
+            import('$lib/server/database/queries/user-media-flags.queries.js'),
+            import('$lib/server/database/queries/watch-state.queries.js'),
+        ]);
+        const internalIds = rows.flatMap((row) => {
+            const id = buildRequestDismissalUuidKey(row.externalIds as ExternalIds | undefined);
+            return id ? [id] : [];
         });
-        return new Set(ids);
+        const [dismissed, watched] = await Promise.all([
+            getActiveFlagTargets(sql, { userId: ctx.userId, flagType: 'request_dismissed' }),
+            getWatchedAmongMediaIds(sql, ctx.userId, internalIds),
+        ]);
+        if (dismissed.length === 0 && watched.length === 0) return null;
+        const hidden = new Set([...dismissed, ...watched.map((id) => id.toLowerCase())]);
+        return (row) =>
+            !requestDismissalKeys(row.externalIds as ExternalIds | undefined, row.mediaType).some(
+                (key) => hidden.has(key),
+            );
     } catch (err) {
         logger.warn(
-            'Failed to load request_dismissed flags; serving without anti-join',
-            {},
+            'Failed to load hidden/watched requests; serving the rail unfiltered',
+            { userId: ctx.userId },
             err as Error,
         );
-        return new Set();
+        return null;
     }
 }
 
@@ -122,18 +143,11 @@ export class FulfilledRequestsStrategy implements RecommenderStrategy {
                 if (rawItems.length > 0) await cache.set(cacheKey, rawItems).catch(() => undefined);
             }
 
-            // "Hide" on a card sets a `request_dismissed` flag on the internal
-            // UUID. Applied AFTER the cache read (the cached rows are
-            // pre-dismissal), so a fresh dismissal takes effect on the next load
-            // without any cache invalidation. Before this, the rail never read the
-            // flags and a hidden card came back on reload.
-            const dismissed = await loadDismissedRequestIds(ctx);
-            if (dismissed.size > 0) {
-                rawItems = rawItems.filter((item) => {
-                    const internal = (item.externalIds as ExternalIds | undefined)?.internal;
-                    return !(internal && dismissed.has(String(internal)));
-                });
-            }
+            // Hidden (`request_dismissed`) and since-watched rows are dropped
+            // AFTER the cache read: the cached rows predate both, so a Hide or
+            // a "Mark as watched" takes effect on the next load.
+            const keep = await loadHiddenRowFilter(sql, ctx, rawItems);
+            if (keep) rawItems = rawItems.filter(keep);
 
             if (!ctx.showUnavailableMedia || opts.availableOnly) {
                 rawItems = rawItems.filter((item) => item.isAvailable);

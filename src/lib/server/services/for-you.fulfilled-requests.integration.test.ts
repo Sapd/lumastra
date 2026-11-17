@@ -20,6 +20,8 @@ import {
 } from '../../../../tests/integration/fixtures/index.js';
 import { derivedUsername } from '../../../../tests/integration/fixtures/user.fixtures.js';
 import { unrestrictedAccess } from '../database/queries/builders/media-access-boundary.js';
+import { getWatchedAmongMediaIds } from '../database/queries/watch-state.queries.js';
+import { toUserId } from '$lib/shared/user-id.js';
 
 const fulfilled = vi.hoisted(() => ({ tmdbIds: [] as number[] }));
 vi.mock('$lib/server/jellyseerr.js', () => ({
@@ -70,6 +72,8 @@ describe('fetchFulfilledRequests watched filter', () => {
         );
         const tmdbIds = rows.map((r) => String((r.externalIds as Record<string, unknown>).tmdb));
         expect(tmdbIds).toEqual([String(unwatched.tmdbId)]);
+        // Hide on the rail matches on this UUID (request_dismissed K-UUID key).
+        expect((rows[0].externalIds as Record<string, unknown>).internal).toBe(unwatched.id);
     });
 
     it('keeps a movie whose watched flag is false', async () => {
@@ -90,5 +94,25 @@ describe('fetchFulfilledRequests watched filter', () => {
             unrestrictedAccess(),
         );
         expect(rows).toHaveLength(1);
+    });
+
+    it('getWatchedAmongMediaIds returns only the candidates this user marked watched', async () => {
+        const userId = randomUUID();
+        const otherUser = randomUUID();
+        await ensureTestUser(sql, userId);
+        await ensureTestUser(sql, otherUser);
+        const a = await createAndInsertTestMovie(sql, { tmdbId: 910011 });
+        const b = await createAndInsertTestMovie(sql, { tmdbId: 910012 });
+        const c = await createAndInsertTestMovie(sql, { tmdbId: 910013 });
+        await sql`
+            INSERT INTO user_media_state (user_id, media_id, is_watched) VALUES
+                (${userId}::uuid, ${a.id}::uuid, true),
+                (${userId}::uuid, ${b.id}::uuid, false),
+                (${otherUser}::uuid, ${c.id}::uuid, true)
+        `;
+
+        const watched = await getWatchedAmongMediaIds(sql, toUserId(userId), [a.id, b.id, c.id]);
+        expect(watched).toEqual([a.id]);
+        expect(await getWatchedAmongMediaIds(sql, toUserId(userId), [])).toEqual([]);
     });
 });

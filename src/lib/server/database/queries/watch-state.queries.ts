@@ -1451,6 +1451,27 @@ export async function getWatchedMediaUuidsFromDb(
     return rows.map((r) => r.media_id);
 }
 
+/**
+ * Of the given media UUIDs, the ones the user has marked watched
+ * (`user_media_state.is_watched`, the movie/series watched flag). Scoped to the
+ * candidate ids so a rail can re-check a small cached list on every load.
+ */
+export async function getWatchedAmongMediaIds(
+    sql: postgres.Sql,
+    userId: UserId,
+    mediaIds: readonly string[],
+): Promise<string[]> {
+    if (mediaIds.length === 0) return [];
+    const rows = await sql<{ media_id: string }[]>`
+        SELECT media_id
+        FROM user_media_state
+        WHERE user_id = ${userId}
+          AND is_watched = true
+          AND media_id = ANY(${[...mediaIds]}::uuid[])
+    `;
+    return rows.map((r) => r.media_id);
+}
+
 // =============================================================================
 // Computed Series Progress (replaces user_series_progress table)
 // =============================================================================
