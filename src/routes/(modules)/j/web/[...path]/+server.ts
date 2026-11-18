@@ -33,8 +33,17 @@
 // The redirect HTML itself leaks nothing: the id comes from the caller's own
 // hash and `/watch/<id>` denies access (404) to anyone not entitled to it.
 //
-// (We do not inspect `params.path` — the handler always returns the same
-// static redirect HTML regardless of subpath, so path-traversal is moot.)
+// `params.path` is only compared against `manifest.json`; every other subpath
+// gets the same static redirect HTML, so path-traversal is moot.
+//
+// === manifest.json ===
+//
+// The LG webOS Jellyfin app (jellyfin-webos) fetches `<server>/web/manifest.json`
+// after `/System/Info/Public`, JSON-parses it and opens `/web/<start_url>` in a
+// frame to run jellyfin-web. Lumastra serves no jellyfin-web, so that app cannot
+// work. The redirect HTML made it fail with "The server did not return valid JSON
+// data."; a JSON 404 makes it say "Got HTTP error 404 from server, are you
+// connecting to a Jellyfin Server?", and nothing else asks for this path.
 
 import type { RequestHandler } from './$types';
 import { isForwardAuthPeerTrusted } from '$lib/server/utils/client-ip';
@@ -60,7 +69,15 @@ function isFromTrustedProxy(event: { getClientAddress: () => string }): boolean 
     return isForwardAuthPeerTrusted(peer);
 }
 
+const MANIFEST_NOT_FOUND_BODY = JSON.stringify({ Status: 'NotFound' });
+
 export const GET: RequestHandler = (event) => {
+    if (event.params.path?.toLowerCase() === 'manifest.json') {
+        return new Response(MANIFEST_NOT_FOUND_BODY, {
+            status: 404,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+        });
+    }
     if (!isFromTrustedProxy(event)) {
         // Return 404 (not 401/403) so a direct-to-container probe from an
         // untrusted peer can't confirm the path exists.
