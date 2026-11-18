@@ -1038,6 +1038,11 @@
         return item.external ? resolve(`/app/${encodeURIComponent(item.url)}`) : resolve(item.url);
     }
 
+    /** A non-iframe link to another site (e.g. `https://requests.example`): opens in a new tab. */
+    function isNewTabLink(item: MenuItem): boolean {
+        return !item.external && /^https?:\/\//i.test(item.url);
+    }
+
     // Preload a nav target's load (server + client) on hover/focus so the actual
     // click navigates instantly. The sidebar uses button+goto (not <a href>), so
     // SvelteKit's automatic `data-sveltekit-preload-data` can't see these links —
@@ -1045,15 +1050,21 @@
     // the result, so a subsequent goto() reuses it. Best-effort (never throws).
     const navPreloaded = new SvelteSet<string>();
     function preloadNav(item: MenuItem): void {
+        if (isNewTabLink(item)) return;
         const href = navHref(item);
         if (navPreloaded.has(href)) return;
         navPreloaded.add(href);
         void preloadData(href).catch(() => navPreloaded.delete(href));
     }
 
-    function handleNavigation(item: MenuItem) {
-        // Navigate to the iframe view for external services, else the internal route.
-        goto(navHref(item));
+    function handleNavigation(item: MenuItem): void {
+        if (isNewTabLink(item)) {
+            // goto() refuses other origins, so the click would silently do nothing.
+            window.open(item.url, '_blank', 'noopener,noreferrer');
+        } else {
+            // Navigate to the iframe view for external services, else the internal route.
+            void goto(navHref(item));
+        }
 
         // Close sidebar on mobile after navigation
         if (isMobile) {
