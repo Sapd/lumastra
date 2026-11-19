@@ -407,6 +407,7 @@ async function emitNewEpisode(sql: postgres.Sql, resolved: ResolvedItem): Promis
         getSeriesFollowers(sql, series.id, SERIES_INTEREST_MOMENT_GAP_SECONDS),
         getEpisodeArrivalsForSeries(sql, null, [series.id], lookbackDays, {
             includeEpisodeId: episode.id,
+            now,
         }),
     ]);
     if (followers.length === 0) return;

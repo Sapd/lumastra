@@ -164,6 +164,7 @@ export async function getNewReleaseGroupsForUser(
         userId,
         series.map((s) => s.seriesId),
         lookbackDays,
+        { now },
     );
     const groups = selectNewReleases(series, arrivals.map(toEpisode), now, config);
     return groups.map((g) => ({

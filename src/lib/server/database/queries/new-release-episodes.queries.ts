@@ -216,15 +216,18 @@ export interface EpisodeArrivalRow {
  * `watched` false for every row. `includeEpisodeId` is returned even without
  * `has_files` or outside the lookback: the episode that just became playable
  * is judged on its own air date, whatever state its row is in yet.
+ * `now` anchors the lookback (default: the database clock); pass the same
+ * `now` the rule judges with, or the two windows drift apart.
  */
 export async function getEpisodeArrivalsForSeries(
     sql: postgres.Sql,
     userId: UserId | null,
     seriesIds: readonly string[],
     lookbackDays: number,
-    options: { includeEpisodeId?: string } = {},
+    options: { includeEpisodeId?: string; now?: Date } = {},
 ): Promise<EpisodeArrivalRow[]> {
     if (seriesIds.length === 0) return [];
+    const now = options.now ? sql`${options.now.toISOString()}::timestamptz` : sql`NOW()`;
     const include = options.includeEpisodeId
         ? sql`OR ep.id = ${options.includeEpisodeId}::uuid`
         : sql``;
@@ -260,9 +263,9 @@ export async function getEpisodeArrivalsForSeries(
               (
                   ep.has_files = true
                   AND (
-                      ep.premiere_date >= (NOW() - make_interval(days => ${lookbackDays}))::date
+                      ep.premiere_date >= (${now} - make_interval(days => ${lookbackDays}))::date
                       OR COALESCE(ep.library_added_at, ep.first_file_at, ep.created_at)
-                          >= NOW() - make_interval(days => ${lookbackDays})
+                          >= ${now} - make_interval(days => ${lookbackDays})
                   )
               )
               ${include}
