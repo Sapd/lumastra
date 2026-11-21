@@ -18,6 +18,8 @@ const mockBulkUpdateChannelVisibility = vi.fn();
 const mockBulkUpdateChannelSortOrder = vi.fn();
 const mockBulkUpdateCategorySortOrder = vi.fn();
 const mockSaveSourceLineupFilter = vi.fn();
+const mockGetSourceLineupFilter = vi.fn();
+const mockRenumberIfOnlySource = vi.fn();
 
 vi.mock('$lib/server/database/queries/livetv-setup.queries.js', () => ({
     getChannelsForSetup: mockGetChannelsForSetup,
@@ -25,7 +27,12 @@ vi.mock('$lib/server/database/queries/livetv-setup.queries.js', () => ({
     bulkUpdateChannelVisibility: mockBulkUpdateChannelVisibility,
     bulkUpdateChannelSortOrder: mockBulkUpdateChannelSortOrder,
     bulkUpdateCategorySortOrder: mockBulkUpdateCategorySortOrder,
+    getSourceLineupFilter: mockGetSourceLineupFilter,
     saveSourceLineupFilter: mockSaveSourceLineupFilter,
+}));
+
+vi.mock('./channel-numbers.service.js', () => ({
+    renumberIfOnlySource: mockRenumberIfOnlySource,
 }));
 
 // Import after mocks are set up.
@@ -81,6 +88,9 @@ beforeEach(() => {
     mockBulkUpdateChannelVisibility.mockResolvedValue(undefined);
     mockBulkUpdateChannelSortOrder.mockResolvedValue(undefined);
     mockBulkUpdateCategorySortOrder.mockResolvedValue(undefined);
+    // A stored filter means the source was configured before (no renumber).
+    mockGetSourceLineupFilter.mockResolvedValue({ countries: [] });
+    mockRenumberIfOnlySource.mockResolvedValue(true);
 });
 
 // =============================================================================
@@ -872,5 +882,59 @@ describe('applySetupPreferences — countries, 24/7 and categories', () => {
         });
         expect(visibility().get('ro')).toBe(true);
         expect(mockSaveSourceLineupFilter.mock.calls[0][2]).toMatchObject({ countries: [] });
+    });
+});
+
+// =============================================================================
+// First Configure Lineup renumbers (only source with numbers)
+// =============================================================================
+
+describe('applySetupPreferences — first Configure Lineup renumbering', () => {
+    const preferences = {
+        sourceId: 'uuid-src-1',
+        region: 'generic' as const,
+        channelOrder: 'traditional' as const,
+        preferHighQuality: false,
+    };
+
+    it('renumbers once on the first setup of a source (no lineup filter stored yet)', async () => {
+        mockGetSourceLineupFilter.mockResolvedValue(null);
+        mockGetChannelsForSetup.mockResolvedValue([makeChannel({ id: 'ch-1' })]);
+
+        const result = await applySetupPreferences(makeSql(), preferences);
+
+        expect(mockRenumberIfOnlySource).toHaveBeenCalledTimes(1);
+        expect(mockRenumberIfOnlySource).toHaveBeenCalledWith(expect.anything(), 'uuid-src-1');
+        expect(result.renumbered).toBe(true);
+    });
+
+    it('does not renumber when the source was configured before', async () => {
+        mockGetSourceLineupFilter.mockResolvedValue({ countries: ['de'] });
+        mockGetChannelsForSetup.mockResolvedValue([makeChannel({ id: 'ch-1' })]);
+
+        const result = await applySetupPreferences(makeSql(), preferences);
+
+        expect(mockRenumberIfOnlySource).not.toHaveBeenCalled();
+        expect(result).not.toHaveProperty('renumbered');
+    });
+
+    it('does not renumber on the early return when there are no channels', async () => {
+        mockGetSourceLineupFilter.mockResolvedValue(null);
+        mockGetChannelsForSetup.mockResolvedValue([]);
+
+        await applySetupPreferences(makeSql(), preferences);
+
+        expect(mockRenumberIfOnlySource).not.toHaveBeenCalled();
+    });
+
+    it('still succeeds when the renumber throws', async () => {
+        mockGetSourceLineupFilter.mockResolvedValue(null);
+        mockGetChannelsForSetup.mockResolvedValue([makeChannel({ id: 'ch-1' })]);
+        mockRenumberIfOnlySource.mockRejectedValue(new Error('lock timeout'));
+
+        const result = await applySetupPreferences(makeSql(), preferences);
+
+        expect(result.success).toBe(true);
+        expect(result.renumbered).toBe(false);
     });
 });

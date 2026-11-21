@@ -74309,6 +74309,9 @@ components:
           type: number
         message:
           type: string
+        renumbered:
+          description: True when this first Configure Lineup renumbered the channels (only source with numbers)
+          type: boolean
       required:
         - success
         - visibleChannels

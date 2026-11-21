@@ -47,6 +47,7 @@ import { getTestDb, closeTestDb } from '../../../../../tests/integration/setup/t
 import {
     ensureChannelNumbers,
     renumberChannels,
+    renumberIfOnlySource,
     setChannelNumber,
     unpinChannelNumber,
 } from './channel-numbers.service.js';
@@ -368,5 +369,59 @@ describe('stable channel numbers', () => {
             SELECT backup_group_id, pinned FROM livetv_channel_numbers WHERE number = 42
         `;
         expect(owner).toEqual({ backup_group_id: groupId, pinned: true });
+    });
+
+    it('renumbers a lone source in current order from "Numbers start at", keeping a pinned number', async () => {
+        const herald = await channel('Herald', newsId, 0);
+        const daily = await channel('Daily', newsId, 1);
+        const arena = await channel('Arena', sportId, 0);
+        const court = await channel('Court', sportId, 1);
+        await ensureChannelNumbers(sql);
+        // Scattered import-time numbers, as in a real lineup.
+        await setChannelNumber(sql, court, 150, { swap: false });
+        await sql`UPDATE livetv_channel_numbers SET number = 1700 WHERE channel_id = ${herald}::uuid`;
+        await sql`UPDATE livetv_channel_numbers SET number = 5000 WHERE channel_id = ${daily}::uuid`;
+        await sql`UPDATE livetv_channel_numbers SET number = 8941 WHERE channel_id = ${arena}::uuid`;
+        await sql`UPDATE livetv_categories SET number_start = 100 WHERE id = ${sportId}::uuid`;
+
+        expect(await renumberIfOnlySource(sql, sourceId)).toBe(true);
+        expect(await numbersByTitle()).toEqual({ Herald: 1, Daily: 2, Arena: 100, Court: 150 });
+    });
+
+    it("leaves every number alone when another source's channel holds one", async () => {
+        await channel('Herald', newsId, 0);
+        await channel('Arena', sportId, 0);
+        await ensureChannelNumbers(sql);
+
+        const otherSource = crypto.randomUUID();
+        await sql`
+            INSERT INTO livetv_sources (id, name, source_type, m3u_url, max_streams)
+            VALUES (${otherSource}::uuid, 'Second', 'm3u', 'http://203.0.113.252/list.m3u', 1)
+        `;
+        const other = crypto.randomUUID();
+        await sql`
+            INSERT INTO media_items (id, title, media_type, status)
+            VALUES (${other}::uuid, 'Foreign News', 'tvchannel', 'active')
+        `;
+        await sql`
+            INSERT INTO livetv_channels (id, m3u_url, source_id, sort_order)
+            VALUES (${other}::uuid, 'http://203.0.113.98/x.ts', ${otherSource}::uuid, 0)
+        `;
+        await setChannelNumber(sql, other, 500, { swap: false });
+        const numberRows = () => sql<
+            {
+                number: number;
+                backup_group_id: string | null;
+                channel_id: string | null;
+                pinned: boolean;
+            }[]
+        >`
+            SELECT number, backup_group_id, channel_id, pinned
+              FROM livetv_channel_numbers ORDER BY number
+        `;
+        const before = await numberRows();
+
+        expect(await renumberIfOnlySource(sql, sourceId)).toBe(false);
+        expect(await numberRows()).toEqual(before);
     });
 });

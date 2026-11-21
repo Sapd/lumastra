@@ -831,6 +831,12 @@ export const SetupResultSchema = z
         hiddenChannels: z.number(),
         categories: z.number(),
         message: z.string(),
+        renumbered: z
+            .boolean()
+            .optional()
+            .describe(
+                'True when this first Configure Lineup renumbered the channels (only source with numbers)',
+            ),
     })
     .meta({ id: 'SetupResult', description: 'Setup application result' });
 

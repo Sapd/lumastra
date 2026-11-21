@@ -27,6 +27,7 @@ import {
     getProviderChannelTitles,
     insertChannelNumbers,
     lockChannelNumbers,
+    otherSourceHoldsChannelNumbers,
     setChannelNumberPinned,
     setChannelNumberRow,
 } from '$lib/server/database/queries/livetv-channel-numbers.queries.js';
@@ -251,19 +252,40 @@ export async function renumberChannels(sql: postgres.Sql): Promise<number> {
     return withTx(sql, async (txRaw) => {
         const tx = txRaw as unknown as postgres.Sql;
         await lockChannelNumbers(tx);
-        const [rows, numberRows, categories] = await Promise.all([
-            getAllVisibleChannels(tx),
-            getChannelNumberRows(tx),
-            getNumberCategories(tx),
-        ]);
-        const plan = planRenumber({
-            cards: toCards(rows),
-            rows: numberRows,
-            categories,
-            keepHidden: config.LIVETV_KEEP_HIDDEN_CHANNEL_NUMBERS,
-        });
-        await applyPlan(tx, plan);
-        return plan.numbers.size;
+        return renumberInTx(tx);
+    });
+}
+
+/** The renumber itself; the caller holds the numbers lock. */
+async function renumberInTx(tx: postgres.Sql): Promise<number> {
+    const [rows, numberRows, categories] = await Promise.all([
+        getAllVisibleChannels(tx),
+        getChannelNumberRows(tx),
+        getNumberCategories(tx),
+    ]);
+    const plan = planRenumber({
+        cards: toCards(rows),
+        rows: numberRows,
+        categories,
+        keepHidden: config.LIVETV_KEEP_HIDDEN_CHANNEL_NUMBERS,
+    });
+    await applyPlan(tx, plan);
+    return plan.numbers.size;
+}
+
+/**
+ * Renumbers the whole lineup in current order (renumberInTx), but only while no
+ * other source holds a number: then nobody knows the numbers yet, so a
+ * Configure Lineup of the first source may reassign them for free. Returns
+ * whether it renumbered.
+ */
+export async function renumberIfOnlySource(sql: postgres.Sql, sourceId: string): Promise<boolean> {
+    return withTx(sql, async (txRaw) => {
+        const tx = txRaw as unknown as postgres.Sql;
+        await lockChannelNumbers(tx);
+        if (await otherSourceHoldsChannelNumbers(tx, sourceId)) return false;
+        await renumberInTx(tx);
+        return true;
     });
 }
 

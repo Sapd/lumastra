@@ -19,6 +19,7 @@ import {
     bulkUpdateChannelVisibility,
     bulkUpdateChannelSortOrder,
     bulkUpdateCategorySortOrder,
+    getSourceLineupFilter,
     saveSourceLineupFilter,
 } from '$lib/server/database/queries/livetv-setup.queries.js';
 import type {
@@ -26,6 +27,7 @@ import type {
     CategoryOrderRow,
 } from '$lib/server/database/queries/livetv-setup.queries.js';
 import { isDegradedFeed } from './auto-processor.js';
+import { renumberIfOnlySource } from './channel-numbers.service.js';
 import { isChannelKept, type LineupFilter } from './lineup-filter.js';
 import { classifyLineup, countNoise, noiseKindsOf, type NoiseKind } from './lineup-noise.js';
 
@@ -86,6 +88,8 @@ export interface SetupResult {
     hiddenChannels: number;
     categories: number;
     message: string;
+    /** Set on the first Configure Lineup: true when it renumbered the channels. */
+    renumbered?: boolean;
 }
 
 // =============================================================================
@@ -364,6 +368,9 @@ export async function applySetupPreferences(
     // never moves a category header (e.g. "sports-first" left Free TV on top).
     const categorySortUpdates = computeCategorySortOrders(categoryRows, channelOrder);
 
+    // null = never configured: this run is the first Configure Lineup of the source.
+    const firstSetup = (await getSourceLineupFilter(sql, sourceId)) === null;
+
     await withTx(sql, async (tx) => {
         const txSql = tx as unknown as postgres.Sql;
         await bulkUpdateChannelVisibility(txSql, visibilityUpdates);
@@ -382,12 +389,26 @@ export async function applySetupPreferences(
         `Setup complete: ${visibleCount} visible, ${hiddenCount} hidden, ${categorySet.size} categories`,
     );
 
+    // Nobody knows the import-time numbers yet, so the first setup of the only
+    // source with numbers renumbers for free. Setup itself must not fail on it.
+    let renumbered = false;
+    if (firstSetup) {
+        try {
+            renumbered = await renumberIfOnlySource(sql, sourceId);
+        } catch (error) {
+            logger.warn(`Renumber after first Configure Lineup failed for source ${sourceId}`, {
+                error: String(error),
+            });
+        }
+    }
+
     return {
         success: true,
         visibleChannels: visibleCount,
         hiddenChannels: hiddenCount,
         categories: categorySet.size,
         message: `Setup applied: ${visibleCount} channels visible, ${hiddenCount} hidden across ${categorySet.size} categories.`,
+        ...(firstSetup ? { renumbered } : {}),
     };
 }
 

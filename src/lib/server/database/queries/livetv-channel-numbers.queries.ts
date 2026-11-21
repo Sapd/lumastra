@@ -195,3 +195,30 @@ export async function setCategoryNumberStart(
     `;
     return result.count > 0;
 }
+
+/**
+ * True when a number is held by a channel of another source: the number's own
+ * channel, or a channel of the number's backup group, has a different source.
+ */
+export async function otherSourceHoldsChannelNumbers(
+    sql: postgres.Sql,
+    sourceId: string,
+): Promise<boolean> {
+    const [row] = await sql<{ held: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1
+              FROM livetv_channel_numbers n
+             WHERE EXISTS (
+                       SELECT 1 FROM livetv_channels c
+                        WHERE c.id = n.channel_id
+                          AND c.source_id IS DISTINCT FROM ${sourceId}::uuid
+                   )
+                OR EXISTS (
+                       SELECT 1 FROM livetv_channels c
+                        WHERE c.backup_group_id = n.backup_group_id
+                          AND c.source_id IS DISTINCT FROM ${sourceId}::uuid
+                   )
+        ) AS held
+    `;
+    return row?.held ?? false;
+}
