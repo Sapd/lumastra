@@ -243,6 +243,33 @@ describe('LiveTV Channels Queries', () => {
         });
     });
 
+    it('hides visible channels from a source marked for deletion', async () => {
+        const deletingSourceId = crypto.randomUUID();
+        const activeSourceId = crypto.randomUUID();
+        await insertSource(sql, deletingSourceId);
+        await insertSource(sql, activeSourceId);
+
+        const channelIds = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()];
+        const sourceIds = [deletingSourceId, activeSourceId, null];
+        for (const [index, id] of channelIds.entries()) {
+            await sql`
+                INSERT INTO media_items (id, title, media_type, status)
+                VALUES (${id}, ${`Channel ${index}`}, 'tvchannel', 'active')
+            `;
+            await sql`
+                INSERT INTO livetv_channels (id, m3u_url, source_id, is_visible, sort_order)
+                VALUES (${id}, ${`http://provider.example/${index}`}, ${sourceIds[index]}, true, ${index})
+            `;
+        }
+        expect((await getAllVisibleChannels(sql)).map((channel) => channel.id)).toEqual(channelIds);
+
+        await sql`UPDATE livetv_sources SET deleting_since = now() WHERE id = ${deletingSourceId}`;
+
+        expect((await getAllVisibleChannels(sql)).map((channel) => channel.id)).toEqual(
+            channelIds.slice(1),
+        );
+    });
+
     describe('getAllVisibleChannels — one channel per backup group', () => {
         async function setup(): Promise<{ ids: Record<string, string>; bg: string }> {
             const sourceId = crypto.randomUUID();

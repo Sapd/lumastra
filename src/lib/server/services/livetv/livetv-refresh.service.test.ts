@@ -3,6 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import type postgres from 'postgres';
+import type { LiveTvSourceRow } from '$lib/server/database/queries/livetv-sources.queries.js';
 import type { RefreshResult } from './livetv-refresh.service.js';
 
 // This isolated service fixture uses the disconnected memory-lock primitive.
@@ -80,7 +81,7 @@ vi.mock('$lib/server/database/queries/livetv-setup.queries.js', () => ({
 // Must import after mocks
 const { refreshM3uSource } = await import('./livetv-refresh.service.js');
 const { fetchSsrfValidatedText, M3U_MAX_FETCH_BYTES } = await import('./fetch-source.js');
-const { getSourceByIdWithCredentials } =
+const { getSourceByIdWithCredentials, updateRefreshStatus } =
     await import('$lib/server/database/queries/livetv-sources.queries.js');
 const {
     getChannelsForRefresh,
@@ -178,12 +179,13 @@ function makeFakeSql() {
 
 describe('refreshM3uSource', () => {
     let sql: postgres.Sql;
+    let source: LiveTvSourceRow;
 
     beforeEach(() => {
         vi.clearAllMocks();
         sql = makeFakeSql();
 
-        vi.mocked(getSourceByIdWithCredentials).mockResolvedValue({
+        source = {
             id: 'src-1',
             name: 'Test Source',
             source_type: 'm3u',
@@ -201,7 +203,8 @@ describe('refreshM3uSource', () => {
             last_refresh_summary: null,
             created_at: new Date(),
             updated_at: new Date(),
-        });
+        };
+        vi.mocked(getSourceByIdWithCredentials).mockResolvedValue(source);
 
         vi.mocked(getChannelsForRefresh).mockResolvedValue(makeDbChannels());
 
@@ -210,6 +213,38 @@ describe('refreshM3uSource', () => {
             text: () => Promise.resolve(SAMPLE_M3U),
         });
     });
+
+    it.each([false, true])(
+        'skips fetching and writing for a deleting or missing source (missing=%s)',
+        async (missing) => {
+            vi.mocked(getSourceByIdWithCredentials).mockResolvedValueOnce(
+                missing ? null : { ...source, deleting_since: new Date() },
+            );
+
+            await expect(refreshM3uSource(sql, 'src-1', undefined, missing)).resolves.toEqual({
+                sourceId: 'src-1',
+                sourceName: missing ? '' : source.name,
+                matched: 0,
+                newChannels: 0,
+                removedChannels: 0,
+                urlChanges: 0,
+                archivedChannels: 0,
+                deletedChannels: 0,
+                lineupHidden: 0,
+                flaggedForReview: 0,
+                massRestructure: false,
+                errors: [],
+                duration: expect.any(Number),
+            });
+            expect(fetchSsrfValidatedText).not.toHaveBeenCalled();
+            expect(sql).not.toHaveBeenCalled();
+            expect(sql.begin).not.toHaveBeenCalled();
+            expect(getChannelsForRefresh).not.toHaveBeenCalled();
+            expect(updateMatchedChannels).not.toHaveBeenCalled();
+            expect(bulkCreateChannels).not.toHaveBeenCalled();
+            expect(updateRefreshStatus).not.toHaveBeenCalled();
+        },
+    );
 
     it('fetches the playlist with the M3U byte ceiling', async () => {
         await refreshM3uSource(sql, 'src-1');
@@ -516,9 +551,11 @@ http://provider.com/live/user/pass/102.ts
         );
     });
 
-    it('handles source not found', async () => {
+    it('throws for a missing source when waitForLock is false', async () => {
         vi.mocked(getSourceByIdWithCredentials).mockResolvedValue(null);
 
-        await expect(refreshM3uSource(sql, 'missing')).rejects.toThrow('Source not found: missing');
+        await expect(refreshM3uSource(sql, 'missing', undefined, false)).rejects.toThrow(
+            'Source not found: missing',
+        );
     });
 });

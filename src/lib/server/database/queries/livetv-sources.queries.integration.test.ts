@@ -5,7 +5,7 @@
  * Integration Tests for LiveTV Sources Query Module
  */
 
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import type postgres from 'postgres';
 import { getTestDb, closeTestDb } from '../../../../../tests/integration/setup/test-database.js';
 import { recordLiveTvFailureEvent } from './livetv-failure-events.queries.js';
@@ -16,6 +16,9 @@ import {
     getSourceByIdWithCredentials,
     createSource,
     updateSource,
+    markSourceDeleting,
+    clearSourceDeleting,
+    clearStaleSourceDeletingFlags,
     deleteSource,
     updateRefreshStatus,
     getSourceChannelCount,
@@ -25,6 +28,7 @@ import {
 
 describe('LiveTV Sources Queries', () => {
     let sql: postgres.Sql;
+    const testCategoryIds: string[] = [];
 
     beforeAll(async () => {
         sql = getTestDb();
@@ -38,6 +42,13 @@ describe('LiveTV Sources Queries', () => {
         await sql.unsafe(
             'TRUNCATE TABLE livetv_channels, livetv_sources, media_items RESTART IDENTITY CASCADE',
         );
+    });
+
+    afterEach(async () => {
+        if (testCategoryIds.length) {
+            await sql`DELETE FROM livetv_categories WHERE id = ANY(${testCategoryIds}::uuid[])`;
+            testCategoryIds.length = 0;
+        }
     });
 
     // ========================================================================
@@ -183,7 +194,66 @@ describe('LiveTV Sources Queries', () => {
     // deleteSource
     // ========================================================================
 
+    it('clears stale flags only when no matching in-flight deletion protects them', async () => {
+        const stale = await createSource(sql, { name: 'Stale', source_type: 'm3u' });
+        const pending = await createSource(sql, { name: 'Pending', source_type: 'm3u' });
+        const fresh = await createSource(sql, { name: 'Fresh', source_type: 'm3u' });
+        await markSourceDeleting(sql, fresh.id);
+        await sql`
+            UPDATE livetv_sources SET deleting_since = now() - interval '3 minutes'
+            WHERE id IN (${stale.id}, ${pending.id})
+        `;
+        const runId = crypto.randomUUID();
+        // No idempotency key, like a run started from /admin/tasks: the run's input decides.
+        const trigger = sql.json({ kind: 'manual' });
+        await sql`
+            INSERT INTO task_history (id, task_id, label, state, input, trigger, actor, processing_version)
+            VALUES (${runId}, 'delete-livetv-source', 'Delete Live TV Source', 'pending',
+                    ${sql.json({ sourceId: pending.id })}, ${trigger}, '{"type":"system"}', '1')
+        `;
+        try {
+            expect(await clearStaleSourceDeletingFlags(sql)).toBe(1);
+            expect((await getSourceById(sql, stale.id))?.deleting_since).toBeNull();
+            expect((await getSourceById(sql, pending.id))?.deleting_since).toBeInstanceOf(Date);
+            expect((await getSourceById(sql, fresh.id))?.deleting_since).toBeInstanceOf(Date);
+
+            await sql`UPDATE task_history SET state = 'cancelled' WHERE id = ${runId}`;
+            expect(await clearStaleSourceDeletingFlags(sql)).toBe(1);
+            expect((await getSourceById(sql, pending.id))?.deleting_since).toBeNull();
+        } finally {
+            await sql`DELETE FROM task_history WHERE id = ${runId}`;
+        }
+    });
+
     describe('deleteSource', () => {
+        it('preserves the first deletion timestamp and excludes the source from scheduled refresh', async () => {
+            const source = await createSource(sql, {
+                name: 'Pending deletion',
+                source_type: 'm3u',
+                refresh_cron: '0 * * * *',
+            });
+
+            expect(await markSourceDeleting(sql, source.id)).toEqual({
+                found: true,
+                alreadyDeleting: false,
+            });
+            const first = (await getSourceById(sql, source.id))?.deleting_since;
+            expect(first).toBeInstanceOf(Date);
+            expect(await markSourceDeleting(sql, source.id)).toEqual({
+                found: true,
+                alreadyDeleting: true,
+            });
+            const listed = (await getAllSourcesWithChannelCounts(sql)).find(
+                (s) => s.id === source.id,
+            );
+            expect(listed?.deleting_since).toEqual(first);
+            expect(await getSourcesWithRefreshCron(sql)).toEqual([]);
+            expect(await updateSource(sql, source.id, { name: 'Concurrent edit' })).toBeNull();
+
+            await clearSourceDeleting(sql, source.id);
+            expect((await getSourceById(sql, source.id))?.deleting_since).toBeNull();
+        });
+
         it('deletes an existing source and reports it', async () => {
             const created = await createSource(sql, {
                 name: 'ToDelete',
@@ -205,6 +275,20 @@ describe('LiveTV Sources Queries', () => {
             const source = await createSource(sql, { name: 'Cascade', source_type: 'm3u' });
             const other = await createSource(sql, { name: 'Keep', source_type: 'm3u' });
 
+            const numberedCategoryId = crypto.randomUUID();
+            const hiddenCategoryId = crypto.randomUUID();
+            const emptiedCategoryId = crypto.randomUUID();
+            const unrelatedCategoryId = crypto.randomUUID();
+            const sourceCategoryIds = [numberedCategoryId, hiddenCategoryId, emptiedCategoryId];
+            testCategoryIds.push(...sourceCategoryIds, unrelatedCategoryId);
+            await sql`
+                INSERT INTO livetv_categories (id, name, number_start, is_visible, sort_order)
+                VALUES (${numberedCategoryId}::uuid, ${numberedCategoryId}::text, 100, DEFAULT, DEFAULT),
+                       (${hiddenCategoryId}::uuid, ${hiddenCategoryId}::text, NULL, false, DEFAULT),
+                       (${emptiedCategoryId}::uuid, ${emptiedCategoryId}::text, NULL, DEFAULT, DEFAULT),
+                       (${unrelatedCategoryId}::uuid, ${unrelatedCategoryId}::text, NULL, DEFAULT, DEFAULT)
+            `;
+
             // A backup group owned by the source.
             const [group] = await sql<{ id: string }[]>`
                 INSERT INTO livetv_backup_groups (name, source_id)
@@ -212,10 +296,9 @@ describe('LiveTV Sources Queries', () => {
                 RETURNING id
             `;
 
-            // Two channels for the source (media_items + livetv_channels) — one assigned
-            // to the backup group — each with a program and a watch-history row.
+            // One channel per category, with a program each. The first has a backup group.
             const channelIds: string[] = [];
-            for (let i = 0; i < 2; i++) {
+            for (const [i, categoryId] of sourceCategoryIds.entries()) {
                 const chId = crypto.randomUUID();
                 channelIds.push(chId);
                 await sql`
@@ -223,14 +306,18 @@ describe('LiveTV Sources Queries', () => {
                     VALUES (${chId}::uuid, ${'Ch ' + i}, 'tvchannel', 'active')
                 `;
                 await sql`
-                    INSERT INTO livetv_channels (id, m3u_url, source_id, backup_group_id)
-                    VALUES (${chId}::uuid, ${'http://ch' + i}, ${source.id}::uuid, ${
-                        i === 0 ? group.id : null
-                    }::uuid)
+                    INSERT INTO livetv_channels (id, m3u_url, source_id, backup_group_id, category_id)
+                    VALUES (${chId}::uuid, ${'http://ch' + i}, ${source.id}::uuid,
+                            ${i === 0 ? group.id : null}::uuid,
+                            ${categoryId}::uuid)
                 `;
                 await sql`
                     INSERT INTO livetv_programs (channel_id, title, start_time, end_time)
                     VALUES (${chId}::uuid, 'Prog', NOW(), NOW() + INTERVAL '1 hour')
+                `;
+                await sql`
+                    INSERT INTO image_candidates (media_item_id, artwork_type, source, remote_url)
+                    VALUES (${chId}::uuid, 'thumb', 'remote', 'http://example.test/logo.png')
                 `;
             }
             // (livetv_channel_watch_history also cascades via the same
@@ -287,7 +374,7 @@ describe('LiveTV Sources Queries', () => {
             const result = await deleteSource(sql, source.id);
 
             expect(result.deleted).toBe(true);
-            expect(result.channelsDeleted).toBe(2);
+            expect(result.channelsDeleted).toBe(sourceCategoryIds.length);
 
             // The deleted source's stream failures are gone; the other source's stay.
             const failures = await sql<{ event_uid: string }[]>`
@@ -315,6 +402,23 @@ describe('LiveTV Sources Queries', () => {
                     await sql`SELECT id FROM livetv_programs WHERE channel_id = ANY(${channelIds}::uuid[])`
                 ).length,
             ).toBe(0);
+
+            expect(
+                await sql`SELECT id FROM image_candidates WHERE media_item_id = ANY(${channelIds}::uuid[])`,
+            ).toHaveLength(0);
+
+            const categories = await sql`
+                SELECT id, number_start, is_visible FROM livetv_categories
+                WHERE id = ANY(${testCategoryIds}::uuid[])
+            `;
+            expect([...categories]).toEqual(
+                expect.arrayContaining([
+                    { id: numberedCategoryId, number_start: 100, is_visible: true },
+                    { id: hiddenCategoryId, number_start: null, is_visible: false },
+                    { id: unrelatedCategoryId, number_start: null, is_visible: true },
+                ]),
+            );
+            expect(categories).toHaveLength(3);
 
             // Backup group gone (would otherwise orphan via SET NULL).
             expect(

@@ -14,6 +14,7 @@ export interface ApiLiveTvSource {
     sourceType: string;
     maxStreams: number;
     lastRefreshAt?: string;
+    deletingSince?: string;
     lastRefreshStatus?: string;
     refreshCron?: string;
 }
@@ -37,6 +38,7 @@ export function mapSourceToApi(row: LiveTvSourceSafeRow | LiveTvSourceRow): ApiL
         sourceType: row.source_type,
         maxStreams: row.max_streams,
         lastRefreshAt: row.last_refresh_at?.toISOString() ?? undefined,
+        deletingSince: row.deleting_since?.toISOString() ?? undefined,
         lastRefreshStatus: row.last_refresh_status ?? undefined,
         refreshCron: row.refresh_cron ?? undefined,
     };

@@ -116,7 +116,7 @@ export async function refreshM3uSource(
         );
     }
     try {
-        return await refreshM3uSourceInner(sql, sourceId, progressCallback);
+        return await refreshM3uSourceInner(sql, sourceId, progressCallback, waitForLock);
     } finally {
         await releaseLock(lockKey, lockValue);
     }
@@ -125,13 +125,31 @@ export async function refreshM3uSource(
 async function refreshM3uSourceInner(
     sql: postgres.Sql,
     sourceId: string,
-    progressCallback?: ProgressCallback,
+    progressCallback: ProgressCallback | undefined,
+    skipMissing: boolean,
 ): Promise<RefreshResult> {
     const startTime = Date.now();
     const errors: string[] = [];
 
     // 1. Load source with credentials
     const source = await getSourceByIdWithCredentials(sql, sourceId);
+    if (source?.deleting_since || (!source && skipMissing)) {
+        return {
+            sourceId,
+            sourceName: source?.name ?? '',
+            matched: 0,
+            newChannels: 0,
+            removedChannels: 0,
+            urlChanges: 0,
+            archivedChannels: 0,
+            deletedChannels: 0,
+            lineupHidden: 0,
+            flaggedForReview: 0,
+            massRestructure: false,
+            errors,
+            duration: Date.now() - startTime,
+        };
+    }
     if (!source) throw new Error(`Source not found: ${sourceId}`);
     if (!source.m3u_url) throw new Error(`Source ${sourceId} has no M3U URL`);
 

@@ -4,6 +4,7 @@
 -->
 
 <script lang="ts">
+    import { untrack } from 'svelte';
     import { redactLiveTvUrlsInText } from '$lib/shared/livetv-url-redaction.js';
     import * as m from '$lib/paraglide/messages.js';
     import {
@@ -37,7 +38,7 @@
     let editingSource = $state<LiveTvSourceWithCount | undefined>(undefined);
     let importingSourceId = $state<string | null>(null);
     let refreshingSourceId = $state<string | null>(null);
-    let deletingSourceId = $state<string | null>(null);
+    let deletingSourceIds = $state<Record<string, string | null>>({});
     let layoutImporting = $state(false);
     let showSetup = $state(false);
     let setupIsReconfigure = $state(false);
@@ -75,46 +76,120 @@
     ] as const;
 
     const isEmpty = $derived(sources.length === 0 && !loading);
+    const hasDeletingSources = $derived(sources.some((source) => Boolean(source.deletingSince)));
+    let sourceListRequest = 0;
 
     async function loadSources(opts?: { silent?: boolean }): Promise<void> {
         // `silent` skips the loading skeleton — used by the import-progress poller
         // so the list doesn't flash on every background refresh.
         if (!opts?.silent) loading = true;
+        const request = ++sourceListRequest;
         try {
             const result = await getLiveTvSources();
+            if (request !== sourceListRequest) return;
             if (result.data) {
                 sources = result.data.sources;
             } else if (result.error) {
                 showError(m.livetv_admin_load_failed());
             }
         } catch {
-            showError(m.livetv_admin_load_failed());
+            if (request === sourceListRequest) showError(m.livetv_admin_load_failed());
         } finally {
             if (!opts?.silent) loading = false;
         }
     }
 
+    async function fetchRun(id: string): Promise<Run | undefined> {
+        try {
+            const res = await fetch(`/api/runs/${encodeURIComponent(id)}`, {
+                credentials: 'same-origin',
+            });
+            return res.ok ? ((await res.json()) as Run) : undefined;
+        } catch {
+            return undefined;
+        }
+    }
+
     async function handleDelete(sourceId: string, sourceName: string): Promise<void> {
         if (!confirm(m.livetv_admin_delete_confirm({ name: sourceName }))) return;
-        // Deleting a source cascade-removes all its channels + programs, which can take
-        // a few seconds for a large source. Show a spinner so the action visibly reacts.
-        deletingSourceId = sourceId;
+
+        deletingSourceIds[sourceId] = null;
         try {
             const result = await deleteLiveTvSource(sourceId);
-            if (result.data) {
-                toasts.success(m.livetv_admin_delete_success());
-                // Optimistically drop the row so it disappears immediately, then reconcile.
-                sources = sources.filter((s) => s.id !== sourceId);
-                await loadSources({ silent: true });
+            if (result.data?.deleting) {
+                deletingSourceIds[sourceId] = result.data.taskId;
+                toasts.info(m.livetv_admin_delete_started());
             } else {
-                showError(result.error ?? m.livetv_admin_delete_failed());
+                showError(
+                    result.error ??
+                        (result.status === 503
+                            ? m.livetv_admin_delete_enqueue_failed()
+                            : m.livetv_admin_delete_failed()),
+                );
             }
         } catch {
             showError(m.livetv_admin_delete_failed());
         } finally {
-            deletingSourceId = null;
+            if (deletingSourceIds[sourceId] === null) delete deletingSourceIds[sourceId];
         }
     }
+
+    $effect(() => {
+        const tracked = Object.entries(deletingSourceIds).filter(([, runId]) => runId !== null);
+        const watchList = hasDeletingSources;
+        if (!tracked.length && !watchList) return;
+
+        if (tracked.length) runSSEBus.connect();
+        let stopped = false;
+
+        function applyRun(sourceId: string, run: Run | undefined): void {
+            if (stopped || !run || deletingSourceIds[sourceId] !== run.id) return;
+            if (run.state === 'completed') {
+                sources = sources.filter((source) => source.id !== sourceId);
+                toasts.success(m.livetv_admin_delete_success());
+            } else if (run.state === 'failed' || run.state === 'cancelled') {
+                showError(run.error?.message || m.livetv_admin_delete_failed());
+            } else {
+                return;
+            }
+
+            delete deletingSourceIds[sourceId];
+            void loadSources({ silent: true });
+        }
+
+        function apply(): void {
+            for (const [sourceId, runId] of tracked) {
+                if (runId) applyRun(sourceId, runSSEBus.runs.get(runId));
+            }
+        }
+
+        const off = tracked.length ? runSSEBus.onAnyChange(apply) : undefined;
+        untrack(apply);
+        let polling = false;
+        async function pollOnce(): Promise<void> {
+            if (polling) return;
+            polling = true;
+            try {
+                await Promise.all([
+                    ...tracked.map(async ([sourceId, runId]): Promise<void> => {
+                        if (runId) applyRun(sourceId, await fetchRun(runId));
+                    }),
+                    // The list carries the flag for deletions started elsewhere.
+                    watchList ? loadSources({ silent: true }) : undefined,
+                ]);
+            } finally {
+                polling = false;
+            }
+        }
+
+        const poll = setInterval(() => void pollOnce(), 3000);
+        return () => {
+            stopped = true;
+            off?.();
+            clearInterval(poll);
+            if (tracked.length) runSSEBus.disconnect();
+        };
+    });
 
     async function handleImport(sourceId: string): Promise<void> {
         importingSourceId = sourceId;
@@ -310,17 +385,6 @@
             if (finished) return;
             if (waitingForEpg()) adoptEpgChild(findEpgChildOnBus());
             else handle(runSSEBus.runs.get(currentRunId));
-        };
-
-        const fetchRun = async (id: string): Promise<Run | undefined> => {
-            try {
-                const res = await fetch(`/api/runs/${encodeURIComponent(id)}`, {
-                    credentials: 'same-origin',
-                });
-                return res.ok ? ((await res.json()) as Run) : undefined;
-            } catch {
-                return undefined;
-            }
         };
 
         const listRuns = async (query: string): Promise<Run[]> => {
@@ -559,6 +623,12 @@
     {:else}
         <div class="space-y-3">
             {#each sources as source (source.id)}
+                {@const isDeleting =
+                    source.id in deletingSourceIds || Boolean(source.deletingSince)}
+                <!-- A flagged source this page is not following stays deletable: the run may
+                     have been cancelled before it started, and DELETE again either attaches
+                     to the live run or starts a new one. -->
+                {@const isFollowingDelete = source.id in deletingSourceIds}
                 <div class="bg-surface-800 border border-surface-700 rounded-lg p-5 space-y-3">
                     <!-- Bare playlist: no groups, ids or logos came with it -->
                     {#if source.playlistMetadataMissing}
@@ -568,6 +638,7 @@
                             <button
                                 type="button"
                                 class="btn btn-sm shrink-0 self-start bg-yellow-500 font-medium text-surface-900 hover:bg-yellow-400 flex items-center gap-1.5 sm:self-center"
+                                disabled={isDeleting}
                                 onclick={() => handleEditSource(source)}>
                                 <Icon src={PencilSquare} class="w-4 h-4" />
                                 {m.livetv_admin_edit_source()}
@@ -663,6 +734,7 @@
                                 <button
                                     type="button"
                                     class="btn btn-sm btn-ghost flex items-center gap-1.5 text-yellow-400 hover:text-yellow-300"
+                                    disabled={isDeleting}
                                     onclick={() => handleShowSetup(source.id)}
                                     title={m.livetv_admin_setup_configure()}>
                                     <Icon src={Cog6Tooth} class="w-4 h-4" />
@@ -672,7 +744,7 @@
                             <button
                                 type="button"
                                 class="btn btn-sm btn-ghost flex items-center gap-1.5"
-                                disabled={refreshingSourceId === source.id}
+                                disabled={isDeleting || refreshingSourceId === source.id}
                                 onclick={() => void handleRefresh(source.id)}
                                 title={m.livetv_admin_refresh_now()}>
                                 {#if refreshingSourceId === source.id}
@@ -685,7 +757,7 @@
                             <button
                                 type="button"
                                 class="btn btn-sm btn-ghost flex items-center gap-1.5"
-                                disabled={importingSourceId === source.id}
+                                disabled={isDeleting || importingSourceId === source.id}
                                 onclick={() => void handleImport(source.id)}
                                 title={m.livetv_admin_import()}>
                                 {#if importingSourceId === source.id}
@@ -699,6 +771,7 @@
                             <button
                                 type="button"
                                 class="btn btn-sm btn-ghost flex items-center gap-1.5"
+                                disabled={isDeleting}
                                 onclick={() => handleEditSource(source)}
                                 title={m.livetv_admin_edit_source()}>
                                 <Icon src={PencilSquare} class="w-4 h-4" />
@@ -707,11 +780,12 @@
                             <button
                                 type="button"
                                 class="btn btn-sm btn-ghost text-red-400 hover:text-red-300 flex items-center gap-1.5"
-                                disabled={deletingSourceId === source.id}
+                                disabled={isFollowingDelete}
                                 onclick={() => void handleDelete(source.id, source.name)}
                                 title="Delete">
-                                {#if deletingSourceId === source.id}
+                                {#if isDeleting}
                                     <Icon src={ArrowPath} class="w-4 h-4 animate-spin" />
+                                    {m.livetv_admin_deleting_source()}
                                 {:else}
                                     <Icon src={Trash} class="w-4 h-4" />
                                 {/if}
@@ -745,6 +819,7 @@
                             {m.livetv_admin_refresh_schedule()}:
                             <select
                                 class="bg-surface-700 text-surface-200 text-xs rounded px-1.5 py-0.5 border border-surface-600"
+                                disabled={isDeleting}
                                 value={source.refreshCron ?? ''}
                                 onchange={(e) =>
                                     void handleRefreshCronChange(

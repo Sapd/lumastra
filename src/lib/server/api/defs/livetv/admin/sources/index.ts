@@ -19,6 +19,7 @@ import { defineEndpoint } from '$lib/server/api/define.js';
 import { ApiProblem } from '$lib/server/api/problem.js';
 import { aiDbService } from '$lib/server/services/database.service.js';
 import {
+    clearStaleSourceDeletingFlags,
     getAllSourcesWithChannelCounts,
     createSource,
 } from '$lib/server/database/queries/livetv-sources.queries.js';
@@ -29,6 +30,7 @@ import {
     validateHdHomeRunDevice,
     buildEpgUrl,
 } from '$lib/server/services/livetv/index.js';
+import { Logger } from '$lib/server/utils/logger.js';
 import { validateUrl } from '$lib/server/utils/url-validator.js';
 import { config } from '$lib/server/config.js';
 import { isSealed } from '$lib/server/crypto/secret-box.js';
@@ -39,6 +41,7 @@ import {
 import { queueSourceImport } from '$lib/server/services/livetv/source-import-queue.js';
 import { LiveTvSourcesListResponseSchema, LiveTvSourceResponseSchema } from '$lib/schemas/livetv';
 
+const logger = Logger.for('LiveTvSourcesAdmin');
 const DEFAULT_REFRESH_CRON = '0 */12 * * *';
 
 export const def = defineEndpoint({
@@ -86,6 +89,11 @@ export const def = defineEndpoint({
             const sql = await aiDbService.getSql();
             if (!sql) return ApiProblem.dependencyUnavailable('Database unavailable');
 
+            await clearStaleSourceDeletingFlags(sql).catch((err: unknown) => {
+                logger.warn('Could not clear stale Live TV source deletion flags', {
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            });
             const sources = await getAllSourcesWithChannelCounts(sql);
             return json({ sources: sources.map(mapSourceWithChannelCountToApi) });
         },

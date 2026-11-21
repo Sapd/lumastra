@@ -21,6 +21,7 @@ import { z } from 'zod';
 import { defineEndpoint } from '$lib/server/api/define.js';
 import { ApiProblem } from '$lib/server/api/problem.js';
 import { aiDbService } from '$lib/server/services/database.service.js';
+import { getSourceById } from '$lib/server/database/queries/livetv-sources.queries.js';
 import { getSetupSummary } from '$lib/server/database/queries/livetv-setup.queries.js';
 import { applySetupPreferences } from '$lib/server/services/livetv/index.js';
 import {
@@ -56,6 +57,8 @@ export const def = defineEndpoint({
             responses: {
                 200: { schema: SetupResultSchema, description: 'Setup applied' },
                 401: 'Authentication required',
+                404: 'Source not found',
+                409: 'Source is being deleted',
                 422: 'Validation failed',
                 503: 'Database unavailable',
                 500: 'Internal server error',
@@ -140,6 +143,10 @@ export const def = defineEndpoint({
             if (!sql) return ApiProblem.dependencyUnavailable('Database unavailable');
 
             const { sourceId } = ctx.input!.params;
+            const source = await getSourceById(sql, sourceId);
+            if (!source) return ApiProblem.notFound('Source not found');
+            if (source.deleting_since) return ApiProblem.conflict('Source is being deleted');
+
             const result = await applySetupPreferences(sql, {
                 sourceId,
                 ...ctx.input!.body,

@@ -127,7 +127,7 @@ export async function importM3uSource(
         );
     }
     try {
-        return await importM3uSourceInner(sql, sourceId, progressCallback);
+        return await importM3uSourceInner(sql, sourceId, progressCallback, waitForLock);
     } catch (error) {
         // An admin cancel is not a source failure (and must not raise an
         // attention alert); the transaction rolled back, the old channels stay.
@@ -153,7 +153,8 @@ export async function importM3uSource(
 async function importM3uSourceInner(
     sql: postgres.Sql,
     sourceId: string,
-    progressCallback?: ProgressCallback,
+    progressCallback: ProgressCallback | undefined,
+    skipMissing: boolean,
 ): Promise<ImportResult> {
     const startTime = Date.now();
     const errors: string[] = [];
@@ -161,6 +162,21 @@ async function importM3uSourceInner(
 
     // 1. Load source with credentials
     const source = await getSourceByIdWithCredentials(sql, sourceId);
+    if (source?.deleting_since || (!source && skipMissing)) {
+        return {
+            sourceId,
+            sourceName: source?.name ?? '',
+            channelCount: 0,
+            backupGroupCount: 0,
+            categoryCount: 0,
+            epgMatchCount: 0,
+            programCount: 0,
+            errors,
+            warnings,
+            notes: [],
+            duration: Date.now() - startTime,
+        };
+    }
     if (!source) throw new Error(`Source not found: ${sourceId}`);
     if (!source.m3u_url) throw new Error(`Source ${sourceId} has no M3U URL`);
 
@@ -504,7 +520,7 @@ export async function importEpgSource(
         : await acquireLock(lockKey, LIVETV_SOURCE_WRITE_LOCK_TTL_SECONDS);
     if (!lockValue) throw new Error(m.livetv_admin_source_busy());
     try {
-        return await importEpgSourceInner(sql, sourceId, progressCallback);
+        return await importEpgSourceInner(sql, sourceId, progressCallback, waitForLock);
     } catch (error) {
         if (isLiveTvImportCancelled(error)) throw error;
         await updateEpgRefreshStatus(sql, sourceId, 'failed', {
@@ -524,7 +540,8 @@ export async function importEpgSource(
 async function importEpgSourceInner(
     sql: postgres.Sql,
     sourceId: string,
-    progressCallback?: ProgressCallback,
+    progressCallback: ProgressCallback | undefined,
+    skipMissing: boolean,
 ): Promise<ImportResult> {
     const startTime = Date.now();
     const errors: string[] = [];
@@ -533,6 +550,21 @@ async function importEpgSourceInner(
 
     // 1. Load source with credentials
     const source = await getSourceByIdWithCredentials(sql, sourceId);
+    if (source?.deleting_since || (!source && skipMissing)) {
+        return {
+            sourceId,
+            sourceName: source?.name ?? '',
+            channelCount: 0,
+            backupGroupCount: 0,
+            categoryCount: 0,
+            epgMatchCount: 0,
+            programCount: 0,
+            errors,
+            warnings,
+            notes,
+            duration: Date.now() - startTime,
+        };
+    }
     if (!source) throw new Error(`Source not found: ${sourceId}`);
     if (!source.xmltv_url) throw new Error(`Source ${sourceId} has no XMLTV URL`);
 

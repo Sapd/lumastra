@@ -14,6 +14,7 @@ const h = vi.hoisted(() => ({
     startRun: vi.fn(),
     getSourceById: vi.fn(),
     importM3uSource: vi.fn(),
+    clearStaleSourceDeletingFlags: vi.fn().mockResolvedValue(0),
     getSourcesWithRefreshCron: vi.fn(async (): Promise<unknown[]> => []),
 }));
 
@@ -21,6 +22,7 @@ vi.mock('../../../registry.js', () => ({ registry: { registerTask: vi.fn() } }))
 vi.mock('../../../orchestrator.js', () => ({ orchestrator: { startRun: h.startRun } }));
 vi.mock('$lib/server/database/queries/livetv-sources.queries.js', () => ({
     getSourceById: h.getSourceById,
+    clearStaleSourceDeletingFlags: h.clearStaleSourceDeletingFlags,
     getSourcesWithRefreshCron: h.getSourcesWithRefreshCron,
 }));
 vi.mock('../../../../services/livetv/livetv-import.service.js', () => ({
@@ -51,7 +53,11 @@ function ctx(signal = new AbortController().signal) {
 describe('import-m3u → import-epg chain', () => {
     beforeEach(() => {
         h.startRun.mockReset().mockResolvedValue({ runId: 'run-epg' });
-        h.getSourceById.mockReset().mockResolvedValue({ id: SOURCE_ID, xmltv_url: 'http://x/epg' });
+        h.getSourceById.mockReset().mockResolvedValue({
+            id: SOURCE_ID,
+            xmltv_url: 'http://x/epg',
+            deleting_since: null,
+        });
         h.importM3uSource.mockReset().mockResolvedValue({ channelCount: 12619, errors: [] });
     });
 
@@ -70,6 +76,17 @@ describe('import-m3u → import-epg chain', () => {
         expect(h.importM3uSource.mock.invocationCallOrder[0]).toBeLessThan(
             h.startRun.mock.invocationCallOrder[0],
         );
+    });
+
+    it('does not start the guide import when the source is marked for deletion', async () => {
+        h.getSourceById.mockResolvedValue({
+            id: SOURCE_ID,
+            xmltv_url: 'http://x/epg',
+            deleting_since: new Date(),
+        });
+        await importM3uTask.execute(ctx().context);
+        expect(h.getSourceById).toHaveBeenCalledWith({}, SOURCE_ID);
+        expect(h.startRun).not.toHaveBeenCalled();
     });
 
     it('does not start the guide import for a source without an XMLTV URL', async () => {
@@ -113,6 +130,33 @@ describe('import-m3u → import-epg chain', () => {
             expect.stringContaining('still running'),
             expect.objectContaining({ runId: 'run-old-epg' }),
         );
+    });
+});
+
+it('selects due sources even when stale deletion flag cleanup fails', async () => {
+    h.clearStaleSourceDeletingFlags
+        .mockClear()
+        .mockRejectedValueOnce(new Error('cleanup unavailable'));
+    h.getSourcesWithRefreshCron.mockClear().mockResolvedValueOnce([
+        {
+            id: SOURCE_ID,
+            m3u_url: 'http://provider.example/list',
+            refresh_cron: '0 3 * * *',
+            last_refresh_at: null,
+        },
+    ]);
+    const sql = {} as Sql;
+    const logger = mockLogger();
+
+    expect(await buildLivetvDueEntries(sql, logger, 'm3u', new Date())).toHaveLength(1);
+    expect(h.clearStaleSourceDeletingFlags).toHaveBeenCalledWith(sql);
+    expect(h.clearStaleSourceDeletingFlags.mock.invocationCallOrder[0]).toBeLessThan(
+        h.getSourcesWithRefreshCron.mock.invocationCallOrder[0],
+    );
+    expect(logger.entries).toContainEqual({
+        level: 'warn',
+        msg: 'Could not clear stale Live TV source deletion flags',
+        meta: { error: 'cleanup unavailable' },
     });
 });
 

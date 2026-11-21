@@ -305,16 +305,22 @@ describe('updateSource', () => {
 // ---------------------------------------------------------------------------
 
 describe('deleteSource', () => {
+    // postgres.js results are row arrays that also carry `count`.
     it('returns true when a row was deleted', async () => {
-        const sql = makeSql({ count: 1 });
+        const sql = makeSql(Object.assign([{ id: exampleSafeRow.id }], { count: 1 }));
         const result = await deleteSource(sql, exampleSafeRow.id);
         expect(result.deleted).toBe(true);
     });
 
-    it('returns false when no row was deleted', async () => {
-        const sql = makeSql({ count: 0 });
+    it('returns false without deleting anything when the source does not exist', async () => {
+        const sql = makeSql(Object.assign([], { count: 0 }));
         const result = await deleteSource(sql, 'nonexistent-id');
-        expect(result.deleted).toBe(false);
+        expect(result).toEqual({ deleted: false, channelsDeleted: 0 });
+        // Only the existence check ran: no channel, category or failure-event delete.
+        const statements = (sql as unknown as ReturnType<typeof vi.fn>).mock.calls.map((c) =>
+            ([] as string[]).concat(c[0] as string[]).join(' '),
+        );
+        expect(statements.some((s) => s.includes('DELETE'))).toBe(false);
     });
 });
 

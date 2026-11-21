@@ -38,6 +38,7 @@ export const def = defineEndpoint({
                 200: { schema: ImportTriggerResponseSchema, description: 'Import jobs started' },
                 401: 'Authentication required',
                 404: 'Source not found',
+                409: 'Source is being deleted',
                 422: 'Source has no M3U URL configured',
                 503: 'Database unavailable',
                 500: 'Internal server error',
@@ -59,6 +60,7 @@ export const def = defineEndpoint({
 
             const source = await getSourceById(sql, sourceId);
             if (!source) return ApiProblem.notFound('Source not found');
+            if (source.deleting_since) return ApiProblem.conflict('Source is being deleted');
 
             if (!source.m3u_url) {
                 return ApiProblem.validationFailed('Source has no M3U URL configured');

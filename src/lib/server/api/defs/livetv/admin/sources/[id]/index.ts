@@ -10,21 +10,27 @@
  * Auth: { kind: 'scope', anyOf: ['livetv:admin'] }
  * Response bodies:
  *   PUT    → { source: LiveTvSource }   (bare object)
- *   DELETE → { deleted: true }          (bare object)
+ *   DELETE → { deleting: true, taskId } (202 Accepted)
  */
 
 import * as m from '$lib/paraglide/messages.js';
 import { probeLiveTvFeed } from '$lib/server/services/livetv/source-probe.js';
-import { queueSourceImport } from '$lib/server/services/livetv/source-import-queue.js';
+import {
+    queueSourceDelete,
+    queueSourceImport,
+} from '$lib/server/services/livetv/source-import-queue.js';
 import { json } from '@sveltejs/kit';
 import { z } from 'zod';
 import { defineEndpoint } from '$lib/server/api/define.js';
 import { ApiProblem } from '$lib/server/api/problem.js';
+import { Logger } from '$lib/server/utils/logger.js';
 import { aiDbService } from '$lib/server/services/database.service.js';
 import {
+    clearSourceDeleting,
+    getSourceById,
     getSourceByIdWithCredentials,
+    markSourceDeleting,
     updateSource,
-    deleteSource,
 } from '$lib/server/database/queries/livetv-sources.queries.js';
 import { UpdateLiveTvSourceSchema } from '$lib/schemas/livetv.js';
 import {
@@ -39,6 +45,8 @@ import { isSealed } from '$lib/server/crypto/secret-box.js';
 import { mapSourceToApi } from '$lib/server/mappers/livetv-source.mapper.js';
 import { LiveTvSourceResponseSchema, SourceDeletedResponseSchema } from '$lib/schemas/livetv';
 
+const logger = Logger.for('LiveTvSourceAdmin');
+
 export const def = defineEndpoint({
     docs: {
         visibility: 'internal',
@@ -51,6 +59,7 @@ export const def = defineEndpoint({
                 200: { schema: LiveTvSourceResponseSchema, description: 'Updated source' },
                 401: 'Authentication required',
                 404: 'Source not found',
+                409: 'Source is being deleted',
                 422: 'Validation failed',
                 500: 'Internal server error',
             },
@@ -61,9 +70,10 @@ export const def = defineEndpoint({
             stability: 'beta',
             auth: 'bearer',
             responses: {
-                200: { schema: SourceDeletedResponseSchema, description: 'Source deleted' },
+                202: { schema: SourceDeletedResponseSchema, description: 'Source deletion queued' },
                 401: 'Authentication required',
                 404: 'Source not found',
+                503: 'Could not queue source deletion',
                 500: 'Internal server error',
             },
         },
@@ -74,6 +84,7 @@ export const def = defineEndpoint({
     request: {
         params: z.object({ sourceId: z.string().min(1) }),
         body: UpdateLiveTvSourceSchema,
+        bodyMethods: ['PUT'],
     },
     handlers: {
         PUT: async (event, ctx) => {
@@ -103,6 +114,7 @@ export const def = defineEndpoint({
 
             const existing = await getSourceByIdWithCredentials(sql, sourceId);
             if (!existing) return ApiProblem.notFound('Source not found');
+            if (existing.deleting_since) return ApiProblem.conflict('Source is being deleted');
 
             let m3uUrl = body.m3uUrl;
             let xmltvUrl = body.xmltvUrl;
@@ -216,7 +228,11 @@ export const def = defineEndpoint({
                 refresh_cron: body.refreshCron,
             });
 
-            if (!updated) return ApiProblem.notFound('Source not found');
+            if (!updated) {
+                const current = await getSourceById(sql, sourceId);
+                if (current?.deleting_since) return ApiProblem.conflict('Source is being deleted');
+                return ApiProblem.notFound('Source not found');
+            }
 
             const retryM3u = existing.last_refresh_status === 'failed';
             const summary = existing.last_refresh_summary as { epg?: { status?: string } } | null;
@@ -239,10 +255,27 @@ export const def = defineEndpoint({
 
             const { sourceId } = ctx.input!.params;
 
-            const { deleted } = await deleteSource(sql, sourceId);
-            if (!deleted) return ApiProblem.notFound('Source not found');
+            const { found, alreadyDeleting } = await markSourceDeleting(sql, sourceId);
+            if (!found) {
+                return ApiProblem.notFound('Source not found');
+            }
 
-            return json({ deleted: true });
+            const by = event.locals.principal?.username ?? event.locals.user?.username ?? 'admin';
+            try {
+                const taskId = await queueSourceDelete(sourceId, by);
+                return json({ deleting: true, taskId }, { status: 202 });
+            } catch (err) {
+                if (!alreadyDeleting) {
+                    await clearSourceDeleting(sql, sourceId).catch(() => {
+                        logger.warn('Could not clear Live TV source deletion flag', { sourceId });
+                    });
+                }
+                logger.warn('Could not enqueue Live TV source deletion', {
+                    sourceId,
+                    error: err instanceof Error ? err.message : String(err),
+                });
+                return ApiProblem.dependencyUnavailable(m.livetv_admin_delete_enqueue_failed());
+            }
         },
     },
 });

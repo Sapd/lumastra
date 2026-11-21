@@ -119,9 +119,13 @@ export const BulkChannelUpdateResponseSchema = z
     .meta({ id: 'BulkChannelUpdateResponse', description: 'Bulk channel update result' });
 export type BulkChannelUpdateResponse = z.infer<typeof BulkChannelUpdateResponseSchema>;
 
-/** DELETE sources/{id} → `{ deleted: true }`. */
+/** DELETE sources/{id} queues background deletion. */
 export const SourceDeletedResponseSchema = z
-    .object({ deleted: z.literal(true) })
+    .object({
+        deleting: z.boolean().describe('Whether background deletion was accepted'),
+        taskId: z.string().describe('Run ID for the source deletion task'),
+        deleted: z.literal(true).optional().describe('Legacy synchronous deletion acknowledgement'),
+    })
     .meta({ id: 'SourceDeletedResponse', description: 'Source deletion acknowledgement' });
 export type SourceDeletedResponse = z.infer<typeof SourceDeletedResponseSchema>;
 
@@ -497,6 +501,7 @@ export const LiveTvSourceSchema = z
         sourceType: z.enum(['m3u', 'xtream', 'hdhomerun']).describe('Source type'),
         maxStreams: z.number().describe('Maximum concurrent streams'),
         lastRefreshAt: z.string().optional().describe('Last refresh timestamp (ISO 8601)'),
+        deletingSince: z.string().optional().describe('Deletion queued at (ISO 8601)'),
         lastRefreshStatus: z.string().optional().describe('Last refresh status'),
         refreshCron: z.string().optional().describe('Cron expression for auto-refresh schedule'),
     })

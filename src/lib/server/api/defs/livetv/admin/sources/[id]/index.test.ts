@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * Unit tests for defs/livetv/admin/sources/[id]/index.ts — PUT (update).
+ * Unit tests for defs/livetv/admin/sources/[id]/index.ts — PUT (update) and DELETE (enqueue).
  *
  * Security review 2026-09-13 deferred item 11: `sealCredential()` in
  * livetv-sources.queries.ts deliberately passes an already-sealed
@@ -19,6 +19,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { RequestEvent } from '@sveltejs/kit';
+import * as m from '$lib/paraglide/messages.js';
 
 // ── Hoisted mocks ────────────────────────────────────────────────────────────
 
@@ -27,17 +28,27 @@ vi.mock('$lib/server/services/database.service.js', () => ({
     aiDbService: { getSql: (...args: unknown[]) => mockGetSql(...args) },
 }));
 
-const { mockGetSourceByIdWithCredentials, mockUpdateSource, mockDeleteSource } = vi.hoisted(() => ({
+const {
+    mockGetSourceById,
+    mockGetSourceByIdWithCredentials,
+    mockUpdateSource,
+    mockMarkSourceDeleting,
+    mockClearSourceDeleting,
+} = vi.hoisted(() => ({
+    mockGetSourceById: vi.fn(),
     mockGetSourceByIdWithCredentials: vi.fn(),
     mockUpdateSource: vi.fn(),
-    mockDeleteSource: vi.fn(),
+    mockMarkSourceDeleting: vi.fn(),
+    mockClearSourceDeleting: vi.fn(),
 }));
 vi.mock('$lib/server/database/queries/livetv-sources.queries.js', () => ({
     getSourceByIdWithCredentials: (...args: unknown[]) => mockGetSourceByIdWithCredentials(...args),
     updateSource: (...args: unknown[]) => mockUpdateSource(...args),
     updateRefreshStatus: vi.fn().mockResolvedValue(true),
     updateEpgRefreshStatus: vi.fn().mockResolvedValue(true),
-    deleteSource: (...args: unknown[]) => mockDeleteSource(...args),
+    markSourceDeleting: mockMarkSourceDeleting,
+    clearSourceDeleting: mockClearSourceDeleting,
+    getSourceById: mockGetSourceById,
 }));
 
 const { mockValidateXtreamCredentials, mockValidateHdHomeRunDevice, mockBuildEpgUrl } = vi.hoisted(
@@ -88,13 +99,17 @@ import { def } from './index.js';
 const CTX_V1 = { surface: 'v1' as const };
 const SOURCE_ID = 'aaaaaaaa-0000-4000-8000-000000000001';
 
-function makeEvent(body: unknown, sourceId = SOURCE_ID): RequestEvent {
+function makeEvent(
+    body: unknown,
+    sourceId = SOURCE_ID,
+    method: 'PUT' | 'DELETE' = 'PUT',
+): RequestEvent {
     const url = `http://localhost/api/v1/livetv/admin/sources/${sourceId}`;
     return {
         url: new URL(url),
         request: new Request(url, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            method,
+            headers: method === 'PUT' ? { 'Content-Type': 'application/json' } : undefined,
             body: JSON.stringify(body),
         }),
         params: { sourceId },
@@ -110,7 +125,7 @@ function makeEvent(body: unknown, sourceId = SOURCE_ID): RequestEvent {
     } as unknown as RequestEvent;
 }
 
-async function parseJson(res: Response) {
+async function parseJson(res: Response): Promise<Record<string, unknown>> {
     return res.clone().json() as Promise<Record<string, unknown>>;
 }
 
@@ -383,6 +398,107 @@ describe('setup edits take effect immediately', () => {
             expect(res.status).toBe(422);
             expect(JSON.stringify(await parseJson(res))).toContain('0 */12 * * *');
             expect(mockUpdateSource).not.toHaveBeenCalled();
+        },
+    );
+});
+
+it('returns 409 before updating a source marked for deletion', async () => {
+    mockGetSourceByIdWithCredentials.mockResolvedValueOnce({ deleting_since: new Date() });
+    const { PUT } = mount(def, CTX_V1);
+
+    const res = await PUT!(makeEvent({ name: 'New name' }));
+
+    expect(res.status).toBe(409);
+    expect((await parseJson(res)).error).toBe('Source is being deleted');
+    expect(mockUpdateSource).not.toHaveBeenCalled();
+    expect(mockStartRun).not.toHaveBeenCalled();
+});
+
+it.each([
+    { current: { deleting_since: new Date() }, status: 409, code: 'conflict' },
+    { current: null, status: 404, code: 'not_found' },
+])('returns $status when the source changes before the update', async ({ current, status, code }) => {
+    mockGetSourceByIdWithCredentials.mockResolvedValueOnce({
+        source_type: 'm3u',
+        deleting_since: null,
+    });
+    mockUpdateSource.mockResolvedValueOnce(null);
+    mockGetSourceById.mockResolvedValueOnce(current);
+
+    const res = await mount(def, CTX_V1).PUT!(makeEvent({ name: 'New name' }));
+
+    expect(res.status).toBe(status);
+    expect((await parseJson(res)).code).toBe(code);
+    expect(mockUpdateSource).toHaveBeenCalledOnce();
+    expect(mockGetSourceById).toHaveBeenCalledWith({}, SOURCE_ID);
+    expect(mockStartRun).not.toHaveBeenCalled();
+});
+
+describe('defs/livetv/admin/sources/[id] (DELETE)', () => {
+    const { DELETE } = mount(def, CTX_V1);
+
+    beforeEach(() => {
+        mockMarkSourceDeleting
+            .mockReset()
+            .mockResolvedValue({ found: true, alreadyDeleting: false });
+        mockClearSourceDeleting.mockReset().mockResolvedValue(undefined);
+        mockStartRun.mockReset();
+    });
+
+    it.each([false, true])('returns the run ID with 202 (deduped=%s)', async (deduped) => {
+        mockStartRun.mockResolvedValue({ runId: 'run-delete', deduped });
+
+        const res = await DELETE!(makeEvent(undefined, SOURCE_ID, 'DELETE'));
+
+        expect(res.status).toBe(202);
+        expect(await parseJson(res)).toEqual({ deleting: true, taskId: 'run-delete' });
+        expect(mockMarkSourceDeleting).toHaveBeenCalledWith({}, SOURCE_ID);
+        expect(mockStartRun).toHaveBeenCalledWith(
+            'delete-livetv-source',
+            { sourceId: SOURCE_ID },
+            {
+                trigger: {
+                    kind: 'manual',
+                    by: 'admin',
+                    sourceRoute: `admin/livetv/sources (delete: ${SOURCE_ID})`,
+                },
+                idempotencyKey: `manual_delete-livetv-source_${SOURCE_ID}`,
+            },
+        );
+        expect(mockStartRun).toHaveBeenCalledTimes(1);
+        expect(mockClearSourceDeleting).not.toHaveBeenCalled();
+    });
+
+    it('returns 404 without starting a run if the source is gone', async () => {
+        mockMarkSourceDeleting.mockResolvedValue({ found: false, alreadyDeleting: false });
+
+        const res = await DELETE!(makeEvent(undefined, SOURCE_ID, 'DELETE'));
+
+        expect(res.status).toBe(404);
+        expect(mockStartRun).not.toHaveBeenCalled();
+        expect(mockClearSourceDeleting).not.toHaveBeenCalled();
+    });
+
+    it.each([false, true])(
+        'reports a 503 on enqueue failure and clears only a new flag (alreadyDeleting=%s)',
+        async (alreadyDeleting) => {
+            mockMarkSourceDeleting.mockResolvedValue({ found: true, alreadyDeleting });
+            mockStartRun.mockRejectedValue(new Error('queue unavailable'));
+
+            const res = await DELETE!(makeEvent(undefined, SOURCE_ID, 'DELETE'));
+
+            expect(res.status).toBe(503);
+            expect(res.headers.get('content-type')).toContain('application/problem+json');
+            expect(await parseJson(res)).toMatchObject({
+                code: 'dependency_unavailable',
+                error: m.livetv_admin_delete_enqueue_failed(),
+                status: 503,
+            });
+            if (alreadyDeleting) {
+                expect(mockClearSourceDeleting).not.toHaveBeenCalled();
+            } else {
+                expect(mockClearSourceDeleting).toHaveBeenCalledWith({}, SOURCE_ID);
+            }
         },
     );
 });

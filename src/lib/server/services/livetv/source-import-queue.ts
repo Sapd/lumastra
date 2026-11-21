@@ -71,3 +71,20 @@ export async function queueSourceImport(
         return { importError };
     }
 }
+
+export async function queueSourceDelete(sourceId: string, by: string): Promise<string> {
+    const { orchestrator } = await import('$lib/server/tasks/orchestrator.js');
+    const run = await orchestrator.startRun(
+        'delete-livetv-source',
+        { sourceId },
+        {
+            trigger: {
+                kind: 'manual',
+                by,
+                sourceRoute: `admin/livetv/sources (delete: ${sourceId})`,
+            },
+            idempotencyKey: `manual_delete-livetv-source_${sourceId}`,
+        },
+    );
+    return run.runId;
+}

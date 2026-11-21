@@ -222468,6 +222468,106 @@ paths:
                   - error
                   - status
                 additionalProperties: false
+        "409":
+          description: Source is being deleted
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - unauthorized
+                      - invalid_token
+                      - invalid_grant
+                      - ip_mismatch
+                      - forbidden
+                      - scope_required
+                      - not_found
+                      - conflict
+                      - gone
+                      - payload_too_large
+                      - validation_failed
+                      - quota_exceeded
+                      - rate_limited
+                      - internal_error
+                      - bad_gateway
+                      - server_id_unavailable
+                      - dependency_unavailable
+                      - shutting_down
+                      - stream_limit
+                      - cap_unavailable
+                      - channel_offline
+                      - provider_auth_failed
+                      - provider_connection_limit
+                      - provider_unreachable
+                      - geo_blocked
+                      - no_video
+                      - encoder_failed
+                      - all_feeds_failed
+                      - upstream_stalled
+                      - ip_restricted
+                      - plugin_denied
+                      - prefetch_requires_current_session
+                      - route_retired
+                      - source_incompatible
+                      - transcode_not_allowed
+                    description: Stable, machine-parseable error code (switch on this).
+                    example: conflict
+                  error:
+                    type: string
+                    description: Human-readable description — display only.
+                  status:
+                    type: integer
+                    description: HTTP status code, mirrored into the body.
+                    example: 409
+                  details:
+                    description: "Structured detail: field-level validation errors, quota info, or a freeform string."
+                    anyOf:
+                      - type: array
+                        items:
+                          type: object
+                          properties:
+                            field:
+                              type: string
+                            message:
+                              type: string
+                            value: {}
+                          required:
+                            - field
+                            - message
+                          additionalProperties: false
+                      - type: object
+                        properties:
+                          bucket:
+                            type: string
+                          limit:
+                            type: integer
+                          used:
+                            type: integer
+                          remaining:
+                            anyOf:
+                              - type: integer
+                              - type: "null"
+                        required:
+                          - bucket
+                          - limit
+                          - used
+                          - remaining
+                        additionalProperties: false
+                      - type: string
+                  requestId:
+                    description: Correlation ID, when available.
+                    type: string
+                  retryAfter:
+                    description: Seconds until retry (mirrors Retry-After header).
+                    type: integer
+                required:
+                  - code
+                  - error
+                  - status
+                additionalProperties: false
         "422":
           description: Validation failed
           content:
@@ -222683,14 +222783,9 @@ paths:
             type: string
             minLength: 1
           required: true
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateLiveTvSource"
       responses:
-        "200":
-          description: Source deleted
+        "202":
+          description: Source deletion queued
           content:
             application/json:
               schema:
@@ -222995,6 +223090,106 @@ paths:
                   - error
                   - status
                 additionalProperties: false
+        "503":
+          description: Could not queue source deletion
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - unauthorized
+                      - invalid_token
+                      - invalid_grant
+                      - ip_mismatch
+                      - forbidden
+                      - scope_required
+                      - not_found
+                      - conflict
+                      - gone
+                      - payload_too_large
+                      - validation_failed
+                      - quota_exceeded
+                      - rate_limited
+                      - internal_error
+                      - bad_gateway
+                      - server_id_unavailable
+                      - dependency_unavailable
+                      - shutting_down
+                      - stream_limit
+                      - cap_unavailable
+                      - channel_offline
+                      - provider_auth_failed
+                      - provider_connection_limit
+                      - provider_unreachable
+                      - geo_blocked
+                      - no_video
+                      - encoder_failed
+                      - all_feeds_failed
+                      - upstream_stalled
+                      - ip_restricted
+                      - plugin_denied
+                      - prefetch_requires_current_session
+                      - route_retired
+                      - source_incompatible
+                      - transcode_not_allowed
+                    description: Stable, machine-parseable error code (switch on this).
+                    example: dependency_unavailable
+                  error:
+                    type: string
+                    description: Human-readable description — display only.
+                  status:
+                    type: integer
+                    description: HTTP status code, mirrored into the body.
+                    example: 503
+                  details:
+                    description: "Structured detail: field-level validation errors, quota info, or a freeform string."
+                    anyOf:
+                      - type: array
+                        items:
+                          type: object
+                          properties:
+                            field:
+                              type: string
+                            message:
+                              type: string
+                            value: {}
+                          required:
+                            - field
+                            - message
+                          additionalProperties: false
+                      - type: object
+                        properties:
+                          bucket:
+                            type: string
+                          limit:
+                            type: integer
+                          used:
+                            type: integer
+                          remaining:
+                            anyOf:
+                              - type: integer
+                              - type: "null"
+                        required:
+                          - bucket
+                          - limit
+                          - used
+                          - remaining
+                        additionalProperties: false
+                      - type: string
+                  requestId:
+                    description: Correlation ID, when available.
+                    type: string
+                  retryAfter:
+                    description: Seconds until retry (mirrors Retry-After header).
+                    type: integer
+                required:
+                  - code
+                  - error
+                  - status
+                additionalProperties: false
       operationId: deleteLivetvAdminSourcesSourceid
   /api/v1/livetv/admin/sources/{sourceId}/import:
     post:
@@ -223174,6 +223369,106 @@ paths:
                     type: integer
                     description: HTTP status code, mirrored into the body.
                     example: 404
+                  details:
+                    description: "Structured detail: field-level validation errors, quota info, or a freeform string."
+                    anyOf:
+                      - type: array
+                        items:
+                          type: object
+                          properties:
+                            field:
+                              type: string
+                            message:
+                              type: string
+                            value: {}
+                          required:
+                            - field
+                            - message
+                          additionalProperties: false
+                      - type: object
+                        properties:
+                          bucket:
+                            type: string
+                          limit:
+                            type: integer
+                          used:
+                            type: integer
+                          remaining:
+                            anyOf:
+                              - type: integer
+                              - type: "null"
+                        required:
+                          - bucket
+                          - limit
+                          - used
+                          - remaining
+                        additionalProperties: false
+                      - type: string
+                  requestId:
+                    description: Correlation ID, when available.
+                    type: string
+                  retryAfter:
+                    description: Seconds until retry (mirrors Retry-After header).
+                    type: integer
+                required:
+                  - code
+                  - error
+                  - status
+                additionalProperties: false
+        "409":
+          description: Source is being deleted
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - unauthorized
+                      - invalid_token
+                      - invalid_grant
+                      - ip_mismatch
+                      - forbidden
+                      - scope_required
+                      - not_found
+                      - conflict
+                      - gone
+                      - payload_too_large
+                      - validation_failed
+                      - quota_exceeded
+                      - rate_limited
+                      - internal_error
+                      - bad_gateway
+                      - server_id_unavailable
+                      - dependency_unavailable
+                      - shutting_down
+                      - stream_limit
+                      - cap_unavailable
+                      - channel_offline
+                      - provider_auth_failed
+                      - provider_connection_limit
+                      - provider_unreachable
+                      - geo_blocked
+                      - no_video
+                      - encoder_failed
+                      - all_feeds_failed
+                      - upstream_stalled
+                      - ip_restricted
+                      - plugin_denied
+                      - prefetch_requires_current_session
+                      - route_retired
+                      - source_incompatible
+                      - transcode_not_allowed
+                    description: Stable, machine-parseable error code (switch on this).
+                    example: conflict
+                  error:
+                    type: string
+                    description: Human-readable description — display only.
+                  status:
+                    type: integer
+                    description: HTTP status code, mirrored into the body.
+                    example: 409
                   details:
                     description: "Structured detail: field-level validation errors, quota info, or a freeform string."
                     anyOf:
@@ -224166,7 +224461,7 @@ paths:
                   - status
                 additionalProperties: false
         "409":
-          description: Refresh already in progress for this source
+          description: Source is being deleted or refresh already in progress
           content:
             application/problem+json:
               schema:
@@ -224744,6 +225039,106 @@ paths:
                     type: integer
                     description: HTTP status code, mirrored into the body.
                     example: 404
+                  details:
+                    description: "Structured detail: field-level validation errors, quota info, or a freeform string."
+                    anyOf:
+                      - type: array
+                        items:
+                          type: object
+                          properties:
+                            field:
+                              type: string
+                            message:
+                              type: string
+                            value: {}
+                          required:
+                            - field
+                            - message
+                          additionalProperties: false
+                      - type: object
+                        properties:
+                          bucket:
+                            type: string
+                          limit:
+                            type: integer
+                          used:
+                            type: integer
+                          remaining:
+                            anyOf:
+                              - type: integer
+                              - type: "null"
+                        required:
+                          - bucket
+                          - limit
+                          - used
+                          - remaining
+                        additionalProperties: false
+                      - type: string
+                  requestId:
+                    description: Correlation ID, when available.
+                    type: string
+                  retryAfter:
+                    description: Seconds until retry (mirrors Retry-After header).
+                    type: integer
+                required:
+                  - code
+                  - error
+                  - status
+                additionalProperties: false
+        "409":
+          description: Source is being deleted
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - unauthorized
+                      - invalid_token
+                      - invalid_grant
+                      - ip_mismatch
+                      - forbidden
+                      - scope_required
+                      - not_found
+                      - conflict
+                      - gone
+                      - payload_too_large
+                      - validation_failed
+                      - quota_exceeded
+                      - rate_limited
+                      - internal_error
+                      - bad_gateway
+                      - server_id_unavailable
+                      - dependency_unavailable
+                      - shutting_down
+                      - stream_limit
+                      - cap_unavailable
+                      - channel_offline
+                      - provider_auth_failed
+                      - provider_connection_limit
+                      - provider_unreachable
+                      - geo_blocked
+                      - no_video
+                      - encoder_failed
+                      - all_feeds_failed
+                      - upstream_stalled
+                      - ip_restricted
+                      - plugin_denied
+                      - prefetch_requires_current_session
+                      - route_retired
+                      - source_incompatible
+                      - transcode_not_allowed
+                    description: Stable, machine-parseable error code (switch on this).
+                    example: conflict
+                  error:
+                    type: string
+                    description: Human-readable description — display only.
+                  status:
+                    type: integer
+                    description: HTTP status code, mirrored into the body.
+                    example: 409
                   details:
                     description: "Structured detail: field-level validation errors, quota info, or a freeform string."
                     anyOf:
@@ -225394,6 +225789,206 @@ paths:
                     type: integer
                     description: HTTP status code, mirrored into the body.
                     example: 401
+                  details:
+                    description: "Structured detail: field-level validation errors, quota info, or a freeform string."
+                    anyOf:
+                      - type: array
+                        items:
+                          type: object
+                          properties:
+                            field:
+                              type: string
+                            message:
+                              type: string
+                            value: {}
+                          required:
+                            - field
+                            - message
+                          additionalProperties: false
+                      - type: object
+                        properties:
+                          bucket:
+                            type: string
+                          limit:
+                            type: integer
+                          used:
+                            type: integer
+                          remaining:
+                            anyOf:
+                              - type: integer
+                              - type: "null"
+                        required:
+                          - bucket
+                          - limit
+                          - used
+                          - remaining
+                        additionalProperties: false
+                      - type: string
+                  requestId:
+                    description: Correlation ID, when available.
+                    type: string
+                  retryAfter:
+                    description: Seconds until retry (mirrors Retry-After header).
+                    type: integer
+                required:
+                  - code
+                  - error
+                  - status
+                additionalProperties: false
+        "404":
+          description: Source not found
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - unauthorized
+                      - invalid_token
+                      - invalid_grant
+                      - ip_mismatch
+                      - forbidden
+                      - scope_required
+                      - not_found
+                      - conflict
+                      - gone
+                      - payload_too_large
+                      - validation_failed
+                      - quota_exceeded
+                      - rate_limited
+                      - internal_error
+                      - bad_gateway
+                      - server_id_unavailable
+                      - dependency_unavailable
+                      - shutting_down
+                      - stream_limit
+                      - cap_unavailable
+                      - channel_offline
+                      - provider_auth_failed
+                      - provider_connection_limit
+                      - provider_unreachable
+                      - geo_blocked
+                      - no_video
+                      - encoder_failed
+                      - all_feeds_failed
+                      - upstream_stalled
+                      - ip_restricted
+                      - plugin_denied
+                      - prefetch_requires_current_session
+                      - route_retired
+                      - source_incompatible
+                      - transcode_not_allowed
+                    description: Stable, machine-parseable error code (switch on this).
+                    example: not_found
+                  error:
+                    type: string
+                    description: Human-readable description — display only.
+                  status:
+                    type: integer
+                    description: HTTP status code, mirrored into the body.
+                    example: 404
+                  details:
+                    description: "Structured detail: field-level validation errors, quota info, or a freeform string."
+                    anyOf:
+                      - type: array
+                        items:
+                          type: object
+                          properties:
+                            field:
+                              type: string
+                            message:
+                              type: string
+                            value: {}
+                          required:
+                            - field
+                            - message
+                          additionalProperties: false
+                      - type: object
+                        properties:
+                          bucket:
+                            type: string
+                          limit:
+                            type: integer
+                          used:
+                            type: integer
+                          remaining:
+                            anyOf:
+                              - type: integer
+                              - type: "null"
+                        required:
+                          - bucket
+                          - limit
+                          - used
+                          - remaining
+                        additionalProperties: false
+                      - type: string
+                  requestId:
+                    description: Correlation ID, when available.
+                    type: string
+                  retryAfter:
+                    description: Seconds until retry (mirrors Retry-After header).
+                    type: integer
+                required:
+                  - code
+                  - error
+                  - status
+                additionalProperties: false
+        "409":
+          description: Source is being deleted
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - unauthorized
+                      - invalid_token
+                      - invalid_grant
+                      - ip_mismatch
+                      - forbidden
+                      - scope_required
+                      - not_found
+                      - conflict
+                      - gone
+                      - payload_too_large
+                      - validation_failed
+                      - quota_exceeded
+                      - rate_limited
+                      - internal_error
+                      - bad_gateway
+                      - server_id_unavailable
+                      - dependency_unavailable
+                      - shutting_down
+                      - stream_limit
+                      - cap_unavailable
+                      - channel_offline
+                      - provider_auth_failed
+                      - provider_connection_limit
+                      - provider_unreachable
+                      - geo_blocked
+                      - no_video
+                      - encoder_failed
+                      - all_feeds_failed
+                      - upstream_stalled
+                      - ip_restricted
+                      - plugin_denied
+                      - prefetch_requires_current_session
+                      - route_retired
+                      - source_incompatible
+                      - transcode_not_allowed
+                    description: Stable, machine-parseable error code (switch on this).
+                    example: conflict
+                  error:
+                    type: string
+                    description: Human-readable description — display only.
+                  status:
+                    type: integer
+                    description: HTTP status code, mirrored into the body.
+                    example: 409
                   details:
                     description: "Structured detail: field-level validation errors, quota info, or a freeform string."
                     anyOf:
@@ -272059,6 +272654,9 @@ components:
         lastRefreshAt:
           description: Last refresh timestamp (ISO 8601)
           type: string
+        deletingSince:
+          description: Deletion queued at (ISO 8601)
+          type: string
         lastRefreshStatus:
           description: Last refresh status
           type: string
@@ -272133,6 +272731,9 @@ components:
         lastRefreshAt:
           description: Last refresh timestamp (ISO 8601)
           type: string
+        deletingSince:
+          description: Deletion queued at (ISO 8601)
+          type: string
         lastRefreshStatus:
           description: Last refresh status
           type: string
@@ -272149,11 +272750,19 @@ components:
     SourceDeletedResponse:
       type: object
       properties:
+        deleting:
+          type: boolean
+          description: Whether background deletion was accepted
+        taskId:
+          type: string
+          description: Run ID for the source deletion task
         deleted:
+          description: Legacy synchronous deletion acknowledgement
           type: boolean
           const: true
       required:
-        - deleted
+        - deleting
+        - taskId
       additionalProperties: false
       description: Source deletion acknowledgement
     ImportTriggerResponse:

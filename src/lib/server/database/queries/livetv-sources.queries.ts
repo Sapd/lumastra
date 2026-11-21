@@ -40,6 +40,7 @@ export interface LiveTvSourceRow {
     last_refresh_at: Date | null;
     last_refresh_status: string | null;
     last_refresh_summary: unknown;
+    deleting_since?: Date | null;
     created_at: Date;
     updated_at: Date;
 }
@@ -53,6 +54,7 @@ export interface LiveTvSourceSafeRow {
     last_refresh_at: Date | null;
     last_refresh_status: string | null;
     last_refresh_summary: unknown;
+    deleting_since?: Date | null;
     created_at: Date;
     updated_at: Date;
 }
@@ -375,7 +377,7 @@ function withXtreamFetchUrls(row: LiveTvSourceRow): LiveTvSourceRow {
 export async function getAllSources(sql: postgres.Sql): Promise<LiveTvSourceSafeRow[]> {
     return sql<LiveTvSourceSafeRow[]>`
 		SELECT id, name, source_type, max_streams, refresh_cron,
-		       last_refresh_at, last_refresh_status, last_refresh_summary,
+		       last_refresh_at, last_refresh_status, last_refresh_summary, deleting_since,
 		       created_at, updated_at
 		FROM livetv_sources
 		ORDER BY created_at ASC
@@ -389,7 +391,7 @@ export async function getSourceById(
     const rows = await sql<LiveTvSourceAdminRow[]>`
 		SELECT id, name, source_type, m3u_url, xmltv_url,
 		       max_streams, refresh_cron,
-		       last_refresh_at, last_refresh_status, last_refresh_summary,
+		       last_refresh_at, last_refresh_status, last_refresh_summary, deleting_since,
 		       created_at, updated_at
 		FROM livetv_sources
 		WHERE id = ${sourceId}
@@ -414,7 +416,7 @@ export async function getSourceByIdWithCredentials(
 		       xtream_server, xtream_username, xtream_password,
 		       hdhomerun_device_ip, hdhomerun_device_id,
 		       max_streams, refresh_cron,
-		       last_refresh_at, last_refresh_status, last_refresh_summary,
+		       last_refresh_at, last_refresh_status, last_refresh_summary, deleting_since,
 		       created_at, updated_at
 		FROM livetv_sources
 		WHERE id = ${sourceId}
@@ -465,7 +467,7 @@ export async function createSource(
 			${params.refresh_cron ?? null}
 		)
 		RETURNING id, name, source_type, max_streams, refresh_cron,
-		          last_refresh_at, last_refresh_status, last_refresh_summary,
+		          last_refresh_at, last_refresh_status, last_refresh_summary, deleting_since,
 		          created_at, updated_at
 	`;
     if (!rows[0]) throw new Error('INSERT livetv_sources returned no row');
@@ -517,12 +519,60 @@ async function updateSourceRow(
 			max_streams      = ${params.max_streams === undefined ? sql`max_streams` : params.max_streams},
 			refresh_cron     = ${params.refresh_cron === undefined ? sql`refresh_cron` : params.refresh_cron},
 			updated_at       = now()
-		WHERE id = ${sourceId}
+		WHERE id = ${sourceId} AND deleting_since IS NULL
 		RETURNING id, name, source_type, max_streams, refresh_cron,
-		          last_refresh_at, last_refresh_status, last_refresh_summary,
+		          last_refresh_at, last_refresh_status, last_refresh_summary, deleting_since,
 		          created_at, updated_at
 	`;
     return rows[0] ?? null;
+}
+
+export async function markSourceDeleting(
+    sql: postgres.Sql,
+    sourceId: string,
+): Promise<{ found: boolean; alreadyDeleting: boolean }> {
+    const [source] = await sql<{ already_deleting: boolean }[]>`
+        WITH locked_source AS (
+            SELECT id, deleting_since IS NOT NULL AS already_deleting
+            FROM livetv_sources
+            WHERE id = ${sourceId}
+            FOR UPDATE
+        )
+        UPDATE livetv_sources s
+        SET deleting_since = COALESCE(s.deleting_since, now())
+        FROM locked_source
+        WHERE s.id = locked_source.id
+        RETURNING locked_source.already_deleting
+    `;
+    return { found: source !== undefined, alreadyDeleting: source?.already_deleting ?? false };
+}
+
+export async function clearSourceDeleting(sql: postgres.Sql, sourceId: string): Promise<void> {
+    await sql`
+        UPDATE livetv_sources
+        SET deleting_since = NULL
+        WHERE id = ${sourceId} AND deleting_since IS NOT NULL
+    `;
+}
+
+/** Recover flags left behind after a deletion run terminates or never queues. */
+export async function clearStaleSourceDeletingFlags(sql: postgres.Sql): Promise<number> {
+    // Keep the flag while any delete run for this source is in flight (the orchestrator's
+    // non-terminal states). Matching on the run's input, not the DELETE route's idempotency
+    // key, also covers runs started from /admin/tasks, which carry no key.
+    const result = await sql`
+        UPDATE livetv_sources s
+        SET deleting_since = NULL
+        WHERE s.deleting_since IS NOT NULL
+          AND s.deleting_since < now() - interval '2 minutes'
+          AND NOT EXISTS (
+              SELECT 1 FROM task_history th
+              WHERE th.task_id = 'delete-livetv-source'
+                AND th.input->>'sourceId' = s.id::text
+                AND th.state IN ('pending', 'active', 'cancelling')
+          )
+    `;
+    return result.count;
 }
 
 export interface DeleteSourceResult {
@@ -546,13 +596,16 @@ export interface DeleteSourceResult {
  *    `livetv_channels` → `livetv_programs` + `livetv_channel_watch_history`.
  *  - Backup groups are deleted explicitly (also `SET NULL` otherwise).
  *  - `livetv_epg_channels` already cascade on the source delete.
- *  - Shared `livetv_categories` are intentionally left intact (not source-owned).
+ *  - Categories used by this source are removed if empty and without overrides.
  */
 export async function deleteSource(
     sql: postgres.Sql,
     sourceId: string,
 ): Promise<DeleteSourceResult> {
     return withTx(sql, async (tx) => {
+        const [source] = await tx`SELECT id FROM livetv_sources WHERE id = ${sourceId}`;
+        if (!source) return { deleted: false, channelsDeleted: 0 };
+
         // hls_playback_tokens.media_item_id → media_items has NO on-delete rule
         // (NO ACTION) — the one FK to media_items that doesn't cascade. An active
         // stream (or a lingering token) on one of these channels would otherwise
@@ -573,17 +626,28 @@ export async function deleteSource(
 			WHERE e.channel_id IN (SELECT id::text FROM livetv_channels WHERE source_id = ${sourceId})
 			   OR NOT EXISTS (SELECT 1 FROM livetv_channels c WHERE c.id::text = e.channel_id)
 		`;
+        const categories = await tx<{ category_id: string }[]>`
+            SELECT DISTINCT category_id
+            FROM livetv_channels
+            WHERE source_id = ${sourceId} AND category_id IS NOT NULL
+        `;
+        // Keep sync capture enabled: cascading playlist_items deletes can emit playlist changes.
         // eslint-disable-next-line callback-safety/no-unscoped-media-items -- destructive source cleanup behind an operator-gated route; scoped to this source's own channels, not a user-facing read
         const channelsResult = await tx`
 			DELETE FROM media_items
 			WHERE id IN (SELECT id FROM livetv_channels WHERE source_id = ${sourceId})
 		`;
         await tx`DELETE FROM livetv_backup_groups WHERE source_id = ${sourceId}`;
-        // Categories only this source's channels used (shared ones stay).
-        await tx`
-			DELETE FROM livetv_categories cat
-			WHERE NOT EXISTS (SELECT 1 FROM livetv_channels c WHERE c.category_id = cat.id)
-		`;
+        // Keep settings so a re-import can reuse the category by name.
+        if (categories.length > 0) {
+            const categoryIds = categories.map((category) => category.category_id);
+            await tx`
+                DELETE FROM livetv_categories cat
+                WHERE cat.id = ANY(${categoryIds}::uuid[])
+                  AND cat.number_start IS NULL AND cat.is_visible
+                  AND NOT EXISTS (SELECT 1 FROM livetv_channels c WHERE c.category_id = cat.id)
+            `;
+        }
         const sourceResult = await tx`DELETE FROM livetv_sources WHERE id = ${sourceId}`;
         return {
             deleted: sourceResult.count > 0,
@@ -665,7 +729,7 @@ export async function getSourcesWithRefreshCron(sql: postgres.Sql): Promise<
 		SELECT id, name, refresh_cron, xmltv_url, m3u_url, last_refresh_at,
                NULLIF(last_refresh_summary->'epg'->>'at', '')::timestamptz AS last_epg_refresh_at
 		FROM livetv_sources
-		WHERE refresh_cron IS NOT NULL
+		WHERE refresh_cron IS NOT NULL AND deleting_since IS NULL
 		ORDER BY created_at ASC
 	`;
 }
@@ -686,7 +750,7 @@ export async function getAllSourcesWithChannelCounts(sql: postgres.Sql): Promise
         })[]
     >`
 		SELECT s.id, s.name, s.source_type, s.max_streams, s.refresh_cron,
-		       s.last_refresh_at, s.last_refresh_status, s.last_refresh_summary,
+		       s.last_refresh_at, s.last_refresh_status, s.last_refresh_summary, s.deleting_since,
 		       s.created_at, s.updated_at,
 		       COALESCE(COUNT(c.id), 0)::int AS channel_count,
 		       COUNT(c.epg_channel_id)::int AS tvg_id_count

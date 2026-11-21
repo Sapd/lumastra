@@ -5,7 +5,8 @@
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 import { expect, it, vi, afterEach } from 'vitest';
 import SourceManager from './SourceManager.svelte';
-const { updateLiveTvSource, bus, toastError, sourceStatus } = vi.hoisted(() => ({
+const { deleteLiveTvSource, updateLiveTvSource, bus, toastError, sourceStatus } = vi.hoisted(() => ({
+    deleteLiveTvSource: vi.fn(),
     sourceStatus: { value: 'failed' },
     updateLiveTvSource: vi.fn(),
     toastError: vi.fn(),
@@ -26,6 +27,7 @@ const { updateLiveTvSource, bus, toastError, sourceStatus } = vi.hoisted(() => (
     },
 }));
 vi.mock('$lib/api/livetv', () => ({
+    deleteLiveTvSource,
     updateLiveTvSource,
     getLiveTvSources: vi.fn().mockImplementation(async () => ({
         data: {
@@ -121,4 +123,21 @@ it('identifies a failed non-destructive playlist retry as a channel failure', as
     await waitFor(() =>
         expect(toastError).toHaveBeenCalledWith(expect.stringContaining('Channel import failed')),
     );
+});
+
+it('shows the parsed error when deletion enqueue returns a 503 problem', async () => {
+    toastError.mockClear();
+    const error = 'The deletion queue is temporarily unavailable';
+    deleteLiveTvSource.mockResolvedValueOnce({ status: 503, error });
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
+
+    try {
+        render(SourceManager);
+        await fireEvent.click(await screen.findByTitle('Delete'));
+
+        await waitFor(() => expect(toastError).toHaveBeenCalledWith(error));
+        expect(deleteLiveTvSource).toHaveBeenCalledWith('source');
+    } finally {
+        vi.unstubAllGlobals();
+    }
 });

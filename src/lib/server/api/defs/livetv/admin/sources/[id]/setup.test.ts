@@ -24,7 +24,16 @@ vi.mock('$lib/server/database/queries/livetv-setup.queries.js', () => ({
     getChannelsForSetup: (...args: unknown[]) => mockGetChannelsForSetup(...args),
 }));
 
-vi.mock('$lib/server/services/livetv/index.js', () => ({ applySetupPreferences: vi.fn() }));
+const { mockGetSourceById, mockApplySetupPreferences } = vi.hoisted(() => ({
+    mockGetSourceById: vi.fn(),
+    mockApplySetupPreferences: vi.fn(),
+}));
+vi.mock('$lib/server/database/queries/livetv-sources.queries.js', () => ({
+    getSourceById: mockGetSourceById,
+}));
+vi.mock('$lib/server/services/livetv/index.js', () => ({
+    applySetupPreferences: mockApplySetupPreferences,
+}));
 vi.mock('$lib/server/services/livetv-cache.service.js', () => ({
     invalidateLiveTvCaches: vi.fn(),
 }));
@@ -34,11 +43,20 @@ import { def } from './setup.js';
 
 const SOURCE_ID = 'aaaaaaaa-0000-4000-8000-000000000001';
 
-function makeEvent(): RequestEvent {
+function makeEvent(method: 'GET' | 'POST' = 'GET'): RequestEvent {
     const url = `http://localhost/api/v1/livetv/admin/sources/${SOURCE_ID}/setup`;
     return {
         url: new URL(url),
-        request: new Request(url, { method: 'GET' }),
+        request: new Request(
+            url,
+            method === 'POST'
+                ? {
+                      method,
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ channelOrder: 'traditional', preferHighQuality: true }),
+                  }
+                : { method },
+        ),
         params: { sourceId: SOURCE_ID },
         route: { id: '/api/v1/livetv/admin/sources/[id]/setup' as const },
         locals: { principal: { scopes: ['livetv:admin'] } },
@@ -153,4 +171,16 @@ describe('GET setup — noise counts and saved switches', () => {
         });
         expect(saved).not.toHaveProperty('hideInfoChannels');
     });
+});
+
+it('returns 409 before applying setup to a source marked for deletion', async () => {
+    mockGetSourceById.mockResolvedValueOnce({ deleting_since: new Date() });
+    const { POST } = mount(def, { surface: 'v1' });
+
+    const res = await POST!(makeEvent('POST'));
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ code: 'conflict', error: 'Source is being deleted' });
+    expect(mockGetSourceById).toHaveBeenCalledWith({}, SOURCE_ID);
+    expect(mockApplySetupPreferences).not.toHaveBeenCalled();
 });

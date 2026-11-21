@@ -21,11 +21,15 @@ vi.mock('$lib/server/services/database.service.js', () => ({
     aiDbService: { getSql: (...args: unknown[]) => mockGetSql(...args) },
 }));
 
-const { mockCreateSource, mockGetAllSourcesWithChannelCounts } = vi.hoisted(() => ({
-    mockCreateSource: vi.fn(),
-    mockGetAllSourcesWithChannelCounts: vi.fn(),
-}));
+const { mockClearStaleFlags, mockCreateSource, mockGetAllSourcesWithChannelCounts } = vi.hoisted(
+    () => ({
+        mockClearStaleFlags: vi.fn().mockResolvedValue(0),
+        mockCreateSource: vi.fn(),
+        mockGetAllSourcesWithChannelCounts: vi.fn(),
+    }),
+);
 vi.mock('$lib/server/database/queries/livetv-sources.queries.js', () => ({
+    clearStaleSourceDeletingFlags: mockClearStaleFlags,
     createSource: (...args: unknown[]) => mockCreateSource(...args),
     updateRefreshStatus: vi.fn().mockResolvedValue(true),
     getAllSourcesWithChannelCounts: (...args: unknown[]) =>
@@ -84,13 +88,13 @@ import { def } from './index.js';
 
 const CTX_V1 = { surface: 'v1' as const };
 
-function makeEvent(body: unknown): RequestEvent {
+function makeEvent(body: unknown, method: 'GET' | 'POST' = 'POST'): RequestEvent {
     const url = 'http://localhost/api/v1/livetv/admin/sources';
     return {
         url: new URL(url),
         request: new Request(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method,
+            headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
             body: JSON.stringify(body),
         }),
         params: {},
@@ -318,4 +322,18 @@ describe('first-time feed validation and provider defaults', () => {
             expect.objectContaining({ max_streams: 2 }),
         );
     });
+});
+
+it('lists sources even when stale deletion flag cleanup fails', async () => {
+    mockClearStaleFlags.mockRejectedValueOnce(new Error('cleanup unavailable'));
+    mockGetAllSourcesWithChannelCounts.mockResolvedValueOnce([]);
+
+    const res = await mount(def, CTX_V1).GET!(makeEvent(undefined, 'GET'));
+
+    expect(res.status).toBe(200);
+    expect(await parseJson(res)).toEqual({ sources: [] });
+    expect(mockClearStaleFlags).toHaveBeenCalledWith({});
+    expect(mockClearStaleFlags.mock.invocationCallOrder[0]).toBeLessThan(
+        mockGetAllSourcesWithChannelCounts.mock.invocationCallOrder[0],
+    );
 });

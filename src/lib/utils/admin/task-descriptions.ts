@@ -93,6 +93,7 @@ const TASK_DESCRIPTIONS: Partial<Record<string, TaskDescriptionMessage>> = {
     'import-epg': m.admin_task_desc_import_epg,
     'refresh-m3u': m.admin_task_desc_refresh_m3u,
     'refresh-epg': m.admin_task_desc_refresh_epg,
+    'delete-livetv-source': m.admin_task_desc_delete_livetv_source,
 
     // Watch sync — the scheduler-level tasks vs the per-provider engine's
     // registry-only stubs (see each message: they describe the difference
@@ -219,6 +220,7 @@ const TASK_IMPACTS: Partial<Record<string, TaskDescriptionMessage>> = {
     'import-epg': m.admin_task_impact_import_epg,
     'refresh-m3u': m.admin_task_impact_refresh_m3u,
     'refresh-epg': m.admin_task_impact_refresh_epg,
+    'delete-livetv-source': m.admin_task_impact_delete_livetv_source,
 
     // Watch sync — the scheduler-level tasks have a real user-visible impact;
     // the four per-provider engine registry stubs (jellyfin-watch-sync-*,

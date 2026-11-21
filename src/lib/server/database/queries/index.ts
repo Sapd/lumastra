@@ -985,7 +985,10 @@ export {
     requeueNewJellyfinPairing,
 } from './jellyfin-file-pairing.queries.js';
 
-export { updateEpgRefreshStatus } from './livetv-sources.queries.js';
+export {
+    clearStaleSourceDeletingFlags,
+    updateEpgRefreshStatus,
+} from './livetv-sources.queries.js';
 
 export {
     getSourceFavoritesForImport,

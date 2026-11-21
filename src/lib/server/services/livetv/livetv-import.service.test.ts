@@ -399,6 +399,36 @@ describe('importM3uSource', () => {
         );
     });
 
+    it.each([
+        { state: 'deleting', source: makeSource({ deleting_since: new Date() }), waitForLock: false },
+        { state: 'missing', source: null, waitForLock: true },
+    ])(
+        'skips fetching and writing for a $state source when waitForLock=$waitForLock',
+        async ({ source, waitForLock }) => {
+            mockGetSource.mockResolvedValueOnce(source);
+
+            await expect(importM3uSource(sql, SOURCE_ID, undefined, waitForLock)).resolves.toEqual({
+                sourceId: SOURCE_ID,
+                sourceName: source?.name ?? '',
+                channelCount: 0,
+                backupGroupCount: 0,
+                categoryCount: 0,
+                epgMatchCount: 0,
+                programCount: 0,
+                errors: [],
+                warnings: [],
+                notes: [],
+                duration: expect.any(Number),
+            });
+            expect(fetchSsrfValidatedText).not.toHaveBeenCalled();
+            expect(sql).not.toHaveBeenCalled();
+            expect(sql.begin).not.toHaveBeenCalled();
+            expect(mockDeleteChannels).not.toHaveBeenCalled();
+            expect(mockBulkCreateChannels).not.toHaveBeenCalled();
+            expect(mockUpdateRefreshStatus).not.toHaveBeenCalled();
+        },
+    );
+
     it('fetches the playlist with the M3U byte ceiling', async () => {
         await importM3uSource(sql, SOURCE_ID);
 
@@ -423,10 +453,10 @@ describe('importM3uSource', () => {
         expect(result.duration).toBeGreaterThanOrEqual(0);
     });
 
-    it('throws when source is not found', async () => {
+    it('throws for a missing source when waitForLock is false', async () => {
         mockGetSource.mockResolvedValue(null);
 
-        await expect(importM3uSource(sql, 'missing-id')).rejects.toThrow(
+        await expect(importM3uSource(sql, 'missing-id', undefined, false)).rejects.toThrow(
             'Source not found: missing-id',
         );
     });
@@ -775,6 +805,44 @@ describe('importEpgSource', () => {
                     typeof randomUUID
                 >,
         );
+    });
+
+    it.each([
+        { state: 'deleting', source: makeSource({ deleting_since: new Date() }), waitForLock: false },
+        { state: 'missing', source: null, waitForLock: true },
+    ])(
+        'skips fetching and writing for a $state source when waitForLock=$waitForLock',
+        async ({ source, waitForLock }) => {
+            mockGetSource.mockResolvedValueOnce(source);
+
+            await expect(importEpgSource(sql, SOURCE_ID, undefined, waitForLock)).resolves.toEqual({
+                sourceId: SOURCE_ID,
+                sourceName: source?.name ?? '',
+                channelCount: 0,
+                backupGroupCount: 0,
+                categoryCount: 0,
+                epgMatchCount: 0,
+                programCount: 0,
+                errors: [],
+                warnings: [],
+                notes: [],
+                duration: expect.any(Number),
+            });
+            expect(fetchSsrfValidatedText).not.toHaveBeenCalled();
+            expect(sql).not.toHaveBeenCalled();
+            expect(sql.begin).not.toHaveBeenCalled();
+            expect(mockGetChannelsBySourceId).not.toHaveBeenCalled();
+            expect(updateEpgRefreshStatus).not.toHaveBeenCalled();
+        },
+    );
+
+    it('throws for a missing source when waitForLock is false', async () => {
+        mockGetSource.mockResolvedValueOnce(null);
+
+        await expect(importEpgSource(sql, SOURCE_ID, undefined, false)).rejects.toThrow(
+            `Source not found: ${SOURCE_ID}`,
+        );
+        expect(fetchSsrfValidatedText).not.toHaveBeenCalled();
     });
 
     it('records EPG failures with a redacted actionable error', async () => {

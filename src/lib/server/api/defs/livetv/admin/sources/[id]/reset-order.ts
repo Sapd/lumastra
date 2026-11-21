@@ -42,6 +42,7 @@ export const def = defineEndpoint({
                 },
                 401: 'Authentication required',
                 404: 'Source not found',
+                409: 'Source is being deleted',
                 503: 'Database unavailable',
                 500: 'Internal server error',
             },
@@ -62,6 +63,7 @@ export const def = defineEndpoint({
 
             const source = await getSourceById(sql, sourceId);
             if (!source) return ApiProblem.notFound('Source not found');
+            if (source.deleting_since) return ApiProblem.conflict('Source is being deleted');
 
             const updated = await resetChannelSortToPlaylistOrder(sql, sourceId);
 

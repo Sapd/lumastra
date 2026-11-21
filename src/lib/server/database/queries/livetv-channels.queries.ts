@@ -1069,6 +1069,11 @@ export async function getAllVisibleChannels(sql: postgres.Sql): Promise<ChannelR
 		  -- two viewer surfaces disagreed; this makes the query the single answer.
 		  AND (lcat.is_visible = true OR lc.category_id IS NULL)
 		  AND (lc.backup_group_id IS NULL OR lc.id = ${shownGroupMember(sql)})
+		  -- Hide channels as soon as their source is marked for deletion.
+		  AND NOT EXISTS (
+		      SELECT 1 FROM livetv_sources ds
+		      WHERE ds.id = lc.source_id AND ds.deleting_since IS NOT NULL
+		  )
 		ORDER BY sort_order ASC, mi.title ASC, lc.id ASC
 	`;
 }

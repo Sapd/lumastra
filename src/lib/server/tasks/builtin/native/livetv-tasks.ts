@@ -8,6 +8,7 @@
  *  - import-epg  → wraps `importEpgSource()`   (admin-triggered)
  *  - refresh-m3u → wraps `refreshM3uSource()`  (DB-row-driven schedule)
  *  - refresh-epg → wraps `refreshEpgSource()`  (DB-row-driven schedule)
+ *  - delete-livetv-source → removes a source and its channels (admin-triggered)
  *
  * Imports are admin-triggered and declare `manualOnly: true` so the boot
  * audit recognises them as trigger-covered. Refresh tasks use the SDK's
@@ -21,9 +22,17 @@ import { parseLiveTvRefreshIntervalMs } from '$lib/shared/livetv-refresh-schedul
 import type { Sql } from 'postgres';
 import { z } from 'zod';
 import { defineTask, TaskError } from '@sapd/lumastra-plugin-sdk';
-import type { DynamicScheduleEntry, Logger as SdkLogger } from '@sapd/lumastra-plugin-sdk';
+import type {
+    DynamicScheduleEntry,
+    Logger as SdkLogger,
+    TaskContext,
+    TaskResult,
+} from '@sapd/lumastra-plugin-sdk';
 import { registry } from '../../registry.js';
-import { getSourcesWithRefreshCron } from '$lib/server/database/queries/livetv-sources.queries.js';
+import {
+    clearStaleSourceDeletingFlags,
+    getSourcesWithRefreshCron,
+} from '$lib/server/database/queries/livetv-sources.queries.js';
 import { LiveTvImportCancelledError } from '$lib/server/services/livetv/livetv-import-abort.js';
 
 /**
@@ -63,6 +72,11 @@ export async function buildLivetvDueEntries(
     kind: 'epg' | 'm3u',
     now: Date,
 ): Promise<Array<DynamicScheduleEntry<{ sourceId: string }>>> {
+    await clearStaleSourceDeletingFlags(sql).catch((err: unknown) => {
+        logger.warn('Could not clear stale Live TV source deletion flags', {
+            error: err instanceof Error ? err.message : String(err),
+        });
+    });
     const sources = await getSourcesWithRefreshCron(sql);
     const nowMs = now.getTime();
     const out: Array<DynamicScheduleEntry<{ sourceId: string }>> = [];
@@ -169,7 +183,7 @@ async function startEpgImportAfterM3u(
             import('../../orchestrator.js'),
         ]);
         const source = await getSourceById(sql, sourceId);
-        if (!source?.xmltv_url) return;
+        if (!source?.xmltv_url || source.deleting_since) return;
         const started = await orchestrator.startRun(
             'import-epg',
             { sourceId },
@@ -505,7 +519,73 @@ export const refreshEpgTask = defineTask<SourceInput, unknown>({
     },
 });
 
+export const deleteLiveTvSourceTask = defineTask<SourceInput, unknown>({
+    id: 'delete-livetv-source',
+    purpose: 'livetv',
+    name: 'Delete Live TV Source',
+    version: '1.0.0',
+    processingVersion: 1,
+    minAppVersion: '0.0.0',
+    capabilities: { database: true },
+    manualOnly: true,
+    confirmBeforeRun: true,
+    identityFor: (input) => `source-${input.sourceId}`,
+    scope: 'global',
+    resourceClass: 'io',
+    inputSchema: sourceInputSchema,
+    // Allow the full LIVETV_SOURCE_WRITE_LOCK_TTL_SECONDS wait plus time to delete.
+    timeout: { hard: '45m', soft: '44m' },
+
+    async execute(ctx: TaskContext<SourceInput>): Promise<TaskResult> {
+        const { sourceId } = ctx.input;
+        const lockKey = `lock:livetv-source-write:${sourceId}`;
+        const { clearSourceDeleting, deleteSource, markSourceDeleting } =
+            await import('$lib/server/database/queries/livetv-sources.queries.js');
+        try {
+            await markSourceDeleting(ctx.sql, sourceId);
+            const [{ waitForSourceWriteLock }, { releaseLock }, { invalidateLiveTvCaches }] =
+                await Promise.all([
+                    import('../../../services/livetv/source-write-lock.js'),
+                    import('$lib/server/cache/valkey.js'),
+                    import('../../../services/livetv-cache.service.js'),
+                ]);
+            const signal = ctx.softSignal
+                ? AbortSignal.any([ctx.signal, ctx.softSignal])
+                : ctx.signal;
+            const progress = buildAbortableProgress(signal, (p, t, message) =>
+                ctx.reportProgress(p, t, message),
+            );
+            await progress({ processed: 0, total: 1 });
+            const token = await waitForSourceWriteLock(sourceId, progress);
+            try {
+                signal.throwIfAborted();
+                const result = await deleteSource(ctx.sql, sourceId);
+                if (result.deleted) {
+                    try {
+                        await invalidateLiveTvCaches();
+                    } catch (err) {
+                        ctx.logger.warn('Could not invalidate Live TV caches after source deletion', {
+                            sourceId,
+                            error: err instanceof Error ? err.message : String(err),
+                        });
+                    }
+                }
+                ctx.reportProgress(1, 1);
+                return { success: true, itemsProcessed: result.channelsDeleted };
+            } finally {
+                await releaseLock(lockKey, token);
+            }
+        } catch (error) {
+            await clearSourceDeleting(ctx.sql, sourceId).catch(() => {
+                ctx.logger.warn('Could not clear Live TV source deletion flag', { sourceId });
+            });
+            throw error;
+        }
+    },
+});
+
 registry.registerTask(importM3uTask);
 registry.registerTask(importEpgTask);
 registry.registerTask(refreshM3uTask);
 registry.registerTask(refreshEpgTask);
+registry.registerTask(deleteLiveTvSourceTask);
