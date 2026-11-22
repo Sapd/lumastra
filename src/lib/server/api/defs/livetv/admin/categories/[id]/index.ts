@@ -5,7 +5,7 @@
  * defs/livetv/admin/categories/[id]/index.ts
  *
  * GET    /livetv/admin/categories/{categoryId} — get single category (bare object)
- * PUT    /livetv/admin/categories/{categoryId} — update visibility, name and/or numberStart (bare object)
+ * PUT    /livetv/admin/categories/{categoryId} — edit a category or its channels (bare object)
  * DELETE /livetv/admin/categories/{categoryId} — delete empty category (bare object)
  *
  * Auth: scope livetv:admin (all methods)
@@ -19,13 +19,11 @@ import { defineEndpoint } from '$lib/server/api/define.js';
 import { ApiProblem } from '$lib/server/api/problem.js';
 import { aiDbService } from '$lib/server/services/database.service.js';
 import {
-    getCategoryById,
-    updateCategoryVisibility,
-    renameCategory,
     deleteEmptyCategory,
+    getCategoryById,
 } from '$lib/server/database/queries/livetv-channels.queries.js';
-import { setCategoryNumberStart } from '$lib/server/database/queries/livetv-channel-numbers.queries.js';
 import { invalidateLiveTvCaches } from '$lib/server/services/livetv-cache.service.js';
+import { updateLiveTvCategory } from '$lib/server/services/livetv/category-admin.service.js';
 import { isUuid } from '$lib/server/utils/media-key-parser.js';
 import { mapCategoryToApi } from '$lib/server/mappers/livetv-category.mapper.js';
 import { UpdateCategoryRequestSchema } from '$lib/schemas/livetv.js';
@@ -58,7 +56,7 @@ export const def = defineEndpoint({
         },
         PUT: {
             tags: ['Live TV'],
-            summary: 'Update a Live TV category (rename / visibility / number start)',
+            summary: 'Update a Live TV category or its channels',
             stability: 'experimental',
             auth: 'bearer',
             body: UpdateCategoryRequestSchema,
@@ -91,10 +89,8 @@ export const def = defineEndpoint({
     visibility: 'internal',
     // No def-level `request.body`: mount() applies a declared body schema to
     // every method that can carry one, including DELETE (see mount.ts
-    // `methodCanHaveBody`). `UpdateCategoryRequestSchema` refines to require
-    // at least one of `isVisible`/`name`, so declaring it here would reject
-    // every DELETE (empty body) before this handler ever runs. PUT validates
-    // the body itself instead.
+    // `methodCanHaveBody`). Declaring it here would reject DELETE requests
+    // with no body. PUT validates the body itself instead.
     handlers: {
         /**
          * GET /livetv/admin/categories/{categoryId}
@@ -123,14 +119,12 @@ export const def = defineEndpoint({
         /**
          * PUT /livetv/admin/categories/{categoryId}
          *
-         * Partially updates a category: rename, toggle visibility and/or set its
-         * "Numbers start at" (0 clears it).
-         * Both operations are independent and can be combined in one request.
-         * Response: bare object { success: true, updatedCount }.
+         * Partially updates a category or the visibility of its channels.
+         * A changed nonzero start also renumbers the category's visible unpinned stations.
          *
          * Body is validated manually here — see the no-def-level-body note above.
          */
-        PUT: async (event) => {
+        PUT: async (event): Promise<Response> => {
             const sql = await aiDbService.getSql();
             if (!sql) {
                 return ApiProblem.dependencyUnavailable('Database unavailable');
@@ -157,36 +151,12 @@ export const def = defineEndpoint({
                     })),
                 );
             }
-            const { isVisible, name, numberStart } = parsedBody.data;
-            let updatedCount = 0;
-
-            if (name !== undefined) {
-                const renamed = await renameCategory(sql, categoryId, name);
-                if (!renamed) {
-                    return ApiProblem.notFound('Category not found');
-                }
-            }
-
-            if (isVisible !== undefined) {
-                updatedCount = await updateCategoryVisibility(sql, categoryId, isVisible);
-            }
-
-            // After the rename (which can fail): a failed request writes nothing more.
-            if (numberStart !== undefined) {
-                const found = await setCategoryNumberStart(
-                    sql,
-                    categoryId,
-                    numberStart === 0 ? null : numberStart,
-                );
-                if (!found) {
-                    return ApiProblem.notFound('Category not found');
-                }
-            }
+            const result = await updateLiveTvCategory(sql, categoryId, parsedBody.data);
+            if (!result) return ApiProblem.notFound('Category not found');
 
             await invalidateLiveTvCaches();
 
-            // eslint-disable-next-line callback-safety/no-success-key-in-response -- CategoryUpdateResponseSchema declares success:true (see livetv.test.ts)
-            return json({ success: true as const, updatedCount });
+            return json(result);
         },
 
         /**

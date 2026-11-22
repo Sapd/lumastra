@@ -184,16 +184,25 @@ export async function setChannelNumberPinned(
     `;
 }
 
+/** Reports whether the saved value changed, while holding the category row lock. */
 export async function setCategoryNumberStart(
     sql: postgres.Sql,
     categoryId: string,
     numberStart: number | null,
-): Promise<boolean> {
-    const result = await sql`
-        UPDATE livetv_categories SET number_start = ${numberStart}
-         WHERE id = ${categoryId}::uuid
+): Promise<{ changed: boolean } | null> {
+    const [result] = await sql<{ changed: boolean }[]>`
+        WITH old_category AS (
+            SELECT id, number_start FROM livetv_categories
+             WHERE id = ${categoryId}::uuid
+               FOR UPDATE
+        )
+        UPDATE livetv_categories AS category
+           SET number_start = ${numberStart}
+          FROM old_category
+         WHERE category.id = old_category.id
+         RETURNING category.number_start IS DISTINCT FROM old_category.number_start AS changed
     `;
-    return result.count > 0;
+    return result ?? null;
 }
 
 /**

@@ -140,3 +140,59 @@ describe('Reordering categories', () => {
         expect(order()).toEqual(['Kids', 'News', 'Sport']);
     });
 });
+
+describe('Category visibility actions', () => {
+    test('the category menu hides every channel and Undo restores only previously visible channels', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+        const news = category('News', 125);
+        news.channels[1].isVisible = false;
+        const changedIds = news.channels
+            .filter((channel) => channel.isVisible)
+            .map((channel) => channel.id);
+        const hide = Promise.withResolvers<{
+            data: { updatedChannelIds: string[] };
+            error: null;
+        }>();
+        apiPut.mockReturnValueOnce(hide.promise).mockResolvedValueOnce({
+            data: { updatedChannelIds: changedIds },
+            error: null,
+        });
+        render(ChannelTable, { categories: [news, category('Sport', 1)] });
+        await user.click(header('News'));
+        const group = document.querySelector('[data-category-id="News"]') as HTMLElement;
+        expect(group.querySelectorAll('[data-channel-id]')).toHaveLength(100);
+        expect(group.querySelector('[data-channel-id="News-1"]')).toBeNull();
+
+        const menu = within(header('News')).getByRole('button', { name: 'Category actions' });
+        await user.click(menu);
+        await user.click(screen.getByRole('button', { name: 'Hide all channels' }));
+
+        expect(apiPut).toHaveBeenCalledExactlyOnceWith(
+            '/api/admin/livetv/categories/News',
+            expect.anything(),
+            { channelVisibility: 'hide' },
+        );
+        const firstRow = group.querySelector('[data-channel-id="News-0"]') as HTMLElement;
+        const categoryEye = within(header('News')).getByRole('button', { name: 'Hide' });
+        expect((categoryEye as HTMLButtonElement).disabled).toBe(true);
+        const rowEye = within(firstRow).getByRole('button', { name: 'Hide' }) as HTMLButtonElement;
+        expect(rowEye.disabled).toBe(true);
+        hide.resolve({ data: { updatedChannelIds: changedIds }, error: null });
+        await vi.advanceTimersByTimeAsync(0);
+        await tick();
+        expect(screen.getByText('124 channels hidden')).toBeTruthy();
+        expect((categoryEye as HTMLButtonElement).disabled).toBe(false);
+        expect(within(firstRow).getByRole('button', { name: 'Show' })).toBeTruthy();
+        expect(group.querySelector('[data-channel-id="News-1"]')).toBeNull();
+
+        await user.click(menu);
+        expect(screen.queryByRole('button', { name: 'Hide all channels' })).toBeNull();
+        await user.click(screen.getByRole('button', { name: 'Undo' }));
+        expect(apiPut).toHaveBeenLastCalledWith(
+            '/api/admin/livetv/categories/News',
+            expect.anything(),
+            { channelVisibility: { showIds: changedIds } },
+        );
+        expect(within(firstRow).getByRole('button', { name: 'Hide' })).toBeTruthy();
+    });
+});

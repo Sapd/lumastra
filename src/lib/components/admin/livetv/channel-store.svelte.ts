@@ -57,6 +57,8 @@ export interface ContextMenuState {
 
 export type BulkAction = 'hide' | 'show' | 'setQuality' | 'moveToCategory';
 
+const BULK_CHANNEL_LIMIT = 1000; // BulkUpdateChannelsRequestSchema maximum
+
 /**
  * svelte-dnd-action zone types. ALL channel zones (every category, in every pane) share
  * ONE type so a channel can be dragged between any categories and across panes. The
@@ -109,6 +111,8 @@ export class ChannelStore {
     selectedIds = new SvelteSet<string>();
     isSelectionMode = $state(false);
     bulkActionInFlight = $state(false);
+    private visibilityUpdateInFlight = $state(false);
+    visibilityActionInFlight = $derived(this.bulkActionInFlight || this.visibilityUpdateInFlight);
 
     /**
      * Show channels marked hidden (a lineup's other countries, lower-quality feeds)?
@@ -420,7 +424,7 @@ export class ChannelStore {
     }
 
     async performUndo(): Promise<void> {
-        if (!this.undoState) return;
+        if (!this.undoState || this.visibilityActionInFlight) return;
         clearTimeout(this.undoState.timeout);
         const action = this.undoState.reverseAction;
         this.undoState = null;
@@ -471,7 +475,7 @@ export class ChannelStore {
 
     /** A category's "Numbers start at" (0 removes it). */
     async setCategoryNumberStart(categoryId: string, numberStart: number): Promise<void> {
-        const { error } = await apiPut(
+        const { data, error } = await apiPut(
             `/api/admin/livetv/categories/${categoryId}`,
             CategoryUpdateResponseSchema,
             { numberStart },
@@ -479,6 +483,10 @@ export class ChannelStore {
         if (error) {
             toasts.error(m.admin_livetv_number_save_error());
             return;
+        }
+        const count = data?.renumbered ?? 0;
+        if (count > 0) {
+            toasts.success(m.admin_livetv_number_start_renumbered({ count, start: numberStart }));
         }
         this.onNumbersChanged?.();
     }
@@ -552,6 +560,16 @@ export class ChannelStore {
     }
 
     async toggleVisibility(channelId: string, newState: boolean): Promise<void> {
+        if (this.visibilityActionInFlight) return;
+        if (
+            newState &&
+            this.categories.some(
+                (cat) => !cat.isVisible && cat.channels.some((channel) => channel.id === channelId),
+            )
+        ) {
+            toasts.info(m.admin_livetv_channel_in_hidden_category());
+            return;
+        }
         if (!newState) this.keepOnScreen([channelId]);
         this.categories = this.categories.map((cat) => ({
             ...cat,
@@ -560,13 +578,13 @@ export class ChannelStore {
             ),
         }));
 
-        const { error } = await apiPut(
-            `/api/admin/livetv/channels/${channelId}`,
-            ChannelUpdatedResponseSchema,
-            { isVisible: newState },
+        const saved = await this.saveVisibilityUpdate(() =>
+            apiPut(`/api/admin/livetv/channels/${channelId}`, ChannelUpdatedResponseSchema, {
+                isVisible: newState,
+            }),
         );
 
-        if (error) {
+        if (!saved) {
             this.categories = this.categories.map((cat) => ({
                 ...cat,
                 channels: cat.channels.map((ch) =>
@@ -582,6 +600,7 @@ export class ChannelStore {
     // =========================================================================
 
     async toggleCategoryVisibility(categoryId: string, newState: boolean): Promise<void> {
+        if (this.visibilityActionInFlight) return;
         const cat = this.categories.find((c) => c.id === categoryId);
         if (!cat) return;
 
@@ -618,13 +637,13 @@ export class ChannelStore {
 
         applyState(newState);
 
-        const { error } = await apiPut(
-            `/api/admin/livetv/categories/${categoryId}`,
-            CategoryUpdateResponseSchema,
-            { isVisible: newState },
+        const saved = await this.saveVisibilityUpdate(() =>
+            apiPut(`/api/admin/livetv/categories/${categoryId}`, CategoryUpdateResponseSchema, {
+                isVisible: newState,
+            }),
         );
 
-        if (error) {
+        if (!saved) {
             restore();
             toasts.error(m.admin_livetv_bulk_error());
             return;
@@ -636,59 +655,181 @@ export class ChannelStore {
             : m.admin_livetv_bulk_hide_undo({ count });
 
         this.showUndoToast(undoMessage, async () => {
-            await apiPut(
-                `/api/admin/livetv/categories/${categoryId}`,
-                CategoryUpdateResponseSchema,
-                {
+            const restored = await this.saveVisibilityUpdate(() =>
+                apiPut(`/api/admin/livetv/categories/${categoryId}`, CategoryUpdateResponseSchema, {
                     isVisible: previousCatVisible,
-                },
+                }),
             );
-            restore();
+            if (restored) restore();
+            else toasts.error(m.admin_livetv_bulk_error());
         });
+    }
+
+    private async saveVisibilityUpdate(
+        save: () => Promise<{ error: string | null }>,
+    ): Promise<boolean> {
+        this.visibilityUpdateInFlight = true;
+        try {
+            return !(await save()).error;
+        } catch {
+            return false;
+        } finally {
+            this.visibilityUpdateInFlight = false;
+        }
     }
 
     // =========================================================================
     // Bulk operations (selection)
     // =========================================================================
 
+    async hideAllChannelsInCategory(categoryId: string): Promise<void> {
+        if (this.visibilityActionInFlight) return;
+        const category = this.categories.find((cat) => cat.id === categoryId);
+        if (!category?.isVisible || categoryId === UNCATEGORIZED_ID) return;
+        const visibleIds = new SvelteSet(
+            category.channels.filter((channel) => channel.isVisible).map((channel) => channel.id),
+        );
+        if (visibleIds.size === 0) return;
+
+        this.bulkActionInFlight = true;
+        const hiddenIds = await this.saveCategoryChannelVisibility(categoryId, 'hide');
+        this.bulkActionInFlight = false;
+        if (!hiddenIds) {
+            toasts.error(m.admin_livetv_bulk_error());
+            this.onNumbersChanged?.();
+            return;
+        }
+
+        this.keepOnScreen(hiddenIds.filter((id) => visibleIds.has(id)));
+        this.setLocalChannelVisibility(hiddenIds, false);
+        if (hiddenIds.length !== visibleIds.size || hiddenIds.some((id) => !visibleIds.has(id))) {
+            this.onNumbersChanged?.();
+        }
+        if (hiddenIds.length > 0) this.showCategoryHideUndo(categoryId, hiddenIds);
+    }
+
+    private async saveCategoryChannelVisibility(
+        categoryId: string,
+        channelVisibility: 'hide' | { showIds: string[] },
+    ): Promise<string[] | null> {
+        try {
+            const { data, error } = await apiPut(
+                `/api/admin/livetv/categories/${categoryId}`,
+                CategoryUpdateResponseSchema,
+                { channelVisibility },
+            );
+            return error ? null : (data?.updatedChannelIds ?? null);
+        } catch {
+            return null;
+        }
+    }
+
+    private setLocalChannelVisibility(ids: string[], isVisible: boolean): void {
+        const targets = new SvelteSet(ids);
+        this.categories = this.categories.map((category) => ({
+            ...category,
+            channels: category.channels.map((channel) =>
+                targets.has(channel.id) ? { ...channel, isVisible } : channel,
+            ),
+        }));
+    }
+
+    private showCategoryHideUndo(categoryId: string, hiddenIds: string[]): void {
+        const message = m.admin_livetv_bulk_hide_undo({ count: hiddenIds.length });
+        this.showUndoToast(message, async (): Promise<void> => {
+            this.bulkActionInFlight = true;
+            const failedIds: string[] = [];
+            let needsRefresh = false;
+            for (let start = 0; start < hiddenIds.length; start += BULK_CHANNEL_LIMIT) {
+                const showIds = hiddenIds.slice(start, start + BULK_CHANNEL_LIMIT);
+                const restored = await this.saveCategoryChannelVisibility(categoryId, { showIds });
+                if (!restored) {
+                    failedIds.push(...showIds);
+                    continue;
+                }
+                this.setLocalChannelVisibility(restored, true);
+                needsRefresh ||= restored.length !== showIds.length;
+            }
+            this.bulkActionInFlight = false;
+            if (failedIds.length > 0) {
+                toasts.error(m.admin_livetv_bulk_error());
+                this.showCategoryHideUndo(categoryId, failedIds);
+            }
+            if (needsRefresh || failedIds.length > 0) this.onNumbersChanged?.();
+        });
+    }
+
     async executeBulkAction(
         action: BulkAction,
         extra?: { qualityTier?: string; categoryId?: string },
     ): Promise<void> {
-        if (this.bulkActionInFlight) return;
-        const channelIds = [...this.selectedIds];
+        if (this.visibilityActionInFlight) return;
+        let channelIds = [...this.selectedIds];
+        if (action === 'show') {
+            const channelsInHiddenCategories = new SvelteSet(
+                this.categories
+                    .filter((category) => !category.isVisible)
+                    .flatMap((category) => category.channels.map((channel) => channel.id)),
+            );
+            channelIds = channelIds.filter((id) => !channelsInHiddenCategories.has(id));
+            if (channelIds.length < this.selectedIds.size) {
+                toasts.info(m.admin_livetv_channel_in_hidden_category());
+            }
+        }
+        await this.applyBulkAction(action, channelIds, extra);
+    }
+
+    /** Saves batches and returns the IDs whose updates failed. */
+    private async saveBulkAction(
+        action: BulkAction,
+        channelIds: string[],
+        extra?: { qualityTier?: string; categoryId?: string },
+    ): Promise<string[]> {
+        const requests: Promise<string[]>[] = [];
+        for (let start = 0; start < channelIds.length; start += BULK_CHANNEL_LIMIT) {
+            const batch = channelIds.slice(start, start + BULK_CHANNEL_LIMIT);
+            requests.push(
+                apiPut('/api/admin/livetv/channels/bulk', BulkChannelUpdateResponseSchema, {
+                    channelIds: batch,
+                    action,
+                    ...extra,
+                }).then(
+                    ({ error }): string[] => (error ? batch : []),
+                    (): string[] => batch,
+                ),
+            );
+        }
+        return (await Promise.all(requests)).flat();
+    }
+
+    private async applyBulkAction(
+        action: BulkAction,
+        channelIds: string[],
+        extra?: { qualityTier?: string; categoryId?: string },
+    ): Promise<void> {
         if (channelIds.length === 0) return;
         this.bulkActionInFlight = true;
         if (action === 'hide') this.keepOnScreen(channelIds);
 
+        const targets = new SvelteSet(channelIds);
         const previousStates = new Map<string, Partial<AdminChannel>>(); // eslint-disable-line svelte/prefer-svelte-reactivity -- local rollback temp, not reactive state
-        for (const cat of this.categories) {
-            for (const ch of cat.channels) {
-                if (this.selectedIds.has(ch.id)) {
-                    previousStates.set(ch.id, {
-                        isVisible: ch.isVisible,
-                        qualityTier: ch.qualityTier,
-                        categoryId: ch.categoryId,
-                    });
-                }
-            }
-        }
-
         this.categories = this.categories.map((cat) => ({
             ...cat,
             channels: cat.channels.map((ch) => {
-                if (!this.selectedIds.has(ch.id)) return ch;
+                if (!targets.has(ch.id)) return ch;
                 switch (action) {
                     case 'hide':
-                        return { ...ch, isVisible: false };
                     case 'show':
-                        return { ...ch, isVisible: true };
+                        previousStates.set(ch.id, { isVisible: ch.isVisible });
+                        return { ...ch, isVisible: action === 'show' };
                     case 'setQuality':
+                        previousStates.set(ch.id, { qualityTier: ch.qualityTier });
                         return {
                             ...ch,
                             qualityTier: extra?.qualityTier as AdminChannel['qualityTier'],
                         };
                     case 'moveToCategory':
+                        previousStates.set(ch.id, { categoryId: ch.categoryId });
                         return { ...ch, categoryId: extra?.categoryId };
                     default:
                         return ch;
@@ -696,30 +837,29 @@ export class ChannelStore {
             }),
         }));
 
-        const { error } = await apiPut(
-            '/api/admin/livetv/channels/bulk',
-            BulkChannelUpdateResponseSchema,
-            {
-                channelIds,
-                action,
-                ...extra,
-            },
-        );
-
-        if (error) {
+        const restore = (ids: string[]): void => {
+            const restoreIds = new SvelteSet(ids);
             this.categories = this.categories.map((cat) => ({
                 ...cat,
                 channels: cat.channels.map((ch) => {
-                    const prev = previousStates.get(ch.id);
+                    const prev = restoreIds.has(ch.id) ? previousStates.get(ch.id) : undefined;
                     return prev ? { ...ch, ...prev } : ch;
                 }),
             }));
-            toasts.error(m.admin_livetv_bulk_error());
-            this.bulkActionInFlight = false;
-            return;
-        }
+        };
 
-        const count = channelIds.length;
+        const failedIds = await this.saveBulkAction(action, channelIds, extra);
+        for (const id of failedIds) targets.delete(id);
+        this.bulkActionInFlight = false;
+        if (failedIds.length > 0) {
+            restore(failedIds);
+            toasts.error(m.admin_livetv_bulk_error());
+        }
+        if (targets.size === 0) return;
+        for (const id of targets) this.selectedIds.delete(id);
+
+        const updatedIds = [...targets];
+        const count = updatedIds.length;
         let undoMessage: string;
         switch (action) {
             case 'hide':
@@ -744,12 +884,16 @@ export class ChannelStore {
         this.showUndoToast(undoMessage, async () => {
             if (action === 'hide' || action === 'show') {
                 const reverseAction = action === 'hide' ? 'show' : 'hide';
-                await apiPut('/api/admin/livetv/channels/bulk', BulkChannelUpdateResponseSchema, {
-                    channelIds,
-                    action: reverseAction,
-                });
+                const toRestore = updatedIds.filter(
+                    (id) => previousStates.get(id)?.isVisible === (action === 'hide'),
+                );
+                this.bulkActionInFlight = true;
+                const failed = new SvelteSet(await this.saveBulkAction(reverseAction, toRestore));
+                this.bulkActionInFlight = false;
+                if (failed.size > 0) toasts.error(m.admin_livetv_bulk_error());
+                restore(toRestore.filter((id) => !failed.has(id)));
             } else {
-                const revertPromises = channelIds.map((id) => {
+                const revertPromises = updatedIds.map((id) => {
                     const prev = previousStates.get(id);
                     if (!prev) return Promise.resolve();
                     const revertData: Record<string, unknown> = {};
@@ -765,18 +909,9 @@ export class ChannelStore {
                     );
                 });
                 await Promise.all(revertPromises);
+                restore(updatedIds);
             }
-            this.categories = this.categories.map((cat) => ({
-                ...cat,
-                channels: cat.channels.map((ch) => {
-                    const prev = previousStates.get(ch.id);
-                    return prev ? { ...ch, ...prev } : ch;
-                }),
-            }));
         });
-
-        this.selectedIds.clear();
-        this.bulkActionInFlight = false;
     }
 
     bulkHide(): void {

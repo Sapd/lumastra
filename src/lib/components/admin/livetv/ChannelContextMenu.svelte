@@ -201,7 +201,8 @@
             type="button"
             role="menuitem"
             class="w-full px-3 py-2 text-left text-surface-200 hover:bg-surface-700 flex items-center gap-2"
-            onclick={() => store.contextToggleVisibility(channelId)}>
+            onclick={() => store.contextToggleVisibility(channelId)}
+            disabled={store.visibilityActionInFlight}>
             {#if isVisible}
                 <Icon src={EyeSlash} class="w-4 h-4 text-surface-400" />
                 {m.admin_livetv_bulk_hide()}

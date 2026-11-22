@@ -45,6 +45,12 @@ vi.mock('./fetch-source.js', async (importOriginal) => ({
 
 import { getTestDb, closeTestDb } from '../../../../../tests/integration/setup/test-database.js';
 import {
+    getChannelNumberRows,
+    getNumberCategories,
+} from '$lib/server/database/queries/livetv-channel-numbers.queries.js';
+import { getCategoryById } from '$lib/server/database/queries/livetv-channels.queries.js';
+import { updateLiveTvCategory } from './category-admin.service.js';
+import {
     ensureChannelNumbers,
     renumberChannels,
     renumberIfOnlySource,
@@ -231,6 +237,115 @@ describe('stable channel numbers', () => {
         await channel('Arena', sportId, 0);
         await channel('Court', sportId, 1);
         expect(await numbersByTitle()).toEqual({ Herald: 1, Arena: 100, Court: 101 });
+    });
+
+    it('renumbers only the category with a new start and counts changed station cards', async () => {
+        const herald = await channel('Herald', newsId, 0);
+        const station = await group('Arena');
+        const arena = await channel('Arena HD', sportId, 0, { groupId: station });
+        await channel('Arena SD', sportId, 1, { groupId: station });
+        const court = await channel('Court', sportId, 2);
+        const reserve = await channel('Reserve', sportId, 3);
+        await ensureChannelNumbers(sql);
+
+        await sql`UPDATE livetv_channel_numbers SET number = 100 WHERE channel_id = ${herald}::uuid`;
+        await setChannelNumber(sql, court, 101, { swap: false });
+        await sql`UPDATE livetv_channel_numbers SET number = 102 WHERE channel_id = ${reserve}::uuid`;
+        await sql`UPDATE livetv_channels SET is_visible = false WHERE id = ${reserve}::uuid`;
+        keepHidden.value = true;
+
+        expect(await updateLiveTvCategory(sql, sportId, { numberStart: 100 })).toMatchObject({
+            renumbered: 1,
+        });
+        const rows = await getChannelNumberRows(sql);
+        expect(rows).toHaveLength(4);
+        expect(rows).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ channelId: herald, number: 100, pinned: false }),
+                expect.objectContaining({ channelId: court, number: 101, pinned: true }),
+                expect.objectContaining({ channelId: reserve, number: 102, pinned: false }),
+                expect.objectContaining({ channelId: arena, backupGroupId: station, number: 103 }),
+            ]),
+        );
+        for (const numberStart of [100, 0]) {
+            const update = await updateLiveTvCategory(sql, sportId, { numberStart });
+            expect(update?.renumbered).toBeUndefined();
+            expect(await getChannelNumberRows(sql)).toEqual(rows);
+        }
+    });
+
+    it('rolls back category edits on a failed renumber and accepts a retry of the same start', async () => {
+        const arena = await channel('Arena', sportId, 0);
+        await ensureChannelNumbers(sql);
+
+        await sql.begin(async (txRaw): Promise<void> => {
+            const tx = txRaw as unknown as postgres.Sql;
+            await tx`
+                ALTER TABLE livetv_channel_numbers
+                ADD CONSTRAINT test_renumber_failure CHECK (number <> 100)
+            `;
+            await expect(
+                updateLiveTvCategory(tx, sportId, {
+                    name: 'New Sport',
+                    isVisible: true,
+                    numberStart: 100,
+                }),
+            ).rejects.toMatchObject({ code: '23514' });
+            const categories = await getNumberCategories(tx);
+            expect(categories.find((category) => category.id === sportId)).toMatchObject({
+                name: 'Sport',
+                numberStart: null,
+            });
+            expect(await getChannelNumberRows(tx)).toMatchObject([{ channelId: arena, number: 1 }]);
+            await tx`ALTER TABLE livetv_channel_numbers DROP CONSTRAINT test_renumber_failure`;
+        });
+
+        expect(await updateLiveTvCategory(sql, sportId, { numberStart: 100 })).toMatchObject({
+            renumbered: 1,
+        });
+        expect(await getChannelNumberRows(sql)).toMatchObject([{ channelId: arena, number: 100 }]);
+    });
+
+    it('serializes competing start changes and reports each renumber', async () => {
+        const arena = await channel('Arena', sportId, 0);
+        await ensureChannelNumbers(sql);
+
+        const updates = await Promise.all([
+            updateLiveTvCategory(sql, sportId, { numberStart: 100 }),
+            updateLiveTvCategory(sql, sportId, { numberStart: 200 }),
+        ]);
+
+        expect(updates.map((update) => update?.renumbered)).toEqual([1, 1]);
+        const categories = await getNumberCategories(sql);
+        const category = categories.find((item) => item.id === sportId);
+        expect([100, 200]).toContain(category?.numberStart);
+        expect(await getChannelNumberRows(sql)).toMatchObject([
+            { channelId: arena, number: category?.numberStart },
+        ]);
+    });
+
+    it('hides current category members and only restores channels still in that category', async () => {
+        const movedOut = await channel('Moved out', newsId, 0);
+        const movedIn = await channel('Moved in', sportId, 1);
+        const alreadyHidden = await channel('Already hidden', newsId, 1, { isVisible: false });
+        const stays = await channel('Stays', newsId, 2);
+        await sql`UPDATE livetv_channels SET category_id = ${sportId}::uuid WHERE id = ${movedOut}::uuid`;
+        await sql`UPDATE livetv_channels SET category_id = ${newsId}::uuid WHERE id = ${movedIn}::uuid`;
+
+        const result = await updateLiveTvCategory(sql, newsId, { channelVisibility: 'hide' });
+        expect(result?.updatedCount).toBe(2);
+        expect(result?.updatedChannelIds).toEqual(expect.arrayContaining([movedIn, stays]));
+        expect(await getCategoryById(sql, newsId)).toMatchObject({ is_visible: true });
+        await sql`UPDATE livetv_channels SET category_id = ${sportId}::uuid WHERE id = ${movedIn}::uuid`;
+        const restored = await updateLiveTvCategory(sql, newsId, {
+            channelVisibility: { showIds: [movedIn, stays] },
+        });
+        expect(restored?.updatedChannelIds).toEqual([stays]);
+        const visible = await sql<
+            { id: string }[]
+        >`SELECT id FROM livetv_channels WHERE is_visible`;
+        expect(new Set(visible.map((row) => row.id))).toEqual(new Set([movedOut, stays]));
+        expect(visible.map((row) => row.id)).not.toContain(alreadyHidden);
     });
 
     it('a re-import (all new channel ids) keeps every station on its number', async () => {

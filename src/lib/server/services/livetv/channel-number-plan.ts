@@ -211,6 +211,14 @@ export function planChannelNumbers(input: {
     return { deletes, claims, inserts, numbers };
 }
 
+interface RenumberInput {
+    cards: NumberCard[];
+    rows: NumberRow[];
+    categories: NumberCategory[];
+    /** "Keep numbers of hidden channels": hidden cards keep their number too. */
+    keepHidden?: boolean;
+}
+
 /**
  * "Renumber in current order": every unpinned number is given up and the cards
  * are numbered again in display order: 1, 2, 3 …, a category with a
@@ -218,46 +226,78 @@ export function planChannelNumbers(input: {
  * before it. Pinned numbers stay and are skipped. Hidden cards lose their
  * (unpinned) number, unless `keepHidden`; they get a new one when shown again.
  */
-export function planRenumber(input: {
-    cards: NumberCard[];
-    rows: NumberRow[];
-    categories: NumberCategory[];
-    /** "Keep numbers of hidden channels": hidden cards keep their number too. */
-    keepHidden?: boolean;
-}): NumberPlan {
+export function planRenumber(input: RenumberInput): NumberPlan {
+    return renumberPlan(input);
+}
+
+/** Renumbers only the visible cards in the category whose start was set. */
+export function planCategoryRenumber(input: RenumberInput & { categoryId: string }): NumberPlan {
+    const start = input.categories.find(
+        (category) => category.id === input.categoryId,
+    )?.numberStart;
+    if (!start || !input.cards.some((card) => card.categoryId === input.categoryId)) {
+        return { deletes: [], claims: [], inserts: [], numbers: new Map() };
+    }
+    return renumberPlan(input, input.categoryId);
+}
+
+function renumberPlan(input: RenumberInput, categoryId?: string): NumberPlan {
     const visible = new Set(input.cards.map((card) => card.key));
+    const otherCards = new Set(
+        categoryId === undefined
+            ? []
+            : input.cards.filter((card) => card.categoryId !== categoryId).map((card) => card.key),
+    );
+    const keptElsewhere = new Map<string, NumberRow>();
+    const reserved = new Set<number>();
+    const previouslyNumberedTargets = new Set<string>();
     // One pinned number per card (the lowest), and only while its owner exists.
     const pinByKey = new Map<string, NumberRow>();
-    for (const row of [...input.rows].sort((a, b) => a.number - b.number)) {
-        const key = row.pinned && row.ownerAlive ? rowKey(row) : null;
-        if (key !== null && !pinByKey.has(key)) pinByKey.set(key, row);
+    const orderedRows = [...input.rows].sort((a, b) => a.number - b.number);
+    for (const row of orderedRows) {
+        const key = row.ownerAlive ? rowKey(row) : null;
+        if (key === null) continue;
+        if (otherCards.has(key)) {
+            // Leave even duplicate rows of these cards for the normal lineup reconciliation.
+            reserved.add(row.number);
+            const kept = keptElsewhere.get(key);
+            if (!kept || preferRow(row, kept) < 0) keptElsewhere.set(key, row);
+        } else {
+            if (categoryId !== undefined && visible.has(key)) previouslyNumberedTargets.add(key);
+            if (row.pinned && !pinByKey.has(key)) {
+                pinByKey.set(key, row);
+                reserved.add(row.number);
+            }
+        }
     }
-    const pinnedKept = new Set([...pinByKey.values()].map((row) => row.number));
     // With keepHidden, a hidden card's (unpinned) number stays reserved as well.
     if (input.keepHidden) {
         const hiddenKept = new Set<string>();
-        for (const row of [...input.rows].sort((a, b) => a.number - b.number)) {
+        for (const row of orderedRows) {
             const key = row.ownerAlive ? rowKey(row) : null;
             if (key === null || visible.has(key) || pinByKey.has(key) || hiddenKept.has(key)) {
                 continue;
             }
             hiddenKept.add(key);
-            pinnedKept.add(row.number);
+            reserved.add(row.number);
         }
     }
-    const numbers = new Map<string, number>();
+    const numbers = new Map([...keptElsewhere].map(([key, row]) => [key, row.number]));
     const claims: NumberPlan['claims'] = [];
     for (const card of input.cards) {
         const row = pinByKey.get(card.key);
         if (!row) continue;
+        previouslyNumberedTargets.delete(card.key);
         numbers.set(card.key, row.number);
         if (card.backupGroupId && row.backupGroupId !== card.backupGroupId) {
             claims.push({ number: row.number, backupGroupId: card.backupGroupId });
         }
     }
 
-    const deletes = input.rows.filter((r) => !pinnedKept.has(r.number)).map((r) => r.number);
-    const taken = new Set(pinnedKept);
+    const deletes = input.rows.filter((r) => !reserved.has(r.number)).map((r) => r.number);
+    const taken = new Set(reserved);
+    // A previously unnumbered card must not take the last slot from a numbered card.
+    let slotsForNewCards = MAX_CHANNEL_NUMBER - taken.size - previouslyNumberedTargets.size;
     const inserts: NumberInsert[] = [];
     const rank = categoryRanks(input.categories);
     const startOf = new Map(input.categories.map((c) => [c.id, c.numberStart]));
@@ -265,6 +305,7 @@ export function planRenumber(input: {
     let cursor = 1;
     let currentCategory: string | null | undefined;
     for (const card of orderCards(input.cards, input.categories)) {
+        if (otherCards.has(card.key)) continue;
         const categoryKey = card.categoryId && rank.has(card.categoryId) ? card.categoryId : null;
         if (categoryKey !== currentCategory) {
             currentCategory = categoryKey;
@@ -273,10 +314,13 @@ export function planRenumber(input: {
         }
         if (numbers.has(card.key)) continue;
         if (taken.size >= MAX_CHANNEL_NUMBER) break;
+        const needsNewSlot = categoryId !== undefined && !previouslyNumberedTargets.has(card.key);
+        if (needsNewSlot && slotsForNewCards <= 0) continue;
         while (cursor <= MAX_CHANNEL_NUMBER && taken.has(cursor)) cursor++;
         const number =
             cursor <= MAX_CHANNEL_NUMBER ? cursor : nextFreeNumber(taken, 1, MAX_CHANNEL_NUMBER);
         if (number === null) continue;
+        if (needsNewSlot) slotsForNewCards--;
         if (number === cursor) cursor++;
         taken.add(number);
         numbers.set(card.key, number);

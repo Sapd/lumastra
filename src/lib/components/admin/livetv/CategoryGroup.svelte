@@ -110,6 +110,12 @@
     // a category of hidden channels looks empty with "Show hidden" off.
     let channelTotal = $derived(totalChannels ?? category.channels.length);
     let displayName = $derived(isUncategorized ? m.admin_livetv_uncategorized() : category.name);
+    let hasVisibleChannels = $derived(
+        category.isVisible &&
+            channelStore.categories
+                .find((cat) => cat.id === category.id)
+                ?.channels.some((channel) => channel.isVisible),
+    );
 
     // =========================================================================
     // Inline rename state
@@ -195,6 +201,12 @@
         }
         if (start === (category.numberStart ?? 0)) return;
         void channelStore.setCategoryNumberStart(category.id, start);
+    }
+
+    function handleMenuHideAllChannels(e: Event): void {
+        e.stopPropagation();
+        showMenu = false;
+        void channelStore.hideAllChannelsInCategory(category.id);
     }
 
     function handleMenuMerge(e: Event): void {
@@ -391,6 +403,7 @@
             type="button"
             class="p-1 hover:bg-surface-600 rounded"
             onclick={handleCategoryVisibilityClick}
+            disabled={channelStore.visibilityActionInFlight}
             aria-label={category.isVisible
                 ? m.admin_livetv_bulk_hide()
                 : m.admin_livetv_bulk_show()}>
@@ -443,6 +456,16 @@
                                 onclick={handleMenuNumberStart}>
                                 <Icon src={Hashtag} class="w-4 h-4" />
                                 {m.admin_livetv_number_start_menu()}
+                            </button>
+                        {/if}
+                        {#if hasVisibleChannels}
+                            <button
+                                type="button"
+                                class="w-full px-3 py-2 text-left text-sm text-surface-200 hover:bg-surface-700 flex items-center gap-2"
+                                onclick={handleMenuHideAllChannels}
+                                disabled={channelStore.visibilityActionInFlight}>
+                                <Icon src={EyeSlash} class="w-4 h-4" />
+                                {m.admin_livetv_category_hide_all_channels()}
                             </button>
                         {/if}
                         {#if onCategoryMerge}
@@ -688,6 +711,7 @@
                                     handleChannelKeyboardReorder(index, dir)}
                                 {onToggleSelect}
                                 {onVisibilityToggle}
+                                visibilityDisabled={channelStore.visibilityActionInFlight}
                                 {onNameUpdate}
                                 {onQualityUpdate}
                                 onNumberSave={(id, num) => channelStore.setChannelNumber(id, num)}
@@ -710,6 +734,7 @@
                             isSelected={selectedIds.has(channel.id)}
                             {onToggleSelect}
                             {onVisibilityToggle}
+                            visibilityDisabled={channelStore.visibilityActionInFlight}
                             {onNameUpdate}
                             {onQualityUpdate}
                             onNumberSave={(id, num) => channelStore.setChannelNumber(id, num)}
@@ -837,6 +862,7 @@
                                     handleChannelKeyboardReorder(index, dir)}
                                 {onToggleSelect}
                                 {onVisibilityToggle}
+                                visibilityDisabled={channelStore.visibilityActionInFlight}
                                 {onNameUpdate}
                                 {onQualityUpdate}
                                 onNumberSave={(id, num) => channelStore.setChannelNumber(id, num)}
@@ -859,6 +885,7 @@
                             isSelected={selectedIds.has(channel.id)}
                             {onToggleSelect}
                             {onVisibilityToggle}
+                            visibilityDisabled={channelStore.visibilityActionInFlight}
                             {onNameUpdate}
                             {onQualityUpdate}
                             onNumberSave={(id, num) => channelStore.setChannelNumber(id, num)}

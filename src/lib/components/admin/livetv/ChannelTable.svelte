@@ -147,6 +147,7 @@
         <button
             type="button"
             class="text-yellow-400 hover:text-yellow-300 font-medium"
+            disabled={store.visibilityActionInFlight}
             onclick={() => store.performUndo()}>
             {m.admin_livetv_undo()}
         </button>

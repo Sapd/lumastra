@@ -3,9 +3,11 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+    MAX_CHANNEL_NUMBER,
     categoryBlock,
     nextFreeNumber,
     overflowingCategories,
+    planCategoryRenumber,
     planChannelNumbers,
     planRenumber,
     type NumberCard,
@@ -266,6 +268,101 @@ describe('planRenumber', () => {
         });
         expect(plan.deletes).toEqual([]);
         expect(plan.numbers.get('herald')).toBe(2);
+    });
+});
+
+describe('planCategoryRenumber', () => {
+    it('renumbers in display order, skipping other categories and pins', () => {
+        const plan = planCategoryRenumber({
+            categoryId: 'news',
+            categories: [{ ...news, numberStart: 100 }, sport],
+            cards: [
+                card('late', 'news', 2),
+                card('early', 'news', 0),
+                card('station', 'news', 1, true),
+                card('arena', 'sport', 0),
+                card('uncategorized', null, 0),
+            ],
+            rows: [
+                row(7, 'late'),
+                row(8, 'early'),
+                row(100, 'arena'),
+                row(101, 'station-feed', { channelGroupId: 'station', pinned: true }),
+                row(103, 'uncategorized'),
+                row(110, 'station-backup', { backupGroupId: 'station' }),
+            ],
+        });
+
+        expect(Object.fromEntries(plan.numbers)).toEqual({
+            early: 102,
+            station: 101,
+            late: 104,
+            arena: 100,
+            uncategorized: 103,
+        });
+        expect(plan.deletes).toEqual([7, 8, 110]);
+        expect(plan.claims).toEqual([{ number: 101, backupGroupId: 'station' }]);
+        expect(plan.inserts).toEqual([
+            { number: 102, channelId: 'early', backupGroupId: null },
+            { number: 104, channelId: 'late', backupGroupId: null },
+        ]);
+    });
+
+    it('returns an empty plan when the category has no start', () => {
+        expect(
+            planCategoryRenumber({
+                categoryId: 'news',
+                categories: [news],
+                cards: [card('herald', 'news', 0)],
+                rows: [row(7, 'herald')],
+            }),
+        ).toEqual({ deletes: [], claims: [], inserts: [], numbers: new Map() });
+    });
+
+    it('keeps an existing assignment when an earlier unnumbered card cannot fit', () => {
+        const plan = planCategoryRenumber({
+            categoryId: 'news',
+            categories: [{ ...news, numberStart: 1 }],
+            cards: [card('new', 'news', 0), card('numbered', 'news', 1)],
+            rows: [
+                ...Array.from({ length: MAX_CHANNEL_NUMBER - 1 }, (_, i) =>
+                    row(i + 1, `hidden-pin-${i}`, { pinned: true }),
+                ),
+                row(MAX_CHANNEL_NUMBER, 'numbered'),
+            ],
+        });
+
+        expect(plan.numbers.get('numbered')).toBe(MAX_CHANNEL_NUMBER);
+        expect(plan.numbers.has('new')).toBe(false);
+    });
+
+    it('leaves stored assignments alone when the target category has no visible cards', () => {
+        const plan = planCategoryRenumber({
+            categoryId: 'news',
+            categories: [{ ...news, numberStart: 100 }, sport],
+            cards: [card('arena', 'sport', 0)],
+            rows: [row(1, 'arena'), row(5, 'hidden', { pinned: false })],
+        });
+
+        expect(plan.deletes).toEqual([]);
+        expect(plan.claims).toEqual([]);
+        expect(plan.inserts).toEqual([]);
+    });
+
+    it('reserves hidden numbers according to keepHidden and always keeps hidden pins', () => {
+        const input = {
+            categoryId: 'news',
+            categories: [{ ...news, numberStart: 100 }],
+            cards: [card('herald', 'news', 0)],
+            rows: [row(100, 'quiet', { pinned: true }), row(101, 'hidden'), row(500, 'herald')],
+        };
+        const kept = planCategoryRenumber({ ...input, keepHidden: true });
+        expect(kept.numbers.get('herald')).toBe(102);
+        expect(kept.deletes).toEqual([500]);
+
+        const freed = planCategoryRenumber(input);
+        expect(freed.numbers.get('herald')).toBe(101);
+        expect(freed.deletes).toEqual([101, 500]);
     });
 });
 

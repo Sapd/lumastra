@@ -16,6 +16,7 @@
 
 import type postgres from 'postgres';
 import type { UserId } from '$lib/shared/user-id';
+import { withTx } from '../with-tx.js';
 import { runWithTrigramThreshold } from './builders/trigram-threshold.builder.js';
 import { escapeLikePattern } from './builders/search-filter.builder.js';
 
@@ -764,9 +765,7 @@ export async function updateCategoryVisibility(
     categoryId: string,
     isVisible: boolean,
 ): Promise<number> {
-    return sql.begin(async (txRaw) => {
-        const tx = txRaw as unknown as postgres.Sql;
-
+    return withTx(sql, async (tx): Promise<number> => {
         await tx`
 			UPDATE livetv_categories
 			SET is_visible = ${isVisible}, updated_at = NOW()
@@ -781,6 +780,33 @@ export async function updateCategoryVisibility(
 
         return result.count;
     });
+}
+
+/** Hide every visible channel in a visible category, or show selected channels still in it. */
+export async function updateVisibleCategoryChannels(
+    sql: postgres.Sql,
+    categoryId: string,
+    showIds: string[] | null,
+): Promise<string[] | null> {
+    const isVisible = showIds !== null;
+    const [result] = await sql<{ ids: string[] }[]>`
+        WITH category AS (
+            SELECT id, is_visible FROM livetv_categories
+             WHERE id = ${categoryId}::uuid
+               FOR UPDATE
+        ), updated AS (
+            UPDATE livetv_channels AS channel
+               SET is_visible = ${isVisible}, updated_at = NOW()
+              FROM category
+             WHERE category.is_visible
+               AND channel.category_id = category.id
+               AND channel.is_visible <> ${isVisible}
+               AND (${showIds}::uuid[] IS NULL OR channel.id = ANY(${showIds}::uuid[]))
+         RETURNING channel.id
+        )
+        SELECT ARRAY(SELECT id FROM updated) AS ids FROM category
+    `;
+    return result?.ids ?? null;
 }
 
 // =============================================================================

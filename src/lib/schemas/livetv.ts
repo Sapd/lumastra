@@ -154,13 +154,18 @@ export const LiveTvAckResponseSchema = z
 export type LiveTvAckResponse = z.infer<typeof LiveTvAckResponseSchema>;
 
 /**
- * Category PUT (rename and/or toggle visibility) → `{ success: true, updatedCount }`.
- * `updatedCount` is the number of channels whose visibility changed (0 on rename-only).
+ * Category PUT returns visibility updates and, when a new start was applied,
+ * how many channel numbers changed.
  */
 export const CategoryUpdateResponseSchema = z
     .object({
         success: z.literal(true),
         updatedCount: z.number().int().nonnegative(),
+        renumbered: z.number().int().nonnegative().optional().describe('Channel numbers changed'),
+        updatedChannelIds: z
+            .array(z.string().guid())
+            .optional()
+            .describe('IDs of channels whose visibility changed'),
     })
     .meta({ id: 'CategoryUpdateResponse', description: 'Category update result' });
 export type CategoryUpdateResponse = z.infer<typeof CategoryUpdateResponseSchema>;
@@ -2017,8 +2022,7 @@ export const AdminCategoryResponseSchema = z
 export type AdminCategoryResponse = z.infer<typeof AdminCategoryResponseSchema>;
 
 /**
- * PUT /livetv/admin/categories/{categoryId} body — rename and/or toggle
- * visibility. At least one field must be present.
+ * PUT /livetv/admin/categories/{categoryId} body. At least one field is required.
  */
 export const UpdateCategoryRequestSchema = z
     .object({
@@ -2027,6 +2031,13 @@ export const UpdateCategoryRequestSchema = z
             .optional()
             .describe('Whether the category and all its channels are visible'),
         name: z.string().min(1).max(200).optional().describe('New category name'),
+        channelVisibility: z
+            .union([
+                z.literal('hide'),
+                z.object({ showIds: z.array(z.string().guid()).min(1).max(1000) }),
+            ])
+            .optional()
+            .describe('Hide all channels, or show the listed channels, in a visible category'),
         numberStart: z
             .number()
             .int()
@@ -2034,15 +2045,20 @@ export const UpdateCategoryRequestSchema = z
             .max(9999)
             .optional()
             .describe(
-                'First channel number of the category ("Numbers start at"); 0 removes it. Existing numbers stay until "Renumber"; new channels use it right away.',
+                'A changed start immediately renumbers visible unpinned stations; 0 clears the start and keeps existing numbers.',
             ),
     })
     .refine(
-        (data) =>
+        (data): boolean =>
             data.isVisible !== undefined ||
             data.name !== undefined ||
+            data.channelVisibility !== undefined ||
             data.numberStart !== undefined,
-        { message: 'At least one of isVisible, name or numberStart must be provided' },
+        { message: 'At least one category update must be provided' },
+    )
+    .refine(
+        (data): boolean => data.isVisible === undefined || data.channelVisibility === undefined,
+        { message: 'Update category visibility and channel visibility separately' },
     )
     .meta({ id: 'UpdateCategoryRequest', description: 'Update a Live TV category' });
 

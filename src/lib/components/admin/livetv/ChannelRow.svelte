@@ -40,6 +40,7 @@
         onKeyboardReorder?: (direction: 'up' | 'down') => void;
         onToggleSelect?: (channelId: string) => void;
         onVisibilityToggle?: (channelId: string, newState: boolean) => void;
+        visibilityDisabled?: boolean;
         onNameUpdate?: (channelId: string, newName: string) => Promise<void>;
         onQualityUpdate?: (channelId: string, newTier: string) => Promise<void>;
         onContextMenu?: (channelId: string, x: number, y: number) => void;
@@ -61,6 +62,7 @@
         onKeyboardReorder,
         onToggleSelect,
         onVisibilityToggle,
+        visibilityDisabled = false,
         onNameUpdate,
         onQualityUpdate,
         onContextMenu,
@@ -422,6 +424,7 @@
                 type="button"
                 class="p-1 hover:bg-surface-700 rounded"
                 onclick={toggleVisibility}
+                disabled={visibilityDisabled}
                 aria-label={channel.isVisible
                     ? m.admin_livetv_bulk_hide()
                     : m.admin_livetv_bulk_show()}>
@@ -621,6 +624,7 @@
                 type="button"
                 class="p-0.5 hover:bg-surface-700 rounded"
                 onclick={toggleVisibility}
+                disabled={visibilityDisabled}
                 aria-label={channel.isVisible
                     ? m.admin_livetv_bulk_hide()
                     : m.admin_livetv_bulk_show()}>

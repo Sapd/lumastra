@@ -35,6 +35,7 @@ import {
     MAX_CHANNEL_NUMBER,
     nextFreeNumber,
     overflowingCategories,
+    planCategoryRenumber,
     planChannelNumbers,
     planRenumber,
     rowKey,
@@ -256,21 +257,44 @@ export async function renumberChannels(sql: postgres.Sql): Promise<number> {
     });
 }
 
+/** Renumbers one category and counts changed station cards. Caller holds the numbers lock. */
+export function renumberCategoryInTx(tx: postgres.Sql, categoryId: string): Promise<number> {
+    return renumberInTx(tx, categoryId);
+}
+
 /** The renumber itself; the caller holds the numbers lock. */
-async function renumberInTx(tx: postgres.Sql): Promise<number> {
+async function renumberInTx(tx: postgres.Sql, categoryId?: string): Promise<number> {
     const [rows, numberRows, categories] = await Promise.all([
         getAllVisibleChannels(tx),
         getChannelNumberRows(tx),
         getNumberCategories(tx),
     ]);
-    const plan = planRenumber({
+    const input = {
         cards: toCards(rows),
         rows: numberRows,
         categories,
         keepHidden: config.LIVETV_KEEP_HIDDEN_CHANNEL_NUMBERS,
-    });
+    };
+    const plan =
+        categoryId === undefined
+            ? planRenumber(input)
+            : planCategoryRenumber({ ...input, categoryId });
     await applyPlan(tx, plan);
-    return plan.numbers.size;
+    if (categoryId === undefined) return plan.numbers.size;
+
+    // Only unpinned cards get inserts. Compare with each card's lowest old number,
+    // which is the one displayed if several numbered feeds have since merged.
+    const oldNumbers = new Map<string, number>();
+    for (const row of numberRows) {
+        const key = row.ownerAlive ? rowKey(row) : null;
+        if (key === null) continue;
+        const old = oldNumbers.get(key);
+        if (old === undefined || row.number < old) oldNumbers.set(key, row.number);
+    }
+    return plan.inserts.filter((row) => {
+        const key = row.backupGroupId ?? row.channelId;
+        return key !== null && row.number !== oldNumbers.get(key);
+    }).length;
 }
 
 /**
