@@ -14,9 +14,9 @@
  * the pane, NOT here.
  */
 
-import { getContext, setContext } from 'svelte';
+import { getContext, setContext, untrack } from 'svelte';
 import { buildChannelIndex, compareGroupFeeds } from './channel-viewer-status.js';
-import { SvelteSet } from 'svelte/reactivity';
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { SHADOW_PLACEHOLDER_ITEM_ID } from 'svelte-dnd-action';
 import type { AdminChannelCategory, AdminChannel } from '$lib/schemas/livetv.js';
 import {
@@ -24,6 +24,7 @@ import {
     ChannelsReorderedResponseSchema,
     BulkChannelUpdateResponseSchema,
     CategoryUpdateResponseSchema,
+    CategoryDeleteQueuedResponseSchema,
     LiveTvAckResponseSchema,
     CreateCategoryResponseSchema,
     MergeCategoryResponseSchema,
@@ -32,6 +33,7 @@ import {
 import { LiveTvChannelHealthSchema } from '$lib/schemas/livetv-failures.js';
 import { apiPut, apiPost, apiDelete } from '$lib/api/client.js';
 import { toasts } from '$lib/stores/toast.store.js';
+import { createSubjectRunsTracker, type SubjectRunsTracker } from '$lib/stores/subject-runs.js';
 import {
     reconcileCategoryChannels,
     normalizeFilter,
@@ -180,8 +182,15 @@ export class ChannelStore {
         if (this.isMutating) return;
         this.lastSeededRef = incoming;
         this.categories = cloneCategories(incoming);
+        untrack(() => this.pruneMissingSelections());
         this.stored = null;
         this.syncExpandDefaults();
+    }
+
+    private pruneMissingSelections(): void {
+        for (const id of this.selectedIds) {
+            if (!this.channelIndex.byId.has(id)) this.selectedIds.delete(id);
+        }
     }
 
     loadShowHidden(): void {
@@ -377,7 +386,25 @@ export class ChannelStore {
         }
     }
 
-    async deleteCategory(categoryId: string): Promise<void> {
+    // A null tracker means the request to queue deletion is still in flight.
+    private readonly categoryDeleteTrackers = new SvelteMap<string, SubjectRunsTracker | null>();
+    private categoryDeletesStopped = false;
+
+    isCategoryDeleting(categoryId: string): boolean {
+        return this.categoryDeleteTrackers.has(categoryId);
+    }
+
+    stopCategoryDeletes(): void {
+        this.categoryDeletesStopped = true;
+        for (const tracker of this.categoryDeleteTrackers.values()) tracker?.destroy();
+        this.categoryDeleteTrackers.clear();
+    }
+
+    async deleteCategory(categoryId: string, withChannels = false): Promise<void> {
+        if (withChannels) {
+            await this.deleteCategoryWithChannels(categoryId);
+            return;
+        }
         const cat = this.categories.find((c) => c.id === categoryId);
         if (!cat || cat.channels.length > 0) return;
 
@@ -406,6 +433,45 @@ export class ChannelStore {
                 this.categories = previous;
             },
         );
+    }
+
+    private async deleteCategoryWithChannels(categoryId: string): Promise<void> {
+        if (this.isCategoryDeleting(categoryId)) return;
+        this.categoryDeleteTrackers.set(categoryId, null);
+        try {
+            const { data, error } = await apiDelete(
+                `/api/admin/livetv/categories/${categoryId}?withChannels=true`,
+                CategoryDeleteQueuedResponseSchema,
+            );
+            if (this.categoryDeletesStopped) return;
+            if (error || !data) {
+                this.categoryDeleteTrackers.delete(categoryId);
+                toasts.error(m.admin_livetv_category_delete_error());
+                return;
+            }
+
+            const tracker = createSubjectRunsTracker(categoryId, []);
+            this.categoryDeleteTrackers.set(categoryId, tracker);
+            tracker.onSettled((run): void => {
+                if (run.id !== data.taskId) return;
+                tracker.destroy();
+                this.categoryDeleteTrackers.delete(categoryId);
+                if (run.state === 'completed') {
+                    this.categories = this.categories.filter(
+                        (category) => category.id !== categoryId,
+                    );
+                    this.pruneMissingSelections();
+                    this.onNumbersChanged?.();
+                } else {
+                    toasts.error(m.admin_livetv_category_delete_error());
+                }
+            });
+            tracker.observeRun?.(data.taskId);
+            toasts.info(m.admin_livetv_category_delete_queued());
+        } catch {
+            this.categoryDeleteTrackers.delete(categoryId);
+            toasts.error(m.admin_livetv_category_delete_error());
+        }
     }
 
     // =========================================================================

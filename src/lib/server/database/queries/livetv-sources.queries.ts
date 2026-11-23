@@ -4,6 +4,7 @@
 import { randomUUID } from 'node:crypto';
 import type postgres from 'postgres';
 import { withTx } from '$lib/server/database/with-tx.js';
+import { lockChannelNumbers } from './livetv-channel-numbers.queries.js';
 import {
     deriveMasterKey,
     isAadBound,
@@ -603,6 +604,8 @@ export async function deleteSource(
     sourceId: string,
 ): Promise<DeleteSourceResult> {
     return withTx(sql, async (tx) => {
+        // Category deletion may remove channels for this same source.
+        await lockChannelNumbers(tx);
         const [source] = await tx`SELECT id FROM livetv_sources WHERE id = ${sourceId}`;
         if (!source) return { deleted: false, channelsDeleted: 0 };
 

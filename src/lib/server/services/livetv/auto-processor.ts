@@ -11,6 +11,7 @@ import {
     isBouquetCategory,
 } from './channel-genre.js';
 import { Logger } from '$lib/server/utils/logger.js';
+import { playlistFeedKey } from '$lib/server/utils/livetv-playlist-feed-key.js';
 import type { M3uChannel } from './m3u-parser.js';
 import { detectBackupGroups } from './backup-group-detector.js';
 
@@ -49,6 +50,10 @@ export interface ProcessedChannel {
     baseName: string;
     /** Normalized category name */
     category: string;
+    playlistGroupTitle?: string;
+    playlistCategoryKey?: string;
+    /** Non-VOD position before applying exclusions. */
+    playlistIndex?: number;
     /** Backup group key (channels sharing same key are in same group) */
     backupGroupKey: string | undefined;
     /** Whether this is the primary channel in its backup group */
@@ -698,6 +703,17 @@ export interface ProcessingOptions {
      * source's Configure Lineup hides, so their channels stay hidden.
      */
     keepCategories?: ReadonlySet<string>;
+    excludedCategories?: ReadonlySet<string>;
+    excludedFeedKeys?: ReadonlySet<string>;
+}
+
+function applyBackupGroups(channels: ProcessedChannel[], groups: BackupGroup[]): void {
+    for (const group of groups) {
+        for (const index of group.channelIndices) {
+            channels[index].backupGroupKey = group.key;
+            channels[index].isPrimary = index === group.primaryIndex;
+        }
+    }
 }
 
 export function processChannels(
@@ -705,15 +721,15 @@ export function processChannels(
     options: ProcessingOptions = {},
 ): ProcessingResult {
     const warnings: Array<{ channel: string; field: string; message: string }> = [];
-    const categoryMap = new Map<string, string>();
 
     // Stage 1-4: Enrich each channel. Section headers are dropped like VOD; a
     // channel without its own group-title takes the label of the last header
     // above it (a bare playlist has no group-title at all, so the headers are
     // its only grouping).
     let separatorCount = 0;
+    let vodCount = 0;
     let section = '';
-    const rawGroups: string[] = [];
+    let playlistIndex = 0;
     const processed: ProcessedChannel[] = channels.map((channel) => {
         const qualityTier = detectQualityTier(channel.name);
         const baseName = extractBaseName(channel.name);
@@ -723,15 +739,16 @@ export function processChannels(
             section = separatorLabel(channel.name);
         }
         const isVod = isSeparator || isVodEntry(channel);
+        if (isVod) vodCount++;
         const ownGroup = channel.groupTitle?.trim() ?? '';
         const rawGroup = ownGroup || (isSeparator ? '' : section);
         const category = isSeparator
             ? normalizeGroupTitle(rawGroup)
             : categorizeChannel(channel.name, cleanGroupTitle(rawGroup) || undefined);
-        rawGroups.push(rawGroup);
-
         return {
             original: channel,
+            playlistGroupTitle: rawGroup || undefined,
+            playlistIndex: isVod ? undefined : playlistIndex++,
             region: isSeparator
                 ? countryFromTvgSuffix(channel.countryCode)
                 : detectChannelRegion(channel.name, rawGroup, channel.countryCode),
@@ -748,13 +765,7 @@ export function processChannels(
     // Stage 5: Backup group detection (non-VOD channels only)
     const backupGroups = detectBackupGroups(processed);
 
-    // Apply backup group info back to channels
-    for (const group of backupGroups) {
-        for (const idx of group.channelIndices) {
-            processed[idx].backupGroupKey = group.key;
-            processed[idx].isPrimary = idx === group.primaryIndex;
-        }
-    }
+    applyBackupGroups(processed, backupGroups);
 
     // Stage 6: Regional variant detection
     detectRegionalVariants(processed);
@@ -762,32 +773,14 @@ export function processChannels(
     // Stage 7: bouquets that mix genres take each station's own genre.
     resolveMixedBouquets(processed, backupGroups, options.keepCategories);
 
-    // One mapping per category: many provider groups collapse into one genre.
-    processed.forEach((ch, i) => {
-        if (!ch.isVod && !categoryMap.has(ch.category)) categoryMap.set(ch.category, rawGroups[i]);
-    });
+    for (const channel of processed) {
+        if (channel.isVod) continue;
+        channel.playlistCategoryKey = channel.playlistGroupTitle
+            ? `group:${channel.playlistGroupTitle}`
+            : `category:${channel.category}`;
+    }
 
-    // Build category mappings
-    const categories: CategoryMapping[] = [...categoryMap.entries()].map(([normalized, raw]) => ({
-        rawGroupTitle: raw,
-        normalizedName: normalized,
-    }));
-
-    // Calculate statistics
-    const nonVodChannels = processed.filter((ch) => !ch.isVod);
-    const channelsInGroups = new Set(backupGroups.flatMap((g) => g.channelIndices));
-    const regionalVariantCount = processed.filter(
-        (ch) => ch.regionalVariant && !ch.regionalVariant.isRegionalOnly,
-    ).length;
-
-    const stats = {
-        totalInput: channels.length,
-        totalAfterVodFilter: nonVodChannels.length,
-        backupGroupCount: backupGroups.length,
-        uniqueChannelCount: nonVodChannels.length - channelsInGroups.size + backupGroups.length,
-        categoryCount: categories.length,
-        regionalVariantCount,
-    };
+    const { categories, stats } = summarizePlaylist(processed, backupGroups, channels.length);
 
     // Log aggregate stats only (never individual channel data — security)
     logger.info('Processing complete', {
@@ -797,13 +790,90 @@ export function processChannels(
         categories: stats.categoryCount,
     });
 
+    return applyPlaylistExclusions(
+        {
+            channels: processed,
+            backupGroups,
+            categories,
+            vodCount,
+            separatorCount,
+            stats,
+            warnings,
+        },
+        options,
+    );
+}
+
+function summarizePlaylist(
+    channels: ProcessedChannel[],
+    backupGroups: BackupGroup[],
+    totalInput: number,
+): Pick<ProcessingResult, 'categories' | 'stats'> {
+    const categoryMap = new Map<string, string>();
+    let totalAfterVodFilter = 0;
+    let regionalVariantCount = 0;
+    for (const channel of channels) {
+        if (channel.regionalVariant && !channel.regionalVariant.isRegionalOnly) {
+            regionalVariantCount++;
+        }
+        if (channel.isVod) continue;
+        totalAfterVodFilter++;
+        if (!categoryMap.has(channel.category)) {
+            categoryMap.set(channel.category, channel.playlistGroupTitle ?? '');
+        }
+    }
+    const categories = [...categoryMap].map(([normalizedName, rawGroupTitle]) => ({
+        normalizedName,
+        rawGroupTitle,
+    }));
+    const channelsInGroups = new Set(backupGroups.flatMap((group) => group.channelIndices));
     return {
-        channels: processed,
-        backupGroups,
         categories,
-        vodCount: channels.length - nonVodChannels.length,
-        separatorCount,
-        stats,
-        warnings,
+        stats: {
+            totalInput,
+            totalAfterVodFilter,
+            backupGroupCount: backupGroups.length,
+            uniqueChannelCount: totalAfterVodFilter - channelsInGroups.size + backupGroups.length,
+            categoryCount: categories.length,
+            regionalVariantCount,
+        },
+    };
+}
+
+/** Apply the latest exclusions before persisting a prepared playlist. */
+export function applyPlaylistExclusions(
+    playlist: ProcessingResult,
+    {
+        excludedCategories,
+        excludedFeedKeys,
+    }: Pick<ProcessingOptions, 'excludedCategories' | 'excludedFeedKeys'>,
+): ProcessingResult {
+    if (!excludedCategories?.size && !excludedFeedKeys?.size) return playlist;
+    const retained = playlist.channels.filter((channel): boolean => {
+        if (channel.isVod) return true;
+        const key = channel.playlistCategoryKey;
+        if (key && excludedCategories?.has(key)) return false;
+        if (!excludedFeedKeys?.size) return true;
+        const { name, streamUrl } = channel.original;
+        return (
+            !excludedFeedKeys.has(playlistFeedKey(name, streamUrl)) &&
+            !excludedFeedKeys.has(playlistFeedKey(name, streamUrl, key))
+        );
+    });
+    if (retained.length === playlist.channels.length) return playlist;
+
+    // Rebuild the group indices and choose primaries from the retained feeds.
+    const channels = retained.map((channel) => ({
+        ...channel,
+        backupGroupKey: undefined,
+        isPrimary: false,
+    }));
+    const backupGroups = detectBackupGroups(channels);
+    applyBackupGroups(channels, backupGroups);
+    return {
+        ...playlist,
+        channels,
+        backupGroups,
+        ...summarizePlaylist(channels, backupGroups, playlist.stats.totalInput),
     };
 }

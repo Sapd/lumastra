@@ -24,6 +24,10 @@ import {
     categoryExists,
     mergeCategories,
     deleteEmptyCategory,
+    deleteImportedCategory,
+    getCategoryDeletionSnapshot,
+    getExcludedCategoryNames,
+    getExcludedPlaylistFeeds,
     getCategoryChannelCount,
     updateChannel,
     bulkUpdateChannels,
@@ -45,6 +49,8 @@ import {
     isChannelStreamableByViewer,
     getStationFeeds,
 } from './livetv-channels.queries.js';
+import { processChannels } from '$lib/server/services/livetv/auto-processor.js';
+import { parseM3u } from '$lib/server/services/livetv/m3u-parser.js';
 import { computeFavoriteOrder } from '$lib/server/api/defs/livetv/favorites/order.js';
 
 async function insertSource(sql: postgres.Sql, id: string, name = 'Test Source'): Promise<void> {
@@ -878,6 +884,161 @@ describe('LiveTV Channels Queries', () => {
             expect(result.movedChannelCount).toBe(1);
             expect(await categoryExists(sql, sourceCat.id)).toBe(false);
         });
+    });
+
+    it('excludes a deleted playlist category for its sources and cleans up its channels', async () => {
+        const firstSource = crypto.randomUUID();
+        const secondSource = crypto.randomUUID();
+        const otherSource = crypto.randomUUID();
+        await insertSource(sql, firstSource, 'First');
+        await insertSource(sql, secondSource, 'Second');
+        await insertSource(sql, otherSource, 'Other');
+
+        const categoryId = crypto.randomUUID();
+        const primary = crypto.randomUUID();
+        const backup = crypto.randomUUID();
+        const second = crypto.randomUUID();
+        const groupId = crypto.randomUUID();
+        const emptyGroupId = crypto.randomUUID();
+        const channel = {
+            playlistCategoryKey: 'group:International news',
+            name: 'Example channel',
+            streamUrl: 'https://example.test/stream.m3u8',
+            sourceId: firstSource,
+        };
+        await bulkCreateChannels(sql, {
+            categories: [{ id: categoryId, name: 'Playlist category' }],
+            channels: [
+                { ...channel, id: primary, categoryId, backupGroupId: groupId },
+                {
+                    ...channel,
+                    name: 'Backup feed',
+                    streamUrl: 'https://example.test/backup.m3u8',
+                    id: backup,
+                    backupGroupId: groupId,
+                },
+                {
+                    ...channel,
+                    id: second,
+                    sourceId: secondSource,
+                    categoryId,
+                    backupGroupId: emptyGroupId,
+                },
+            ],
+            backupGroups: [
+                { id: groupId, name: 'Station', sourceId: firstSource, primaryChannelId: primary },
+                { id: emptyGroupId, name: 'Other station', sourceId: secondSource },
+            ],
+        });
+        await sql`
+            INSERT INTO livetv_programs (channel_id, title, start_time, end_time)
+            VALUES (${primary}, 'Show', now(), now() + interval '1 hour')
+        `;
+        await sql`
+            INSERT INTO livetv_channel_numbers (number, channel_id) VALUES (123, ${second})
+        `;
+        await renameCategory(sql, categoryId, 'Renamed category');
+
+        await expect(deleteImportedCategory(sql, categoryId)).resolves.toBe(2);
+        await expect(deleteImportedCategory(sql, categoryId)).resolves.toBe(0);
+        expect(await getCategoryById(sql, categoryId)).toBeNull();
+        expect(await getExcludedCategoryNames(sql, firstSource)).toEqual(new Set());
+        const excludedFeedKeys = await getExcludedPlaylistFeeds(sql, firstSource);
+        expect(excludedFeedKeys.size).toBe(1);
+
+        const playlist = parseM3u(
+            '#EXTM3U\n' +
+                '#EXTINF:-1 group-title="International news",Example channel\n' +
+                'https://example.test/stream.m3u8\n' +
+                '#EXTINF:-1 group-title="International news",Backup feed\n' +
+                'https://example.test/backup.m3u8\n',
+        );
+        expect(
+            processChannels(playlist.channels, { excludedFeedKeys }).channels.map(
+                ({ original }) => original.name,
+            ),
+        ).toEqual(['Backup feed']);
+        expect(await getExcludedCategoryNames(sql, secondSource)).toEqual(
+            new Set(['group:International news']),
+        );
+        expect(await getExcludedCategoryNames(sql, otherSource)).toEqual(new Set());
+        expect(
+            await sql`SELECT id FROM media_items WHERE id = ANY(${[primary, second]}::uuid[])`,
+        ).toHaveLength(0);
+        expect(
+            await sql`SELECT id FROM livetv_programs WHERE channel_id = ${primary}`,
+        ).toHaveLength(0);
+        expect(
+            await sql`SELECT channel_id FROM livetv_channel_numbers WHERE number = 123`,
+        ).toMatchObject([{ channel_id: null }]);
+        expect(await sql`SELECT id, primary_channel_id FROM livetv_backup_groups`).toMatchObject([
+            { id: groupId, primary_channel_id: backup },
+        ]);
+
+        await sql`DELETE FROM livetv_sources WHERE id = ${secondSource}`;
+        expect(await getExcludedCategoryNames(sql, secondSource)).toEqual(new Set());
+        expect((await getExcludedPlaylistFeeds(sql, secondSource)).size).toBe(0);
+    });
+
+    it('rejects a queued deletion if another channel has since been added', async () => {
+        const sourceId = crypto.randomUUID();
+        await insertSource(sql, sourceId);
+        const category = await createCategory(sql, 'Queued category');
+        const first = {
+            id: crypto.randomUUID(),
+            name: 'First',
+            streamUrl: 'https://example.test/first.m3u8',
+            sourceId,
+            categoryId: category.id,
+        };
+        await createChannelWithMediaItem(sql, first);
+        const snapshot = await getCategoryDeletionSnapshot(sql, category.id);
+        expect(snapshot).not.toBeNull();
+        await createChannelWithMediaItem(sql, { ...first, id: crypto.randomUUID(), name: 'New' });
+
+        await expect(
+            deleteImportedCategory(sql, category.id, { revision: snapshot!.revision }),
+        ).rejects.toThrow('Category membership changed');
+        expect(await getCategoryChannelCount(sql, category.id)).toBe(2);
+        expect((await getExcludedPlaylistFeeds(sql, sourceId)).size).toBe(0);
+    });
+
+    it('keeps a precise feed exclusion for a category renamed before provenance was stored', async () => {
+        const sourceId = crypto.randomUUID();
+        await insertSource(sql, sourceId);
+        const category = await createCategory(sql, 'Renamed before update');
+        const feed = {
+            name: 'Example HD',
+            streamUrl: 'https://example.test/live/user/pass/456.ts',
+            tvgId: undefined,
+            tvgName: undefined,
+            logoUrl: undefined,
+            countryCode: undefined,
+            extras: {},
+        };
+        await createChannelWithMediaItem(sql, {
+            ...feed,
+            id: crypto.randomUUID(),
+            sourceId,
+            categoryId: category.id,
+        });
+
+        await expect(deleteImportedCategory(sql, category.id)).resolves.toBe(1);
+
+        expect(await getExcludedCategoryNames(sql, sourceId)).toEqual(new Set());
+        const excludedFeedKeys = await getExcludedPlaylistFeeds(sql, sourceId);
+        const nextPlaylist = processChannels(
+            [
+                { ...feed, name: 'Other feed', groupTitle: category.name },
+                {
+                    ...feed,
+                    streamUrl: 'https://updated.example.test/live/new-user/new-pass/456.ts',
+                    groupTitle: 'Original group',
+                },
+            ],
+            { excludedFeedKeys },
+        );
+        expect(nextPlaylist.channels.map(({ original }) => original.name)).toEqual(['Other feed']);
     });
 
     describe('deleteEmptyCategory', () => {

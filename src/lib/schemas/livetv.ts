@@ -119,6 +119,10 @@ export const BulkChannelUpdateResponseSchema = z
     .meta({ id: 'BulkChannelUpdateResponse', description: 'Bulk channel update result' });
 export type BulkChannelUpdateResponse = z.infer<typeof BulkChannelUpdateResponseSchema>;
 
+export const CategoryDeleteQueuedResponseSchema = z
+    .object({ taskId: z.string().describe('Run ID for the category deletion task') })
+    .meta({ id: 'CategoryDeleteQueuedResponse', description: 'Category deletion queued' });
+
 /** DELETE sources/{id} queues background deletion. */
 export const SourceDeletedResponseSchema = z
     .object({

@@ -267,11 +267,25 @@ describe('stable channel numbers', () => {
                 expect.objectContaining({ channelId: arena, backupGroupId: station, number: 103 }),
             ]),
         );
-        for (const numberStart of [100, 0]) {
-            const update = await updateLiveTvCategory(sql, sportId, { numberStart });
-            expect(update?.renumbered).toBeUndefined();
-            expect(await getChannelNumberRows(sql)).toEqual(rows);
-        }
+        expect(await updateLiveTvCategory(sql, sportId, { numberStart: 100 })).toMatchObject({
+            renumbered: 0,
+        });
+        expect(
+            (await updateLiveTvCategory(sql, sportId, { numberStart: 0 }))?.renumbered,
+        ).toBeUndefined();
+        expect(await getChannelNumberRows(sql)).toEqual(rows);
+    });
+
+    it('reapplies a saved start to unpinned stations that have moved', async () => {
+        const arena = await channel('Arena', sportId, 0);
+        await ensureChannelNumbers(sql);
+        await updateLiveTvCategory(sql, sportId, { numberStart: 100 });
+        await sql`UPDATE livetv_channel_numbers SET number = 105 WHERE channel_id = ${arena}`;
+
+        expect(await updateLiveTvCategory(sql, sportId, { numberStart: 100 })).toMatchObject({
+            renumbered: 1,
+        });
+        expect(await getChannelNumberRows(sql)).toMatchObject([{ channelId: arena, number: 100 }]);
     });
 
     it('rolls back category edits on a failed renumber and accepts a retry of the same start', async () => {

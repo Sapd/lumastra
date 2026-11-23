@@ -8,12 +8,15 @@ import { userEvent } from '@testing-library/user-event';
 import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { AdminChannel, AdminChannelCategory } from '$lib/schemas/livetv.js';
+import { runSSEBus } from '$lib/stores/run-sse-bus.js';
+import { ChannelStore } from './channel-store.svelte.js';
 
 const apiPut = vi.fn();
+const apiDelete = vi.fn();
 vi.mock('$lib/api/client.js', () => ({
     apiPut: (...args: unknown[]) => apiPut(...args),
     apiPost: vi.fn(),
-    apiDelete: vi.fn(),
+    apiDelete: (...args: unknown[]) => apiDelete(...args),
     apiGet: vi.fn().mockResolvedValue({ data: null, error: null }),
 }));
 
@@ -81,6 +84,122 @@ afterEach(async () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
     apiPut.mockReset();
+    apiDelete.mockReset();
+});
+
+test('saving the current category number start still submits a renumber request', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const prompt = vi.fn().mockReturnValue('100');
+    vi.stubGlobal('prompt', prompt);
+    render(ChannelTable, { categories: [{ ...category('News', 40), numberStart: 100 }] });
+
+    await user.click(within(header('News')).getByRole('button', { name: 'Category actions' }));
+    await user.click(screen.getByRole('button', { name: /^Numbers start at/ }));
+
+    expect(prompt).toHaveBeenCalledWith(expect.any(String), '100');
+    expect(apiPut).toHaveBeenCalledWith('/api/admin/livetv/categories/News', expect.anything(), {
+        numberStart: 100,
+    });
+});
+
+test('confirming a populated category deletion opts in to permanent removal', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const confirm = vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(true);
+    vi.stubGlobal('confirm', confirm);
+    apiDelete.mockResolvedValue({ data: null, error: 'Could not queue category deletion' });
+    render(ChannelTable, { categories: [category('News', 40)] });
+
+    const menu = within(header('News')).getByRole('button', { name: 'Category actions' });
+    await user.click(menu);
+    await user.click(screen.getByRole('button', { name: /^Delete$/ }));
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('will not be re-imported'));
+    expect(apiDelete).not.toHaveBeenCalled();
+
+    await user.click(menu);
+    await user.click(screen.getByRole('button', { name: /^Delete$/ }));
+    expect(apiDelete).toHaveBeenCalledWith(
+        '/api/admin/livetv/categories/News?withChannels=true',
+        expect.anything(),
+    );
+});
+
+test('settles a queued deletion after leaving the table and prunes only deleted selections', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
+    const connect = vi.spyOn(runSSEBus, 'connect').mockImplementation(() => {});
+    const channelStore = new ChannelStore();
+    const reload = vi.fn();
+    const categories = lineup();
+    apiDelete.mockResolvedValue({ data: { taskId: 'run_category_delete' }, error: null });
+    const table = render(ChannelTable, { categories, channelStore, onNumbersChanged: reload });
+
+    try {
+        channelStore.toggleSelect('News-0');
+        channelStore.toggleSelect('Sport-0');
+        await user.click(within(header('News')).getByRole('button', { name: 'Category actions' }));
+        await user.click(screen.getByRole('button', { name: /^Delete$/ }));
+        expect(channelStore.isCategoryDeleting('News')).toBe(true);
+        expect(order()).toContain('News');
+
+        table.unmount();
+        runSSEBus.upsertRun({
+            id: 'run_category_delete',
+            taskId: 'delete-livetv-category',
+            label: 'Delete category',
+            state: 'completed',
+            input: {},
+            trigger: { kind: 'manual' },
+            actor: { type: 'user' },
+            startedAt: '2026-11-23T10:00:00.000Z',
+            stages: [],
+        });
+        await vi.waitFor(() => expect(reload).toHaveBeenCalledOnce());
+
+        expect(channelStore.isCategoryDeleting('News')).toBe(false);
+        expect(channelStore.categories.map(({ id }) => id)).toEqual(['Sport', 'Kids']);
+        expect([...channelStore.selectedIds]).toEqual(['Sport-0']);
+    } finally {
+        channelStore.stopCategoryDeletes();
+        connect.mockRestore();
+    }
+});
+
+test('offers deletion again when its accepted run fails', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
+    const connect = vi.spyOn(runSSEBus, 'connect').mockImplementation(() => {});
+    apiDelete.mockResolvedValue({ data: { taskId: 'run_category_delete_failed' }, error: null });
+    const reload = vi.fn();
+    const table = render(ChannelTable, { categories: lineup(), onNumbersChanged: reload });
+
+    try {
+        const menu = within(header('News')).getByRole('button', { name: 'Category actions' });
+        await user.click(menu);
+        await user.click(screen.getByRole('button', { name: /^Delete$/ }));
+        await user.click(menu);
+        const remove = screen.getByRole('button', { name: /^Delete$/ }) as HTMLButtonElement;
+        expect(remove.disabled).toBe(true);
+
+        runSSEBus.upsertRun({
+            id: 'run_category_delete_failed',
+            taskId: 'delete-livetv-category',
+            label: 'Delete category',
+            state: 'failed',
+            input: {},
+            trigger: { kind: 'manual' },
+            actor: { type: 'user' },
+            startedAt: '2026-11-23T10:00:00.000Z',
+            stages: [],
+        });
+        await tick();
+
+        expect(remove.disabled).toBe(false);
+        expect(order()).toContain('News');
+        expect(reload).not.toHaveBeenCalled();
+    } finally {
+        table.unmount();
+        connect.mockRestore();
+    }
 });
 
 describe('Reordering categories', () => {

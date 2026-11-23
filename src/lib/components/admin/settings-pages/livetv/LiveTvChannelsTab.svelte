@@ -14,7 +14,7 @@
   the parent Live TV page's own `?tab=sources|channels|proxy|radio` param.
 -->
 <script lang="ts">
-    import { untrack } from 'svelte';
+    import { onDestroy, untrack } from 'svelte';
     import { apiGet, apiPost } from '$lib/api/client.js';
     import {
         AdminChannelsResponseSchema,
@@ -26,6 +26,7 @@
     import { AdminPageHeader } from '$lib/components/admin';
     import { Tv } from 'svelte-hero-icons';
     import { ConfirmModal, Tabs } from '$lib/components/ui';
+    import { ChannelStore } from '$lib/components/admin/livetv/channel-store.svelte.js';
     import ChannelTable from '$lib/components/admin/livetv/ChannelTable.svelte';
     import BackupGroupEditor from '$lib/components/admin/livetv/BackupGroupEditor.svelte';
     import EPGMatchReview from '$lib/components/admin/livetv/EPGMatchReview.svelte';
@@ -43,6 +44,8 @@
 
     let activeSubTab = $state<SubTab>('channels');
 
+    const channelStore = new ChannelStore();
+    onDestroy(() => channelStore.stopCategoryDeletes());
     let data = $state<AdminChannelsResponse | null>(null);
     let loading = $state(true);
 
@@ -129,6 +132,7 @@
                 </button>
             </div>
             <ChannelTable
+                {channelStore}
                 categories={data.categories}
                 totalChannels={data.totalChannels}
                 onNumbersChanged={() => loadChannels(true)} />

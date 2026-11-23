@@ -15,6 +15,7 @@ import { BackpressureError } from '$lib/server/tasks/backpressure.js';
 import { TaskError } from '@sapd/lumastra-plugin-sdk';
 import { RunRequestSchema } from '$lib/schemas/api-v1.js';
 import { auditLog, auditActor } from '$lib/server/utils/audit-log.js';
+import { scopeGranted } from '$lib/server/tasks/api-auth.js';
 import { manualRunActor } from '$lib/server/tasks/run-trigger-actor.js';
 import { json } from '@sveltejs/kit';
 import { z } from 'zod';
@@ -107,6 +108,13 @@ export const def = defineEndpoint({
             // not triggerable in production, only hidden from listings.
             if (process.env.NODE_ENV === 'production' && task.demo) {
                 return ApiProblem.notFound(`Task '${taskId}' not found`);
+            }
+
+            if (
+                taskId === 'delete-livetv-category' &&
+                !scopeGranted(event.locals.principal?.scopes ?? [], 'livetv:admin')
+            ) {
+                return ApiProblem.scopeRequired(['livetv:admin']);
             }
 
             // mount() has already validated + parsed the body via the `request`

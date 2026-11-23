@@ -4,6 +4,7 @@
 -->
 
 <script lang="ts">
+    import { onDestroy, untrack } from 'svelte';
     import type { AdminChannelCategory } from '$lib/schemas/livetv.js';
     import ChannelPane from './ChannelPane.svelte';
     import ChannelActionBar from './ChannelActionBar.svelte';
@@ -13,6 +14,7 @@
 
     interface Props {
         categories: AdminChannelCategory[];
+        channelStore?: ChannelStore;
         /** Accepted for API compatibility with the page; the store derives expand defaults
          *  from the loaded categories, so this isn't read here. */
         totalChannels?: number;
@@ -20,11 +22,13 @@
         onNumbersChanged?: () => void;
     }
 
-    let { categories, onNumbersChanged }: Props = $props();
+    let { categories, channelStore, onNumbersChanged }: Props = $props();
 
-    // Single source of truth, shared with the pane(s) via context.
-    const store = new ChannelStore();
+    // An optional owner can keep the store alive while the table is unmounted.
+    const externalStore = untrack(() => channelStore);
+    const store = externalStore ?? new ChannelStore();
     setChannelStore(store);
+    if (!externalStore) onDestroy(() => store.stopCategoryDeletes());
     $effect(() => {
         store.onNumbersChanged = onNumbersChanged ?? null;
     });

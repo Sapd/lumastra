@@ -9,6 +9,7 @@
  * the VideoPlayer component.
  */
 import type Hls from 'hls.js';
+import { catchUpOnVisibility, livePosition } from './live-edge.js';
 import type {
     ErrorData,
     MediaPlaylist,
@@ -148,6 +149,7 @@ export interface PlaybackManagerEvents {
      * master (MediaError 4), so the controller detaches tracks here.
      */
     onBeforeSourceChange: () => void;
+    onLivePositionChange?: (position: number | null) => void;
     /** Called when a quality level switch occurs (for telemetry) */
     onQualitySwitch: (newLevel: number, bitrate: number, bandwidth: number) => void;
     /** Called when rebuffering starts */
@@ -327,6 +329,7 @@ export class PlaybackManager {
     // Track current playback mode (hls or direct)
     private currentMode: PlaybackMode | null = null;
     // Visibility change handler for re-attaching media when tab becomes visible
+    private pendingForegroundCatchUp = false;
     private visibilityHandler: (() => void) | null = null;
     private playbackEventListenersSetup = false;
     private rebufferStartTime: number | null = null;
@@ -606,39 +609,73 @@ export class PlaybackManager {
     }
 
     /**
-     * Chrome defers MediaSource sourceopen for hidden/background tabs.
-     * This handler re-attaches media when the tab becomes visible so the
-     * MediaSource can open and HLS.js can start loading fragments.
+     * Recover a deferred MediaSource attach. Also resync live playback after
+     * foregrounding, since the media clock can fall behind while backgrounded.
      */
     private setupVisibilityHandler(videoElement: HTMLVideoElement): void {
         this.cleanupVisibilityHandler();
 
         const hls = this.hls;
-        if (!hls) return;
+        if (!hls && !this.config.isLive) return;
 
         const { log } = this.config;
-        this.visibilityHandler = () => {
-            if (document.hidden || !hls || this.isDestroyed) return;
+        this.visibilityHandler = (): void => {
+            if (document.hidden || this.isDestroyed) return;
 
-            // Check if the MediaSource is still closed (never opened)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const bc = (hls as any).bufferController;
-            const ms = bc?.mediaSource;
-            if (ms && ms.readyState === 'closed') {
+            // Chrome can defer sourceopen for an attachment made in a hidden tab.
+            const bufferController = (
+                hls as unknown as {
+                    bufferController?: { mediaSource?: MediaSource };
+                } | null
+            )?.bufferController;
+            if (hls && bufferController?.mediaSource?.readyState === 'closed') {
+                this.pendingForegroundCatchUp = this.config.isLive;
+                if (this.config.isLive) this.config.events.onLivePositionChange?.(null);
                 log(' Tab became visible with closed MediaSource — re-attaching media');
                 hls.detachMedia();
                 hls.attachMedia(videoElement);
+            } else if (this.config.isLive) {
+                // Wait for the next playlist update in hls.js. The position
+                // cached while hidden may still describe the old live window.
+                this.pendingForegroundCatchUp = !videoElement.paused;
+                if (!hls) this.finishForegroundCatchUp();
             } else {
-                // MediaSource is already open, no action needed
                 this.cleanupVisibilityHandler();
             }
         };
         document.addEventListener('visibilitychange', this.visibilityHandler);
+        if (!hls) {
+            videoElement.addEventListener('loadedmetadata', this.onNativeLiveWindowUpdate);
+            videoElement.addEventListener('progress', this.onNativeLiveWindowUpdate);
+            videoElement.addEventListener('timeupdate', this.onNativeLiveWindowUpdate);
+        }
+    }
+
+    private readonly onNativeLiveWindowUpdate = (): void => {
+        this.finishForegroundCatchUp();
+    };
+
+    /** Try a deferred foreground seek once the live window and metadata are available. */
+    private finishForegroundCatchUp(): void {
+        const { videoElement } = this.config;
+        if (!this.pendingForegroundCatchUp || document.hidden || videoElement.readyState === 0) {
+            return;
+        }
+        const sync = this.hls?.liveSyncPosition;
+        if (this.hls && (sync == null || !Number.isFinite(sync) || sync <= 0)) return;
+        if (livePosition(videoElement, this.hls) === null) return;
+        this.pendingForegroundCatchUp = false;
+        catchUpOnVisibility(false, videoElement, this.hls);
     }
 
     private cleanupVisibilityHandler(): void {
+        this.pendingForegroundCatchUp = false;
         if (this.visibilityHandler) {
             document.removeEventListener('visibilitychange', this.visibilityHandler);
+            const { videoElement } = this.config;
+            videoElement.removeEventListener('loadedmetadata', this.onNativeLiveWindowUpdate);
+            videoElement.removeEventListener('progress', this.onNativeLiveWindowUpdate);
+            videoElement.removeEventListener('timeupdate', this.onNativeLiveWindowUpdate);
             this.visibilityHandler = null;
         }
     }
@@ -683,6 +720,7 @@ export class PlaybackManager {
         }
 
         videoElement.load();
+        if (this.config.isLive) this.setupVisibilityHandler(videoElement);
     }
 
     /**
@@ -846,6 +884,7 @@ export class PlaybackManager {
                 url = this.withSeekParam(url, partyPosition);
                 this.currentUrl = url;
             }
+            if (this.config.isLive) events.onLivePositionChange?.(null);
             this.hls.loadSource(url);
             this.hls.attachMedia(videoElement);
 
@@ -1344,10 +1383,10 @@ export class PlaybackManager {
         this.lastPolledFragBytes = 0;
         this.fragBytesPollTimer = setInterval(() => this.pollFragBytesProgress(), 2000);
 
-        // Media attached - MediaSource is open, visibility handler no longer needed
+        // VOD only needs visibility recovery until MediaSource has opened.
         hls.on(this.HlsClass!.Events.MEDIA_ATTACHED, () => {
             if (!isCurrentHls()) return;
-            this.cleanupVisibilityHandler();
+            if (!this.config.isLive) this.cleanupVisibilityHandler();
         });
 
         // Manifest parsed - stream is ready
@@ -1421,6 +1460,12 @@ export class PlaybackManager {
                     this.tryAutoPlay();
                 }
             }
+        });
+
+        hls.on(this.HlsClass!.Events.LEVEL_UPDATED, (_event, { details }) => {
+            if (!isCurrentHls() || !this.config.isLive) return;
+            if (details.live && details.advanced) this.finishForegroundCatchUp();
+            events.onLivePositionChange?.(livePosition(this.config.videoElement, hls));
         });
 
         // Check for playback warnings from media playlist responses

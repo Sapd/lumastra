@@ -564,10 +564,13 @@ export const deleteLiveTvSourceTask = defineTask<SourceInput, unknown>({
                     try {
                         await invalidateLiveTvCaches();
                     } catch (err) {
-                        ctx.logger.warn('Could not invalidate Live TV caches after source deletion', {
-                            sourceId,
-                            error: err instanceof Error ? err.message : String(err),
-                        });
+                        ctx.logger.warn(
+                            'Could not invalidate Live TV caches after source deletion',
+                            {
+                                sourceId,
+                                error: err instanceof Error ? err.message : String(err),
+                            },
+                        );
                     }
                 }
                 ctx.reportProgress(1, 1);
@@ -584,8 +587,57 @@ export const deleteLiveTvSourceTask = defineTask<SourceInput, unknown>({
     },
 });
 
+const categoryDeleteInputSchema = z.object({
+    categoryId: z.uuid(),
+    revision: z.string().regex(/^[0-9a-f]{64}$/u),
+});
+type CategoryDeleteInput = z.infer<typeof categoryDeleteInputSchema>;
+
+export const deleteLiveTvCategoryTask = defineTask<CategoryDeleteInput, unknown>({
+    id: 'delete-livetv-category',
+    purpose: 'livetv',
+    name: 'Delete Live TV Category',
+    version: '1.0.0',
+    processingVersion: 1,
+    minAppVersion: '0.0.0',
+    capabilities: { database: true },
+    manualOnly: true,
+    confirmBeforeRun: true,
+    identityFor: (input) => `category-${input.categoryId}`,
+    scope: 'global',
+    resourceClass: 'io',
+    inputSchema: categoryDeleteInputSchema,
+    timeout: { hard: '45m', soft: '44m' },
+
+    async execute(ctx: TaskContext<CategoryDeleteInput>): Promise<TaskResult> {
+        const { categoryId, revision } = ctx.input;
+        const { deleteImportedCategory } =
+            await import('$lib/server/database/queries/livetv-channels.queries.js');
+        const { invalidateLiveTvCaches } =
+            await import('../../../services/livetv-cache.service.js');
+        const signal = ctx.softSignal ? AbortSignal.any([ctx.signal, ctx.softSignal]) : ctx.signal;
+        signal.throwIfAborted();
+        ctx.reportProgress(0, 1);
+        const channelsDeleted = await deleteImportedCategory(ctx.sql, categoryId, {
+            signal,
+            revision,
+        });
+        try {
+            await invalidateLiveTvCaches();
+        } catch (error) {
+            ctx.logger.warn('Could not invalidate Live TV caches after category deletion', {
+                categoryId,
+                error: error instanceof Error ? error.message : String(error),
+            });
+        }
+        ctx.reportProgress(1, 1);
+        return { success: true, itemsProcessed: channelsDeleted };
+    },
+});
+
 registry.registerTask(importM3uTask);
 registry.registerTask(importEpgTask);
 registry.registerTask(refreshM3uTask);
 registry.registerTask(refreshEpgTask);
 registry.registerTask(deleteLiveTvSourceTask);
+registry.registerTask(deleteLiveTvCategoryTask);

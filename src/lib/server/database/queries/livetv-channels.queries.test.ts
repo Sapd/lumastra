@@ -1655,8 +1655,7 @@ describe('mergeCategories', () => {
         const txCalls: unknown[][] = [];
         const txMock = vi.fn((...args: unknown[]) => {
             txCalls.push(args);
-            // First call returns moveResult (UPDATE), second returns delete result
-            return Promise.resolve(txCalls.length === 1 ? moveResult : []);
+            return Promise.resolve(txCalls.length === 2 ? moveResult : []);
         }) as unknown as postgres.Sql;
 
         const sql = {
@@ -1666,7 +1665,8 @@ describe('mergeCategories', () => {
         const result = await mergeCategories(sql, 'uuid-source', 'uuid-target');
 
         expect(result).toEqual({ movedChannelCount: 5 });
-        expect(txCalls.length).toBe(2); // UPDATE + DELETE
+        expect(txCalls).toHaveLength(3); // lock, update, delete
+        expect(txCalls[0][0]).toEqual([expect.stringContaining('pg_advisory_xact_lock')]);
     });
 
     it('handles empty source category (just deletes)', async () => {
@@ -1686,25 +1686,15 @@ describe('mergeCategories', () => {
 
 describe('deleteEmptyCategory', () => {
     it('deletes category when no channels exist', async () => {
-        let callCount = 0;
-        const mockTx = vi.fn(() => {
-            callCount++;
-            if (callCount === 1) return Promise.resolve([{ count: 0 }]); // COUNT query
-            return Promise.resolve(Object.assign([], { count: 1 })); // DELETE query
-        }) as unknown as postgres.Sql;
+        const { sql } = createSequentialTx([[], [{ id: 'uuid-empty-cat' }], [{ count: 0 }], [{}]]);
 
-        const mockSql = vi.fn() as unknown as postgres.Sql;
-        (mockSql as unknown as Record<string, unknown>).begin = vi.fn(
-            async (callback: (tx: unknown) => Promise<unknown>) => callback(mockTx),
-        );
-
-        const result = await deleteEmptyCategory(mockSql, 'uuid-empty-cat');
+        const result = await deleteEmptyCategory(sql, 'uuid-empty-cat');
 
         expect(result).toEqual({ deleted: true });
     });
 
     it('returns has_channels when category has channels', async () => {
-        const { sql } = createMockSql([{ count: 3 }]);
+        const { sql } = createSequentialTx([[], [{ id: 'uuid-has-channels' }], [{ count: 3 }]]);
 
         const result = await deleteEmptyCategory(sql, 'uuid-has-channels');
 
@@ -1712,19 +1702,9 @@ describe('deleteEmptyCategory', () => {
     });
 
     it('returns not_found when category does not exist', async () => {
-        let callCount = 0;
-        const mockTx = vi.fn(() => {
-            callCount++;
-            if (callCount === 1) return Promise.resolve([{ count: 0 }]); // COUNT query
-            return Promise.resolve(Object.assign([], { count: 0 })); // DELETE (no rows)
-        }) as unknown as postgres.Sql;
+        const { sql } = createSequentialTx([[], []]);
 
-        const mockSql = vi.fn() as unknown as postgres.Sql;
-        (mockSql as unknown as Record<string, unknown>).begin = vi.fn(
-            async (callback: (tx: unknown) => Promise<unknown>) => callback(mockTx),
-        );
-
-        const result = await deleteEmptyCategory(mockSql, 'uuid-nonexistent');
+        const result = await deleteEmptyCategory(sql, 'uuid-nonexistent');
 
         expect(result).toEqual({ deleted: false, reason: 'not_found' });
     });

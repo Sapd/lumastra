@@ -442,21 +442,23 @@
                     </div>
                 {/if}
             {:else}
-                <!-- LIVE indicator for live streams - clickable when behind live edge -->
-                <Tooltip
-                    text={playerStore.isAtLiveEdge ? '' : m.player_go_to_live()}
-                    position="top"
-                    fixed>
+                {@const canGoLive =
+                    playerStore.distanceFromLive !== null && !playerStore.isAtLiveEdge}
+                <Tooltip text={canGoLive ? m.player_go_to_live() : ''} position="top" fixed>
                     <button
-                        class="live-indicator"
-                        class:behind-live={!playerStore.isAtLiveEdge}
-                        onclick={() => !playerStore.isAtLiveEdge && onseektolive?.()}
-                        disabled={playerStore.isAtLiveEdge}
-                        aria-label={playerStore.isAtLiveEdge
-                            ? m.player_live()
-                            : m.player_go_to_live()}>
+                        type="button"
+                        class={['live-indicator', { 'behind-live': !playerStore.isAtLiveEdge }]}
+                        onclick={() => onseektolive?.()}
+                        disabled={!canGoLive}
+                        aria-label={canGoLive ? m.player_go_to_live() : undefined}>
                         <span class="live-dot"></span>
-                        <span>{m.player_live()}</span>
+                        <span>
+                            {playerStore.isAtLiveEdge
+                                ? m.player_live()
+                                : canGoLive
+                                  ? m.player_behind_live()
+                                  : m.player_live_stream()}
+                        </span>
                     </button>
                 </Tooltip>
             {/if}

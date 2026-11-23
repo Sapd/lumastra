@@ -30566,8 +30566,9 @@ paths:
     delete:
       tags:
         - Live TV
-      summary: Delete an empty Live TV category
+      summary: Delete a Live TV category
       x-stability: experimental
+      description: Pass withChannels=true to remove its channels and exclude the category from future imports for their sources.
       security: *a1
       x-required-grant: admin
       parameters:
@@ -30577,13 +30578,28 @@ paths:
             type: string
             minLength: 1
           required: true
+        - in: query
+          name: withChannels
+          schema:
+            description: Pass true to permanently delete the category and its channels.
+            type: string
+            enum:
+              - "true"
+              - "false"
+          description: Pass true to permanently delete the category and its channels.
       responses:
         "200":
-          description: Category deleted
+          description: Empty category deleted
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/LiveTvAckResponse"
+        "202":
+          description: Category deletion queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryDeleteQueuedResponse"
         "401":
           description: Authentication required
           content:
@@ -73879,6 +73895,16 @@ components:
         - updatedCount
       additionalProperties: false
       description: Category update result
+    CategoryDeleteQueuedResponse:
+      type: object
+      properties:
+        taskId:
+          type: string
+          description: Run ID for the category deletion task
+      required:
+        - taskId
+      additionalProperties: false
+      description: Category deletion queued
     CategoryChannelCountResponse:
       type: object
       properties:

@@ -67,7 +67,7 @@
         onQualityUpdate?: (channelId: string, newTier: string) => Promise<void>;
         onCategoryRename?: (categoryId: string, newName: string) => Promise<void>;
         onCategoryMerge?: (sourceCategoryId: string, targetCategoryId: string) => Promise<void>;
-        onCategoryDelete?: (categoryId: string) => Promise<void>;
+        onCategoryDelete?: (categoryId: string, withChannels: boolean) => Promise<void>;
     }
 
     let {
@@ -199,7 +199,6 @@
             toasts.error(m.admin_livetv_number_start_invalid());
             return;
         }
-        if (start === (category.numberStart ?? 0)) return;
         void channelStore.setCategoryNumberStart(category.id, start);
     }
 
@@ -248,7 +247,14 @@
     async function handleMenuDelete(e: Event): Promise<void> {
         e.stopPropagation();
         showMenu = false;
-        await onCategoryDelete?.(category.id);
+        const withChannels = channelTotal > 0;
+        if (
+            withChannels &&
+            !confirm(m.admin_livetv_category_delete_confirm({ name: category.name }))
+        ) {
+            return;
+        }
+        await onCategoryDelete?.(category.id, withChannels);
     }
 
     // Close menu on outside click
@@ -500,15 +506,9 @@
                         {#if onCategoryDelete}
                             <button
                                 type="button"
-                                class="w-full px-3 py-2 text-left text-sm flex items-center gap-2
-                                    {channelTotal === 0
-                                    ? 'text-red-400 hover:bg-surface-700'
-                                    : 'text-surface-600 cursor-not-allowed'}"
-                                onclick={channelTotal === 0 ? handleMenuDelete : undefined}
-                                disabled={channelTotal > 0}
-                                title={channelTotal > 0
-                                    ? m.admin_livetv_category_delete_disabled()
-                                    : undefined}>
+                                class="w-full px-3 py-2 text-left text-sm flex items-center gap-2 text-red-400 hover:bg-surface-700 disabled:opacity-50"
+                                onclick={handleMenuDelete}
+                                disabled={channelStore.isCategoryDeleting(category.id)}>
                                 <Icon src={Trash} class="w-4 h-4" />
                                 {m.admin_livetv_category_delete()}
                             </button>

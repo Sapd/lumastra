@@ -980,6 +980,26 @@ describe('bouquets that mix genres', () => {
         expect(result.categories.map((c) => c.normalizedName)).not.toContain('Rivage+');
     });
 
+    it('keeps an excluded provider bouquet out after it becomes eligible for genre splitting', () => {
+        const result = processChannels(
+            [
+                station('Aquilant', 'DE News'),
+                station('Pino Jr.', 'DE Kinder'),
+                station('Musa', 'DE Doku'),
+                station('[Rivage] Aquilant HD', 'Rivage+'),
+                station('[Rivage] Pino Jr. HD', 'Rivage+'),
+                station('[Rivage] Musa HD', 'Rivage+'),
+            ],
+            { excludedCategories: new Set(['group:Rivage+']) },
+        );
+
+        expect(result.channels.map(({ original }) => original.name)).toEqual([
+            'Aquilant',
+            'Pino Jr.',
+            'Musa',
+        ]);
+    });
+
     it('keeps a mixed bouquet the stored lineup hides', () => {
         const result = processChannels(
             [

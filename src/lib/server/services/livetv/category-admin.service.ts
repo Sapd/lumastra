@@ -46,7 +46,7 @@ export async function updateLiveTvCategory(
                 numberStart === 0 ? null : numberStart,
             );
             if (!result) return null;
-            if (numberStart !== 0 && result.changed) {
+            if (numberStart !== 0) {
                 renumbered = await renumberCategoryInTx(tx, categoryId);
             }
         }
@@ -58,4 +58,21 @@ export async function updateLiveTvCategory(
             updatedChannelIds,
         };
     });
+}
+
+export async function queueCategoryDelete(
+    categoryId: string,
+    revision: string,
+    by: string,
+): Promise<string> {
+    const { orchestrator } = await import('$lib/server/tasks/orchestrator.js');
+    const run = await orchestrator.startRun(
+        'delete-livetv-category',
+        { categoryId, revision },
+        {
+            trigger: { kind: 'manual', by, sourceRoute: 'admin/livetv/categories (delete)' },
+            idempotencyKey: `manual_delete-livetv-category_${categoryId}`,
+        },
+    );
+    return run.runId;
 }

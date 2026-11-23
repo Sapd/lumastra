@@ -66,6 +66,7 @@ const TASK_NAMES: Partial<Record<string, TaskNameMessage>> = {
     'import-m3u': m.admin_task_name_import_m3u,
     'refresh-epg': m.admin_task_name_refresh_epg,
     'delete-livetv-source': m.admin_task_name_delete_livetv_source,
+    'delete-livetv-category': m.admin_task_name_delete_livetv_category,
     'refresh-m3u': m.admin_task_name_refresh_m3u,
     'artwork-reaper': m.admin_task_name_artwork_reaper,
     'problem-derive': m.admin_task_name_problem_derive,

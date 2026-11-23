@@ -10,6 +10,7 @@ import PlayerControls from './PlayerControls.svelte';
 import { playerStore } from './playerStore.svelte';
 import { isPWAInstalled } from '$lib/pwa';
 import { playbackPreferences } from './preferences-sync.svelte';
+import { PlayerController } from './player-controller.svelte';
 
 vi.mock('$lib/pwa', () => ({ isPWAInstalled: vi.fn(() => false) }));
 
@@ -30,6 +31,53 @@ afterEach(() => {
     playerStore.qualityMode = 'original';
     playerStore.setFullscreen(false);
     Reflect.deleteProperty(document, 'pictureInPictureEnabled');
+});
+
+it('shows the live status and seeks only when more than ten seconds behind', async () => {
+    const video = document.createElement('video');
+    const controller = Object.create(PlayerController.prototype) as PlayerController;
+    Object.defineProperty(controller, 'videoElement', { value: video });
+    vi.spyOn(controller, 'seekTo').mockImplementation((position): void => {
+        video.currentTime = position;
+        playerStore.playheadTime = position;
+    });
+    vi.spyOn(video, 'seekable', 'get').mockReturnValue({
+        length: 1,
+        start: () => 50,
+        end: () => 103,
+    });
+    const previous = {
+        isLive: playerStore.isLive,
+        duration: playerStore.duration,
+        livePosition: playerStore.livePosition,
+        playheadTime: playerStore.playheadTime,
+    };
+    playerStore.isLive = true;
+    playerStore.duration = Infinity;
+    playerStore.livePosition = null;
+    playerStore.playheadTime = 90;
+    try {
+        const { getByRole } = render(PlayerControls, {
+            props: { onseektolive: (): void => controller.seekToLive() },
+        });
+        expect((getByRole('button', { name: /^Live stream$/ }) as HTMLButtonElement).disabled).toBe(
+            true,
+        );
+
+        playerStore.livePosition = 100;
+        await tick();
+        expect((getByRole('button', { name: /^LIVE$/ }) as HTMLButtonElement).disabled).toBe(true);
+
+        playerStore.playheadTime = 89.99;
+        await tick();
+        const goLive = getByRole('button', { name: /^Go to live$/ });
+        expect(goLive.textContent?.trim()).toBe('Behind live');
+        await fireEvent.click(goLive);
+        expect(video.currentTime).toBe(100);
+        expect(getByRole('button', { name: /^LIVE$/ })).toBeTruthy();
+    } finally {
+        Object.assign(playerStore, previous);
+    }
 });
 
 describe('PlayerControls audio-only chrome gating', () => {

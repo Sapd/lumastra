@@ -6,7 +6,7 @@
  *
  * GET    /livetv/admin/categories/{categoryId} — get single category (bare object)
  * PUT    /livetv/admin/categories/{categoryId} — edit a category or its channels (bare object)
- * DELETE /livetv/admin/categories/{categoryId} — delete empty category (bare object)
+ * DELETE /livetv/admin/categories/{categoryId} — delete category (opt in to removing channels)
  *
  * Auth: scope livetv:admin (all methods)
  * Mounted on:
@@ -15,23 +15,37 @@
  */
 
 import { json } from '@sveltejs/kit';
+import { z } from 'zod';
+import { manualRunActor } from '$lib/server/tasks/run-trigger-actor.js';
 import { defineEndpoint } from '$lib/server/api/define.js';
 import { ApiProblem } from '$lib/server/api/problem.js';
 import { aiDbService } from '$lib/server/services/database.service.js';
 import {
     deleteEmptyCategory,
     getCategoryById,
+    getCategoryDeletionSnapshot,
 } from '$lib/server/database/queries/livetv-channels.queries.js';
 import { invalidateLiveTvCaches } from '$lib/server/services/livetv-cache.service.js';
-import { updateLiveTvCategory } from '$lib/server/services/livetv/category-admin.service.js';
+import {
+    queueCategoryDelete,
+    updateLiveTvCategory,
+} from '$lib/server/services/livetv/category-admin.service.js';
 import { isUuid } from '$lib/server/utils/media-key-parser.js';
 import { mapCategoryToApi } from '$lib/server/mappers/livetv-category.mapper.js';
 import { UpdateCategoryRequestSchema } from '$lib/schemas/livetv.js';
 import {
     AdminCategoryResponseSchema,
     CategoryUpdateResponseSchema,
+    CategoryDeleteQueuedResponseSchema,
     LiveTvAckResponseSchema,
 } from '$lib/schemas/livetv';
+
+const CategoryDeleteQuerySchema = z.object({
+    withChannels: z
+        .enum(['true', 'false'])
+        .optional()
+        .describe('Pass true to permanently delete the category and its channels.'),
+});
 
 // ---------------------------------------------------------------------------
 // Endpoint definition
@@ -71,11 +85,18 @@ export const def = defineEndpoint({
         },
         DELETE: {
             tags: ['Live TV'],
-            summary: 'Delete an empty Live TV category',
+            summary: 'Delete a Live TV category',
+            query: CategoryDeleteQuerySchema,
+            description:
+                'Pass withChannels=true to remove its channels and exclude the category from future imports for their sources.',
             stability: 'experimental',
             auth: 'bearer',
             responses: {
-                200: { schema: LiveTvAckResponseSchema, description: 'Category deleted' },
+                200: { schema: LiveTvAckResponseSchema, description: 'Empty category deleted' },
+                202: {
+                    schema: CategoryDeleteQueuedResponseSchema,
+                    description: 'Category deletion queued',
+                },
                 401: 'Authentication required',
                 404: 'Category not found',
                 422: 'Category still has channels',
@@ -87,6 +108,7 @@ export const def = defineEndpoint({
 
     auth: { kind: 'scope', anyOf: ['livetv:admin'] },
     visibility: 'internal',
+    request: { query: CategoryDeleteQuerySchema, queryMethods: ['DELETE'] },
     // No def-level `request.body`: mount() applies a declared body schema to
     // every method that can carry one, including DELETE (see mount.ts
     // `methodCanHaveBody`). Declaring it here would reject DELETE requests
@@ -120,7 +142,7 @@ export const def = defineEndpoint({
          * PUT /livetv/admin/categories/{categoryId}
          *
          * Partially updates a category or the visibility of its channels.
-         * A changed nonzero start also renumbers the category's visible unpinned stations.
+         * Saving a nonzero start also renumbers the category's visible unpinned stations.
          *
          * Body is validated manually here — see the no-def-level-body note above.
          */
@@ -162,12 +184,10 @@ export const def = defineEndpoint({
         /**
          * DELETE /livetv/admin/categories/{categoryId}
          *
-         * Deletes a category only when it has no channels.
-         * Response: bare object { success: true } on success.
-         * 422 validation_failed when category still has channels (move them first).
-         * 404 not_found when category does not exist.
+         * Empty category deletion is synchronous. Removing channels must be
+         * requested explicitly and runs in the background.
          */
-        DELETE: async (event, _ctx) => {
+        DELETE: async (event, ctx): Promise<Response> => {
             const sql = await aiDbService.getSql();
             if (!sql) {
                 return ApiProblem.dependencyUnavailable('Database unavailable');
@@ -176,6 +196,19 @@ export const def = defineEndpoint({
             const categoryId = event.params.categoryId;
             if (!categoryId || !isUuid(categoryId)) {
                 return ApiProblem.validationFailed('Invalid category ID');
+            }
+
+            if (ctx.input?.query?.withChannels === 'true') {
+                const category = await getCategoryDeletionSnapshot(sql, categoryId);
+                if (!category) return ApiProblem.notFound('Category not found');
+
+                const by = manualRunActor(event.locals.principal);
+                try {
+                    const taskId = await queueCategoryDelete(category.id, category.revision, by);
+                    return json({ taskId }, { status: 202 });
+                } catch {
+                    return ApiProblem.dependencyUnavailable('Could not queue category deletion');
+                }
             }
 
             const result = await deleteEmptyCategory(sql, categoryId);

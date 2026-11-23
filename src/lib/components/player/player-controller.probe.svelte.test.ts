@@ -641,6 +641,43 @@ afterEach(() => {
     vi.restoreAllMocks();
 });
 
+it('uses normal seek recovery for an unbuffered live target beyond the old duration', () => {
+    vi.useFakeTimers();
+    try {
+        const { target } = controller();
+        const video = document.createElement('video');
+        Object.defineProperties(target, {
+            videoElement: { value: video },
+            isWatchPartyGuest: { value: false },
+            isDirectStreamMode: { value: false },
+        });
+        video.currentTime = 10;
+        playerStore.isLive = true;
+        playerStore.duration = 20;
+        const resetForSeek = vi.fn();
+        Object.defineProperty(target, 'playbackManager', {
+            value: {
+                getHls: () => ({ liveSyncPosition: 100 }),
+                isHlsMode: () => true,
+                isNativeEngine: () => false,
+                resetForSeek,
+            },
+        });
+        Object.defineProperty(target, 'telemetryCtrl', {
+            value: { seekStartPosition: null },
+        });
+
+        target.seekToLive();
+
+        expect(target.setVideoTime).toHaveBeenCalledWith(100, 'seek_to_live');
+        expect(resetForSeek).toHaveBeenCalledWith(100, false, false);
+        expect(playerStore.isSeeking).toBe(true);
+    } finally {
+        vi.clearAllTimers();
+        vi.useRealTimers();
+    }
+});
+
 describe('web player probe → start', () => {
     it('waits through a 429 and recovers the probe without marking playback unavailable', async () => {
         vi.useFakeTimers();

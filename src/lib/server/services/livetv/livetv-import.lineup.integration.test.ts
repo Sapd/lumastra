@@ -53,6 +53,9 @@ vi.mock('./livetv-setup.service.js', async (importOriginal) => {
 });
 
 import { getTestDb, closeTestDb } from '../../../../../tests/integration/setup/test-database.js';
+import { deleteImportedCategory } from '$lib/server/database/queries/livetv-channels.queries.js';
+import { lockChannelNumbers } from '$lib/server/database/queries/livetv-channel-numbers.queries.js';
+import { refreshM3uSource } from './livetv-refresh.service.js';
 import { importM3uSource, importEpgSource } from './livetv-import.service.js';
 
 const HIDDEN_GROUP = 'Rivage+';
@@ -129,6 +132,87 @@ describe('re-import applies the stored lineup in the same transaction', () => {
             WHERE id = ${sourceId}
         `;
     }
+
+    async function waitForChannelNumbersLock(sql: postgres.Sql): Promise<void> {
+        await vi.waitFor(
+            async (): Promise<void> => {
+                const [waiting] = await sql<{ blocked: boolean }[]>`
+                SELECT EXISTS (
+                    SELECT 1 FROM pg_locks
+                    WHERE locktype = 'advisory' AND NOT granted
+                      AND database = (SELECT oid FROM pg_database WHERE datname = current_database())
+                      AND objid = (hashtext('livetv_channel_numbers')::bigint & 4294967295)::oid
+                ) AS blocked
+            `;
+                expect(waiting.blocked).toBe(true);
+            },
+            { timeout: 5_000 },
+        );
+    }
+
+    it.each([
+        ['import', importM3uSource],
+        ['refresh', refreshM3uSource],
+    ] as const)(
+        '%s reads category exclusions after the deletion transaction commits',
+        async (_operation, write) => {
+            await importM3uSource(sql, sourceId);
+            const [news] = await sql<{ id: string }[]>`
+                SELECT id FROM livetv_categories WHERE name = 'News'
+            `;
+            let pending: ReturnType<typeof write> | undefined;
+            try {
+                await sql.begin(async (tx): Promise<void> => {
+                    const transaction = tx as unknown as postgres.Sql;
+                    await deleteImportedCategory(transaction, news.id);
+                    pending = write(sql, sourceId);
+                    void pending.catch(() => {});
+                    await waitForChannelNumbersLock(transaction);
+                });
+
+                await pending;
+                expect((await rows()).map(({ title }) => title)).toEqual([
+                    'Delta Late',
+                    'Gamma Late',
+                ]);
+                expect(
+                    await sql`SELECT id FROM livetv_categories WHERE id = ${news.id}`,
+                ).toHaveLength(0);
+            } finally {
+                await pending?.catch(() => {});
+            }
+        },
+    );
+
+    it('keeps categories and channels when deletion is cancelled during the inventory lock', async () => {
+        await importM3uSource(sql, sourceId);
+        const before = await rows();
+        const [news] = await sql<{ id: string }[]>`
+            SELECT id FROM livetv_categories WHERE name = 'News'
+        `;
+        const controller = new AbortController();
+        let outcome: Promise<number> | undefined;
+        try {
+            await sql.begin(async (tx): Promise<void> => {
+                const transaction = tx as unknown as postgres.Sql;
+                await lockChannelNumbers(transaction);
+                outcome = deleteImportedCategory(sql, news.id, { signal: controller.signal });
+                void outcome.catch(() => {});
+                await waitForChannelNumbersLock(transaction);
+                controller.abort(new Error('Deletion cancelled'));
+            });
+            await expect(outcome).rejects.toThrow('Deletion cancelled');
+            expect(await rows()).toEqual(before);
+            expect(await sql`SELECT id FROM livetv_categories WHERE id = ${news.id}`).toHaveLength(
+                1,
+            );
+            expect(await sql`SELECT source_id FROM livetv_source_category_exclusions`).toHaveLength(
+                0,
+            );
+        } finally {
+            await outcome?.catch(() => {});
+        }
+    });
 
     it('carries every viewer favourite and its order over changed URL credentials, atomically', async () => {
         await importM3uSource(sql, sourceId);

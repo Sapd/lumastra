@@ -59,6 +59,8 @@ vi.mock('$lib/server/database/queries/livetv-sources.queries.js', () => ({
 
 vi.mock('$lib/server/database/queries/livetv-channels.queries.js', () => ({
     getChannelsForRefresh: vi.fn(),
+    getExcludedCategoryNames: vi.fn().mockResolvedValue(new Set()),
+    getExcludedPlaylistFeeds: vi.fn().mockResolvedValue(new Set()),
     updateMatchedChannels: vi.fn().mockResolvedValue(0),
     bulkUpdateChannelAbsences: vi.fn().mockResolvedValue(0),
     archiveStaleChannels: vi.fn().mockResolvedValue(0),
@@ -85,6 +87,7 @@ const { getSourceByIdWithCredentials, updateRefreshStatus } =
     await import('$lib/server/database/queries/livetv-sources.queries.js');
 const {
     getChannelsForRefresh,
+    getExcludedCategoryNames,
     updateMatchedChannels,
     bulkUpdateChannelAbsences,
     archiveStaleChannels,
@@ -170,9 +173,9 @@ globalThis.fetch = mockFetch;
 // Fake sql transaction
 function makeFakeSql() {
     const sql = vi.fn() as unknown as Record<string, unknown>;
-    (sql as Record<string, unknown>).begin = vi.fn(async (fn: (tx: unknown) => Promise<void>) => {
-        await fn(sql);
-    });
+    (sql as Record<string, unknown>).begin = vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn(sql),
+    );
     (sql as Record<string, unknown>).array = vi.fn((arr: unknown[]) => arr);
     return sql as unknown as postgres.Sql;
 }
@@ -294,6 +297,16 @@ describe('refreshM3uSource', () => {
         const bulkData = vi.mocked(bulkCreateChannels).mock.calls[0][1];
         expect(bulkData.channels).toHaveLength(1); // MTK HD
         expect(bulkData.channels[0].name).toBe('MTK HD');
+    });
+
+    it('does not recreate channels or categories excluded for the source', async () => {
+        vi.mocked(getExcludedCategoryNames).mockResolvedValueOnce(new Set(['group:Entertainment']));
+
+        const result = await refreshM3uSource(sql, 'src-1');
+
+        expect(getExcludedCategoryNames).toHaveBeenCalledWith(sql, 'src-1');
+        expect(result.newChannels).toBe(0);
+        expect(bulkCreateChannels).not.toHaveBeenCalled();
     });
 
     it('hides new channels the stored lineup filter would hide, and only those', async () => {

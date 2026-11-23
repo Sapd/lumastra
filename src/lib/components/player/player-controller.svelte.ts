@@ -12,6 +12,7 @@
  * binds DOM elements, and renders child components.
  */
 
+import { livePosition } from './live-edge.js';
 import { LiveTvStartupDeadline } from './livetv-startup-deadline.js';
 import { SvelteMap, SvelteSet, SvelteURL } from 'svelte/reactivity';
 import { browser } from '$app/environment';
@@ -3709,7 +3710,13 @@ export class PlayerController {
                 onMutedFallbackStart: () => {
                     this.mutedByAutoplayFallback = true;
                 },
-                onBeforeSourceChange: () => this.detachSubtitleTracksBeforeLoad(),
+                onLivePositionChange: (position) => {
+                    playerStore.livePosition = position;
+                },
+                onBeforeSourceChange: () => {
+                    playerStore.livePosition = null;
+                    this.detachSubtitleTracksBeforeLoad();
+                },
                 onAutoplayResult: (result: AutoplayResult) => this.handleAutoplayResult(result),
                 onQualitySwitch: (newLevel, bitrate, bandwidth) => {
                     this.abrSwitches += 1;
@@ -6783,6 +6790,7 @@ export class PlayerController {
         // never while paused/seeking/buffering — see tickPlayingAccumulator.
         this.tickPlayingAccumulator();
         this.watchTogetherCtrl.onTimeUpdate();
+        this.updateLivePosition();
 
         if (this.videoElement) {
             // Batch all per-tick playerStore writes into a single
@@ -6870,6 +6878,7 @@ export class PlayerController {
     }
 
     onProgress(): void {
+        if (!this.playbackManager?.isHlsActive()) this.updateLivePosition();
         // The media 'progress' event = data is still arriving. Treat it as
         // activity so the stall watchdog does not fire while a large 4K copy
         // segment is legitimately downloading (>stallTimeoutMs) but not yet
@@ -7807,7 +7816,10 @@ export class PlayerController {
                 console.log('[Player] Guest cannot seek - only host can');
                 return;
             }
-            const toTime = this.clampSeekTime(time);
+            // Live duration may describe an old sliding window. The target
+            // comes from the currently playable range instead.
+            const toTime =
+                source === 'seek_to_live' && playerStore.isLive ? time : this.clampSeekTime(time);
             if (toTime === null) {
                 this.warn(' seekTo() ignored non-finite target time', {
                     time,
@@ -8325,23 +8337,15 @@ export class PlayerController {
     // Navigation / UI Event Handlers
     // ============================================================================
 
+    private updateLivePosition(): void {
+        if (!playerStore.isLive || !this.videoElement) return;
+        playerStore.livePosition = livePosition(this.videoElement, this.playbackManager?.getHls());
+    }
+
     seekToLive(): void {
-        if (!this.videoElement) return;
-
-        const hls = this.playbackManager?.getHls();
-        let livePosition: number | undefined;
-
-        if (hls?.liveSyncPosition && hls.liveSyncPosition > 0) {
-            livePosition = hls.liveSyncPosition;
-        } else if (this.videoElement.seekable.length > 0) {
-            livePosition = this.videoElement.seekable.end(this.videoElement.seekable.length - 1);
-        } else if (isFinite(this.videoElement.duration) && this.videoElement.duration > 0) {
-            livePosition = this.videoElement.duration;
-        }
-
-        if (livePosition !== undefined && livePosition > 0) {
-            this.seekTo(livePosition, false, 'seek_to_live');
-        }
+        if (!this.videoElement || !playerStore.isLive) return;
+        const target = livePosition(this.videoElement, this.playbackManager?.getHls());
+        if (target !== null) this.seekTo(target, false, 'seek_to_live');
     }
 
     async togglePip(): Promise<void> {

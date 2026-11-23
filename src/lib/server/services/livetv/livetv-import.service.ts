@@ -15,7 +15,7 @@ import {
     XMLTV_MAX_FETCH_BYTES,
 } from './fetch-source.js';
 import { parseM3uAsync } from './m3u-parser.js';
-import { processChannels } from './auto-processor.js';
+import { applyPlaylistExclusions, processChannels } from './auto-processor.js';
 import { matchEpgChannelsAsync } from './epg-matcher.js';
 import {
     waitForSourceWriteLock,
@@ -38,6 +38,8 @@ import {
     purgeEmptyCategories,
     shareBackupGroupLogos,
     getChannelsBySourceId,
+    getExcludedCategoryNames,
+    getExcludedPlaylistFeeds,
 } from '$lib/server/database/queries/livetv-channels.queries.js';
 import type {
     BulkImportData,
@@ -250,15 +252,11 @@ async function importM3uSourceInner(
         total: parseResult.channels.length,
         message: 'Auto-processing channels...',
     });
-    // Bouquets the stored lineup hides stay categories, so they stay hidden.
+    // Read the source's lineup preferences before the expensive classification.
     const hiddenCategories = new Set(
         parseLineupFilter(await getSourceLineupFilter(sql, sourceId))?.hiddenCategories,
     );
-    const processed = processChannels(parseResult.channels, {
-        keepCategories: hiddenCategories,
-    });
-
-    // 7. Delete existing channels for this source (re-import is destructive)
+    const playlist = processChannels(parseResult.channels, { keepCategories: hiddenCategories });
     await progressCallback?.({
         phase: 'clearing',
         processed: 0,
@@ -266,113 +264,123 @@ async function importM3uSourceInner(
         message: 'Clearing existing channels...',
     });
 
-    // 8. Build bulk import data. The total is the live channels that get saved:
-    // a large Xtream playlist is mostly VOD (148k entries, 12.6k channels on a
-    // prod source), and counting against all entries made the bar look stuck.
-    await progressCallback?.({
-        phase: 'persisting',
-        processed: 0,
-        total: processed.channels.length - processed.vodCount,
-        message:
-            `Saving ${processed.channels.length - processed.vodCount} channels ` +
-            `(${processed.vodCount - processed.separatorCount} VOD entries and ` +
-            `${processed.separatorCount} section headers skipped)...`,
-    });
-
-    const categoryMap = new Map<string, string>();
-    const categories: BulkImportData['categories'] = [];
-
-    // Look up existing categories by name to avoid creating duplicates
-    const categoryNames = processed.categories.map((c) => c.normalizedName);
-    const existingCategories =
-        categoryNames.length > 0
-            ? await sql<
-                  Array<{ id: string; name: string }>
-              >`SELECT id, name FROM livetv_categories WHERE name = ANY(${categoryNames})`
-            : [];
-    const existingByName = new Map(existingCategories.map((c) => [c.name, c.id]));
-
-    for (const cat of processed.categories) {
-        if (categoryMap.has(cat.normalizedName)) continue;
-        const existing = existingByName.get(cat.normalizedName);
-        if (existing) {
-            categoryMap.set(cat.normalizedName, existing);
-        } else {
-            const id = randomUUID();
-            categoryMap.set(cat.normalizedName, id);
-            categories.push({ id, name: cat.normalizedName });
-        }
-    }
-
-    const backupGroupMap = new Map<string, string>();
-    const backupGroups: BulkImportData['backupGroups'] = [];
-    for (const group of processed.backupGroups) {
-        const id = randomUUID();
-        backupGroupMap.set(group.key, id);
-        backupGroups.push({
-            id,
-            name: group.name,
-            sourceId,
-        });
-    }
-
-    // Build a map from original processed.channels index to channel UUID
-    // so backup group primaryIndex (which references the pre-filter array) resolves correctly
-    const originalIndexToId = new Map<number, string>();
-    let sortOrder = 0;
-    const channels: CreateChannelData[] = [];
-    for (let i = 0; i < processed.channels.length; i++) {
-        const ch = processed.channels[i];
-        if (ch.isVod) continue;
-        const id = randomUUID();
-        originalIndexToId.set(i, id);
-        // sort_order and playlist_index both start as the non-VOD M3U position.
-        // sort_order may later be recomputed by the setup wizard; playlist_index
-        // is the immutable record of the source order.
-        const playlistIndex = sortOrder++;
-        channels.push({
-            id,
-            name: ch.original.name,
-            streamUrl: ch.original.streamUrl,
-            sourceId,
-            logoUrl: ch.original.logoUrl,
-            qualityTier: ch.qualityTier,
-            epgChannelId: ch.original.tvgId,
-            categoryId: categoryMap.get(ch.category),
-            backupGroupId: ch.backupGroupKey ? backupGroupMap.get(ch.backupGroupKey) : undefined,
-            sortOrder: playlistIndex,
-            playlistIndex,
-            countryCode: ch.region,
-        });
-    }
-
-    // Set primary channel IDs on backup groups using the original index mapping
-    for (const group of processed.backupGroups) {
-        const bgId = backupGroupMap.get(group.key);
-        const bg = backupGroups.find((b) => b.id === bgId);
-        if (bg && group.primaryIndex >= 0) {
-            const primaryChannelId = originalIndexToId.get(group.primaryIndex);
-            if (primaryChannelId) {
-                bg.primaryChannelId = primaryChannelId;
-            }
-        }
-    }
-
-    // 9. Delete, bulk insert and the stored Configure Lineup in ONE
-    // transaction. The new channels are all visible until the filter runs; a
-    // reader (or a stream request, gated on visibility) must never see them in
+    // Read exclusions, replace channels and apply the stored Configure Lineup
+    // in one transaction. The new channels are all visible until the filter
+    // runs; a reader (or a stream request, gated on visibility) must never see them in
     // that state, and a lineup that fails to apply must not leave the source
     // unfiltered. A failure rolls the whole re-import back (old channels stay).
     // bulkCreateChannels detects whether it's inside a transaction and uses
     // .savepoint() instead of .begin() to avoid nesting errors.
-    const { bulkResult, lineup } = await withTx(sql, async (txRaw) => {
-        const tx = txRaw as unknown as postgres.Sql;
+    const { bulkResult, lineup, processed } = await withTx(sql, async (tx) => {
         // The new rows get new ids; the channel numbers viewers know follow
         // their channels over (matched like a refresh), see channel-numbers.service.
         // The numbers lock comes FIRST: a lineup read numbering channels while
         // holding it waits on the rows this transaction deletes, so taking it
         // after the delete would deadlock; it also keeps the snapshot current.
         await lockChannelNumbers(tx);
+        const excludedCategories = await getExcludedCategoryNames(tx, sourceId);
+        const excludedFeedKeys = await getExcludedPlaylistFeeds(tx, sourceId);
+        const processed = applyPlaylistExclusions(playlist, {
+            excludedCategories,
+            excludedFeedKeys,
+        });
+
+        // 8. Build bulk import data. The total is the live channels that get saved:
+        // a large Xtream playlist is mostly VOD (148k entries, 12.6k channels on a
+        // prod source), and counting against all entries made the bar look stuck.
+        await progressCallback?.({
+            phase: 'persisting',
+            processed: 0,
+            total: processed.channels.length - processed.vodCount,
+            message:
+                `Saving ${processed.channels.length - processed.vodCount} channels ` +
+                `(${processed.vodCount - processed.separatorCount} VOD entries and ` +
+                `${processed.separatorCount} section headers skipped)...`,
+        });
+
+        const categoryMap = new Map<string, string>();
+        const categories: BulkImportData['categories'] = [];
+
+        // Look up existing categories by name to avoid creating duplicates
+        const categoryNames = processed.categories.map((c) => c.normalizedName);
+        const existingCategories =
+            categoryNames.length > 0
+                ? await tx<
+                      Array<{ id: string; name: string }>
+                  >`SELECT id, name FROM livetv_categories WHERE name = ANY(${categoryNames})`
+                : [];
+        const existingByName = new Map(existingCategories.map((c) => [c.name, c.id]));
+
+        for (const cat of processed.categories) {
+            if (categoryMap.has(cat.normalizedName)) continue;
+            const existing = existingByName.get(cat.normalizedName);
+            if (existing) {
+                categoryMap.set(cat.normalizedName, existing);
+            } else {
+                const id = randomUUID();
+                categoryMap.set(cat.normalizedName, id);
+                categories.push({ id, name: cat.normalizedName });
+            }
+        }
+
+        const backupGroupMap = new Map<string, string>();
+        const backupGroups: BulkImportData['backupGroups'] = [];
+        for (const group of processed.backupGroups) {
+            const id = randomUUID();
+            backupGroupMap.set(group.key, id);
+            backupGroups.push({
+                id,
+                name: group.name,
+                sourceId,
+            });
+        }
+
+        // Build a map from original processed.channels index to channel UUID
+        // so backup group primaryIndex (which references the pre-filter array) resolves correctly
+        const originalIndexToId = new Map<number, string>();
+        let sortOrder = 0;
+        const channels: CreateChannelData[] = [];
+        for (let i = 0; i < processed.channels.length; i++) {
+            const ch = processed.channels[i];
+            if (ch.isVod) continue;
+            const id = randomUUID();
+            originalIndexToId.set(i, id);
+            // sort_order and playlist_index both start as the non-VOD M3U position.
+            // sort_order may later be recomputed by the setup wizard; playlist_index
+            // is the immutable record of the source order.
+            const playlistIndex = ch.playlistIndex ?? sortOrder;
+            sortOrder++;
+            channels.push({
+                id,
+                name: ch.original.name,
+                streamUrl: ch.original.streamUrl,
+                sourceId,
+                logoUrl: ch.original.logoUrl,
+                qualityTier: ch.qualityTier,
+                epgChannelId: ch.original.tvgId,
+                categoryId: categoryMap.get(ch.category),
+                backupGroupId: ch.backupGroupKey
+                    ? backupGroupMap.get(ch.backupGroupKey)
+                    : undefined,
+                sortOrder: playlistIndex,
+                playlistIndex,
+                playlistCategoryKey: ch.playlistCategoryKey,
+                countryCode: ch.region,
+            });
+        }
+
+        // Set primary channel IDs on backup groups using the original index mapping
+        for (const group of processed.backupGroups) {
+            const bgId = backupGroupMap.get(group.key);
+            const bg = backupGroups.find((b) => b.id === bgId);
+            if (bg && group.primaryIndex >= 0) {
+                const primaryChannelId = originalIndexToId.get(group.primaryIndex);
+                if (primaryChannelId) {
+                    bg.primaryChannelId = primaryChannelId;
+                }
+            }
+        }
+
         const numberSnapshot = await snapshotSourceNumbers(tx, sourceId);
         const favorites = await snapshotSourceFavorites(tx, sourceId);
         await deleteChannelsBySourceId(tx, sourceId);
@@ -403,6 +411,7 @@ async function importM3uSourceInner(
         // removed. A source never configured keeps everything visible.
         return {
             bulkResult: created,
+            processed,
             lineup: await reapplyStoredLineup(tx, sourceId, created.channelCount),
         };
     });

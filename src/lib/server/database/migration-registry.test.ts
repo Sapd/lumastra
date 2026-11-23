@@ -41,6 +41,7 @@ describe('production migration registry', () => {
             { version: '16.470.0', name: 'downloads_permission_and_log' },
             { version: '16.471.0', name: 'download_events_archive_kind' },
             { version: '16.472.0', name: 'livetv_source_deleting_since' },
+            { version: '16.473.0', name: 'livetv_source_category_exclusions' },
         ]);
     });
 });

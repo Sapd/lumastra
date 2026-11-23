@@ -31,13 +31,13 @@ vi.mock('$lib/server/utils/audit-log.js', () => ({
 
 const { def } = await import('./run.js');
 
-function makeEvent(taskId: string): RequestEvent {
+function makeEvent(taskId: string, scopes = ['tasks:run']): RequestEvent {
     const url = new URL(`https://app.example/api/v1/tasks/${taskId}/run`);
     return {
         params: { taskId },
         url,
         request: new Request(url.toString(), { method: 'POST', body: '{}' }),
-        locals: { principal: { userId: 'u1', username: 'alice' } },
+        locals: { principal: { userId: 'u1', username: 'alice', scopes } },
     } as unknown as RequestEvent;
 }
 
@@ -98,6 +98,19 @@ it('selected-file health input is admin-only even through the generic task trigg
     const response = await def.handlers.POST!(makeEvent('media-probe'), {
         input: { body: { input: { fileId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee' } } },
     } as never);
+    expect(response.status).toBe(403);
+    expect(startRunMock).not.toHaveBeenCalled();
+});
+
+it('requires the Live TV admin grant for the category deletion task', async () => {
+    vi.clearAllMocks();
+    const taskId = 'delete-livetv-category';
+    registryGetTaskMock.mockReturnValue({ id: taskId });
+
+    const response = await def.handlers.POST!(makeEvent(taskId), {
+        input: { body: {} },
+    } as never);
+
     expect(response.status).toBe(403);
     expect(startRunMock).not.toHaveBeenCalled();
 });

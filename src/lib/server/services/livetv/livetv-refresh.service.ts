@@ -16,13 +16,14 @@ import {
 } from './source-write-lock.js';
 import { randomUUID } from 'node:crypto';
 import { withTx } from '$lib/server/database/with-tx.js';
+import { lockChannelNumbers } from '$lib/server/database/queries/livetv-channel-numbers.queries.js';
 import type postgres from 'postgres';
 import { Logger } from '$lib/server/utils/logger.js';
 import { redactLiveTvUrlsInText } from '$lib/shared/livetv-url-redaction.js';
 import { acquireLock, releaseLock } from '$lib/server/cache/valkey.js';
 import { fetchSsrfValidatedText, M3U_MAX_FETCH_BYTES } from './fetch-source.js';
 import { parseM3uAsync } from './m3u-parser.js';
-import { processChannels } from './auto-processor.js';
+import { applyPlaylistExclusions, processChannels } from './auto-processor.js';
 import { matchChannels, type ExistingChannel } from './channel-matcher.js';
 import {
     getSourceByIdWithCredentials,
@@ -30,6 +31,8 @@ import {
 } from '$lib/server/database/queries/livetv-sources.queries.js';
 import {
     getChannelsForRefresh,
+    getExcludedCategoryNames,
+    getExcludedPlaylistFeeds,
     updateMatchedChannels,
     bulkUpdateChannelAbsences,
     archiveStaleChannels,
@@ -196,71 +199,77 @@ async function refreshM3uSourceInner(
             total: parseResult.channels.length,
             message: 'Auto-processing channels...',
         });
-        // Read once: bouquets the stored lineup hides stay categories (so
-        // they stay hidden), and new channels get the same choices below.
         const lineupFilter = parseLineupFilter(await getSourceLineupFilter(sql, sourceId));
-        const processed = processChannels(parseResult.channels, {
+        const playlist = processChannels(parseResult.channels, {
             keepCategories: new Set(lineupFilter?.hiddenCategories),
         });
-
-        // 5. Load existing channels from DB
         await progressCallback?.({
             phase: 'matching',
             processed: 0,
             total: 1,
             message: 'Matching channels...',
         });
-        const dbChannels = await getChannelsForRefresh(sql, sourceId);
-
-        // Convert DB rows to ExistingChannel for matcher
-        const existingChannels: ExistingChannel[] = dbChannels.map((ch) => ({
-            id: ch.id,
-            name: ch.name,
-            streamUrl: ch.stream_url,
-            epgChannelId: ch.epg_channel_id ?? undefined,
-            qualityTier: ch.quality_tier ?? undefined,
-            categoryId: ch.category_id ?? undefined,
-            categoryName: ch.category_name ?? undefined,
-            backupGroupId: ch.backup_group_id ?? undefined,
-            sortOrder: ch.sort_order,
-            isVisible: ch.is_visible,
-            adminDisplayName: undefined, // Already resolved in getChannelsForRefresh (COALESCE)
-            countryCode: ch.country_code ?? undefined,
-            consecutiveAbsences: ch.consecutive_absences,
-        }));
-
-        // 6. Run channel matcher (pure function, no DB)
-        const nonVodChannels = processed.channels.filter((ch) => !ch.isVod);
-        const matchResult = matchChannels(existingChannels, nonVodChannels);
-
-        // Position of each parsed channel in the source M3U (non-VOD sequence).
-        // Used to keep playlist_index current for matched channels and to give
-        // newly-inserted channels their real source slot instead of appending.
-        const playlistIndexByChannel = new Map(nonVodChannels.map((ch, i) => [ch, i]));
-
-        logger.info('Channel matching complete', {
-            sourceId,
-            autoMatched: matchResult.stats.autoMatched,
-            reviewMatched: matchResult.stats.reviewMatched,
-            newCount: matchResult.stats.newCount,
-            removedCount: matchResult.stats.removedCount,
-            massRestructure: matchResult.massRestructure,
-        });
-
-        // 7. Apply diff within a transaction
-        await progressCallback?.({
-            phase: 'applying',
-            processed: 0,
-            total: matchResult.matched.length + matchResult.newChannels.length,
-            message: 'Applying changes...',
-        });
 
         let archivedCount = 0;
         let deletedCount = 0;
         let lineupHiddenCount = 0;
 
-        await withTx(sql, async (txRaw) => {
-            const tx = txRaw as unknown as postgres.Sql;
+        const matchResult = await withTx(sql, async (tx) => {
+            // Pair the exclusion read with inventory writes under the same lock as deletion.
+            await lockChannelNumbers(tx);
+            const excludedCategories = await getExcludedCategoryNames(tx, sourceId);
+            const excludedFeedKeys = await getExcludedPlaylistFeeds(tx, sourceId);
+            const processed = applyPlaylistExclusions(playlist, {
+                excludedCategories,
+                excludedFeedKeys,
+            });
+
+            const dbChannels = await getChannelsForRefresh(tx, sourceId);
+
+            // Convert DB rows to ExistingChannel for matcher
+            const existingChannels: ExistingChannel[] = dbChannels.map((ch) => ({
+                id: ch.id,
+                name: ch.name,
+                streamUrl: ch.stream_url,
+                epgChannelId: ch.epg_channel_id ?? undefined,
+                qualityTier: ch.quality_tier ?? undefined,
+                categoryId: ch.category_id ?? undefined,
+                categoryName: ch.category_name ?? undefined,
+                backupGroupId: ch.backup_group_id ?? undefined,
+                sortOrder: ch.sort_order,
+                isVisible: ch.is_visible,
+                adminDisplayName: undefined, // Already resolved in getChannelsForRefresh (COALESCE)
+                countryCode: ch.country_code ?? undefined,
+                consecutiveAbsences: ch.consecutive_absences,
+            }));
+
+            // 6. Run channel matcher (pure function, no DB)
+            const nonVodChannels = processed.channels.filter((ch) => !ch.isVod);
+            const matchResult = matchChannels(existingChannels, nonVodChannels);
+
+            // Position of each parsed channel in the source M3U (non-VOD sequence).
+            // Used to keep playlist_index current for matched channels and to give
+            // newly-inserted channels their real source slot instead of appending.
+            const playlistIndexByChannel = new Map(
+                nonVodChannels.map((ch, i) => [ch, ch.playlistIndex ?? i]),
+            );
+
+            logger.info('Channel matching complete', {
+                sourceId,
+                autoMatched: matchResult.stats.autoMatched,
+                reviewMatched: matchResult.stats.reviewMatched,
+                newCount: matchResult.stats.newCount,
+                removedCount: matchResult.stats.removedCount,
+                massRestructure: matchResult.massRestructure,
+            });
+
+            // 7. Apply diff within a transaction
+            await progressCallback?.({
+                phase: 'applying',
+                processed: 0,
+                total: matchResult.matched.length + matchResult.newChannels.length,
+                message: 'Applying changes...',
+            });
 
             // 7a. Update matched channels (preserve admin customizations)
             if (matchResult.matched.length > 0) {
@@ -284,6 +293,7 @@ async function refreshM3uSourceInner(
                             ? (m.newChannel.region ?? null)
                             : null,
                     playlistIndex: playlistIndexByChannel.get(m.newChannel) ?? null,
+                    playlistCategoryKey: m.newChannel.playlistCategoryKey,
                 }));
                 await updateMatchedChannels(tx, updates);
             }
@@ -314,6 +324,7 @@ async function refreshM3uSourceInner(
                     categoryId: categoryMap.get(ch.category),
                     sortOrder: sortOrder++,
                     playlistIndex: playlistIndexByChannel.get(ch),
+                    playlistCategoryKey: ch.playlistCategoryKey,
                     countryCode: ch.region,
                 }));
 
@@ -414,6 +425,7 @@ async function refreshM3uSourceInner(
                 if (deletedCount > 0) await purgeEmptyCategories(tx);
             }
             // If mass restructure: DON'T increment absences or hide channels
+            return matchResult;
         });
 
         // 8. Update refresh status

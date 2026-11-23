@@ -192,8 +192,10 @@ describe('Hidden channels and category actions', () => {
         expect(rowIds(categoryEl('news'))).toEqual(['N-0', 'N-2']);
     });
 
-    test('a category holding only hidden channels is not offered for deletion', async () => {
+    test('a category holding only hidden channels requires permanent-delete confirmation', async () => {
         const user = userEvent.setup();
+        const confirm = vi.fn().mockReturnValue(false);
+        vi.stubGlobal('confirm', confirm);
         const categories = [
             ...lineup(),
             {
@@ -208,8 +210,9 @@ describe('Hidden channels and category actions', () => {
         const header = categoryEl('other').querySelector('.category-header') as HTMLElement;
         expect(header.textContent).toContain('0 of 2');
         await user.click(within(header).getByRole('button', { name: 'Category actions' }));
-        const del = within(header).getByRole('button', { name: /Delete/ }) as HTMLButtonElement;
-        expect(del.disabled).toBe(true);
+        await user.click(within(header).getByRole('button', { name: /^Delete$/ }));
+        expect(confirm).toHaveBeenCalledWith(expect.stringContaining('will not be re-imported'));
+        expect(categoryEl('other')).toBeTruthy();
     });
 });
 

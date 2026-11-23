@@ -28,6 +28,7 @@ vi.mock('hls.js', () => {
         MEDIA_ATTACHED: 'hlsMediaAttached',
         MANIFEST_PARSED: 'hlsManifestParsed',
         LEVEL_LOADED: 'hlsLevelLoaded',
+        LEVEL_UPDATED: 'hlsLevelUpdated',
         FRAG_LOADING: 'hlsFragLoading',
         FRAG_LOADED: 'hlsFragLoaded',
         FRAG_BUFFERED: 'hlsFragBuffered',
@@ -48,6 +49,8 @@ vi.mock('hls.js', () => {
         levels: unknown[] = [];
         audioTracks: unknown[] = [];
         bandwidthEstimate = 0;
+        liveSyncPosition: number | null = null;
+        bufferController = { mediaSource: { readyState: 'open' } };
         destroyed = false;
 
         private listeners = new Map<string, ((...args: unknown[]) => void)[]>();
@@ -66,6 +69,7 @@ vi.mock('hls.js', () => {
 
         loadSource(_url: string): void {}
         attachMedia(_el: HTMLVideoElement): void {}
+        detachMedia(): void {}
         startLoad(_pos?: number): void {}
         recoverMediaError(): void {}
         destroy(): void {
@@ -84,6 +88,10 @@ import { createPlaybackManager, type PlaybackManagerConfig } from './playback-ma
 
 /** Minimal shape of the mocked Hls instance used by these tests. */
 interface FakeHlsInstance {
+    liveSyncPosition: number | null;
+    bufferController: { mediaSource: { readyState: string } };
+    attachMedia(video: HTMLVideoElement): void;
+    detachMedia(): void;
     emit: (event: string, data?: unknown) => void;
 }
 
@@ -133,6 +141,130 @@ beforeEach(() => {
 afterEach(() => {
     vi.unstubAllGlobals();
     vi.useRealTimers();
+});
+
+describe('Live TV foreground catch-up', () => {
+    it('does not defer a native seek when the foreground playhead is already current', async () => {
+        const video = document.createElement('video');
+        const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+        vi.spyOn(video, 'paused', 'get').mockReturnValue(false);
+        vi.spyOn(video, 'readyState', 'get').mockReturnValue(2);
+        const end = vi.fn<() => number>().mockReturnValue(103);
+        vi.spyOn(video, 'seekable', 'get').mockReturnValue({
+            length: 1,
+            start: () => 90,
+            end,
+        });
+        vi.spyOn(video, 'canPlayType').mockReturnValue('probably');
+        vi.spyOn(video, 'load').mockImplementation(() => {});
+        const manager = createPlaybackManager({
+            ...makeConfig({}, video),
+            isSafari: true,
+            isLive: true,
+        });
+        try {
+            await manager.load('https://example.test/live.m3u8', 'hls');
+            video.currentTime = 100;
+
+            hidden.mockReturnValue(false);
+            document.dispatchEvent(new Event('visibilitychange'));
+            expect(video.currentTime).toBe(100);
+
+            end.mockReturnValue(120);
+            video.dispatchEvent(new Event('timeupdate'));
+            expect(video.currentTime).toBe(100);
+        } finally {
+            manager.destroy();
+            vi.restoreAllMocks();
+        }
+    });
+
+    it('catches up on native timeupdate when the foreground range was empty', async () => {
+        const video = document.createElement('video');
+        const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+        vi.spyOn(video, 'canPlayType').mockReturnValue('probably');
+        vi.spyOn(video, 'load').mockImplementation(() => {});
+        vi.spyOn(video, 'paused', 'get').mockReturnValue(false);
+        vi.spyOn(video, 'readyState', 'get').mockReturnValue(2);
+        const seekable = vi.spyOn(video, 'seekable', 'get').mockReturnValue({
+            length: 0,
+            start: () => 0,
+            end: () => 0,
+        });
+        const manager = createPlaybackManager({
+            ...makeConfig({}, video),
+            isSafari: true,
+            isLive: true,
+        });
+        try {
+            await manager.load('https://example.test/live.m3u8', 'hls');
+            video.currentTime = 70;
+            hidden.mockReturnValue(false);
+            document.dispatchEvent(new Event('visibilitychange'));
+            expect(video.currentTime).toBe(70);
+
+            seekable.mockReturnValue({ length: 1, start: () => 80, end: () => 103 });
+            video.dispatchEvent(new Event('timeupdate'));
+            expect(video.currentTime).toBe(100);
+        } finally {
+            manager.destroy();
+            vi.restoreAllMocks();
+        }
+    });
+
+    it.each(['open', 'closed'])(
+        'uses the next live window when MediaSource is %s',
+        async (state) => {
+            const video = document.createElement('video');
+            const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+            vi.spyOn(video, 'paused', 'get').mockReturnValue(false);
+            const readyState = vi.spyOn(video, 'readyState', 'get').mockReturnValue(2);
+            const onLivePositionChange = vi.fn();
+            const manager = createPlaybackManager({
+                ...makeConfig({ onLivePositionChange }, video),
+                isLive: true,
+            });
+            try {
+                await manager.load('https://example.test/live.m3u8', 'hls');
+                const hls = manager.getHls() as unknown as FakeHlsInstance;
+                const detach = vi.spyOn(hls, 'detachMedia');
+                const attach = vi.spyOn(hls, 'attachMedia');
+                hls.bufferController.mediaSource.readyState = state;
+                if (state === 'open') hls.emit(Hls.Events.MEDIA_ATTACHED);
+                video.currentTime = 80;
+                hls.liveSyncPosition = 82;
+                document.dispatchEvent(new Event('visibilitychange'));
+                expect(detach).not.toHaveBeenCalled();
+                expect(video.currentTime).toBe(80);
+
+                hidden.mockReturnValue(false);
+                document.dispatchEvent(new Event('visibilitychange'));
+                expect(detach).toHaveBeenCalledTimes(state === 'closed' ? 1 : 0);
+                expect(attach).toHaveBeenCalledTimes(state === 'closed' ? 1 : 0);
+                expect(video.currentTime).toBe(80);
+
+                hls.emit(Hls.Events.LEVEL_UPDATED, { details: { live: true, advanced: false } });
+                expect(video.currentTime).toBe(80);
+
+                readyState.mockReturnValue(0);
+                hls.liveSyncPosition = 100;
+                hls.emit(Hls.Events.LEVEL_UPDATED, { details: { live: true, advanced: true } });
+                expect(video.currentTime).toBe(80);
+
+                readyState.mockReturnValue(2);
+                hls.emit(Hls.Events.LEVEL_UPDATED, { details: { live: true, advanced: true } });
+                expect(video.currentTime).toBe(100);
+                expect(onLivePositionChange).toHaveBeenLastCalledWith(100);
+
+                hls.liveSyncPosition = 120;
+                hls.emit(Hls.Events.LEVEL_UPDATED, { details: { live: true, advanced: true } });
+                expect(video.currentTime).toBe(100); // one seek per foreground transition
+            } finally {
+                manager.destroy();
+                vi.restoreAllMocks();
+            }
+        },
+    );
 });
 
 describe('PlaybackManager — asynchronous source ownership', () => {

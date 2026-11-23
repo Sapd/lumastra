@@ -14,6 +14,7 @@
 // data ownership (Jellyfin vs player).
 // =============================================================================
 
+import { liveEdgeDistance } from './live-edge.js';
 import type {
     PlaybackInfo,
     MediaSourceInfo,
@@ -252,7 +253,7 @@ export type EffectiveNextItem = {
 } | null;
 
 // Constants (moved from player-derived)
-export const LIVE_EDGE_THRESHOLD_SECONDS = 15;
+export const LIVE_EDGE_THRESHOLD_SECONDS = 10;
 
 /**
  * The server's starting tracks in the player's relative display indices.
@@ -470,6 +471,7 @@ export class PlayerStore {
     currentTime = $state(0);
     private _lastDisplaySecond = -1;
     duration = $state(0);
+    livePosition = $state<number | null>(null);
     bufferedEnd = $state(0);
     volume = $state(1);
     isMuted = $state(false);
@@ -681,14 +683,12 @@ export class PlayerStore {
         `-${formatTime(Math.max(0, this.duration - this.currentTime))}`,
     );
 
-    // Is the player at the live edge
-    readonly isAtLiveEdge = $derived.by(() => {
-        if (!this.isLive) return true;
-        if (this.duration <= 0) return true;
-        if (!isFinite(this.duration)) return true;
-        const distanceFromLive = this.duration - this.currentTime;
-        return distanceFromLive <= LIVE_EDGE_THRESHOLD_SECONDS;
-    });
+    readonly distanceFromLive = $derived(liveEdgeDistance(this.livePosition, this.playheadTime));
+    readonly isAtLiveEdge = $derived(
+        this.isLive &&
+            this.distanceFromLive !== null &&
+            this.distanceFromLive <= LIVE_EDGE_THRESHOLD_SECONDS,
+    );
 
     // Full title (including series info for episodes, channel for LiveTV)
     readonly fullTitle = $derived.by(() => {
@@ -849,6 +849,7 @@ export class PlayerStore {
         this.originalLanguage = playbackInfo.originalLanguage ?? null;
         this.isLive = playbackInfo.isLive || false;
         this.duration = durationSeconds;
+        this.livePosition = null;
         this.playheadTime = resumeSeconds;
         this.currentTime = resumeSeconds;
         this._lastDisplaySecond = Math.floor(resumeSeconds);
@@ -1509,6 +1510,7 @@ export class PlayerStore {
         this.currentTime = 0;
         this._lastDisplaySecond = -1;
         this.duration = 0;
+        this.livePosition = null;
         this.bufferedEnd = 0;
         this.volume = 1;
         this.isMuted = false;

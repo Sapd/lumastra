@@ -14,9 +14,12 @@
  * @module queries/livetv-channels
  */
 
+import { createHash } from 'node:crypto';
 import type postgres from 'postgres';
 import type { UserId } from '$lib/shared/user-id';
 import { withTx } from '../with-tx.js';
+import { playlistFeedKey } from '$lib/server/utils/livetv-playlist-feed-key.js';
+import { lockChannelNumbers } from './livetv-channel-numbers.queries.js';
 import { runWithTrigramThreshold } from './builders/trigram-threshold.builder.js';
 import { escapeLikePattern } from './builders/search-filter.builder.js';
 
@@ -47,6 +50,8 @@ export interface CreateChannelData {
     sortOrder?: number;
     /** Immutable position in the source M3U (non-VOD sequence) — provider order */
     playlistIndex?: number;
+    /** Provider group identity, independent of the administrator-assigned categoryId. */
+    playlistCategoryKey?: string;
     /** ISO country code (e.g., 'de', 'at', 'ch') */
     countryCode?: string;
 }
@@ -98,6 +103,8 @@ export interface MatchedChannelUpdate {
      * current for matched channels across refreshes. `null` leaves it unchanged.
      */
     playlistIndex: number | null;
+    /** Undefined leaves provenance unchanged for callers without playlist data. */
+    playlistCategoryKey?: string;
 }
 
 // =============================================================================
@@ -272,10 +279,11 @@ export async function bulkCreateChannels(
                 sort_order: ch.sortOrder ?? 0,
                 playlist_index: ch.playlistIndex ?? null,
                 country_code: ch.countryCode ?? null,
+                playlist_category_key: ch.playlistCategoryKey ?? null,
             }));
             for (const chunk of chunkRows(channelRows)) {
                 await tx`
-					INSERT INTO livetv_channels ${tx(chunk, 'id', 'm3u_url', 'source_id', 'quality_tier', 'epg_channel_id', 'category_id', 'backup_group_id', 'sort_order', 'playlist_index', 'country_code')}
+					INSERT INTO livetv_channels ${tx(chunk, 'id', 'm3u_url', 'source_id', 'quality_tier', 'epg_channel_id', 'category_id', 'backup_group_id', 'sort_order', 'playlist_index', 'country_code', 'playlist_category_key')}
 					ON CONFLICT (id) DO UPDATE SET
 						m3u_url = EXCLUDED.m3u_url,
 						quality_tier = EXCLUDED.quality_tier,
@@ -284,7 +292,10 @@ export async function bulkCreateChannels(
 						backup_group_id = EXCLUDED.backup_group_id,
 						sort_order = EXCLUDED.sort_order,
 						playlist_index = EXCLUDED.playlist_index,
-						country_code = EXCLUDED.country_code
+						country_code = EXCLUDED.country_code,
+                        playlist_category_key = COALESCE(
+                            EXCLUDED.playlist_category_key, livetv_channels.playlist_category_key
+                        )
 				`;
             }
         }
@@ -470,6 +481,7 @@ export async function updateMatchedChannels(
     const qualities = updates.map((u) => u.qualityTier);
     const countries = updates.map((u) => u.countryCode);
     const playlistIndices = updates.map((u) => u.playlistIndex);
+    const playlistCategoryKeys = updates.map((u) => u.playlistCategoryKey ?? null);
 
     const result = await sql`
 		UPDATE livetv_channels SET
@@ -478,6 +490,7 @@ export async function updateMatchedChannels(
 			quality_tier = COALESCE(data.quality_tier, livetv_channels.quality_tier),
 			country_code = COALESCE(data.country_code, livetv_channels.country_code),
 			playlist_index = COALESCE(data.playlist_index, livetv_channels.playlist_index),
+            playlist_category_key = COALESCE(data.playlist_category_key, livetv_channels.playlist_category_key),
 			consecutive_absences = 0,
 			updated_at = NOW()
 		FROM unnest(
@@ -487,8 +500,12 @@ export async function updateMatchedChannels(
 			${logos}::text[],
 			${qualities}::text[],
 			${countries}::text[],
-			${playlistIndices}::int[]
-		) AS data(id, stream_url, epg_channel_id, logo_url, quality_tier, country_code, playlist_index)
+			${playlistIndices}::int[],
+            ${playlistCategoryKeys}::text[]
+		) AS data(
+            id, stream_url, epg_channel_id, logo_url, quality_tier, country_code, playlist_index,
+            playlist_category_key
+        )
 		WHERE livetv_channels.id = data.id
 	`;
 
@@ -1800,10 +1817,10 @@ export async function renameCategory(
     name: string,
 ): Promise<boolean> {
     const result = await sql`
-		UPDATE livetv_categories
-		SET name = ${name}, updated_at = NOW()
-		WHERE id = ${categoryId}
-	`;
+        UPDATE livetv_categories
+        SET name = ${name}, updated_at = NOW()
+        WHERE id = ${categoryId}
+    `;
     return result.count > 0;
 }
 
@@ -1843,6 +1860,7 @@ export async function mergeCategories(
 ): Promise<{ movedChannelCount: number }> {
     return sql.begin(async (txRaw) => {
         const tx = txRaw as unknown as postgres.Sql;
+        await lockChannelNumbers(tx);
         const moved = await tx`
 			UPDATE livetv_channels
 			SET category_id = ${targetCategoryId}, updated_at = NOW()
@@ -1866,6 +1884,12 @@ export async function deleteEmptyCategory(
 ): Promise<{ deleted: true } | { deleted: false; reason: 'has_channels' | 'not_found' }> {
     return sql.begin(async (txRaw) => {
         const tx = txRaw as unknown as postgres.Sql;
+        await lockChannelNumbers(tx);
+        const [category] = await tx<{ id: string }[]>`
+            SELECT id FROM livetv_categories WHERE id = ${categoryId} FOR UPDATE
+        `;
+        if (!category) return { deleted: false as const, reason: 'not_found' as const };
+
         const [row] = await tx<[{ count: number }]>`
 			SELECT COUNT(*)::int AS count FROM livetv_channels WHERE category_id = ${categoryId}
 		`;
@@ -1879,6 +1903,160 @@ export async function deleteEmptyCategory(
             return { deleted: false as const, reason: 'not_found' as const };
         }
         return { deleted: true as const };
+    });
+}
+
+export async function getExcludedCategoryNames(
+    sql: postgres.Sql,
+    sourceId: string,
+): Promise<Set<string>> {
+    const rows = await sql<{ category_name: string }[]>`
+        SELECT category_name FROM livetv_source_category_exclusions
+        WHERE source_id = ${sourceId}
+    `;
+    return new Set(rows.map((row) => row.category_name));
+}
+
+export async function getExcludedPlaylistFeeds(
+    sql: postgres.Sql,
+    sourceId: string,
+): Promise<Set<string>> {
+    const rows = await sql<{ feed_key: string }[]>`
+        SELECT feed_key FROM livetv_source_feed_exclusions WHERE source_id = ${sourceId}
+    `;
+    return new Set(rows.map((row) => row.feed_key));
+}
+
+/** Snapshot the membership accepted by the API so a queued delete cannot expand later. */
+export async function getCategoryDeletionSnapshot(
+    sql: postgres.Sql,
+    categoryId: string,
+): Promise<{ id: string; revision: string } | null> {
+    const [row] = await sql<{ id: string; revision: string }[]>`
+        SELECT cat.id, encode(sha256(convert_to(
+            COALESCE(string_agg(ch.id::text, ',' ORDER BY ch.id), ''), 'UTF8'
+        )), 'hex') AS revision
+        FROM livetv_categories cat
+        LEFT JOIN livetv_channels ch ON ch.category_id = cat.id
+        WHERE cat.id = ${categoryId}::uuid
+        GROUP BY cat.id
+    `;
+    return row ?? null;
+}
+
+interface ChannelOwners {
+    id: string;
+    source_id: string | null;
+    backup_group_id: string | null;
+    playlist_category_key: string | null;
+    title: string;
+    m3u_url: string;
+}
+
+/** Delete the category and its inventory in the same transaction as its exclusions. */
+export async function deleteImportedCategory(
+    sql: postgres.Sql,
+    categoryId: string,
+    { signal, revision }: { signal?: AbortSignal; revision?: string } = {},
+): Promise<number> {
+    signal?.throwIfAborted();
+    return withTx(sql, async (tx): Promise<number> => {
+        // Import and refresh take this lock before reading exclusions and writing channels.
+        // Taking it first also protects the number owners removed by the cascade.
+        await lockChannelNumbers(tx);
+        signal?.throwIfAborted();
+        const [category] = await tx<{ id: string }[]>`
+            SELECT id FROM livetv_categories WHERE id = ${categoryId} FOR UPDATE
+        `;
+        if (!category) return 0;
+
+        // Lock the media rows before clearing tokens so a new token cannot
+        // reference a channel between token cleanup and the cascading delete.
+        const channels = await tx<ChannelOwners[]>`
+            SELECT c.id, c.source_id, c.backup_group_id, c.playlist_category_key,
+                   mi.title, c.m3u_url
+            FROM livetv_channels c
+            JOIN media_items mi ON mi.id = c.id
+            WHERE c.category_id = ${categoryId}
+            ORDER BY c.id FOR UPDATE OF mi, c
+        `;
+        signal?.throwIfAborted();
+        const channelIds = channels.map((channel) => channel.id);
+        if (revision !== undefined) {
+            const current = createHash('sha256').update(channelIds.join(',')).digest('hex');
+            if (revision !== current) {
+                throw new Error('Category membership changed after deletion was queued');
+            }
+        }
+
+        const sourced = channels.flatMap((channel) =>
+            channel.source_id ? [{ ...channel, source_id: channel.source_id }] : [],
+        );
+        if (sourced.length > 0) {
+            const sourceIds = sourced.map((channel) => channel.source_id);
+            const categoryKeys = sourced.map((channel) => channel.playlist_category_key);
+            const feedKeys = sourced.map((channel) =>
+                playlistFeedKey(
+                    channel.title,
+                    channel.m3u_url,
+                    channel.playlist_category_key ?? undefined,
+                ),
+            );
+            // Exclude a whole provider group only when none of its known feeds
+            // survive elsewhere. Legacy rows can only identify their feeds.
+            await tx`
+                WITH selected AS (
+                    SELECT DISTINCT source_id, category_key
+                    FROM unnest(${sourceIds}::uuid[], ${categoryKeys}::text[])
+                        AS provider_groups(source_id, category_key)
+                    WHERE category_key IS NOT NULL
+                )
+                INSERT INTO livetv_source_category_exclusions (source_id, category_name)
+                SELECT selected.source_id, selected.category_key
+                FROM selected
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM livetv_channels retained
+                    WHERE retained.source_id = selected.source_id
+                      AND retained.category_id IS DISTINCT FROM ${categoryId}::uuid
+                      AND (retained.playlist_category_key IS NULL
+                           OR retained.playlist_category_key = selected.category_key)
+                )
+                ON CONFLICT DO NOTHING
+            `;
+            await tx`
+                INSERT INTO livetv_source_feed_exclusions (source_id, feed_key)
+                SELECT * FROM unnest(${sourceIds}::uuid[], ${feedKeys}::text[])
+                ON CONFLICT DO NOTHING
+            `;
+        }
+
+        const backupGroupIds = [
+            ...new Set(channels.flatMap((ch) => (ch.backup_group_id ? [ch.backup_group_id] : []))),
+        ];
+        if (channelIds.length > 0) {
+            // As in source deletion, clear non-cascading references, then delete the
+            // media items to cascade to channels, programs, images and channel numbers.
+            await tx`DELETE FROM hls_playback_tokens WHERE media_item_id = ANY(${channelIds}::uuid[])`;
+            await tx`DELETE FROM livetv_stream_failure_events WHERE channel_id = ANY(${channelIds}::text[])`;
+            await tx`DELETE FROM media_items WHERE id = ANY(${channelIds}::uuid[])`;
+        }
+
+        if (backupGroupIds.length > 0) {
+            await tx`
+                DELETE FROM livetv_backup_groups g
+                WHERE g.id = ANY(${backupGroupIds}::uuid[])
+                  AND NOT EXISTS (SELECT 1 FROM livetv_channels c WHERE c.backup_group_id = g.id)
+            `;
+            const surviving = await tx<{ id: string }[]>`
+                SELECT id FROM livetv_backup_groups
+                WHERE id = ANY(${backupGroupIds}::uuid[]) AND primary_channel_id IS NULL
+            `;
+            for (const group of surviving) await autoPromotePrimary(tx, group.id);
+        }
+
+        await tx`DELETE FROM livetv_categories WHERE id = ${categoryId}`;
+        signal?.throwIfAborted();
+        return channelIds.length;
     });
 }
 

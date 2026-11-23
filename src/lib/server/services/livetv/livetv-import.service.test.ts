@@ -56,7 +56,8 @@ vi.mock('$lib/server/cache/valkey.js', () => ({
     releaseLock: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('./auto-processor.js', () => ({
+vi.mock('./auto-processor.js', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('./auto-processor.js')>()),
     processChannels: vi.fn(),
 }));
 
@@ -81,6 +82,8 @@ vi.mock('$lib/server/database/queries/livetv-sources.queries.js', () => ({
 
 vi.mock('$lib/server/database/queries/livetv-channels.queries.js', () => ({
     bulkCreateChannels: vi.fn(),
+    getExcludedCategoryNames: vi.fn().mockResolvedValue(new Set()),
+    getExcludedPlaylistFeeds: vi.fn().mockResolvedValue(new Set()),
     deleteChannelsBySourceId: vi.fn(),
     deleteUnusedBackupGroupsOfSource: vi.fn().mockResolvedValue(0),
     getChannelsBySourceId: vi.fn(),
@@ -125,6 +128,7 @@ import {
 } from '$lib/server/database/queries/livetv-sources.queries.js';
 import {
     bulkCreateChannels,
+    getExcludedCategoryNames,
     deleteChannelsBySourceId,
     getChannelsBySourceId,
     shareBackupGroupLogos,
@@ -400,7 +404,11 @@ describe('importM3uSource', () => {
     });
 
     it.each([
-        { state: 'deleting', source: makeSource({ deleting_since: new Date() }), waitForLock: false },
+        {
+            state: 'deleting',
+            source: makeSource({ deleting_since: new Date() }),
+            waitForLock: false,
+        },
         { state: 'missing', source: null, waitForLock: true },
     ])(
         'skips fetching and writing for a $state source when waitForLock=$waitForLock',
@@ -644,6 +652,24 @@ describe('importM3uSource', () => {
             vi.useRealTimers();
         }
     });
+    it('skips excluded playlist categories before saving channels or categories', async () => {
+        const actual =
+            await vi.importActual<typeof import('./auto-processor.js')>('./auto-processor.js');
+        mockProcessChannels.mockImplementationOnce(actual.processChannels);
+        const parsed = makeParseResult(['An Example News Channel', 'An Example Sports Channel']);
+        parsed.channels[1].groupTitle = 'Sports';
+        mockParseM3u.mockResolvedValueOnce(parsed);
+        vi.mocked(getExcludedCategoryNames).mockResolvedValueOnce(new Set(['group:News']));
+
+        await importM3uSource(sql, SOURCE_ID);
+
+        expect(getExcludedCategoryNames).toHaveBeenCalledWith(expect.any(Function), SOURCE_ID);
+        const data = mockBulkCreateChannels.mock.calls[0][1];
+        expect(data.channels.map((channel) => channel.name)).toEqual(['An Example Sports Channel']);
+        expect(data.categories).not.toContainEqual(expect.objectContaining({ name: 'News' }));
+        expect(data.channels[0].playlistIndex).toBe(1);
+    });
+
     it('counts saving progress against live channels, not VOD entries', async () => {
         const processed = makeProcessingResult(['News', 'Sport', 'Film A', 'Film B', 'Film C']);
         processed.channels.slice(2).forEach((ch) => (ch.isVod = true));
@@ -808,7 +834,11 @@ describe('importEpgSource', () => {
     });
 
     it.each([
-        { state: 'deleting', source: makeSource({ deleting_since: new Date() }), waitForLock: false },
+        {
+            state: 'deleting',
+            source: makeSource({ deleting_since: new Date() }),
+            waitForLock: false,
+        },
         { state: 'missing', source: null, waitForLock: true },
     ])(
         'skips fetching and writing for a $state source when waitForLock=$waitForLock',

@@ -536,7 +536,8 @@
                                 onQualityUpdate={(id, q) => store.updateQuality(id, q)}
                                 onCategoryRename={(id, n) => store.renameCategory(id, n)}
                                 onCategoryMerge={(src, tgt) => store.mergeCategory(src, tgt)}
-                                onCategoryDelete={(id) => store.deleteCategory(id)} />
+                                onCategoryDelete={(id, withChannels) =>
+                                    store.deleteCategory(id, withChannels)} />
                         </div>
                     {/each}
                 </div>
@@ -616,7 +617,8 @@
                         onQualityUpdate={(id, q) => store.updateQuality(id, q)}
                         onCategoryRename={(id, n) => store.renameCategory(id, n)}
                         onCategoryMerge={(src, tgt) => store.mergeCategory(src, tgt)}
-                        onCategoryDelete={(id) => store.deleteCategory(id)} />
+                        onCategoryDelete={(id, withChannels) =>
+                            store.deleteCategory(id, withChannels)} />
                 </div>
             {/each}
         </div>
