@@ -257,7 +257,8 @@
 
     async function handleLogoClear(station: Station): Promise<void> {
         if (!confirm(m.admin_radio_confirm_remove_logo({ name: station.name }))) return;
-        const { data, error } = await deleteMediaImage(station.id, 'poster');
+        // A station has one logo: empty the slot, so an earlier upload does not return.
+        const { data, error } = await deleteMediaImage(station.id, 'poster', { all: true });
         if (error || !data) {
             toasts.error(error ?? m.admin_radio_remove_failed());
             return;

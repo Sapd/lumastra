@@ -94,6 +94,20 @@ describe('buildImageRefs', () => {
         }
     });
 
+    it('appends the revision to every poster href, and only there', () => {
+        const refs = buildImageRefs(UUID, 'internal', 'abc123');
+        expect(refs.poster).toEqual({
+            href: `/api/media/${UUID}/images/poster?v=abc123`,
+            thumb: `/api/media/${UUID}/images/poster?size=thumb&v=abc123`,
+            card: `/api/media/${UUID}/images/poster?size=card&v=abc123`,
+            full: `/api/media/${UUID}/images/poster?size=full&v=abc123`,
+        });
+        expect(refs.backdrop).toEqual(buildImageRefs(UUID, 'internal').backdrop);
+        expect(buildImageRefs(UUID, 'internal').poster.href).toBe(
+            `/api/media/${UUID}/images/poster`,
+        );
+    });
+
     it('emits the internal prefix on the internal surface', () => {
         const refs = buildImageRefs(UUID, 'internal');
         for (const href of [...Object.values(refs.poster), ...Object.values(refs.backdrop)]) {

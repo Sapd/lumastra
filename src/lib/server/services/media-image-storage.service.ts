@@ -474,6 +474,27 @@ export async function deleteMediaImage(
 }
 
 /**
+ * Leave the slot empty: hide the selected image, and every image that takes its
+ * place, until none is selected. {@link deleteMediaImage} hides only the current
+ * one, so an earlier upload comes back — what a single-image slot such as a
+ * radio station's logo must not do (2026-11-24). Files and receipts are kept for
+ * Undo, as with a single hide. Returns whether anything was hidden.
+ */
+export async function deleteMediaImageSlot(
+    sql: postgres.Sql,
+    mediaItemId: string,
+    artworkType: ArtworkType,
+    actor = 'admin',
+): Promise<boolean> {
+    // Bounded: each pass hides one candidate, and an item holds a handful.
+    const MAX_PASSES = 50;
+    let hidden = 0;
+    while (hidden < MAX_PASSES && (await deleteMediaImage(sql, mediaItemId, artworkType, actor)))
+        hidden++;
+    return hidden > 0;
+}
+
+/**
  * Why a materialization attempt did not produce a file. Every value is a normal,
  * expected outcome — none of them fail the enclosing run.
  */

@@ -9,8 +9,10 @@ export const ImageUploadUrlSchema = z.object({
 });
 export type ImageUploadUrl = z.infer<typeof ImageUploadUrlSchema>;
 
+// Shared by the server def (admin/media/[id]/images) and the web client, so the
+// two cannot drift: a `success` field the server no longer sent made the client's
+// strict decode throw after every upload/remove (radio logos, 2026-11-24).
 export const ImageUploadResponseSchema = z.object({
-    success: z.boolean(),
     filePath: z.string(),
     serveUrl: z.string(),
     undoId: z.uuid().optional().describe('Receipt restoring the preceding artwork selection.'),
@@ -18,7 +20,6 @@ export const ImageUploadResponseSchema = z.object({
 export type ImageUploadResponse = z.infer<typeof ImageUploadResponseSchema>;
 
 export const ImageDeleteResponseSchema = z.object({
-    success: z.boolean(),
     deleted: z.boolean(),
 });
 export type ImageDeleteResponse = z.infer<typeof ImageDeleteResponseSchema>;

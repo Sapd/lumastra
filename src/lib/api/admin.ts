@@ -1138,10 +1138,13 @@ export function uploadMediaImageByUrl(mediaId: string, artworkType: string, url:
     });
 }
 
-/** Delete a custom image */
-export function deleteMediaImage(mediaId: string, artworkType: string) {
+/**
+ * Hide the selected image of a slot. `all` empties the slot instead of letting
+ * an earlier image take its place (single-image slots such as a radio logo).
+ */
+export function deleteMediaImage(mediaId: string, artworkType: string, opts?: { all?: boolean }) {
     return apiDelete(`/api/admin/media/${mediaId}/images`, ImageDeleteResponseSchema, undefined, {
-        params: { type: artworkType },
+        params: opts?.all ? { type: artworkType, all: '1' } : { type: artworkType },
     });
 }
 

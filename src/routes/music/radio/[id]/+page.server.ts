@@ -8,6 +8,7 @@ import { getNowPlaying } from '$lib/server/services/radio-metadata';
 import type { RadioMetadataSource } from '$lib/schemas/radio';
 import { checkMediaAccess } from '$lib/server/middleware/media-access.js';
 import { buildImageRefs } from '$lib/shared/api-urls.js';
+import { radioLogoRevisionSql } from '$lib/server/database/queries/radio-logo.queries.js';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
     const sql = await aiDbService.getSql();
@@ -18,12 +19,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
             id: string;
             title: string;
             custom_metadata: Record<string, unknown>;
-            custom_poster_url: string | null;
+            logo_revision: string | null;
         }>
     >`
         SELECT id, title,
                COALESCE(custom_metadata, '{}'::jsonb) AS custom_metadata,
-               custom_poster_url
+               ${radioLogoRevisionSql(sql, 'media_items')} AS logo_revision
         FROM media_items
         WHERE id = ${params.id}
           AND media_type = 'radio'
@@ -56,7 +57,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
             type: 'radio' as const,
             name: String(row.title),
             genre: meta.genre ? String(meta.genre) : undefined,
-            images: row.custom_poster_url ? buildImageRefs(row.id, 'internal') : undefined,
+            images: row.logo_revision
+                ? buildImageRefs(row.id, 'internal', row.logo_revision)
+                : undefined,
             description: meta.description ? String(meta.description) : undefined,
         },
         nowPlaying,

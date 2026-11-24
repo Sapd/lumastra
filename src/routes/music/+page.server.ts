@@ -40,6 +40,7 @@ import { getPinnedGenreNames } from '$lib/server/database/queries/user-pinned-ge
 import { loadLibraryGenreRows } from '$lib/server/utils/music-explore-loader.js';
 import { timeSection } from '$lib/server/utils/section-timing.js';
 import { buildImageRefs } from '$lib/shared/api-urls.js';
+import { radioLogoRevisionSql } from '$lib/server/database/queries/radio-logo.queries.js';
 import type { RadioStationApiItem } from '$lib/schemas/radio.js';
 import { buildLibraryAccessFilter } from '$lib/server/database/queries/builders/library-access.builder.js';
 import { localsIsAdmin } from '$lib/server/auth/locals-admin.js';
@@ -87,12 +88,12 @@ async function loadRadioStations(
                 id: string;
                 title: string;
                 custom_metadata: Record<string, unknown>;
-                custom_poster_url: string | null;
+                logo_revision: string | null;
             }>
         >`
             SELECT mi.id, mi.title,
                    COALESCE(mi.custom_metadata, '{}'::jsonb) AS custom_metadata,
-                   mi.custom_poster_url
+                   ${radioLogoRevisionSql(sql, 'mi')} AS logo_revision
             FROM media_items mi
             WHERE mi.media_type = 'radio'
               ${buildLibraryAccessFilter(sql, accessCtx.deniedGroupIds, 'mi')}
@@ -115,8 +116,8 @@ async function loadRadioStations(
                 name: String(row.title),
                 genre: meta.genre ? String(meta.genre) : undefined,
                 nowPlaying: meta.now_playing ? String(meta.now_playing) : undefined,
-                images: row.custom_poster_url
-                    ? buildImageRefs(String(row.id), 'internal')
+                images: row.logo_revision
+                    ? buildImageRefs(String(row.id), 'internal', row.logo_revision)
                     : undefined,
             };
         });

@@ -9,6 +9,7 @@ import { peekNowPlaying } from '$lib/server/services/radio-metadata';
 import type { RadioMetadataSource, RadioStationApiItem } from '$lib/schemas/radio';
 import { buildSearchAccessContext } from '$lib/server/utils/search-access-context.js';
 import { buildImageRefs } from '$lib/shared/api-urls.js';
+import { radioLogoRevisionSql } from '$lib/server/database/queries/radio-logo.queries.js';
 import { cacheManager, CACHE_NAMESPACES } from '$lib/server/cache/index.js';
 
 // Library-wide genre list (min 3 tracks) sits behind a full-library JSONB
@@ -68,12 +69,12 @@ export const load: PageServerLoad = async ({ locals }) => {
                     id: string;
                     title: string;
                     custom_metadata: Record<string, unknown>;
-                    custom_poster_url: string | null;
+                    logo_revision: string | null;
                 }>
             >`
             SELECT mi.id, mi.title,
                    COALESCE(mi.custom_metadata, '{}'::jsonb) AS custom_metadata,
-                   mi.custom_poster_url
+                   ${radioLogoRevisionSql(sql, 'mi')} AS logo_revision
             FROM media_items mi
             WHERE mi.media_type = 'radio'
               ${
@@ -126,7 +127,9 @@ export const load: PageServerLoad = async ({ locals }) => {
                     name: String(row.title),
                     genre: meta.genre ? String(meta.genre) : undefined,
                     nowPlaying: nowPlayingText ?? undefined,
-                    images: row.custom_poster_url ? buildImageRefs(row.id, 'internal') : undefined,
+                    images: row.logo_revision
+                        ? buildImageRefs(row.id, 'internal', row.logo_revision)
+                        : undefined,
                 };
             },
         );

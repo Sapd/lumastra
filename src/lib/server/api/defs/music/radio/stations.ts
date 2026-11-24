@@ -36,6 +36,7 @@ import { buildSearchAccessContext } from '$lib/server/utils/search-access-contex
 import { isRadioConfigured } from '$lib/server/services/music/radio-configured.service.js';
 import { buildLibraryAccessFilter } from '$lib/server/database/queries/builders/library-access.builder.js';
 import { buildImageRefs } from '$lib/shared/api-urls.js';
+import { radioLogoRevisionSql } from '$lib/server/database/queries/radio-logo.queries.js';
 import { RadioStationsResponseSchema } from '$lib/schemas/api-music-responses';
 
 const logger = Logger.for('MusicRadioStationsDef');
@@ -44,7 +45,7 @@ interface RadioStationRow {
     id: string;
     title: string;
     custom_metadata: Record<string, unknown>;
-    custom_poster_url: string | null;
+    logo_revision: string | null;
 }
 
 export const def = defineEndpoint({
@@ -112,7 +113,7 @@ export const def = defineEndpoint({
 					mi.id,
 					mi.title,
 					COALESCE(mi.custom_metadata, '{}'::jsonb) AS custom_metadata,
-					mi.custom_poster_url
+					${radioLogoRevisionSql(sql, 'mi')} AS logo_revision
 				FROM media_items mi
 				WHERE mi.media_type = 'radio'
 				  ${buildLibraryAccessFilter(sql, denied, 'mi')}
@@ -133,16 +134,18 @@ export const def = defineEndpoint({
             // /api/music/radio/{id}/stream so they never connect direct to the
             // Icecast/Shoutcast origin. Admins use /api/admin/radio instead.
             //
-            // Images are self-describing via images{} href map. The poster href
-            // points to the catalog image surface; it 404s when no local file
-            // exists (custom_poster_url is null), falling back to the 📻 UI placeholder.
+            // Images are self-describing via images{} href map. Only a station
+            // with a selected logo gets one; its revision goes into `v=` so a
+            // replaced logo is a new URL. No images → the 📻 UI placeholder.
             const items = rows.map((row) => ({
                 id: row.id,
                 type: 'radio' as const,
                 name: row.title,
                 genre: row.custom_metadata.genre as string | undefined,
                 nowPlaying: row.custom_metadata.now_playing as string | undefined,
-                images: row.custom_poster_url ? buildImageRefs(row.id, surface) : undefined,
+                images: row.logo_revision
+                    ? buildImageRefs(row.id, surface, row.logo_revision)
+                    : undefined,
             }));
 
             logger.debug('Radio stations listed', {

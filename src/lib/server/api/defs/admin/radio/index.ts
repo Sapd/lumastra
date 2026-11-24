@@ -29,7 +29,8 @@ import { assertNotPrivateUrl } from '$lib/server/utils/ssrf-guard.js';
 import { Logger } from '$lib/server/utils/logger.js';
 import { refreshSortTitles } from '$lib/server/database/queries/sort-title.queries.js';
 import type postgres from 'postgres';
-import { entityImageUrl } from '$lib/shared/api-urls.js';
+import { buildImageRefs } from '$lib/shared/api-urls.js';
+import { radioLogoRevisionSql } from '$lib/server/database/queries/radio-logo.queries.js';
 
 const logger = Logger.for('AdminRadioAPI');
 
@@ -39,7 +40,8 @@ interface RadioRow {
     id: string;
     title: string;
     custom_metadata: Record<string, unknown>;
-    custom_poster_url: string | null;
+    /** Revision of the selected logo; NULL when the station has none (radioLogoRevisionSql). */
+    logo_revision: string | null;
 }
 
 // ── response schemas ──────────────────────────────────────────────────────────
@@ -128,7 +130,7 @@ export const def = defineEndpoint({
                     id,
                     title,
                     COALESCE(custom_metadata, '{}'::jsonb) AS custom_metadata,
-                    custom_poster_url
+                    ${radioLogoRevisionSql(sql, 'media_items')} AS logo_revision
                 FROM media_items
                 WHERE media_type = 'radio'
                 ORDER BY title ASC
@@ -140,8 +142,8 @@ export const def = defineEndpoint({
                 streamUrl: (row.custom_metadata.stream_url as string) ?? '',
                 genre: row.custom_metadata.genre as string | undefined,
                 description: row.custom_metadata.description as string | undefined,
-                logoUrl: row.custom_poster_url
-                    ? entityImageUrl(row.id, 'poster', ctx.surface)
+                logoUrl: row.logo_revision
+                    ? buildImageRefs(row.id, ctx.surface, row.logo_revision).poster.href
                     : undefined,
                 nowPlaying: row.custom_metadata.now_playing as string | undefined,
                 metadataSource: row.custom_metadata.metadata_source as

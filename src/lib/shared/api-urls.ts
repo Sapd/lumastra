@@ -50,7 +50,8 @@ import { base } from '$app/paths';
 export type ApiSurface = 'internal' | 'v1';
 
 /** Image roles the entity-image route serves. */
-export type ImageRole = 'poster' | 'backdrop' | 'logo' | 'thumb' | 'still' | 'primary' | 'banner' | 'avatar';
+export type ImageRole =
+    'poster' | 'backdrop' | 'logo' | 'thumb' | 'still' | 'primary' | 'banner' | 'avatar';
 
 /**
  * Named size presets accepted by `{base}/media/{id}/images/{role}`.
@@ -196,15 +197,22 @@ export function buildCollageRefs(
  * bounded-preset URLs by default (cache-friendly, served immutable). The bare
  * `href` is the sizeless fallback (resolves to full); prefer `thumb` / `card` /
  * `full` for display.
+ *
+ * `revision` (optional, opaque) is appended as `v=` to every poster href, so a
+ * caller that knows when the poster changes gets a new URL instead of the
+ * browser's cached copy of the old one.
  */
-export function buildImageRefs(mediaId: string, surface: ApiSurface) {
+export function buildImageRefs(mediaId: string, surface: ApiSurface, revision?: string) {
     const b = `${apiBase(surface)}/media/${mediaId}/images`;
+    const v = revision ? `v=${encodeURIComponent(revision)}` : '';
+    const bare = v ? `?${v}` : '';
+    const sized = v ? `&${v}` : '';
     return {
         poster: {
-            href: `${b}/poster`,
-            thumb: `${b}/poster?size=thumb`,
-            card: `${b}/poster?size=card`,
-            full: `${b}/poster?size=full`,
+            href: `${b}/poster${bare}`,
+            thumb: `${b}/poster?size=thumb${sized}`,
+            card: `${b}/poster?size=card${sized}`,
+            full: `${b}/poster?size=full${sized}`,
         },
         backdrop: {
             href: `${b}/backdrop`,

@@ -6,7 +6,8 @@
  *
  * GET    /api/admin/media/[id]/images  — list artwork with inheritance
  * POST   /api/admin/media/[id]/images  — upload custom artwork (file or URL)
- * DELETE /api/admin/media/[id]/images?type=poster — delete custom artwork
+ * DELETE /api/admin/media/[id]/images?type=poster — hide the selected artwork
+ *        (&all=1 hides every image that would take its place, leaving the slot empty)
  *
  * Auth: admin.  Surface: internal-only.
  *
@@ -19,7 +20,6 @@
 import { projectDiscogsAttribution } from '$lib/shared/music-provenance';
 import { getMediaItemById } from '$lib/server/database/queries/admin-media.queries.js';
 import { adminMediaId } from '$lib/server/utils/admin-media-id.js';
-import { z } from 'zod';
 import { json } from '@sveltejs/kit';
 import { defineEndpoint } from '$lib/server/api/define.js';
 import { ApiProblem, isDependencyUnavailable } from '$lib/server/api/problem.js';
@@ -28,8 +28,13 @@ import { config } from '$lib/server/config.js';
 import {
     storeMediaImage,
     deleteMediaImage,
+    deleteMediaImageSlot,
 } from '$lib/server/services/media-image-storage.service.js';
-import { ImageUploadUrlSchema } from '$lib/schemas/media-image-upload.js';
+import {
+    ImageUploadUrlSchema,
+    ImageUploadResponseSchema,
+    ImageDeleteResponseSchema,
+} from '$lib/schemas/media-image-upload.js';
 import type { ArtworkType } from '$lib/server/utils/media-extras.js';
 import { isUuid } from '$lib/server/utils/media-key-parser.js';
 import { getArtworkWithInheritance } from '$lib/server/database/queries/media-artwork.queries.js';
@@ -70,23 +75,6 @@ function imageStorageProblem(mediaItemId: string, err: unknown): Response {
     const message = err instanceof Error ? err.message : String(err);
     return ApiProblem.internalError(`Could not store image: ${message}`);
 }
-
-// ---------------------------------------------------------------------------
-// Response schemas
-// ---------------------------------------------------------------------------
-
-export const ImageUploadResponseSchema = z.object({
-    filePath: z.string(),
-    serveUrl: z.string(),
-    undoId: z.uuid().optional(),
-});
-
-export const ImageDeleteResponseSchema = z.object({
-    deleted: z.boolean(),
-});
-
-export type ImageUploadResponse = z.infer<typeof ImageUploadResponseSchema>;
-export type ImageDeleteResponse = z.infer<typeof ImageDeleteResponseSchema>;
 
 // ---------------------------------------------------------------------------
 // def
@@ -269,12 +257,11 @@ export const def = defineEndpoint({
                 );
             }
 
-            const deleted = await deleteMediaImage(
-                sql,
-                internalId,
-                typeParam,
-                event.locals.user?.username ?? 'admin',
-            );
+            const actor = event.locals.user?.username ?? 'admin';
+            const deleted =
+                event.url.searchParams.get('all') === '1'
+                    ? await deleteMediaImageSlot(sql, internalId, typeParam, actor)
+                    : await deleteMediaImage(sql, internalId, typeParam, actor);
             return json(ImageDeleteResponseSchema.parse({ deleted }));
         },
     },
