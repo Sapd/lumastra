@@ -97,7 +97,7 @@ describe('buildBrowseOrderBy', () => {
 
     it('emits one term per key in order, with the SortName + id tiebreak', () => {
         const out = render('DateCreated,ProductionYear', 'Descending,Ascending');
-        const created = out.indexOf('mi.created_at DESC NULLS LAST');
+        const created = out.indexOf('COALESCE(mi.library_added_at, mi.created_at) DESC NULLS LAST');
         const year = out.indexOf('mi.year ASC NULLS FIRST');
         expect(created).toBeGreaterThanOrEqual(0);
         expect(year).toBeGreaterThan(created);
