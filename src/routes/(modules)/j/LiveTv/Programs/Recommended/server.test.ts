@@ -96,9 +96,19 @@ describe('GET /j/LiveTv/Programs/Recommended', () => {
     it('synthesizes one entry per channel when no EPG is airing', async () => {
         mockGetGuidePrograms.mockResolvedValue({});
         const body = await call('?isAiring=true');
-        expect(body.Items.map((i) => i.Id)).toEqual([`${NEWS}-live`, `${MOVIES}-live`]);
+        const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+        // Kotlin decodes Id as a UUID: the stand-in id must be one, not `{uuid}-live`.
+        for (const item of body.Items) expect(item.Id).toMatch(UUID);
+        expect(body.Items.map((i) => i.ChannelId)).toEqual([NEWS, MOVIES]);
         const movies = await call('?isAiring=true&isMovie=true');
-        expect(movies.Items.map((i) => i.Id)).toEqual([`${MOVIES}-live`]);
+        expect(movies.Items.map((i) => i.ChannelId)).toEqual([MOVIES]);
+    });
+
+    it('honours real ChannelIds and ignores placeholder tokens', async () => {
+        const body = await call(`?isAiring=true&channelIds=${NEWS}`);
+        expect(body.Items.map((i) => i.Id)).toEqual(['news-now']);
+        const placeholders = await call('?isAiring=true&channelIds=null&channelIds=null');
+        expect(placeholders.Items).toHaveLength(2);
     });
 
     it('returns an empty result without Live TV permission', async () => {

@@ -13,6 +13,7 @@ import {
     MAX_WINDOW_MS,
     programWindow,
     sortPrograms,
+    channelOfSyntheticProgram,
     syntheticLiveProgram,
     type ProgramEntry,
 } from './livetv-query';
@@ -279,14 +280,27 @@ describe('matchesFlagFilters', () => {
 });
 
 describe('synthetic programs', () => {
-    it('round-trips the channel id and spans the current UTC day', () => {
-        const p = syntheticLiveProgram(
-            { id: '11111111-1111-1111-1111-111111111111', name: 'One', sortOrder: 0 } as never,
-            NOW,
+    const channel = {
+        id: '11111111-1111-1111-1111-111111111111',
+        name: 'One',
+        sortOrder: 0,
+    } as never;
+
+    it('uses a UUID id, spans the current UTC day and resolves back to the channel', () => {
+        const p = syntheticLiveProgram(channel, NOW);
+        expect(p.id).toMatch(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
         );
-        expect(channelIdOfSyntheticProgram(p.id)).toBe('11111111-1111-1111-1111-111111111111');
         expect(p.startTime).toBe('2026-10-07T00:00:00.000Z');
         expect(p.endTime).toBe('2026-10-08T00:00:00.000Z');
+        expect(channelOfSyntheticProgram(p.id, [channel], NOW)).toBe(channel);
+        // still resolves after midnight UTC, and legacy ids keep working
+        const nextDay = new Date(NOW.getTime() + 24 * 60 * 60 * 1000);
+        expect(channelOfSyntheticProgram(p.id, [channel], nextDay)).toBe(channel);
+        expect(
+            channelOfSyntheticProgram(`${(channel as { id: string }).id}-live`, [channel], NOW),
+        ).toBe(channel);
+        expect(channelOfSyntheticProgram(p.id, [], NOW)).toBeUndefined();
         expect(channelIdOfSyntheticProgram('11111111-1111-1111-1111-111111111111')).toBeNull();
     });
 });

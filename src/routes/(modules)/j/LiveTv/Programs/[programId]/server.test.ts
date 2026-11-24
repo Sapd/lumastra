@@ -24,6 +24,7 @@ vi.mock('$lib/server/utils/logger', () => ({
 }));
 
 import { GET } from './+server';
+import { syntheticLiveProgram } from '$lib/server/jellyfin-compat/livetv-query';
 
 const CHANNEL = '11111111-1111-1111-1111-111111111111';
 const HIDDEN_CHANNEL = '33333333-3333-3333-3333-333333333333';
@@ -111,10 +112,20 @@ describe('GET /j/LiveTv/Programs/{programId}', () => {
     });
 
     it('resolves the synthetic no-EPG program Recommended serves', async () => {
-        const res = await call(`${CHANNEL}-live`);
+        const channel = (await mockGetChannels())[0];
+        const syntheticId = syntheticLiveProgram(channel, new Date()).id;
+        expect(syntheticId).toMatch(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+        );
+        const res = await call(syntheticId);
         expect(res.status).toBe(200);
         const body = await res.json();
-        expect(body).toMatchObject({ Id: `${CHANNEL}-live`, ChannelId: CHANNEL, IsLive: true });
+        expect(body).toMatchObject({ Id: syntheticId, ChannelId: CHANNEL, IsLive: true });
+        // The same id for a channel that is not in the visible lineup is unknown.
+        const hidden = syntheticLiveProgram({ ...channel, id: HIDDEN_CHANNEL }, new Date()).id;
+        expect((await call(hidden)).status).toBe(404);
+        // Legacy `{channelId}-live` ids still resolve.
+        expect((await call(`${CHANNEL}-live`)).status).toBe(200);
         expect((await call(`${HIDDEN_CHANNEL}-live`)).status).toBe(404);
     });
 });

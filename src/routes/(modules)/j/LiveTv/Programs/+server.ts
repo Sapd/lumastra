@@ -11,6 +11,7 @@ import { withJellyfinAuth } from '$lib/server/jellyfin-compat/middleware';
 import { ApiResponses } from '$lib/server/utils/api-responses';
 import { Logger } from '$lib/server/utils/logger';
 import { getLiveTvProvider } from '$lib/server/services/livetv/index';
+import { numberChannelsForLineup } from '$lib/server/services/livetv/channel-numbering';
 import { serializeProgram } from '$lib/server/jellyfin-compat/serializers/livetv';
 import {
     channelInfoMap,
@@ -56,9 +57,10 @@ async function handlePrograms(
     try {
         const provider = await getLiveTvProvider();
 
-        const [allChannels, programsByChannel] = await Promise.all([
+        const [allChannels, programsByChannel, categories] = await Promise.all([
             provider.getChannels(),
             provider.getGuidePrograms(window.start, window.end),
+            provider.getCategories(),
         ]);
 
         const channelInfo = channelInfoMap(allChannels);
@@ -67,16 +69,23 @@ async function handlePrograms(
         // then returns early when the device has no last-played Live TV channel, so
         // the array stays full of nulls and the guide asks for
         // `channelIds=null&channelIds=null&...`. Taking that literally filters every
-        // program out and the EPG renders empty until the user happens to play a
-        // channel. Drop placeholder tokens, and when nothing usable is left fall back
-        // to an unfiltered guide — the client keys its own dictionary by ChannelId.
+        // program out and the EPG renders empty. The array length is the page of
+        // channels the guide is drawing (75), counted from the top of the lineup it
+        // loaded from /LiveTv/Channels, so serve exactly that many channels from the
+        // top of the same lineup order. Serving every channel instead handed the
+        // client thousands of programmes on channels it never asked for.
         const usable = usableChannelIds(query.channelIdSources);
+        let requestedChannelIds: Set<string> | null = usable.length > 0 ? new Set(usable) : null;
         if (query.channelIdSources.length > 0 && usable.length === 0) {
             logger.warn(
-                `LiveTv/Programs: client sent ${query.channelIdSources.length} placeholder ChannelIds — serving unfiltered guide`,
+                `LiveTv/Programs: client sent ${query.channelIdSources.length} placeholder ChannelIds — serving the first ${query.channelIdSources.length} channels of the lineup`,
+            );
+            requestedChannelIds = new Set(
+                numberChannelsForLineup(allChannels, categories)
+                    .slice(0, query.channelIdSources.length)
+                    .map(({ channel }) => channel.id),
             );
         }
-        const requestedChannelIds = usable.length > 0 ? new Set(usable) : null;
 
         const entries: ProgramEntry[] = [];
 

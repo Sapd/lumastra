@@ -23,6 +23,7 @@ import { getParam, getParamAll } from '$lib/server/jellyfin-compat/utils';
 import { isRecord } from '$lib/utils/data-extraction';
 import { programFlagsForCategory } from '$lib/server/jellyfin-compat/serializers/livetv';
 import type { LiveTvChannel, LiveTvFeedProgram } from '$lib/schemas/livetv';
+import { programUuid } from '$lib/server/services/livetv/program-id';
 
 /** Explicit Limit sanity bound, and the default when a guide query sends none. */
 export const MAX_PROGRAM_LIMIT = 20000;
@@ -339,21 +340,36 @@ export function channelInfoMap(
     );
 }
 
-/** Suffix of the stand-in program Recommended serves per channel when there is no EPG. */
+/** Name suffix of the stand-in program Recommended serves per channel when there is no EPG. */
 const SYNTHETIC_PROGRAM_SUFFIX = '-live';
+
+function utcDayStart(now: Date): Date {
+    const dayStart = new Date(now);
+    dayStart.setUTCHours(0, 0, 0, 0);
+    return dayStart;
+}
+
+/**
+ * Id of the stand-in program: a v5 UUID over (`{channelId}-live`, day start).
+ * The Kotlin SDK decodes every Id/ChannelId as a UUID, so a `{uuid}-live` string
+ * would throw in the client. The hashed name differs from any real programme's,
+ * so it never collides with a persisted programme id.
+ */
+function syntheticProgramId(channelId: string, dayStart: Date): string {
+    return programUuid(`${channelId}${SYNTHETIC_PROGRAM_SUFFIX}`, dayStart);
+}
 
 /**
  * The stand-in "On Air" program for a channel without EPG data: the channel's
  * name over the current UTC day. Recommended serves one per channel so the
  * Android TV Live TV row stays visible; Programs/{id} resolves the same id
- * when a client opens one.
+ * when a client opens one (see {@link channelOfSyntheticProgram}).
  */
 export function syntheticLiveProgram(channel: LiveTvChannel, now: Date): LiveTvFeedProgram {
-    const dayStart = new Date(now);
-    dayStart.setUTCHours(0, 0, 0, 0);
+    const dayStart = utcDayStart(now);
     const dayEnd = new Date(dayStart.getTime() + 24 * HOUR_MS);
     return {
-        id: `${channel.id}${SYNTHETIC_PROGRAM_SUFFIX}`,
+        id: syntheticProgramId(channel.id, dayStart),
         channelId: channel.id,
         title: channel.name,
         startTime: dayStart.toISOString(),
@@ -361,7 +377,29 @@ export function syntheticLiveProgram(channel: LiveTvChannel, now: Date): LiveTvF
     };
 }
 
-/** The channel id inside a synthetic program id, or null for any other id. */
+/**
+ * The channel a synthetic program id belongs to, or undefined for any other id.
+ * Matches today's and yesterday's id (a client may hold one across midnight UTC)
+ * and the legacy `{channelId}-live` form older builds served.
+ */
+export function channelOfSyntheticProgram(
+    programId: string,
+    channels: LiveTvChannel[],
+    now: Date,
+): LiveTvChannel | undefined {
+    const legacy = channelIdOfSyntheticProgram(programId);
+    if (legacy) return channels.find((c) => c.id === legacy);
+    const today = utcDayStart(now);
+    const yesterday = new Date(today.getTime() - 24 * HOUR_MS);
+    const wanted = programId.toLowerCase();
+    return channels.find(
+        (c) =>
+            syntheticProgramId(c.id, today) === wanted ||
+            syntheticProgramId(c.id, yesterday) === wanted,
+    );
+}
+
+/** The channel id inside a legacy `{channelId}-live` program id, or null for any other id. */
 export function channelIdOfSyntheticProgram(programId: string): string | null {
     return programId.endsWith(SYNTHETIC_PROGRAM_SUFFIX)
         ? programId.slice(0, -SYNTHETIC_PROGRAM_SUFFIX.length)

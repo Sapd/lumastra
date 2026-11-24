@@ -17,13 +17,11 @@ import {
     programWindow,
     sortPrograms,
     syntheticLiveProgram,
+    usableChannelIds,
     type ProgramEntry,
 } from '$lib/server/jellyfin-compat/livetv-query';
 
-import {
-    parseDtoOptions,
-    shapeItemsResponse,
-} from '$lib/server/jellyfin-compat/dto-options';
+import { parseDtoOptions, shapeItemsResponse } from '$lib/server/jellyfin-compat/dto-options';
 
 const logger = Logger.for('JellyfinCompat:LiveTv:Programs:Recommended');
 
@@ -73,8 +71,14 @@ export const GET: RequestHandler = withJellyfinAuth(async (event) => {
         const channelInfo = channelInfoMap(channels);
         const channelSortOrder = new Map(channels.map((ch) => [ch.id, ch.sortOrder]));
 
+        // Honour a ChannelIds filter when the client sends real ids (Programs does the
+        // same); placeholder tokens like "null" are ignored.
+        const usable = usableChannelIds(query.channelIdSources);
+        const wantedChannels = usable.length > 0 ? new Set(usable) : null;
+
         const entries: ProgramEntry[] = [];
         for (const [channelId, channelPrograms] of Object.entries(programsByChannel)) {
+            if (wantedChannels && !wantedChannels.has(channelId)) continue;
             const info = channelInfo.get(channelId);
             for (const program of channelPrograms) {
                 entries.push({

@@ -502,6 +502,43 @@ describe('/j Live TV contract', () => {
         expect(body.Items).toHaveLength(2);
     });
 
+    it('LiveTv/Programs with the Android TV placeholder ChannelIds (page-sized, UUID ids)', async () => {
+        const body = (await get(
+            'livetv-programs-placeholders',
+            'BaseItemDtoQueryResult',
+            liveTvProgramsGet,
+            `/j/LiveTv/Programs?UserId=${LIVETV_USER_ID}&ChannelIds=null&ChannelIds=null&Limit=100`,
+            {},
+            liveToken,
+        )) as { Items: Array<{ ChannelId: string }>; TotalRecordCount: number; StartIndex: number };
+        // two placeholders = the first two channels of the lineup, nothing else
+        expect(new Set(body.Items.map((i) => i.ChannelId))).toEqual(new Set(channelIds));
+        expect(body.TotalRecordCount).toBe(body.Items.length);
+        expect(body.StartIndex).toBe(0);
+    });
+
+    it('LiveTv/Programs/Recommended without EPG serves UUID stand-in ids', async () => {
+        await sql`DELETE FROM livetv_programs`;
+        const body = (await get(
+            'livetv-programs-recommended-no-epg',
+            'BaseItemDtoQueryResult',
+            liveTvRecommendedGet,
+            `/j/LiveTv/Programs/Recommended?UserId=${LIVETV_USER_ID}&IsAiring=true&Limit=10`,
+            {},
+            liveToken,
+        )) as { Items: Array<{ Id: string }> };
+        expect(body.Items).toHaveLength(2);
+        const standIn = body.Items[0].Id;
+        await get(
+            'livetv-program-stand-in',
+            'BaseItemDto',
+            liveTvProgramGet,
+            `/j/LiveTv/Programs/${standIn}?UserId=${LIVETV_USER_ID}`,
+            { programId: standIn },
+            liveToken,
+        );
+    });
+
     it('LiveTv/Channels/{channelId}', async () => {
         const body = (await get(
             'livetv-channel',

@@ -13,7 +13,7 @@ import { getLiveTvProvider } from '$lib/server/services/livetv/index';
 import { hasLiveTvPermission } from '$lib/server/jellyfin-compat/utils';
 import { serializeProgram } from '$lib/server/jellyfin-compat/serializers/livetv';
 import {
-    channelIdOfSyntheticProgram,
+    channelOfSyntheticProgram,
     syntheticLiveProgram,
 } from '$lib/server/jellyfin-compat/livetv-query';
 
@@ -37,30 +37,29 @@ export const GET: RequestHandler = withJellyfinAuth(async (event) => {
 
     try {
         const provider = await getLiveTvProvider();
-        const syntheticChannelId = channelIdOfSyntheticProgram(programId);
-        const channelId = syntheticChannelId ?? programId;
-        if (!isUuid(channelId)) {
+        if (!isUuid(programId) && !programId.endsWith('-live')) {
             return ApiResponses.notFound('Program not found');
-        }
-
-        if (syntheticChannelId) {
-            const channel = (await provider.getChannels()).find((c) => c.id === channelId);
-            if (!channel) return ApiResponses.notFound('Program not found');
-            return json(
-                serializeProgram(
-                    syntheticLiveProgram(channel, new Date()),
-                    channel.name,
-                    true,
-                    Boolean(channel.images.primary?.href),
-                    channel.category,
-                ),
-            );
         }
 
         const sql = getDb();
-        const row = sql ? await getProgramById(sql, programId) : null;
+        const row = isUuid(programId) && sql ? await getProgramById(sql, programId) : null;
         if (!row) {
-            return ApiResponses.notFound('Program not found');
+            // Not a persisted programme: it may be a per-channel "On Air" stand-in.
+            const synthetic = channelOfSyntheticProgram(
+                programId,
+                await provider.getChannels(),
+                new Date(),
+            );
+            if (!synthetic) return ApiResponses.notFound('Program not found');
+            return json(
+                serializeProgram(
+                    syntheticLiveProgram(synthetic, new Date()),
+                    synthetic.name,
+                    true,
+                    Boolean(synthetic.images.primary?.href),
+                    synthetic.category,
+                ),
+            );
         }
 
         // getChannels() is the visible lineup; a program on a hidden channel 404s.

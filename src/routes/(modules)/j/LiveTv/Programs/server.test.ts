@@ -13,9 +13,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.setConfig({ testTimeout: 30_000 });
 
-const { mockGetChannels, mockGetGuidePrograms } = vi.hoisted(() => ({
+const { mockGetChannels, mockGetGuidePrograms, mockGetCategories } = vi.hoisted(() => ({
     mockGetChannels: vi.fn(),
     mockGetGuidePrograms: vi.fn(),
+    mockGetCategories: vi.fn(),
 }));
 
 vi.mock('$lib/server/jellyfin-compat/middleware', () => ({
@@ -26,6 +27,7 @@ vi.mock('$lib/server/services/livetv/index', () => ({
     getLiveTvProvider: vi.fn().mockResolvedValue({
         getChannels: mockGetChannels,
         getGuidePrograms: mockGetGuidePrograms,
+        getCategories: mockGetCategories,
     }),
 }));
 
@@ -101,6 +103,7 @@ async function callPost(body: unknown): Promise<{
 describe('/j/LiveTv/Programs', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockGetCategories.mockResolvedValue([]);
         mockGetChannels.mockResolvedValue([
             { id: CHANNEL_A, name: 'Channel A', sortOrder: 1, images: {} },
             { id: CHANNEL_B, name: 'Channel B', sortOrder: 2, images: {} },
@@ -116,6 +119,24 @@ describe('/j/LiveTv/Programs', () => {
 
         expect(body.Items).toHaveLength(2);
         expect(body.Items.map((item) => item.ChannelId).sort()).toEqual([CHANNEL_A, CHANNEL_B]);
+    });
+
+    it('placeholder ChannelIds serve only as many channels as the client asked for, from the top of the lineup', async () => {
+        const CHANNEL_C = '33333333-3333-3333-3333-333333333333';
+        mockGetChannels.mockResolvedValue([
+            { id: CHANNEL_C, name: 'Channel C', sortOrder: 3, images: {} },
+            { id: CHANNEL_A, name: 'Channel A', sortOrder: 1, images: {} },
+            { id: CHANNEL_B, name: 'Channel B', sortOrder: 2, images: {} },
+        ]);
+        mockGetGuidePrograms.mockResolvedValue({
+            [CHANNEL_A]: [makeProgram(CHANNEL_A, 10)],
+            [CHANNEL_B]: [makeProgram(CHANNEL_B, 20)],
+            [CHANNEL_C]: [makeProgram(CHANNEL_C, 30)],
+        });
+        const body = await callGet('?channelIds=null&channelIds=null');
+
+        expect(body.Items.map((item) => item.ChannelId)).toEqual([CHANNEL_A, CHANNEL_B]);
+        expect(body.TotalRecordCount).toBe(2);
     });
 
     it('still filters normally when real channel ids are supplied', async () => {
@@ -179,6 +200,7 @@ describe('/j/LiveTv/Programs', () => {
 describe('/j/LiveTv/Programs Jellyfin query params', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockGetCategories.mockResolvedValue([]);
         mockGetChannels.mockResolvedValue([
             { id: CHANNEL_A, name: 'Channel A', sortOrder: 1, images: {}, category: 'Movies' },
             { id: CHANNEL_B, name: 'Channel B', sortOrder: 2, images: {}, category: 'News' },
