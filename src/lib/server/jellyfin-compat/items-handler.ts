@@ -191,6 +191,10 @@ export interface ItemsQuery {
     hasParentalRating: boolean | null;
     /** `MaxOfficialRating` as an age; null when absent or not a known rating. */
     maxAge: number | null;
+    /** `MinPremiereDate` / `MaxPremiereDate` (valid ISO timestamps only) and `IsUnaired`. */
+    minPremiereDate: string | null;
+    maxPremiereDate: string | null;
+    isUnaired: boolean | null;
     /**
      * `CollapseBoxSetItems`: read, and nothing to do — Lumastra has no
      * collections (BoxSets, see collections.ts), so no item is ever folded
@@ -278,9 +282,22 @@ export function parseItemsQuery(url: URL): ItemsQuery {
         albumArtistIds: capDistinct(normalizeUuids(csv(getParam(url, 'AlbumArtistIds')))),
         hasParentalRating: bool(getParam(url, 'HasParentalRating')),
         maxAge: maxAgeOf(getParam(url, 'MaxOfficialRating')),
+        minPremiereDate: isoParam(getParam(url, 'MinPremiereDate')),
+        maxPremiereDate: isoParam(getParam(url, 'MaxPremiereDate')),
+        isUnaired: bool(getParam(url, 'IsUnaired')),
         collapseBoxSetItems: bool(getParam(url, 'CollapseBoxSetItems')),
         dto: parseDtoOptions(url),
     };
+}
+
+/** A timestamp query value Postgres will accept; anything else is ignored. */
+function isoParam(value: string | null): string | null {
+    const v = value?.trim();
+    return v &&
+        /^\d{4}-\d{2}-\d{2}([T ][\d:.]+)?(Z|[+-]\d{2}:?\d{2})?$/.test(v) &&
+        !isNaN(Date.parse(v))
+        ? v
+        : null;
 }
 
 /** `MaxOfficialRating` (PG-13, TV-MA, FSK 16, …) as an age, like Jellyfin's rating score. */
@@ -304,7 +321,10 @@ function hasListFilter(q: ItemsQuery): boolean {
         q.albumArtistIds.length > 0 ||
         // HasParentalRating=true filters nothing (Jellyfin), so it keeps root views.
         q.hasParentalRating === false ||
-        q.maxAge !== null
+        q.maxAge !== null ||
+        q.minPremiereDate !== null ||
+        q.maxPremiereDate !== null ||
+        q.isUnaired !== null
     );
 }
 
@@ -403,6 +423,9 @@ function browseFilters(q: ItemsQuery): Partial<BrowseItemsOptions> {
         // max rating is also given; HasParentalRating=true filters nothing.
         unratedOnly: q.hasParentalRating === false && q.maxAge === null,
         maxAge: q.maxAge,
+        minPremiereDate: q.minPremiereDate,
+        maxPremiereDate: q.maxPremiereDate,
+        isUnaired: q.isUnaired,
         // EnableTotalRecordCount=false: no count at all (Jellyfin reports the page size).
         skipCount: !q.dto.enableTotalRecordCount,
     };

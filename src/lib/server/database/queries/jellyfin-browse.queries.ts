@@ -288,7 +288,9 @@ function sortKeyExpression(
         case 'Name':
             return sql`LOWER(mi.title) COLLATE "C"`;
         case 'DateCreated':
-            return sql`mi.created_at`;
+            // When the file landed in the library (library_added_at), not when the
+            // catalog row was made: a show's episodes share one created_at.
+            return sql`COALESCE(mi.library_added_at, mi.created_at)`;
         case 'PremiereDate':
             // Jellyfin falls back to Jan 1 of the production year.
             return sql`COALESCE(mi.premiere_date, CASE WHEN mi.year BETWEEN 1 AND 9999 THEN make_date(mi.year, 1, 1) END)`;
@@ -485,6 +487,15 @@ export interface BrowseItemsOptions {
      * out, unrated items pass (blocking those is the profile's job).
      */
     maxAge?: number | null;
+    /**
+     * Jellyfin `MinPremiereDate` / `MaxPremiereDate` (ISO timestamps, validated
+     * by the caller): items premiered on/after / on/before it. Items without a
+     * premiere date never match, like Jellyfin.
+     */
+    minPremiereDate?: string | null;
+    maxPremiereDate?: string | null;
+    /** Jellyfin `IsUnaired`: true = premiere still ahead, false = already out (or undated). */
+    isUnaired?: boolean | null;
 }
 
 type Fragment = postgres.PendingQuery<postgres.Row[]>;
@@ -713,6 +724,9 @@ export async function browseMediaItems(
         unratedOnly,
         maxAge,
         skipCount,
+        minPremiereDate,
+        maxPremiereDate,
+        isUnaired,
     } = options;
     // The very expression SortName orders by (episodes and seasons included), and
     // boundaries normalized like the stored sort keys, so NameLessThan /
@@ -769,8 +783,10 @@ export async function browseMediaItems(
                   -- just the series. When mediaTypes IS set (e.g. a recursive
                   -- IncludeItemTypes=Episode scan), the mi.media_type = ANY(...)
                   -- guard above already scopes rows correctly, so only
-                  -- suppress episodes here in the unscoped case.
-                  ${mediaTypes.length === 0 ? sql`mi.media_type != 'episode' AND` : sql``}
+                  -- suppress episodes here in the unscoped case. A RECURSIVE
+                  -- untyped scan (Wholphin's "recently released" row) is
+                  -- Jellyfin's full descendant walk: episodes belong in it.
+                  ${mediaTypes.length === 0 && !recursive ? sql`mi.media_type != 'episode' AND` : sql``}
                   EXISTS (
                       SELECT 1 FROM media_file_items _mfi
                       JOIN media_files _mf ON _mf.id = _mfi.file_id
@@ -870,6 +886,10 @@ export async function browseMediaItems(
           }
           ${unratedOnly ? sql`AND ${seriesOwnedAgeRatingExpression(sql)} IS NULL` : sql``}
           ${maxAge !== null && maxAge !== undefined ? sql`AND COALESCE(${seriesOwnedAgeRatingExpression(sql)} <= ${maxAge}, true)` : sql``}
+          ${minPremiereDate ? sql`AND mi.premiere_date >= ${minPremiereDate}::timestamptz` : sql``}
+          ${maxPremiereDate ? sql`AND mi.premiere_date <= ${maxPremiereDate}::timestamptz` : sql``}
+          ${isUnaired === true ? sql`AND mi.premiere_date > now()` : sql``}
+          ${isUnaired === false ? sql`AND (mi.premiere_date IS NULL OR mi.premiere_date <= now())` : sql``}
           ${buildLibraryAccessFilter(sql, access.library)}
           ${buildSeriesOwnedAgeRatingFilter(sql, access.age)}
     `;

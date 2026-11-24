@@ -131,4 +131,47 @@ describe('resolveLatestIds (GroupItems=true, HidePlayedInLatest)', () => {
         const { slots } = await resolveLatestIds(sql, q, userId, unrestrictedAccess());
         expect(slots.map((s) => s.id)).toEqual([bNew, aOld]);
     });
+
+    it("Wholphin's recently-added request (ParentId + GroupItems=true) shows a series with several new episodes once", async () => {
+        const [group] = await sql<{ id: string }[]>`
+            INSERT INTO library_groups (name) VALUES ('Wholphin TV') RETURNING id`;
+        const s = await item('The Body', 'tv', null);
+        const s1 = await item('Season 1', 'season', s);
+        const s2 = await item('Season 2', 'season', s);
+        await item('The Body old', 'episode', s1, ago(500), group.id);
+        for (let n = 2; n <= 7; n++) await item(`The Body F${n}`, 'episode', s2, ago(n), group.id);
+
+        const q = parseLatestQuery(
+            new URL(
+                `http://x/Items/Latest?userId=${userId}&ParentId=${group.id}&GroupItems=true&Limit=16&ImageTypeLimit=1&Fields=PrimaryImageAspectRatio`,
+            ),
+        );
+        const { slots } = await resolveLatestIds(sql, q, userId, unrestrictedAccess());
+        // One tile for the series' six new episodes (its season: the series has two), never six episodes.
+        expect(slots.map((x) => x.id)).toEqual([s2]);
+    });
+
+    it('prod shape: one tv row, one season, 8 episodes added minutes apart -> ONE series slot', async () => {
+        const [group] = await sql<{ id: string }[]>`
+            INSERT INTO library_groups (name) VALUES ('Series') RETURNING id`;
+        const base = Date.parse('2026-11-23T10:34:00Z');
+        const t = (min: number) => new Date(base + min * 60_000).toISOString();
+        const [s] = await sql<{ id: string }[]>`
+            INSERT INTO media_items (title, media_type, status, has_files, library_group_id, age_rating)
+            VALUES ('The Body', 'tv', 'active', true, ${group.id}, 18) RETURNING id`;
+        const season = await item('Season 1', 'season', s.id);
+        await sql`UPDATE media_items SET season_number = 1 WHERE id = ${season}`;
+        const minutes = [0, 13, 2, 7, 9, 4, 5, 12]; // E1..E8, as on prod
+        for (const [i, m] of minutes.entries()) {
+            const id = await item(`E${i + 1}`, 'episode', season, t(m), group.id);
+            await sql`UPDATE media_items SET season_number = 1, episode_number = ${i + 1} WHERE id = ${id}`;
+        }
+        const q = parseLatestQuery(
+            new URL(
+                `http://x/Items/Latest?ParentId=${group.id}&GroupItems=true&Limit=16&ImageTypeLimit=1`,
+            ),
+        );
+        const { slots } = await resolveLatestIds(sql, q, userId, unrestrictedAccess());
+        expect(slots.map((x) => x.id)).toEqual([s.id]);
+    });
 });

@@ -101,3 +101,20 @@ describe('expandLanguageCodes', () => {
         expect(expandLanguageCodes([''])).toEqual([]);
     });
 });
+
+describe('parseItemsQuery: Wholphin "recently released" row', () => {
+    it('reads MaxPremiereDate and IsUnaired, and ignores a malformed date', () => {
+        const q = parse(
+            'ParentId=0f8fad5b-d9cb-469f-a165-70867728950e&Recursive=true&Limit=20' +
+                '&SortBy=PremiereDate&SortBy=SeriesSortName&SortBy=AiredEpisodeOrder' +
+                '&SortOrder=Descending&SortOrder=Ascending&SortOrder=Descending' +
+                '&MaxPremiereDate=2026-11-24T10:15:30.123&IsUnaired=false',
+        );
+        expect(q.recursive).toBe(true);
+        expect(q.includeItemTypes).toBeNull();
+        expect(q.maxPremiereDate).toBe('2026-11-24T10:15:30.123');
+        expect(q.isUnaired).toBe(false);
+        expect(q.minPremiereDate).toBeNull();
+        expect(parse('MaxPremiereDate=not-a-date').maxPremiereDate).toBeNull();
+    });
+});
