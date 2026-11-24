@@ -348,7 +348,10 @@ export function buildNamespacedCache(pluginId: string): NamespacedCache {
             try {
                 const client = getValkeyClient();
                 if (!client) return;
-                const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+                // Always JSON: `get` JSON-parses, so a string written raw (a
+                // sweep's UUID cursor) read back as null and the sweep never
+                // advanced past its first page.
+                const serialized = JSON.stringify(value);
                 const cmd = ttlMs
                     ? ['SET', `${prefix}${key}`, serialized, 'PX', String(ttlMs)]
                     : ['SET', `${prefix}${key}`, serialized];

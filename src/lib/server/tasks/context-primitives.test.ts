@@ -368,6 +368,36 @@ describe('buildNamespacedCache', () => {
         expect(value).toBeNull();
         vi.doUnmock('$lib/server/cache/valkey.js');
     });
+
+    it('round-trips a plain string value (sweep cursors)', async () => {
+        // The cursor-based sweeps (artwork-reaper, file-reconcile,
+        // integrity-scanner, reconciliation-backfill, episode-thumbnail-generate)
+        // store a bare UUID string. `set` used to write strings raw while `get`
+        // JSON-parses, so the cursor read back as null and every run restarted
+        // at the first page: the artwork reaper re-checked the same ~2000 of
+        // 71k items on prod forever and never reached the dangling rows.
+        vi.resetModules();
+        const store = new Map<string, string>();
+        const customCommand = vi.fn(async (cmd: string[]) => {
+            if (cmd[0] === 'SET') {
+                store.set(cmd[1], cmd[2]);
+                return 'OK';
+            }
+            if (cmd[0] === 'GET') return store.get(cmd[1]) ?? null;
+            return null;
+        });
+        vi.doMock('$lib/server/cache/valkey.js', () => ({
+            getValkeyClient: () => ({ customCommand }),
+        }));
+        const { buildNamespacedCache } = await import('./context-primitives.js');
+        const cache = buildNamespacedCache('plug-x');
+        const cursor = '93082f1c-0069-498e-bd52-b0822300f4ab';
+        await cache.set('cursor', cursor, 60_000);
+        expect(await cache.get<string>('cursor')).toBe(cursor);
+        await cache.set('obj', { filePath: '/a', misses: 2 });
+        expect(await cache.get('obj')).toEqual({ filePath: '/a', misses: 2 });
+        vi.doUnmock('$lib/server/cache/valkey.js');
+    });
 });
 
 // ── buildHttpClient — default rate cap for ctx.http (TASK-C6) ─────────────────
