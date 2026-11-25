@@ -73,8 +73,9 @@ export async function getSeasonEpisodeIds(
  * is guarded: a bare `::int` on a value like "3/12" would fail the whole
  * statement. Positions follow `parseTagPosition` in track-projection.ts: a
  * positive integer, or a string's leading digits; anything else counts as
- * missing. A track with no position sorts last. The track row must be
- * aliased `m`.
+ * missing. Tracks without a position come last, by title: the album endpoint
+ * (`getAlbumWithTracks`) breaks ties by title and the album view keeps that
+ * order. The track row must be aliased `m`.
  */
 export function albumTrackOrderSql(sql: postgres.Sql): postgres.PendingQuery<postgres.Row[]> {
     return sql`
@@ -110,6 +111,7 @@ export function albumTrackOrderSql(sql: postgres.Sql): postgres.PendingQuery<pos
             999999
         ),
         m.sort_order NULLS LAST,
+        m.title,
         m.id
     `;
 }

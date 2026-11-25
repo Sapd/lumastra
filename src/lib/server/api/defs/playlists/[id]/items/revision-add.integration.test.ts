@@ -150,10 +150,12 @@ describe('playlist add and revision protocol', () => {
             [b, { track_number: '2/4' }, null],
             [c, {}, 1],
             [d, { track_number: 3, disc_number: 'x' }, null],
-            // Not a position (as in parseTagPosition): falls back, then sorts last.
+            // Not a position (as in parseTagPosition): these sort last, by title.
             [e, { track_number: 0 }, null],
             [g, { track_number: 'abc', disc_number: 2.5 }, null],
         ];
+        await f.sql`UPDATE media_items SET title = 'Zebra' WHERE id = ${e}::uuid`;
+        await f.sql`UPDATE media_items SET title = 'Apple' WHERE id = ${g}::uuid`;
         for (const [id, meta, sortOrder] of tags) {
             await f.sql`
                 UPDATE media_items
@@ -162,7 +164,7 @@ describe('playlist add and revision protocol', () => {
                 WHERE id = ${id}::uuid
             `;
         }
-        const expected = [c, b, d, ...[e, g].sort(), a];
+        const expected = [c, b, d, g, e, a];
 
         const result = await f.add([music.albumId]);
         expect(result.results[0].entries.map((entry) => entry.mediaId)).toEqual(expected);
