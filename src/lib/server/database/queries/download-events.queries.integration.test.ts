@@ -12,6 +12,8 @@ import {
     deleteDownloadEventsOlderThan,
     endDownloadEvent,
     listDownloadEvents,
+    listDownloadGroupMembers,
+    listDownloadGroups,
     mergeTinyRangeEvent,
     recordRefusedDownload,
     startDownloadEvent,
@@ -212,12 +214,16 @@ describe('download-events queries', () => {
                 seriesTitle: null,
                 season: null,
                 episode: null,
+                artist: null,
+                album: null,
             });
             expect(t.get(ids.ep)).toEqual({
                 title: 'Pilot',
                 seriesTitle: 'Example Show',
                 season: 2,
                 episode: 5,
+                artist: null,
+                album: null,
             });
             expect(t.get(ids.epDirect)).toMatchObject({
                 title: 'Special',
@@ -534,6 +540,177 @@ describe('download-events queries', () => {
             expect(rows.find((r) => r.mediaItemId === ITEM)).toMatchObject({
                 kind: 'file',
                 fileId: null,
+            });
+        });
+    });
+    describe('grouped history', () => {
+        const M = {
+            artist: '55555555-5555-4555-8555-000000000001',
+            album: '55555555-5555-4555-8555-000000000002',
+            t1: '55555555-5555-4555-8555-000000000003',
+            t2: '55555555-5555-4555-8555-000000000004',
+            t3: '55555555-5555-4555-8555-000000000005',
+            series: '55555555-5555-4555-8555-000000000006',
+            season: '55555555-5555-4555-8555-000000000007',
+            e1: '55555555-5555-4555-8555-000000000008',
+            e2: '55555555-5555-4555-8555-000000000009',
+            movie: '55555555-5555-4555-8555-00000000000a',
+        };
+
+        beforeAll(async () => {
+            await sql`DELETE FROM media_items WHERE id IN ${sql(Object.values(M))}`;
+            await sql`INSERT INTO media_items (id, title, media_type, status) VALUES
+                (${M.artist}, 'Example Band', 'artist', 'active'),
+                (${M.series}, 'Example Show', 'tv', 'active'),
+                (${M.movie}, 'A Movie', 'movie', 'active')`;
+            await sql`INSERT INTO media_items (id, title, media_type, status, parent_id, season_number) VALUES
+                (${M.album}, 'Example Album', 'album', 'active', ${M.artist}, NULL),
+                (${M.season}, 'Season 2', 'season', 'active', ${M.series}, 2)`;
+            await sql`INSERT INTO media_items (id, title, media_type, status, parent_id, season_number, episode_number) VALUES
+                (${M.t1}, 'Song One', 'track', 'active', ${M.album}, NULL, NULL),
+                (${M.t2}, 'Song Two', 'track', 'active', ${M.album}, NULL, NULL),
+                (${M.t3}, 'Song Three', 'track', 'active', ${M.album}, NULL, NULL),
+                (${M.e1}, 'Pilot', 'episode', 'active', ${M.season}, 2, 1),
+                (${M.e2}, 'Second', 'episode', 'active', ${M.season}, 2, 2)`;
+        });
+        afterAll(async () => {
+            await sql`DELETE FROM media_items WHERE id IN ${sql(Object.values(M))}`;
+        });
+
+        /** A logged download that started `ago` minutes ago and ran `mins` minutes. */
+        async function ev(o: {
+            media: string;
+            ago: number;
+            mins?: number;
+            device?: string;
+            outcome?: string | null;
+            kind?: 'file' | 'archive';
+            bytes?: number;
+            user?: string;
+        }): Promise<string> {
+            const outcome = o.outcome === undefined ? 'completed' : o.outcome;
+            const rows = await sql<{ id: string }[]>`
+                INSERT INTO download_events
+                    (user_id, media_item_id, kind, surface, device_key, client_name,
+                     bytes_total, bytes_sent, started_at, last_activity_at, ended_at, outcome,
+                     open_streams)
+                VALUES (${o.user ?? userId}, ${o.media}, ${o.kind ?? 'file'}, 'api',
+                        ${o.device ?? 'dev-1'}, 'Tempus', ${o.bytes ?? 10}, ${o.bytes ?? 10},
+                        now() - make_interval(mins => ${o.ago}),
+                        now() - make_interval(mins => ${o.ago}) + make_interval(mins => ${o.mins ?? 0}),
+                        CASE WHEN ${outcome}::text IS NULL THEN NULL
+                             ELSE now() - make_interval(mins => ${o.ago}) + make_interval(mins => ${o.mins ?? 0}) END,
+                        ${outcome}, CASE WHEN ${outcome}::text IS NULL THEN 1 ELSE 0 END)
+                RETURNING id`;
+            return rows[0]!.id;
+        }
+
+        it('folds a burst of tracks into one row named by its album; a gap over 10 minutes starts a new one', async () => {
+            const a = await ev({ media: M.t1, ago: 100, bytes: 5 });
+            await ev({ media: M.t2, ago: 99, bytes: 6 });
+            await ev({ media: M.t3, ago: 95, bytes: 7 });
+            const later = await ev({ media: M.t1, ago: 60 });
+
+            const groups = await listDownloadGroups(sql, { userId, limit: 10 });
+            expect(groups).toHaveLength(2);
+            expect(groups[0]).toMatchObject({ id: later, count: 1, mediaItemId: M.t1 });
+            expect(groups[1]).toMatchObject({
+                id: a,
+                count: 3,
+                mediaClass: 'music',
+                mediaType: 'track',
+                contextId: M.album,
+                bytesSent: 18,
+                bytesTotal: 18,
+                outcome: 'completed',
+                clientName: 'Tempus',
+            });
+            // the newest member's item, for a group of one
+            expect(groups[1]!.mediaItemId).toBe(M.t3);
+        });
+
+        it('measures the gap from the last activity before it, so a long download keeps its season together', async () => {
+            const first = await ev({ media: M.e1, ago: 100, mins: 30 });
+            await ev({ media: M.e2, ago: 65 });
+            const [g] = await listDownloadGroups(sql, { userId, limit: 10 });
+            expect(g).toMatchObject({
+                id: first,
+                count: 2,
+                mediaClass: 'video',
+                mediaType: 'episode',
+                contextId: M.series,
+                season: 2,
+            });
+        });
+
+        it('splits by device, outcome and kind; archives stand alone; running rows are left out', async () => {
+            await ev({ media: M.t1, ago: 50 });
+            await ev({ media: M.t2, ago: 50, device: 'dev-2' });
+            await ev({ media: M.t3, ago: 49, outcome: 'denied' });
+            await ev({ media: M.movie, ago: 49 });
+            await ev({ media: M.series, ago: 48, kind: 'archive' });
+            await ev({ media: M.series, ago: 48, kind: 'archive' });
+            await ev({ media: M.t3, ago: 47, outcome: null, device: 'dev-3' });
+
+            const groups = await listDownloadGroups(sql, { userId, limit: 10 });
+            expect(groups).toHaveLength(6);
+            expect(groups.every((g) => g.count === 1)).toBe(true);
+            expect(groups.filter((g) => g.kind === 'archive')).toHaveLength(2);
+        });
+
+        it('filters by kind and user and pages by the newest row of each group without repeats', async () => {
+            for (let i = 0; i < 4; i++) {
+                await ev({ media: M.t1, ago: 200 - i * 30 });
+                await ev({ media: M.t2, ago: 199 - i * 30 });
+                await ev({ media: M.movie, ago: 198 - i * 30, device: 'tv' });
+            }
+            const all = await listDownloadGroups(sql, { userId, limit: 50 });
+            expect(all).toHaveLength(8);
+            const paged: string[] = [];
+            let before: string | undefined;
+            for (;;) {
+                const page = await listDownloadGroups(sql, { userId, limit: 3, before });
+                paged.push(...page.map((g) => g.id));
+                if (page.length < 3) break;
+                before = page[page.length - 1]!.cursor;
+            }
+            expect(paged).toEqual(all.map((g) => g.id));
+
+            const music = await listDownloadGroups(sql, { userId, mediaClass: 'music', limit: 50 });
+            expect(music).toHaveLength(4);
+            expect(music.every((g) => g.mediaClass === 'music' && g.count === 2)).toBe(true);
+            const video = await listDownloadGroups(sql, { userId, mediaClass: 'video', limit: 50 });
+            expect(video.map((g) => g.mediaItemId)).toEqual([M.movie, M.movie, M.movie, M.movie]);
+
+            const other = await sql<{ id: string }[]>`
+                INSERT INTO users (username) VALUES (${'dl-g-' + Math.random().toString(36).slice(2)})
+                RETURNING id`;
+            expect(await listDownloadGroups(sql, { userId: other[0]!.id, limit: 50 })).toEqual([]);
+        });
+
+        it('lists the members of one group, newest first, and nothing for an unknown id', async () => {
+            const a = await ev({ media: M.t1, ago: 30 });
+            const b = await ev({ media: M.t2, ago: 29 });
+            await ev({ media: M.t3, ago: 28, device: 'dev-2' });
+            const [, g] = await listDownloadGroups(sql, { userId, limit: 10 });
+            expect(g!.id).toBe(a);
+            const members = await listDownloadGroupMembers(sql, a);
+            expect(members.map((r) => r.id)).toEqual([b, a]);
+            expect(
+                await listDownloadGroupMembers(sql, '00000000-0000-4000-8000-0000000000ff'),
+            ).toEqual([]);
+        });
+
+        it('titles a track with its artist and album, and an album with its artist', async () => {
+            const t = await getDownloadTitles(sql, [M.t1, M.album]);
+            expect(t.get(M.t1)).toMatchObject({
+                title: 'Song One',
+                artist: 'Example Band',
+                album: 'Example Album',
+            });
+            expect(t.get(M.album)).toMatchObject({
+                title: 'Example Album',
+                artist: 'Example Band',
             });
         });
     });

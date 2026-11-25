@@ -1756,6 +1756,8 @@ const TitleFields = {
         .boolean()
         .optional()
         .describe('A ZIP of a season or series: title/seriesTitle/season describe the archive'),
+    artist: z.string().optional().describe("A track's artist, or the artist of a group's album"),
+    album: z.string().optional().describe("A track's album, or a group's album"),
 };
 
 export const AdminDownloadsResponseSchema = z.object({
@@ -1790,6 +1792,23 @@ export const AdminDownloadsResponseSchema = z.object({
             outcome: z.enum(['completed', 'aborted', 'denied', 'rate_limited', 'error']).optional(),
             startedAt: z.string(),
             endedAt: z.string().optional(),
+            count: z
+                .number()
+                .describe(
+                    'Downloads in this row: a client that fetched files one after another (same user, device, kind and result, gaps under 10 min) is one row. Above 1, `id` is the group (pass as `group` for its downloads), the title fields describe what the members share, and the sizes are sums',
+                ),
+            mediaClass: z
+                .enum(['video', 'music', 'other'])
+                .optional()
+                .describe(
+                    'Video (movies, episodes) or music (tracks); not set on the rows of a `group` request',
+                ),
+            mediaType: z
+                .string()
+                .optional()
+                .describe(
+                    'The media type every download of the row shares (movie, episode, track, ...)',
+                ),
         }),
     ),
     degraded: z

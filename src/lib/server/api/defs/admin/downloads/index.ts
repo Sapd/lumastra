@@ -4,11 +4,14 @@
 /**
  * defs/admin/downloads/index.ts
  *
- * GET /api/admin/downloads?user=&before=&limit=
+ * GET /api/admin/downloads?user=&kind=&before=&limit=
+ * GET /api/admin/downloads?group=<id>
  *
  * Running downloads (from the shared leases, with speed) and the download log
- * (newest first), joined to titles and usernames, for the admin Downloads page.
- * `user` is a username. Cookie/forward-auth only: the admin UI cannot use /api/v1.
+ * (newest first, bursts grouped: see `listDownloadGroups`), joined to titles and
+ * usernames, for the admin Downloads page. `user` is a username, `kind` video or music.
+ * `group` returns the downloads of one grouped row instead (as `events`, nothing running).
+ * Cookie/forward-auth only: the admin UI cannot use /api/v1.
  */
 
 import { z } from 'zod';
@@ -21,9 +24,11 @@ import {
     getDownloadTitles,
     isDownloadCursor,
     getUsernamesByIds,
-    listDownloadEvents,
+    listDownloadGroupMembers,
+    listDownloadGroups,
     listOpenDownloadEvents,
     type DownloadEventRow,
+    type DownloadGroupRow,
     type DownloadTitleInfo,
 } from '$lib/server/database/queries/download-events.queries.js';
 import { getUserByUsername } from '$lib/server/database/queries/users.queries.js';
@@ -43,6 +48,8 @@ const QuerySchema = z.object({
         .refine(isDownloadCursor, 'before must be a cursor from nextBefore')
         .optional(),
     limit: z.coerce.number().int().min(1).max(MAX_LIMIT).optional().default(50),
+    kind: z.enum(['video', 'music']).optional(),
+    group: z.string().uuid().optional(),
 });
 
 /** A ZIP of a season or series (explicit kind; a refused single file may also lack a file id). */
@@ -54,6 +61,44 @@ function titleFields(t: DownloadTitleInfo | undefined) {
         seriesTitle: t?.seriesTitle ?? undefined,
         season: t?.season ?? undefined,
         episode: t?.episode ?? undefined,
+        artist: t?.artist ?? undefined,
+        album: t?.album ?? undefined,
+    };
+}
+
+/** What every download of a group shares: its album (with artist) or its series and season. */
+function groupTitleFields(
+    g: Pick<DownloadGroupRow, 'contextId' | 'season' | 'mediaType'>,
+    t: DownloadTitleInfo | undefined,
+) {
+    if (!t) return {};
+    if (g.mediaType === 'track') return { album: t.title, artist: t.artist ?? undefined };
+    if (g.mediaType === 'episode') return { seriesTitle: t.title, season: g.season ?? undefined };
+    return {};
+}
+
+const capBytesPerSec = (): number => kbpsToBytesPerSecond(config.DOWNLOAD_TOTAL_BANDWIDTH_KBPS);
+
+/** One logged download, as a row of a `group` request. */
+function eventOf(
+    r: DownloadEventRow,
+    titles: Map<string, DownloadTitleInfo>,
+    names: Map<string, string>,
+) {
+    return {
+        id: r.id,
+        userId: r.userId,
+        username: names.get(r.userId),
+        ...titleFields(titles.get(r.mediaItemId)),
+        archive: isArchive(r) ? true : undefined,
+        clientName: r.clientName ?? undefined,
+        surface: r.surface,
+        bytesTotal: r.bytesTotal ?? undefined,
+        bytesSent: r.bytesSent,
+        outcome: r.outcome ?? undefined,
+        startedAt: r.startedAt.toISOString(),
+        endedAt: r.endedAt?.toISOString(),
+        count: 1,
     };
 }
 
@@ -69,7 +114,8 @@ export const def = defineEndpoint({
             auth: 'bearer',
             description:
                 'Running downloads with their current speed, the total against the instance cap, ' +
-                'and the download log, newest first, optionally for one user.',
+                'and the download log, newest first, optionally for one user or kind. Downloads ' +
+                'a client fetched one after another are one row (`count`); `group` lists them.',
             responses: {
                 200: { schema: AdminDownloadsResponseSchema, description: 'Downloads' },
                 401: 'Authentication required',
@@ -83,7 +129,23 @@ export const def = defineEndpoint({
         GET: async (_event, ctx) => {
             const sql = getDb();
             if (!sql) return ApiProblem.dependencyUnavailable('Database unavailable');
-            const { user, before, limit } = ctx.input!.query!;
+            const { user, before, limit, kind, group } = ctx.input!.query!;
+
+            if (group) {
+                const members = await listDownloadGroupMembers(sql, group);
+                const [titles, names] = await Promise.all([
+                    getDownloadTitles(sql, [...new Set(members.map((r) => r.mediaItemId))]),
+                    getUsernamesByIds(sql, [...new Set(members.map((r) => r.userId))]),
+                ]);
+                return json(
+                    AdminDownloadsResponseSchema.parse({
+                        totalBytesPerSec: 0,
+                        totalCapBytesPerSec: capBytesPerSec(),
+                        active: [],
+                        events: members.map((r) => eventOf(r, titles, names)),
+                    }),
+                );
+            }
 
             let userId: string | undefined;
             if (user) {
@@ -92,9 +154,7 @@ export const def = defineEndpoint({
                     return json(
                         AdminDownloadsResponseSchema.parse({
                             totalBytesPerSec: 0,
-                            totalCapBytesPerSec: kbpsToBytesPerSecond(
-                                config.DOWNLOAD_TOTAL_BANDWIDTH_KBPS,
-                            ),
+                            totalCapBytesPerSec: capBytesPerSec(),
                             active: [],
                             events: [],
                             degraded: isDownloadLeasingDegraded(),
@@ -107,7 +167,7 @@ export const def = defineEndpoint({
             const leases = await listActiveDownloads();
             const [open, rows] = await Promise.all([
                 listOpenDownloadEvents(sql, [...new Set(leases.map((l) => l.userId))]),
-                listDownloadEvents(sql, { userId, limit, before }),
+                listDownloadGroups(sql, { userId, mediaClass: kind, limit, before }),
             ]);
             const totalBytesPerSec = leases.reduce((n, l) => n + l.bytesPerSec, 0);
             const shownLeases = userId ? leases.filter((l) => l.userId === userId) : leases;
@@ -126,7 +186,11 @@ export const def = defineEndpoint({
                 );
 
             const matched = shownLeases.map((l) => ({ lease: l, event: openFor(l) }));
-            const mediaIds = new Set<string>(rows.map((r) => r.mediaItemId));
+            const mediaIds = new Set<string>(
+                rows
+                    .map((r) => (r.count > 1 ? r.contextId : r.mediaItemId))
+                    .filter((id): id is string => id !== null),
+            );
             const userIds = new Set<string>(rows.map((r) => r.userId));
             for (const { lease, event } of matched) {
                 if (event) mediaIds.add(event.mediaItemId);
@@ -139,7 +203,7 @@ export const def = defineEndpoint({
 
             const body = {
                 totalBytesPerSec,
-                totalCapBytesPerSec: kbpsToBytesPerSecond(config.DOWNLOAD_TOTAL_BANDWIDTH_KBPS),
+                totalCapBytesPerSec: capBytesPerSec(),
                 degraded: isDownloadLeasingDegraded(),
                 active: matched.map(({ lease, event }) => ({
                     userId: lease.userId,
@@ -158,15 +222,20 @@ export const def = defineEndpoint({
                     id: r.id,
                     userId: r.userId,
                     username: names.get(r.userId),
-                    ...titleFields(titles.get(r.mediaItemId)),
+                    ...(r.count > 1
+                        ? groupTitleFields(r, r.contextId ? titles.get(r.contextId) : undefined)
+                        : titleFields(titles.get(r.mediaItemId))),
                     archive: isArchive(r) ? true : undefined,
                     clientName: r.clientName ?? undefined,
                     surface: r.surface,
                     bytesTotal: r.bytesTotal ?? undefined,
                     bytesSent: r.bytesSent,
-                    outcome: r.outcome ?? undefined,
+                    outcome: r.outcome,
                     startedAt: r.startedAt.toISOString(),
                     endedAt: r.endedAt?.toISOString(),
+                    count: r.count,
+                    mediaClass: r.mediaClass,
+                    mediaType: r.mediaType ?? undefined,
                 })),
                 nextBefore: rows.length === limit ? rows[rows.length - 1].cursor : undefined,
             };

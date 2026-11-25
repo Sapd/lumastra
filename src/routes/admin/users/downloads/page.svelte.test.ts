@@ -47,6 +47,7 @@ const payload: AdminDownloadsResponse = {
     events: [
         {
             id: 'e1',
+            count: 1,
             userId: 'u1',
             username: 'alice',
             title: 'A Movie',
@@ -57,6 +58,7 @@ const payload: AdminDownloadsResponse = {
         },
         {
             id: 'e2',
+            count: 1,
             userId: 'u2',
             username: 'bob',
             title: 'Other Movie',
@@ -67,6 +69,7 @@ const payload: AdminDownloadsResponse = {
         },
         {
             id: 'e3',
+            count: 1,
             userId: 'u2',
             username: 'bob',
             title: 'Done Movie',
@@ -79,6 +82,7 @@ const payload: AdminDownloadsResponse = {
         },
         {
             id: 'e5',
+            count: 1,
             userId: 'u1',
             username: 'alice',
             title: 'Season 2',
@@ -93,6 +97,7 @@ const payload: AdminDownloadsResponse = {
         },
         {
             id: 'e6',
+            count: 1,
             userId: 'u1',
             username: 'alice',
             title: 'Whole Show',
@@ -105,6 +110,7 @@ const payload: AdminDownloadsResponse = {
         {
             // Still running: shown above, not repeated in the history.
             id: 'e4',
+            count: 1,
             userId: 'u1',
             username: 'alice',
             title: 'Pilot',
@@ -173,6 +179,7 @@ describe('admin downloads page', () => {
                 events: [
                     {
                         id: 'old1',
+                        count: 1,
                         userId: 'u2',
                         username: 'bob',
                         title: 'Older Movie',
@@ -269,6 +276,162 @@ describe('admin downloads page', () => {
         await fireEvent.click(button);
         expect(getAdminDownloads).toHaveBeenCalledTimes(2); // first page + ONE load-more
         resolveMore({ data: { ...payload, active: [], events: [] }, error: null });
+    });
+
+    it('shows a burst as one row that opens to its single downloads', async () => {
+        const group = {
+            id: 'g1',
+            userId: 'u3',
+            username: 'carol',
+            artist: 'Example Band',
+            album: 'Example Album',
+            surface: 'api' as const,
+            clientName: 'Tempus',
+            bytesTotal: 3000,
+            bytesSent: 3000,
+            outcome: 'completed' as const,
+            startedAt: '2026-11-16T11:00:00.000Z',
+            count: 192,
+            mediaClass: 'music' as const,
+            mediaType: 'track',
+        };
+        const member = {
+            id: 'm1',
+            userId: 'u3',
+            username: 'carol',
+            title: 'Song One',
+            artist: 'Example Band',
+            album: 'Example Album',
+            surface: 'api' as const,
+            bytesSent: 10,
+            outcome: 'completed' as const,
+            startedAt: '2026-11-16T11:00:00.000Z',
+            count: 1,
+        };
+        getAdminDownloads.mockImplementation((p: { group?: string }) =>
+            Promise.resolve({
+                data: p.group
+                    ? { ...payload, active: [], events: [member] }
+                    : { ...payload, events: [group, ...payload.events] },
+                error: null,
+            }),
+        );
+        render(DownloadsPage);
+        const toggle = await screen.findByRole('button', {
+            name: /Example Band · Example Album \(192 tracks\)/,
+        });
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        await fireEvent.click(toggle);
+        // the group row already names artist and album: the single downloads show the track
+        expect(await screen.findByText('Song One')).toBeTruthy();
+        expect(getAdminDownloads).toHaveBeenCalledWith({ group: 'g1' });
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        await fireEvent.click(toggle);
+        expect(screen.queryByText('Song One')).toBeNull();
+    });
+
+    it('closes a group again when its downloads cannot be loaded', async () => {
+        const group = {
+            id: 'g1',
+            userId: 'u3',
+            username: 'carol',
+            album: 'Example Album',
+            surface: 'api' as const,
+            bytesSent: 30,
+            outcome: 'completed' as const,
+            startedAt: '2026-11-16T11:00:00.000Z',
+            count: 3,
+            mediaClass: 'music' as const,
+            mediaType: 'track',
+        };
+        getAdminDownloads.mockImplementation((p: { group?: string }) =>
+            Promise.resolve(
+                p.group
+                    ? { data: null, error: new Error('boom') }
+                    : { data: { ...payload, events: [group] }, error: null },
+            ),
+        );
+        render(DownloadsPage);
+        const toggle = await screen.findByRole('button', { name: /Example Album \(3 tracks\)/ });
+        await fireEvent.click(toggle);
+        await waitFor(() => expect(getAdminDownloads).toHaveBeenCalledWith({ group: 'g1' }));
+        await waitFor(() => expect(toggle.getAttribute('aria-expanded')).toBe('false'));
+    });
+
+    it('names a single track by artist, album and title', async () => {
+        getAdminDownloads.mockResolvedValue({
+            data: {
+                ...payload,
+                events: [
+                    {
+                        id: 't1',
+                        userId: 'u1',
+                        username: 'alice',
+                        title: 'Song One',
+                        artist: 'Example Band',
+                        album: 'Example Album',
+                        surface: 'api',
+                        bytesSent: 5,
+                        outcome: 'completed',
+                        startedAt: '2026-11-16T11:00:00.000Z',
+                        count: 1,
+                        mediaClass: 'music',
+                        mediaType: 'track',
+                    },
+                ],
+            },
+            error: null,
+        });
+        render(DownloadsPage);
+        expect(await screen.findByText('Example Band · Example Album · Song One')).toBeTruthy();
+    });
+
+    it('names a grouped season by series and season', async () => {
+        getAdminDownloads.mockResolvedValue({
+            data: {
+                ...payload,
+                events: [
+                    {
+                        id: 'g2',
+                        userId: 'u1',
+                        username: 'alice',
+                        seriesTitle: 'Example Show',
+                        season: 3,
+                        surface: 'jellyfin',
+                        bytesSent: 5,
+                        outcome: 'completed',
+                        startedAt: '2026-11-16T11:00:00.000Z',
+                        count: 10,
+                        mediaClass: 'video',
+                        mediaType: 'episode',
+                    },
+                ],
+            },
+            error: null,
+        });
+        render(DownloadsPage);
+        expect(
+            await screen.findByRole('button', { name: /Example Show - Season 03 \(10 episodes\)/ }),
+        ).toBeTruthy();
+    });
+
+    it('filters the log by kind', async () => {
+        render(DownloadsPage);
+        await screen.findByRole('region', { name: 'History' });
+        const music = screen.getByRole('button', { name: 'Music' });
+        await fireEvent.click(music);
+        expect(music.getAttribute('aria-pressed')).toBe('true');
+        await waitFor(() =>
+            expect(getAdminDownloads).toHaveBeenLastCalledWith(
+                expect.objectContaining({ kind: 'music' }),
+            ),
+        );
+        await fireEvent.click(screen.getByRole('button', { name: 'All' }));
+        await waitFor(() =>
+            expect(getAdminDownloads).toHaveBeenLastCalledWith(
+                expect.objectContaining({ kind: undefined }),
+            ),
+        );
     });
 
     it('shows a warning when limits run on the local fallback', async () => {

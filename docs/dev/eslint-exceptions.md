@@ -653,10 +653,10 @@ no file-level ignore list, so new code in those files is checked normally.
 
 The 27, by cause:
 
-| Files                                                                                                                                                                                                                                                               | Count | Cause                                                                                                                                           |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Files                                                                                                                                                                                                                                               | Count | Cause                                                                                                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `server/utils/browse-transforms.ts` (4), `server/jellyfin-compat/serializers/base-item.ts` (4), `tasks/builtin/native/watch-sync/jellyfin.ts` (6), `jellyfin-compat/suggestions-handler.ts` (2), `routes/(modules)/j/Items/[itemId]/+server.ts` (2) | 18    | Jellyfin's OWN vocabulary — `item.Type` is PascalCase by contract. Want a per-occurrence `// eslint-disable-next-line` + reason, not a rewrite. |
-| `server/services/mdblist-api.ts` (2), `server/ai/list-sync.ts` (2), `tasks/builtin/native/providers/mdblist.ts` (1), `plugins/holidays/sources/mdblist.source.ts` (1), `services/foryou-loader.ts` (2), `utils/image-utils.ts` (1)                                  | 9     | The `'show'` provider alias — the token behind the mdblist quota incident. Review these first.                                                  |
+| `server/services/mdblist-api.ts` (2), `server/ai/list-sync.ts` (2), `tasks/builtin/native/providers/mdblist.ts` (1), `plugins/holidays/sources/mdblist.source.ts` (1), `services/foryou-loader.ts` (2), `utils/image-utils.ts` (1)                  | 9     | The `'show'` provider alias — the token behind the mdblist quota incident. Review these first.                                                  |
 
 **Promotion completed:** the tree was re-measured, each fixed-convention site was
 annotated with a narrow reason, the file-level ignores were removed, and the rule
@@ -989,3 +989,13 @@ uses an exception to carry forward only dispositions matching their exact legacy
 fingerprint during migration; it cannot mark an unreviewed artist as reviewed.
 Real database integration tests cover recovery conflicts, hierarchy abstentions,
 unchanged catalog rows during previews and legacy fingerprint conversion.
+
+## Admin download log grouping
+
+`islandsSql` in `src/lib/server/database/queries/download-events.queries.ts` has local
+exceptions to `callback-safety/no-unscoped-media-items` and
+`callback-safety/require-has-files-with-active-status`. It joins each logged download to its
+media item only to tell music from video and to find the album or series, so the admin
+Downloads page can group bursts. It never lists catalog items: every row comes from
+`download_events`, and the endpoint requires an admin. A `has_files` filter would drop or
+misclassify downloads whose files were deleted after the download.

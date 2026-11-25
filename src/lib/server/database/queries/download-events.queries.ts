@@ -12,6 +12,7 @@
  */
 
 import type postgres from 'postgres';
+import { trackDisplayArtistSql } from './fragments/music-artist.fragments.js';
 
 export type DownloadSurface = 'web' | 'jellyfin' | 'api';
 export type DownloadOutcome = 'completed' | 'aborted' | 'denied' | 'rate_limited' | 'error';
@@ -356,6 +357,207 @@ export async function listDownloadEvents(
     return rows.map(mapEventRow);
 }
 
+// ── Grouped history ─────────────────────────────────────────────────────────
+
+/** What an admin filters the history by: music (tracks) or video (movies, episodes). */
+export type DownloadMediaClass = 'video' | 'music' | 'other';
+
+/**
+ * A finished download starting within this long of the previous one's last activity (same
+ * user, device, surface, media class and outcome) belongs to the same group. A client that
+ * syncs an album or a season for offline use fetches one file after the other: 192 tracks
+ * become one history row instead of 192.
+ */
+export const DOWNLOAD_GROUP_GAP_MINUTES = 10;
+
+/** Most members `listDownloadGroupMembers` returns for one group. */
+export const DOWNLOAD_GROUP_MEMBER_LIMIT = 1000;
+
+export interface DownloadGroupRow {
+    /**
+     * The group's OLDEST finished row: stays the same while a sync adds newer rows. (A client
+     * downloading in parallel whose first file finishes last moves it once that file ends.)
+     */
+    id: string;
+    userId: string;
+    surface: DownloadSurface;
+    kind: 'file' | 'archive';
+    clientName: string | null;
+    mediaClass: DownloadMediaClass;
+    outcome: DownloadOutcome;
+    count: number;
+    /** The newest row's media item (the title of a group of one). */
+    mediaItemId: string;
+    bytesSent: number;
+    /** Sum of the members' sizes; null when one of them is unknown. */
+    bytesTotal: number | null;
+    /** Oldest member's start. */
+    startedAt: Date;
+    endedAt: Date | null;
+    /** The album (tracks) or series (episodes) when every member has the same one. */
+    contextId: string | null;
+    /** The season number when every member is an episode of the same season. */
+    season: number | null;
+    /** The members' media type when they all share it. */
+    mediaType: string | null;
+    /** Keyset cursor of the NEWEST member: pass as `before` for older groups. */
+    cursor: string;
+}
+
+/**
+ * The finished rows (open ones are listed as running) with their media class and island
+ * number. Every column the islands are partitioned by (user, device, surface, media class,
+ * outcome) is also a filter column, so filtering by user or class never changes a group.
+ * An archive row is always a group of its own.
+ */
+function islandsSql(
+    sql: postgres.Sql,
+    userFilter: postgres.PendingQuery<postgres.Row[]>,
+    mediaClass: 'video' | 'music' | null,
+): postgres.PendingQuery<postgres.Row[]> {
+    // eslint-disable-next-line callback-safety/no-unscoped-media-items, callback-safety/require-has-files-with-active-status -- admin-only download log; a logged item whose files are gone must keep its class
+    return sql`
+        WITH ev AS (
+            SELECT de.id, de.user_id, de.media_item_id, de.kind, de.surface, de.device_key,
+                   de.client_name, de.bytes_total, de.bytes_sent, de.started_at,
+                   de.last_activity_at, de.ended_at, de.outcome,
+                   mi.media_type, mi.season_number,
+                   CASE WHEN mi.media_type IN ('track', 'album', 'artist') THEN 'music'
+                        WHEN mi.media_type IN ('movie', 'episode', 'season', 'tv', 'extra') THEN 'video'
+                        ELSE 'other' END AS media_class,
+                   CASE WHEN mi.media_type = 'track' THEN mi.parent_id
+                        WHEN mi.media_type = 'episode' THEN COALESCE(season.parent_id, mi.parent_id)
+                   END AS context_id,
+                   CASE WHEN de.kind = 'archive' THEN de.id END AS solo
+            FROM download_events de
+            LEFT JOIN media_items mi ON mi.id = de.media_item_id
+            LEFT JOIN media_items season
+                   ON season.id = mi.parent_id AND mi.media_type = 'episode'
+            WHERE de.outcome IS NOT NULL AND ${userFilter}
+        ),
+        classed AS (
+            SELECT * FROM ev WHERE ${mediaClass}::text IS NULL OR media_class = ${mediaClass}
+        ),
+        marked AS (
+            SELECT classed.*,
+                   CASE WHEN started_at - max(last_activity_at) OVER (
+                                PARTITION BY user_id, device_key, surface, media_class, outcome, solo
+                                ORDER BY started_at, id
+                                ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING)
+                             <= make_interval(mins => ${DOWNLOAD_GROUP_GAP_MINUTES})
+                        THEN 0 ELSE 1 END AS brk
+            FROM classed
+        ),
+        islands AS (
+            SELECT marked.*,
+                   sum(brk) OVER (
+                       PARTITION BY user_id, device_key, surface, media_class, outcome, solo
+                       ORDER BY started_at, id
+                       ROWS UNBOUNDED PRECEDING) AS isl
+            FROM marked
+        )
+    `;
+}
+
+/**
+ * The download history as groups (see `DOWNLOAD_GROUP_GAP_MINUTES`), newest group first,
+ * keyset-paged by each group's newest row. Computes the islands over the whole (filtered)
+ * log: it is pruned by retention, and this is an admin page.
+ */
+export async function listDownloadGroups(
+    sql: postgres.Sql,
+    opts: { userId?: string; mediaClass?: 'video' | 'music'; limit: number; before?: string },
+): Promise<DownloadGroupRow[]> {
+    const m = opts.before ? CURSOR_RE.exec(opts.before) : null;
+    if (opts.before && !m) throw new Error('invalid download cursor');
+    const ts = m?.[1] ?? null;
+    const cursorId = m?.[2] ?? null;
+    const userId = opts.userId ?? null;
+    const rows = await sql<Record<string, unknown>[]>`
+        ${islandsSql(sql, sql`(${userId}::uuid IS NULL OR de.user_id = ${userId}::uuid)`, opts.mediaClass ?? null)},
+        groups AS (
+            SELECT (array_agg(id ORDER BY started_at, id))[1] AS id,
+                   (array_agg(id ORDER BY started_at DESC, id DESC))[1] AS newest_id,
+                   max(started_at) AS newest_at,
+                   user_id, surface, media_class, outcome,
+                   (array_agg(kind ORDER BY started_at DESC, id DESC))[1] AS kind,
+                   (array_agg(client_name ORDER BY started_at DESC, id DESC))[1] AS client_name,
+                   (array_agg(media_item_id ORDER BY started_at DESC, id DESC))[1] AS media_item_id,
+                   count(*)::int AS n,
+                   sum(bytes_sent) AS bytes_sent,
+                   CASE WHEN bool_and(bytes_total IS NOT NULL) THEN sum(bytes_total) END AS bytes_total,
+                   min(started_at) AS started_at,
+                   max(ended_at) AS ended_at,
+                   CASE WHEN count(DISTINCT context_id) = 1 AND bool_and(context_id IS NOT NULL)
+                        THEN min(context_id::text) END AS context_id,
+                   CASE WHEN count(DISTINCT season_number) = 1 AND bool_and(season_number IS NOT NULL)
+                        THEN min(season_number) END AS season,
+                   CASE WHEN count(DISTINCT media_type) = 1 AND bool_and(media_type IS NOT NULL)
+                        THEN min(media_type) END AS media_type
+            FROM islands
+            GROUP BY user_id, device_key, surface, media_class, outcome, solo, isl
+        )
+        SELECT *,
+               to_char(newest_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+                   || '|' || newest_id::text AS cursor
+        FROM groups
+        WHERE ${ts}::text IS NULL
+           OR (newest_at, newest_id) < (${ts}::text::timestamptz, ${cursorId}::uuid)
+        ORDER BY newest_at DESC, newest_id DESC
+        LIMIT ${opts.limit}
+    `;
+    return rows.map((r) => ({
+        id: r.id as string,
+        userId: r.user_id as string,
+        surface: r.surface as DownloadSurface,
+        kind: r.kind === 'archive' ? 'archive' : 'file',
+        clientName: (r.client_name as string | null) ?? null,
+        mediaClass: r.media_class as DownloadMediaClass,
+        outcome: r.outcome as DownloadOutcome,
+        count: Number(r.n),
+        mediaItemId: r.media_item_id as string,
+        bytesSent: Number(r.bytes_sent),
+        bytesTotal: r.bytes_total == null ? null : Number(r.bytes_total),
+        startedAt: r.started_at as Date,
+        endedAt: (r.ended_at as Date | null) ?? null,
+        contextId: (r.context_id as string | null) ?? null,
+        season: r.season == null ? null : Number(r.season),
+        mediaType: (r.media_type as string | null) ?? null,
+        cursor: r.cursor as string,
+    }));
+}
+
+/**
+ * The rows of the group whose oldest row (`DownloadGroupRow.id`) is `groupId`, newest first.
+ * Empty when that row is gone or still open. The group is recomputed, so a sync still running
+ * shows its newest members too.
+ */
+export async function listDownloadGroupMembers(
+    sql: postgres.Sql,
+    groupId: string,
+): Promise<DownloadEventRow[]> {
+    const rows = await sql<Record<string, unknown>[]>`
+        ${islandsSql(
+            sql,
+            sql`de.user_id = (SELECT user_id FROM download_events WHERE id = ${groupId}::uuid)`,
+            null,
+        )},
+        target AS (SELECT * FROM islands WHERE id = ${groupId}::uuid)
+        SELECT de.id, de.user_id, de.media_item_id, de.file_id, de.rendition_id, de.kind,
+               de.surface, de.device_key, de.client_name, de.bytes_total, de.bytes_sent,
+               de.range_start, de.started_at, de.last_activity_at, de.ended_at, de.outcome
+        FROM islands i
+        JOIN target t
+          ON i.device_key = t.device_key AND i.surface = t.surface
+         AND i.media_class = t.media_class AND i.outcome = t.outcome
+         AND i.solo IS NOT DISTINCT FROM t.solo AND i.isl = t.isl
+        JOIN download_events de ON de.id = i.id
+        ORDER BY de.started_at DESC, de.id DESC
+        LIMIT ${DOWNLOAD_GROUP_MEMBER_LIMIT}
+    `;
+    return rows.map(mapEventRow);
+}
+
 /** Open rows (no end yet) of the given users, for matching running transfers to titles. */
 export async function listOpenDownloadEvents(
     sql: postgres.Sql,
@@ -400,6 +602,10 @@ export interface DownloadTitleInfo {
     seriesTitle: string | null;
     season: number | null;
     episode: number | null;
+    /** A track's display artist, or an album's artist. */
+    artist: string | null;
+    /** A track's album. */
+    album: string | null;
 }
 
 /** Display titles for media items (episodes carry their series title, season and episode number). */
@@ -417,16 +623,29 @@ export async function getDownloadTitles(
             series_title: string | null;
             season_number: number | null;
             episode_number: number | null;
+            artist: string | null;
+            album: string | null;
         }[]
     >`
         SELECT mi.id, mi.title, series.title AS series_title,
-               mi.season_number, mi.episode_number
+               mi.season_number, mi.episode_number,
+               CASE WHEN mi.media_type = 'track' THEN ${trackDisplayArtistSql(sql, 'mi')}
+                    WHEN mi.media_type = 'album' THEN album_artist.title END AS artist,
+               album.title AS album
         FROM media_items mi
         LEFT JOIN media_items season ON season.id = mi.parent_id AND mi.media_type = 'episode'
         LEFT JOIN media_items series ON series.id = CASE
             WHEN mi.media_type = 'season' THEN mi.parent_id
             WHEN mi.media_type = 'episode' THEN COALESCE(season.parent_id, mi.parent_id)
         END
+        LEFT JOIN media_items album
+               ON album.id = mi.parent_id AND mi.media_type = 'track' AND album.media_type = 'album'
+        -- named "artist": the track display-artist fragment falls back to artist.title
+        LEFT JOIN media_items artist
+               ON artist.id = album.parent_id AND artist.media_type = 'artist'
+        LEFT JOIN media_items album_artist
+               ON album_artist.id = mi.parent_id AND mi.media_type = 'album'
+              AND album_artist.media_type = 'artist'
         WHERE mi.id IN ${sql(mediaItemIds)}
     `;
     for (const r of rows) {
@@ -435,6 +654,8 @@ export async function getDownloadTitles(
             seriesTitle: r.series_title,
             season: r.season_number,
             episode: r.episode_number,
+            artist: r.artist || null,
+            album: r.album,
         });
     }
     return out;

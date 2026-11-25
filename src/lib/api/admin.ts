@@ -1032,10 +1032,18 @@ export function setUserAllowDownloads(
 }
 
 export function getAdminDownloads(
-    params: { user?: string; before?: string; limit?: number } = {},
+    params: {
+        user?: string;
+        kind?: 'video' | 'music';
+        group?: string;
+        before?: string;
+        limit?: number;
+    } = {},
 ): Promise<ApiResult<AdminDownloadsResponse>> {
     const q = new URLSearchParams();
     if (params.user) q.set('user', params.user);
+    if (params.kind) q.set('kind', params.kind);
+    if (params.group) q.set('group', params.group);
     if (params.before) q.set('before', params.before);
     if (params.limit) q.set('limit', String(params.limit));
     const qs = q.toString();

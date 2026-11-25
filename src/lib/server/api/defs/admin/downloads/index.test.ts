@@ -6,10 +6,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RequestEvent } from '@sveltejs/kit';
 import type { ApiContext } from '$lib/server/api/define.js';
-import type { DownloadEventRow } from '$lib/server/database/queries/download-events.queries.js';
+import type {
+    DownloadEventRow,
+    DownloadGroupRow,
+} from '$lib/server/database/queries/download-events.queries.js';
 
 const m = vi.hoisted(() => ({
-    listEvents: vi.fn(),
+    listGroups: vi.fn(),
+    listMembers: vi.fn(),
     listOpen: vi.fn(),
     titles: vi.fn(),
     names: vi.fn(),
@@ -21,7 +25,8 @@ const m = vi.hoisted(() => ({
 
 vi.mock('$lib/server/database/connection.js', () => ({ getDb: () => ({}) }));
 vi.mock('$lib/server/database/queries/download-events.queries.js', () => ({
-    listDownloadEvents: m.listEvents,
+    listDownloadGroups: m.listGroups,
+    listDownloadGroupMembers: m.listMembers,
     listOpenDownloadEvents: m.listOpen,
     getDownloadTitles: m.titles,
     isDownloadCursor: (v: string) => /^\d{4}-.*\|[0-9a-f-]{36}$/.test(v),
@@ -67,6 +72,29 @@ function row(over: Partial<DownloadEventRow>): DownloadEventRow {
     };
 }
 
+function grp(over: Partial<DownloadGroupRow>): DownloadGroupRow {
+    return {
+        id: 'e1',
+        userId: 'u1',
+        surface: 'web',
+        kind: 'file',
+        clientName: 'Firefox',
+        mediaClass: 'video',
+        outcome: 'completed',
+        count: 1,
+        mediaItemId: 'm1',
+        bytesSent: 1000,
+        bytesTotal: 1000,
+        startedAt: new Date('2026-11-16T10:00:00Z'),
+        endedAt: new Date('2026-11-16T10:01:00Z'),
+        contextId: null,
+        season: null,
+        mediaType: 'episode',
+        cursor: '2026-11-16T10:00:00.000000Z|00000000-0000-4000-8000-000000000001',
+        ...over,
+    };
+}
+
 function ctx(query: Record<string, unknown> = {}): ApiContext<NonNullable<typeof def.request>> {
     return {
         surface: 'internal',
@@ -79,7 +107,8 @@ beforeEach(() => {
     vi.clearAllMocks();
     m.cap.v = 0;
     m.degraded.v = false;
-    m.listEvents.mockResolvedValue([]);
+    m.listGroups.mockResolvedValue([]);
+    m.listMembers.mockResolvedValue([]);
     m.listOpen.mockResolvedValue([]);
     m.active.mockResolvedValue([]);
     m.titles.mockResolvedValue(new Map());
@@ -95,9 +124,9 @@ describe('GET /api/admin/downloads', () => {
     });
 
     it('joins events to titles and usernames, keeping the newest-first query order', async () => {
-        m.listEvents.mockResolvedValue([
-            row({ id: 'e2', mediaItemId: 'm2', outcome: 'denied', bytesSent: 0 }),
-            row({ id: 'e1' }),
+        m.listGroups.mockResolvedValue([
+            grp({ id: 'e2', mediaItemId: 'm2', outcome: 'denied', bytesSent: 0 }),
+            grp({ id: 'e1' }),
         ]);
         m.titles.mockResolvedValue(
             new Map([
@@ -126,16 +155,16 @@ describe('GET /api/admin/downloads', () => {
     it('filters by user name', async () => {
         m.userByName.mockResolvedValue({ id: 'u1', username: 'alice' });
         await def.handlers.GET!(event, ctx({ user: 'alice' }));
-        expect(m.listEvents).toHaveBeenCalledWith(
+        expect(m.listGroups).toHaveBeenCalledWith(
             {},
-            { userId: 'u1', limit: 50, before: undefined },
+            { userId: 'u1', mediaClass: undefined, limit: 50, before: undefined },
         );
     });
 
     it('returns an empty list for an unknown user filter', async () => {
         const res = (await def.handlers.GET!(event, ctx({ user: 'nobody' }))) as Response;
         expect((await res.json()).events).toEqual([]);
-        expect(m.listEvents).not.toHaveBeenCalled();
+        expect(m.listGroups).not.toHaveBeenCalled();
     });
 
     it('looks up open rows only for the users with running downloads', async () => {
@@ -164,12 +193,15 @@ describe('GET /api/admin/downloads', () => {
     it('passes the before cursor through', async () => {
         const before = '2026-11-16T09:00:00.123456Z|00000000-0000-4000-8000-000000000002';
         await def.handlers.GET!(event, ctx({ before }));
-        expect(m.listEvents).toHaveBeenCalledWith({}, { userId: undefined, limit: 50, before });
+        expect(m.listGroups).toHaveBeenCalledWith(
+            {},
+            { userId: undefined, mediaClass: undefined, limit: 50, before },
+        );
     });
 
     it('exposes degraded and a keyset nextBefore', async () => {
         m.degraded.v = true;
-        m.listEvents.mockResolvedValue([row({})]);
+        m.listGroups.mockResolvedValue([grp({})]);
         const res = await def.handlers.GET!(event, ctx({ limit: 1 }));
         const body = await (res as Response).json();
         expect(body.degraded).toBe(true);
@@ -274,11 +306,11 @@ describe('GET /api/admin/downloads', () => {
                 outcome: null,
             }),
         ]);
-        m.listEvents.mockResolvedValue([
-            row({ id: 'z2', mediaItemId: 'season1', fileId: null, kind: 'archive' }),
+        m.listGroups.mockResolvedValue([
+            grp({ id: 'z2', mediaItemId: 'season1', kind: 'archive' }),
             // denied movie/episode rows have no file id either, but are not ZIPs
-            row({ id: 'd1', mediaItemId: 'm9', fileId: null, outcome: 'denied' }),
-            row({ id: 'f2' }),
+            grp({ id: 'd1', mediaItemId: 'm9', outcome: 'denied' }),
+            grp({ id: 'f2' }),
         ]);
         m.titles.mockResolvedValue(
             new Map([
@@ -299,5 +331,102 @@ describe('GET /api/admin/downloads', () => {
         expect(body.events[1]).toMatchObject({ id: 'd1' });
         expect(body.events[1].archive).toBeUndefined();
         expect(body.events[2].archive).toBeUndefined();
+    });
+    it('passes the kind filter through', async () => {
+        await def.handlers.GET!(event, ctx({ kind: 'music' }));
+        expect(m.listGroups).toHaveBeenCalledWith(
+            {},
+            { userId: undefined, mediaClass: 'music', limit: 50, before: undefined },
+        );
+    });
+
+    it('describes a group by what its downloads share: album and artist, or series and season', async () => {
+        m.listGroups.mockResolvedValue([
+            grp({
+                id: 'g1',
+                count: 192,
+                mediaClass: 'music',
+                mediaType: 'track',
+                mediaItemId: 't9',
+                contextId: 'alb1',
+                surface: 'api',
+            }),
+            grp({ id: 'g2', count: 10, mediaType: 'episode', contextId: 'show1', season: 3 }),
+            grp({ id: 'g3', count: 4, mediaType: 'movie' }),
+        ]);
+        m.titles.mockResolvedValue(
+            new Map([
+                [
+                    'alb1',
+                    {
+                        title: 'Example Album',
+                        seriesTitle: null,
+                        season: null,
+                        episode: null,
+                        artist: 'Example Band',
+                        album: null,
+                    },
+                ],
+                [
+                    'show1',
+                    {
+                        title: 'Example Show',
+                        seriesTitle: null,
+                        season: null,
+                        episode: null,
+                        artist: null,
+                        album: null,
+                    },
+                ],
+            ]),
+        );
+        const body = await ((await def.handlers.GET!(event, ctx())) as Response).json();
+        // the context ids are looked up, not the newest member's item
+        expect(m.titles).toHaveBeenCalledWith({}, ['alb1', 'show1']);
+        expect(body.events[0]).toMatchObject({
+            id: 'g1',
+            count: 192,
+            album: 'Example Album',
+            artist: 'Example Band',
+            mediaClass: 'music',
+            mediaType: 'track',
+        });
+        expect(body.events[0].title).toBeUndefined();
+        expect(body.events[1]).toMatchObject({ seriesTitle: 'Example Show', season: 3, count: 10 });
+        expect(body.events[2]).toMatchObject({ count: 4, mediaType: 'movie' });
+        expect(body.events[2].title).toBeUndefined();
+    });
+
+    it('a group request lists its downloads and nothing running', async () => {
+        m.listMembers.mockResolvedValue([row({ id: 'a' }), row({ id: 'b', mediaItemId: 'm2' })]);
+        m.titles.mockResolvedValue(
+            new Map([
+                [
+                    'm1',
+                    {
+                        title: 'Song',
+                        seriesTitle: null,
+                        season: null,
+                        episode: null,
+                        artist: 'Example Band',
+                        album: 'Example Album',
+                    },
+                ],
+            ]),
+        );
+        const group = '00000000-0000-4000-8000-000000000009';
+        const body = await ((await def.handlers.GET!(event, ctx({ group }))) as Response).json();
+        expect(m.listMembers).toHaveBeenCalledWith({}, group);
+        expect(m.listGroups).not.toHaveBeenCalled();
+        expect(m.active).not.toHaveBeenCalled();
+        expect(body.active).toEqual([]);
+        expect(body.events.map((e: { id: string }) => e.id)).toEqual(['a', 'b']);
+        expect(body.events[0]).toMatchObject({
+            title: 'Song',
+            artist: 'Example Band',
+            album: 'Example Album',
+            count: 1,
+        });
+        expect(body.nextBefore).toBeUndefined();
     });
 });
