@@ -123,7 +123,7 @@
         "@typescript/native": "npm:typescript@~7.0.2",
         "@vitest/ui": "^5.0.2",
         "esbuild": "^0.28.2",
-        "eslint": "~10.11.0",
+        "eslint": "~10.15.0",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-svelte": "^3.23.0",
         "fast-check": "^4.10.0",
