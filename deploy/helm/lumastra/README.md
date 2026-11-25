@@ -39,12 +39,12 @@ One node, a CloudNativePG database and an Ingress. It works on a stock k3s (Trae
    to download for that. Alternatively, clone the repository and install from the folder:
 
     ```bash
-    git clone --branch v0.2.0 https://github.com/Sapd/lumastra.git
+    git clone --branch v0.3.0 https://github.com/Sapd/lumastra.git
     cd lumastra
     ```
 
     In step 5 and in the upgrade command, use `deploy/helm/lumastra` instead of
-    `oci://ghcr.io/lumastra/charts/lumastra --version 0.2.0`.
+    `oci://ghcr.io/lumastra/charts/lumastra --version 0.3.0`.
 
 2. Install the database operator. Do this once per cluster.
 
@@ -71,7 +71,7 @@ One node, a CloudNativePG database and an Ingress. It works on a stock k3s (Trae
     ```yaml
     mode: split
     image:
-        tag: 0.2.0
+        tag: 0.3.0
     app:
         origin: http://lumastra.example.com
     secrets:
@@ -103,7 +103,7 @@ One node, a CloudNativePG database and an Ingress. It works on a stock k3s (Trae
 5. Install.
 
     ```bash
-    helm install lumastra oci://ghcr.io/lumastra/charts/lumastra --version 0.2.0 \
+    helm install lumastra oci://ghcr.io/lumastra/charts/lumastra --version 0.3.0 \
       -n lumastra -f my-values.yaml
     kubectl -n lumastra get pods
     ```
@@ -128,7 +128,7 @@ controller.
 
 ```yaml
 image:
-    tag: 0.2.0
+    tag: 0.3.0
 app:
     origin: https://lumastra.example.com
 secrets:

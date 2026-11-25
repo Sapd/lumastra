@@ -66,8 +66,8 @@ Compose starts five containers (web, worker, PostgreSQL, two Valkey); 8 GB of RA
 Docker Compose:
 
 ```bash
-curl -fsSL -o docker-compose.yml https://raw.githubusercontent.com/Sapd/lumastra/v0.2.0/docker-compose.example.yml
-curl -fsSL -o .env https://raw.githubusercontent.com/Sapd/lumastra/v0.2.0/.env.example
+curl -fsSL -o docker-compose.yml https://raw.githubusercontent.com/Sapd/lumastra/v0.3.0/docker-compose.example.yml
+curl -fsSL -o .env https://raw.githubusercontent.com/Sapd/lumastra/v0.3.0/.env.example
 # in .env, set DATABASE_PASSWORD and CACHE_PASSWORD (openssl rand -hex 24)
 # mount your media folder on both the lumastra and lumastra-worker services
 docker compose up -d

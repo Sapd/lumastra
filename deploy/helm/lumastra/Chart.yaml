@@ -6,7 +6,7 @@ description: >-
     Lumastra, a self-hosted media server: web, worker, optional Live TV stream proxy and
     sonic-analysis sidecar, with an affinity router for HLS. See README.md.
 type: application
-version: 0.2.0
+version: 0.3.0
 appVersion: 'stable'
 kubeVersion: '>=1.29.0-0'
 home: https://lumastra.org
@@ -30,15 +30,15 @@ annotations:
           url: https://github.com/Sapd/lumastra/issues
     artifacthub.io/images: |
         - name: lumastra
-          image: ghcr.io/lumastra/lumastra:0.2.0
+          image: ghcr.io/lumastra/lumastra:0.3.0
           platforms:
             - linux/amd64
             - linux/arm64
         - name: lumastra-sonic-embedder
-          image: ghcr.io/lumastra/lumastra-sonic-embedder:0.2.0
+          image: ghcr.io/lumastra/lumastra-sonic-embedder:0.3.0
     artifacthub.io/changes: |
-        - kind: changed
-          description: Lumastra is open source under AGPL-3.0-only; no license key needed
+        - kind: added
+          description: Web downloads with per-user permission, download groups, limits and a download log
           links:
             - name: Changelog
               url: https://github.com/Sapd/lumastra/blob/main/CHANGELOG.md
