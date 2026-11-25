@@ -10730,6 +10730,7 @@
     "viewer_playlist_add_series": "Serie",
     "viewer_playlist_add_episode": "Folge",
     "viewer_playlist_add_track": "Titel",
+    "viewer_playlist_add_album": "Album",
     "viewer_playlist_add_added": "Zu {name} hinzugefügt.",
     "viewer_playlist_add_existing": "Bereits in {name} vorhanden.",
     "viewer_playlist_add_expanded": [
@@ -10742,6 +10743,7 @@
             }
         }
     ],
+    "viewer_playlist_add_album_added": "Album zu {name} hinzugefügt.",
     "viewer_playlist_add_created_retry": "„{name}“ wurde erstellt, aber dieser Eintrag konnte nicht hinzugefügt werden. Wähle die Wiedergabeliste unten aus, um es erneut zu versuchen.",
     "viewer_playlist_add_adding": "Wird hinzugefügt…",
     "viewer_playlist_add_loading": "Wiedergabelisten werden geladen…",

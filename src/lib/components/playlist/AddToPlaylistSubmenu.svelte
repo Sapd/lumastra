@@ -16,15 +16,17 @@
         title: string;
         subtitle?: string;
         posterPath?: string;
+        /** `album` adds every track of the album. */
+        mediaType?: 'track' | 'album';
         onDone: () => void;
     }
-    let { externalIds, title, subtitle, posterPath, onDone }: Props = $props();
+    let { externalIds, title, subtitle, posterPath, mediaType = 'track', onDone }: Props = $props();
     const id = $props.id();
     let closeTimer: ReturnType<typeof setTimeout> | undefined;
     const picker = createPlaylistPicker(
         () => ({
             externalIds,
-            mediaType: 'track',
+            mediaType,
             title,
             overview: subtitle,
             posterPath,
@@ -122,7 +124,9 @@
 
 <div class="w-72 max-w-full max-h-[70dvh] overflow-y-auto overscroll-contain p-2" use:keyboard>
     <div class="px-1 pb-3">
-        <p class="text-xs text-primary-400">{m.viewer_playlist_add_track()}</p>
+        <p class="text-xs text-primary-400">
+            {mediaType === 'album' ? m.viewer_playlist_add_album() : m.viewer_playlist_add_track()}
+        </p>
         <p class="text-sm font-medium break-words">{title}</p>
         {#if subtitle}<p class="text-xs text-surface-400 break-words">{subtitle}</p>{/if}
     </div>

@@ -25,7 +25,7 @@ export interface AddToPlaylistModalState {
     isOpen: boolean;
     /** External IDs from various providers */
     externalIds: ExternalIds;
-    mediaType: 'movie' | 'tv' | 'episode' | 'track';
+    mediaType: 'movie' | 'tv' | 'episode' | 'track' | 'album';
     title: string;
     overview?: string;
     posterPath?: string;

@@ -10761,6 +10761,7 @@
     "viewer_playlist_add_series": "Series",
     "viewer_playlist_add_episode": "Episode",
     "viewer_playlist_add_track": "Track",
+    "viewer_playlist_add_album": "Album",
     "viewer_playlist_add_added": "Added to {name}.",
     "viewer_playlist_add_existing": "Already in {name}.",
     "viewer_playlist_add_expanded": [
@@ -10773,6 +10774,7 @@
             }
         }
     ],
+    "viewer_playlist_add_album_added": "Added the album to {name}.",
     "viewer_playlist_add_created_retry": "Created “{name}”, but could not add this item. Select that playlist below to retry.",
     "viewer_playlist_add_adding": "Adding…",
     "viewer_playlist_add_loading": "Loading playlists…",

@@ -23,7 +23,11 @@
     import PopularityBadge from '$lib/components/music/PopularityBadge.svelte';
     import TrackTitleLine from '$lib/components/music/TrackTitleLine.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
-    import { addTrackToPlaylistEntry } from '$lib/components/playlist/add-to-playlist-menu';
+    import {
+        addAlbumToPlaylistEntry,
+        addTrackToPlaylistEntry,
+    } from '$lib/components/playlist/add-to-playlist-menu';
+    import { Icon, QueueList } from 'svelte-hero-icons';
     import ContextMenu from '$lib/components/ui/ContextMenu.svelte';
     import type { ContextMenuEntry } from '$lib/components/ui/context-menu-types';
     import { swipeToClose } from '$lib/utils/swipe-to-close';
@@ -397,6 +401,27 @@
         index: number;
     } | null>(null);
 
+    // "Add to playlist" for the whole album: the playlist flyout, anchored under the button.
+    let albumPlaylistMenu = $state<{ x: number; y: number } | null>(null);
+
+    function openAlbumPlaylistMenu(e: MouseEvent): void {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        contextMenuState = null;
+        similarAlbumContextMenu = null;
+        albumPlaylistMenu = { x: rect.left, y: rect.bottom };
+    }
+
+    function buildAlbumPlaylistMenuItems(current: AlbumData): ContextMenuEntry[] {
+        return [
+            addAlbumToPlaylistEntry({
+                id: current.id,
+                title: current.title,
+                artist: current.artist.title ?? undefined,
+                posterPath: current.images.primary?.variants?.thumb ?? current.images.primary?.href,
+            }),
+        ];
+    }
+
     function handleTrackContextMenu(e: MouseEvent, track: TrackData, index: number): void {
         e.preventDefault();
         e.stopPropagation();
@@ -563,7 +588,8 @@
                         }} />
                 {/if}
 
-                <DiscogsCredit sourceUrls={[coverVisible ? album.discogsAttribution?.poster : undefined]} />
+                <DiscogsCredit
+                    sourceUrls={[coverVisible ? album.discogsAttribution?.poster : undefined]} />
                 {#if album.overview}
                     <p class="text-sm text-surface-400 line-clamp-3">
                         {album.overview}
@@ -596,6 +622,16 @@
                         d="M16 3h5m0 0v5m0-5l-6 6M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-1M16 21h5m0 0v-5m0 5l-6-6" />
                 </svg>
                 {m.album_shuffle()}
+            </button>
+            <button
+                type="button"
+                class="btn variant-soft-surface"
+                disabled={tracks.length === 0}
+                aria-haspopup="menu"
+                aria-expanded={albumPlaylistMenu !== null}
+                onclick={openAlbumPlaylistMenu}>
+                <Icon src={QueueList} class="w-4 h-4" />
+                {m.music_add_to_playlist()}
             </button>
             {#if onAdd}
                 <button
@@ -1090,6 +1126,16 @@
         subtitle={album?.title ?? ''}
         items={buildTrackMenuItems(contextMenuState.track, contextMenuState.index)}
         onClose={() => (contextMenuState = null)} />
+{/if}
+
+{#if albumPlaylistMenu && album}
+    <ContextMenu
+        x={albumPlaylistMenu.x}
+        y={albumPlaylistMenu.y}
+        title={album.title}
+        subtitle={album.artist.title ?? ''}
+        items={buildAlbumPlaylistMenuItems(album)}
+        onClose={() => (albumPlaylistMenu = null)} />
 {/if}
 
 {#if similarAlbumContextMenu}

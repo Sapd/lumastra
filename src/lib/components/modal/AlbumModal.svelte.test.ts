@@ -269,3 +269,28 @@ test('album detail schema retains canonical inheriting artwork refs', async () =
     const { findByText } = render(AlbumModal, { albumId: 'album-1', modalId: 'modal-1' });
     await findByText('Test Album');
 });
+
+test('"Add to playlist" offers the whole album as one playlist item', async () => {
+    const { default: ContextMenu } = await import('$lib/components/ui/ContextMenu.svelte');
+    const contextMenu = vi.mocked(ContextMenu as unknown as (...args: unknown[]) => unknown);
+    contextMenu.mockClear();
+    getAlbumMock.mockResolvedValue(mkAlbumResponse(seededTracks(3)));
+    const { findByRole } = render(AlbumModal, { albumId: 'album-1', modalId: 'modal-1' });
+
+    const button = await findByRole('button', { name: 'Add to playlist' });
+    await fireEvent.click(button);
+
+    expect(contextMenu).toHaveBeenCalled();
+    const props = contextMenu.mock.calls.at(-1)?.[1] as {
+        title: string;
+        items: { kind: string; props: Record<string, unknown> }[];
+    };
+    expect(props.title).toBe('Test Album');
+    expect(props.items).toHaveLength(1);
+    expect(props.items[0].kind).toBe('submenu');
+    expect(props.items[0].props).toMatchObject({
+        externalIds: { internal: 'album-1' },
+        title: 'Test Album',
+        mediaType: 'album',
+    });
+});

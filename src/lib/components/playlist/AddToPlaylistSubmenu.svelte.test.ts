@@ -194,7 +194,7 @@ describe('AddToPlaylistSubmenu', () => {
     });
 
     it('hides the watchlist even if the server ever returned it here', async () => {
-        // This submenu only ever adds a 'track', which the watchlist cannot
+        // This submenu only adds a 'track' or an 'album', which the watchlist cannot
         // hold — mirrors the same client-side guard as AddToPlaylistModal
         // (Task 8, Step 4), so a future change to the `getPlaylists('music')`
         // server-side filter can't silently offer the watchlist as a target.
@@ -300,5 +300,81 @@ describe('AddToPlaylistSubmenu', () => {
         search.focus();
         await fireEvent.keyDown(search, { key: 'Home' });
         expect(document.activeElement).toBe(search);
+    });
+    describe('whole album', () => {
+        function renderAlbum() {
+            return render(AddToPlaylistSubmenu, {
+                props: {
+                    externalIds: { internal: 'album-1' },
+                    title: 'Eskalation',
+                    subtitle: 'Some Band',
+                    mediaType: 'album',
+                    onDone: vi.fn(),
+                },
+            });
+        }
+
+        it('offers only music playlists and sends the album as one item', async () => {
+            const GENERAL: Playlist = {
+                ...playlistDefaults,
+                id: 5,
+                name: 'Movie Night',
+                role: 'owner',
+                itemCount: 2,
+                playlistType: 'general',
+            };
+            getPlaylists.mockResolvedValue({ data: { items: [OWNED, GENERAL] }, error: null });
+            addItemToPlaylist.mockResolvedValue({
+                expanded: true,
+                episodesAdded: 11,
+                seriesName: 'Eskalation',
+            });
+            renderAlbum();
+
+            expect(screen.getByText('Album')).toBeTruthy();
+            const row = await screen.findByText('Handsup');
+            expect(getPlaylists).toHaveBeenCalledWith('music');
+            expect(screen.queryByText('Movie Night')).toBeNull();
+            row.closest('button')?.click();
+
+            await waitFor(() =>
+                expect(addItemToPlaylist).toHaveBeenCalledWith(1, {
+                    externalIds: { internal: 'album-1' },
+                    mediaType: 'album',
+                    title: 'Eskalation',
+                    overview: 'Some Band',
+                    posterPath: undefined,
+                }),
+            );
+            // No count: the server's entries include tracks that were already there.
+            expect(await screen.findByText('Added the album to Handsup.')).toBeTruthy();
+        });
+
+        it('creates a music playlist when a new one is made for an album', async () => {
+            renderAlbum();
+            await screen.findByText('Handsup');
+            screen.getByText('New Playlist').closest('button')?.click();
+            const field = (await screen.findByPlaceholderText('Playlist name')) as HTMLInputElement;
+            field.value = 'Eskalation';
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+            field
+                .closest('form')
+                ?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+
+            await waitFor(() =>
+                expect(createPlaylist).toHaveBeenCalledWith(
+                    'Eskalation',
+                    undefined,
+                    'private',
+                    'music',
+                ),
+            );
+            await waitFor(() =>
+                expect(addItemToPlaylist).toHaveBeenCalledWith(
+                    4,
+                    expect.objectContaining({ mediaType: 'album' }),
+                ),
+            );
+        });
     });
 });

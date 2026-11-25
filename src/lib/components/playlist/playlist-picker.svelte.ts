@@ -36,6 +36,11 @@ export interface PlaylistPicker {
     dispose: () => void;
 }
 
+/** Tracks and albums go into music playlists; an album is added as its tracks. */
+function isMusicItem(mediaType: AddToPlaylistItem['mediaType']): boolean {
+    return mediaType === 'track' || mediaType === 'album';
+}
+
 /** Local picker state; reads never replace the shared playlist cache. */
 export function createPlaylistPicker(
     getItem: () => AddToPlaylistItem,
@@ -69,9 +74,8 @@ export function createPlaylistPicker(
         state.loadError = false;
         try {
             const mediaType = getItem().mediaType;
-            const { data, error } = await api.getPlaylists(
-                mediaType === 'track' ? 'music' : undefined,
-            );
+            const music = isMusicItem(mediaType);
+            const { data, error } = await api.getPlaylists(music ? 'music' : undefined);
             if (disposed) return;
             if (error || !data) {
                 state.loadError = true;
@@ -80,7 +84,7 @@ export function createPlaylistPicker(
             state.playlists = (data.items ?? []).filter(
                 (p) =>
                     (p.role === 'owner' || p.role === 'editor') &&
-                    (mediaType !== 'track' || p.playlistType === 'music') &&
+                    (!music || p.playlistType === 'music') &&
                     (p.playlistType !== 'watchlist' || WATCHLIST_MEDIA_TYPES.has(mediaType)),
             );
         } catch {
@@ -95,7 +99,8 @@ export function createPlaylistPicker(
         state.error = '';
         state.message = '';
         try {
-            const result = await addItemToPlaylist(playlist.id, getItem());
+            const item = getItem();
+            const result = await addItemToPlaylist(playlist.id, item);
             // Local reads need not populate the store's playlist-type cache.
             if (playlist.playlistType === 'watchlist' && result && !('expanded' in result)) {
                 syncWatchlistStoreAdded(result);
@@ -106,7 +111,14 @@ export function createPlaylistPicker(
                     result === null
                         ? m.viewer_playlist_add_existing({ name })
                         : 'expanded' in result && result.expanded
-                          ? m.viewer_playlist_add_expanded({ name, count: result.episodesAdded })
+                          ? item.mediaType === 'album'
+                              ? // The server's entries also hold tracks that were already
+                                // there, so a count would overstate a partial re-add.
+                                m.viewer_playlist_add_album_added({ name })
+                              : m.viewer_playlist_add_expanded({
+                                    name,
+                                    count: result.episodesAdded,
+                                })
                           : m.viewer_playlist_add_added({ name });
                 state.outcomes[playlist.id] = message;
                 state.message = message;
@@ -135,7 +147,7 @@ export function createPlaylistPicker(
                 state.name.trim(),
                 state.description.trim() || undefined,
                 'private',
-                getItem().mediaType === 'track' ? 'music' : 'general',
+                isMusicItem(getItem().mediaType) ? 'music' : 'general',
             );
             if (!playlist) {
                 if (!disposed) state.error = m.playlist_create_failed();

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * Builds the "Add to Playlist" context-menu entry for music tracks.
+ * Builds the "Add to Playlist" context-menu entry for music tracks and albums.
  *
  * Music tracks get an inline flyout (AddToPlaylistSubmenu) instead of the
  * centered AddToPlaylistModal — the modal is still what movies, series and
@@ -22,6 +22,8 @@ export interface AddToPlaylistTarget {
     /** Credit line — stored as the playlist item's overview. */
     subtitle?: string | undefined;
     posterPath?: string | undefined;
+    /** `album` adds every track of the album. Defaults to `track`. */
+    mediaType?: 'track' | 'album';
 }
 
 export function addToPlaylistEntry(target: AddToPlaylistTarget): ContextMenuSubmenu {
@@ -34,6 +36,7 @@ export function addToPlaylistEntry(target: AddToPlaylistTarget): ContextMenuSubm
             title: target.title,
             subtitle: target.subtitle,
             posterPath: target.posterPath,
+            mediaType: target.mediaType ?? 'track',
         }),
     };
 }
@@ -47,5 +50,21 @@ export function addTrackToPlaylistEntry(
         title: track.title,
         subtitle: track.artists.map((artist) => artist.title).join(', '),
         posterPath: track.images.primary?.variants?.thumb ?? track.images.primary?.href,
+    });
+}
+
+/** Adds a whole album: the server expands it into its tracks, in album order. */
+export function addAlbumToPlaylistEntry(album: {
+    id: string;
+    title: string;
+    artist?: string | undefined;
+    posterPath?: string | undefined;
+}): ContextMenuSubmenu {
+    return addToPlaylistEntry({
+        externalIds: { internal: album.id },
+        title: album.title,
+        subtitle: album.artist,
+        posterPath: album.posterPath,
+        mediaType: 'album',
     });
 }

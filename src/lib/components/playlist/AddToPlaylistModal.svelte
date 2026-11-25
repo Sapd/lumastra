@@ -15,7 +15,7 @@
 
     interface Props {
         externalIds: ExternalIds;
-        mediaType: 'movie' | 'tv' | 'episode' | 'track';
+        mediaType: 'movie' | 'tv' | 'episode' | 'track' | 'album';
         title: string;
         overview?: string;
         posterPath?: string;
@@ -59,7 +59,9 @@
               ? m.viewer_playlist_add_episode()
               : mediaType === 'track'
                 ? m.viewer_playlist_add_track()
-                : m.viewer_playlist_add_movie(),
+                : mediaType === 'album'
+                  ? m.viewer_playlist_add_album()
+                  : m.viewer_playlist_add_movie(),
     );
 
     onMount(() => {
