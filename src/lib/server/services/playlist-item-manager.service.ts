@@ -25,6 +25,7 @@ import {
 import {
     getSeriesEpisodesForPlaylist,
     getAlbumTracks,
+    albumTrackOrderSql,
 } from '$lib/server/database/queries/playlist-items.queries.js';
 import { getExternalIdFor, getPreferredExternalId } from '$lib/utils/external-ids.js';
 import { transformInsertedItemRow } from '$lib/server/utils/playlist-transforms.js';
@@ -147,7 +148,11 @@ class PlaylistItemManager {
                         LEFT JOIN media_items parent ON parent.id = m.parent_id
                         WHERE (m.parent_id = ${mediaId}::uuid OR parent.parent_id = ${mediaId}::uuid)
                           AND m.media_type IN ('episode', 'track') AND m.has_files = true
-                        ORDER BY m.season_number NULLS FIRST, COALESCE(m.sort_order, m.episode_number, 0), m.id
+                        ORDER BY ${
+                            media.media_type === 'album'
+                                ? albumTrackOrderSql(tx)
+                                : tx`m.season_number NULLS FIRST, COALESCE(m.sort_order, m.episode_number, 0), m.id`
+                        }
                         LIMIT ${candidateBudget + 1}
                       `
                     : [media];

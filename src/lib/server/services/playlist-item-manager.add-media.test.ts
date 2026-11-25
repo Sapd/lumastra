@@ -68,6 +68,8 @@ const child = (n: number) => ({
 const tx = ((strings: TemplateStringsArray, ...values: unknown[]) => {
     const text = strings.join('?');
     if (text.includes('pg_advisory_xact_lock')) return Promise.resolve([]);
+    // A nested fragment (the ORDER BY terms) is a value of the outer query, not a statement.
+    if (!/\b(SELECT|INSERT|UPDATE|DELETE)\b/.test(text)) return { fragment: text };
     if (text.includes('FROM media_items m')) {
         const list = mocks.candidateQueue.shift() ?? mocks.candidates.current;
         return Promise.resolve(list.slice(0, Number(values.at(-1))));
@@ -106,8 +108,16 @@ beforeEach(() => {
         return { id: next++ };
     });
     mocks.items.mockImplementation(
-        async (_tx: unknown, _p: unknown, _u: unknown, _t: unknown, _a: unknown, _o: unknown, _s: unknown, ids: number[]) =>
-            ids.map((id, i) => ({ id, media_id: mocks.inserted[i] ?? 'dup' })),
+        async (
+            _tx: unknown,
+            _p: unknown,
+            _u: unknown,
+            _t: unknown,
+            _a: unknown,
+            _o: unknown,
+            _s: unknown,
+            ids: number[],
+        ) => ids.map((id, i) => ({ id, media_id: mocks.inserted[i] ?? 'dup' })),
     );
 });
 
@@ -147,7 +157,9 @@ describe('addMediaItems expansion access', () => {
     });
 
     it('reports existing accessible children as duplicates without inserting', async () => {
-        mocks.existing.current = new Set(mocks.candidates.current.map((c) => (c as { id: string }).id));
+        mocks.existing.current = new Set(
+            mocks.candidates.current.map((c) => (c as { id: string }).id),
+        );
         const { results } = await add();
         expect(results[0].status).toBe('duplicate');
         expect(mocks.insert).not.toHaveBeenCalled();

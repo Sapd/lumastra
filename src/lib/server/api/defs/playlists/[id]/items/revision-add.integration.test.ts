@@ -139,6 +139,39 @@ describe('playlist add and revision protocol', () => {
         expect(result.summary).toMatchObject({ revision: 1, itemCount: 4 });
     });
 
+    it('adds an album in album order: tagged disc and track number before sort_order', async () => {
+        const f = await fixture();
+        const music = await createAndInsertTestMusicHierarchy(f.sql, { trackCount: 6 });
+        const [a, b, c, d, e, g] = music.trackIds;
+        // The scanner often leaves sort_order NULL and keeps the position in the
+        // tags; a string tag like "2/4" and a second disc must also sort right.
+        const tags: [string, Record<string, string | number>, number | null][] = [
+            [a, { track_number: 1, disc_number: 2 }, null],
+            [b, { track_number: '2/4' }, null],
+            [c, {}, 1],
+            [d, { track_number: 3, disc_number: 'x' }, null],
+            // Not a position (as in parseTagPosition): falls back, then sorts last.
+            [e, { track_number: 0 }, null],
+            [g, { track_number: 'abc', disc_number: 2.5 }, null],
+        ];
+        for (const [id, meta, sortOrder] of tags) {
+            await f.sql`
+                UPDATE media_items
+                SET has_files = true, sort_order = ${sortOrder},
+                    custom_metadata = COALESCE(custom_metadata, '{}'::jsonb) - 'track_number' - 'disc_number' || ${f.sql.json(meta)}
+                WHERE id = ${id}::uuid
+            `;
+        }
+        const expected = [c, b, d, ...[e, g].sort(), a];
+
+        const result = await f.add([music.albumId]);
+        expect(result.results[0].entries.map((entry) => entry.mediaId)).toEqual(expected);
+
+        const { getAlbumTracks } =
+            await import('$lib/server/database/queries/playlist-items.queries.js');
+        expect((await getAlbumTracks(f.sql, music.albumId)).map((t) => t.id)).toEqual(expected);
+    });
+
     it('rejects inaccessible input without dropping a successful sibling', async () => {
         const f = await fixture();
         vi.mocked(checkMediaAccess).mockResolvedValueOnce(false);

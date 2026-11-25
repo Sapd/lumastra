@@ -63,18 +63,71 @@ export async function getSeasonEpisodeIds(
 }
 
 /**
- * Get all tracks for a music album (children with media_type='track').
+ * ORDER BY terms that put an album's tracks in the order the album view shows
+ * them: disc number, then track number, both from the file tags, then
+ * `sort_order`. Many scans leave `sort_order` NULL and keep the position only in
+ * `custom_metadata`, so ordering by `sort_order` alone shuffled such an album
+ * by UUID when it was added to a playlist.
+ *
+ * The tag values are freeform jsonb (admins can bulk-edit them), so each cast
+ * is guarded: a bare `::int` on a value like "3/12" would fail the whole
+ * statement. Positions follow `parseTagPosition` in track-projection.ts: a
+ * positive integer, or a string's leading digits; anything else counts as
+ * missing. A track with no position sorts last. The track row must be
+ * aliased `m`.
+ */
+export function albumTrackOrderSql(sql: postgres.Sql): postgres.PendingQuery<postgres.Row[]> {
+    return sql`
+        COALESCE(
+            CASE
+                WHEN jsonb_typeof(m.custom_metadata->'disc_number') = 'number'
+                    -- Nested, so the cast only ever sees a JSON number: AND does
+                    -- not guarantee evaluation order.
+                    THEN CASE
+                        WHEN (m.custom_metadata->>'disc_number')::numeric > 0
+                            AND (m.custom_metadata->>'disc_number')::numeric = trunc((m.custom_metadata->>'disc_number')::numeric)
+                            THEN (m.custom_metadata->>'disc_number')::numeric
+                    END
+                WHEN jsonb_typeof(m.custom_metadata->'disc_number') = 'string'
+                    THEN NULLIF(substring(m.custom_metadata->>'disc_number' from '^[[:space:]]*[+]?([0-9]{1,9})')::numeric, 0)
+            END,
+            1
+        ),
+        COALESCE(
+            CASE
+                WHEN jsonb_typeof(m.custom_metadata->'track_number') = 'number'
+                    -- Nested, so the cast only ever sees a JSON number: AND does
+                    -- not guarantee evaluation order.
+                    THEN CASE
+                        WHEN (m.custom_metadata->>'track_number')::numeric > 0
+                            AND (m.custom_metadata->>'track_number')::numeric = trunc((m.custom_metadata->>'track_number')::numeric)
+                            THEN (m.custom_metadata->>'track_number')::numeric
+                    END
+                WHEN jsonb_typeof(m.custom_metadata->'track_number') = 'string'
+                    THEN NULLIF(substring(m.custom_metadata->>'track_number' from '^[[:space:]]*[+]?([0-9]{1,9})')::numeric, 0)
+            END,
+            CASE WHEN m.sort_order > 0 THEN m.sort_order END,
+            999999
+        ),
+        m.sort_order NULLS LAST,
+        m.id
+    `;
+}
+
+/**
+ * Get all tracks for a music album (children with media_type='track'), in
+ * album order (see `albumTrackOrderSql`).
  */
 export async function getAlbumTracks(
     sql: postgres.Sql,
     albumMediaId: string,
 ): Promise<AlbumTrackRow[]> {
     return sql<AlbumTrackRow[]>`
-        SELECT id, title, sort_order, episode_number, runtime_seconds
-        FROM media_items
-        WHERE parent_id = ${albumMediaId}
-          AND media_type = 'track'
-          AND has_files = true
-        ORDER BY COALESCE(sort_order, episode_number, 0) ASC
+        SELECT m.id, m.title, m.sort_order, m.episode_number, m.runtime_seconds
+        FROM media_items m
+        WHERE m.parent_id = ${albumMediaId}
+          AND m.media_type = 'track'
+          AND m.has_files = true
+        ORDER BY ${albumTrackOrderSql(sql)}
     `;
 }
