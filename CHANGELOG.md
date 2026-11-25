@@ -16,6 +16,72 @@ health → Cluster also warns when the running proxy is behind.
 The iPhone, iPad and Apple TV apps have their own version numbers. Their notes are on
 [lumastra.org/about/changelog/](https://lumastra.org/about/changelog/).
 
+## 0.3.0 - 2026-11-26
+
+Live TV proxy: update needed (Rust proxy: library updates only, no change in behaviour). It can
+wait for a quiet moment; restarting the proxy ends running live channels.
+
+### New
+
+- Downloads in the web app: a movie, an episode, chosen episodes, a season or a whole series.
+  Files go into a folder you pick, or into one ZIP file in browsers that can't save into
+  folders. A queue shows what is running.
+- Who may download, first rule that applies: admins always; the per-user **Downloads** switch
+  in the user editor; members of **Download Groups**; otherwise **Allow downloads by default**.
+  **Original File Download** stays off by default and applies without a restart. Jellyfin apps
+  such as Streamyfin show their download option only to users who may download.
+- Download limits: speed per download, per user and for all users together (KB/s), parallel
+  downloads per user (default 3), and a minimum speed so a stalled download frees its slot.
+  **Extra download folders** for debrid or rclone mounts that library symlinks point to.
+- **Users → Downloads** lists running downloads, the history and refused attempts. An album or
+  season synced file by file shows as one row; a filter picks video or music. Entries are kept
+  for 90 days by default.
+- Live TV guide: clicking a programme opens a panel with the time slot, progress, description,
+  genres and age rating.
+- Music: add a whole album to a playlist from the album view.
+- Notifications: **Clear all** in the notifications drawer.
+
+### Changed
+
+- Downloads follow symlinks only into library folders and the extra download folders, and
+  check library access per file.
+- Subsonic `download.view` follows the download permission. In 0.2.0 any Subsonic user could
+  download original files; now it needs **Original File Download** on and permission for that
+  user. Streaming is not affected.
+- Live TV: deleting a source runs as a background task, so large sources no longer time out.
+- Live TV: setting a category's **Numbers start at** renumbers that category right away. The
+  first **Configure Lineup** of a new source renumbers its visible channels in order. Imported
+  categories can be deleted, and **Hide all channels** hides every channel of a category, with
+  Undo.
+- Subsonic: new client passwords are 16 lowercase characters, shown without spaces, and
+  password sign-in ignores case. Existing passwords keep working.
+- Requests: when Seerr has nothing left to request, Lumastra says "already requested".
+- Sidebar links to other sites open in a new tab.
+
+### Fixed
+
+- Live TV in the web player stays live after switching browser tabs; before, each switch fell
+  a few seconds behind while the badge still said LIVE.
+- Jellyfin apps: the Live TV guide returns only the channels the app asked for (Jellyfin
+  Android TV crashed on large lineups); premiere-date filters work, so unaired episodes no
+  longer lead "Recently released"; "Date added" sorts episodes by when the file arrived.
+- Cleanup tasks that work through the library in pages (artwork, file checks) continue where
+  they stopped instead of starting over every run, so titles with deleted local artwork fall
+  back to TMDB again.
+- Radio: removing or replacing a station logo shows at once.
+- Playlists: an added album keeps album order, also for untagged tracks.
+- The "requests ready" row on the home page honours **Hide** and drops movies marked watched.
+- A series opened from **Similar** shows its episodes.
+
+### Upgrade note
+
+- Four migrations (16.470.0 to 16.473.0) add the download log, the per-user download switch and
+  two Live TV columns. Existing data is not changed.
+- If people use Subsonic apps to download music, turn on **Original File Download** and allow
+  those users (see above).
+- With **Download Groups** set, only members, admins and users with the per-user switch on may
+  download. A new group shows a warning sign until a member has signed in once.
+
 ## 0.2.0 - 2026-11-14
 
 Live TV proxy: no update needed.
