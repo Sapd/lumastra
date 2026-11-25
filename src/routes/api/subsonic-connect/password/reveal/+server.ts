@@ -23,7 +23,7 @@ import { withErrorHandler } from '$lib/server/middleware/error-handler';
 import { withValkeyRateLimit } from '$lib/server/middleware/valkey-rate-limit.js';
 import { ApiResponses } from '$lib/server/utils/api-responses.js';
 import { features } from '$lib/server/config.js';
-import { revealToken, formatTokenForDisplay } from '$lib/server/subsonic-compat/auth.js';
+import { revealToken } from '$lib/server/subsonic-compat/auth.js';
 import { aiDbService } from '$lib/server/services/database.service.js';
 import { getUserByUsername } from '$lib/server/database/queries/users.queries.js';
 import { SubsonicTokenRevealResponseSchema } from '$lib/schemas/api-user-responses.js';
@@ -56,10 +56,9 @@ export const GET: RequestHandler = withValkeyRateLimit(
 
             return typedJson(
                 SubsonicTokenRevealResponseSchema,
-                // Grouped the same way the generate response is, so the value
-                // the user sees on reveal is character-for-character the one
-                // they saw when it was created.
-                { token: token ? formatTokenForDisplay(token) : null },
+                // Unspaced, like the generate response: clients in token mode
+                // hash exactly what was pasted, so spaces would break sign-in.
+                { token },
                 NO_STORE,
             );
         }),

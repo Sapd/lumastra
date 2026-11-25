@@ -23,12 +23,7 @@ import { ApiProblem } from '$lib/server/api/problem.js';
 import { requireAdminCeilingForTarget } from '$lib/server/api/token-minting.js';
 import { getDb } from '$lib/server/database/index.js';
 import { features } from '$lib/server/config.js';
-import {
-    getOrCreateToken,
-    resetToken,
-    deleteUserToken,
-    formatTokenForDisplay,
-} from '$lib/server/subsonic-compat/auth.js';
+import { getOrCreateToken, resetToken, deleteUserToken } from '$lib/server/subsonic-compat/auth.js';
 import { getTokenByUserId } from '$lib/server/database/queries/subsonic-client-passwords.queries.js';
 import { getUserByUsername } from '$lib/server/database/queries/users.queries.js';
 import { auditLog, auditActor } from '$lib/server/utils/audit-log.js';
@@ -83,7 +78,7 @@ export const def = defineEndpoint({
                 targetUsername: user.username,
                 reset: existing !== null,
             });
-            return json({ token: formatTokenForDisplay(plaintext) });
+            return json({ token: plaintext });
         },
 
         DELETE: async (event, _ctx) => {

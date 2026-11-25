@@ -20,12 +20,7 @@ import { withErrorHandler } from '$lib/server/middleware/error-handler';
 import { withValkeyRateLimit } from '$lib/server/middleware/valkey-rate-limit.js';
 import { ApiResponses } from '$lib/server/utils/api-responses.js';
 import { features } from '$lib/server/config.js';
-import {
-    getOrCreateToken,
-    resetToken,
-    deleteUserToken,
-    formatTokenForDisplay,
-} from '$lib/server/subsonic-compat/auth.js';
+import { getOrCreateToken, resetToken, deleteUserToken } from '$lib/server/subsonic-compat/auth.js';
 import { aiDbService } from '$lib/server/services/database.service.js';
 import { getTokenByUserId } from '$lib/server/database/queries/subsonic-client-passwords.queries.js';
 import { getUserByUsername } from '$lib/server/database/queries/users.queries.js';
@@ -104,7 +99,7 @@ export const POST: RequestHandler = withValkeyRateLimit(
                 : await getOrCreateToken(userRow.id);
 
             return typedJson(TokenResponseSchema, {
-                token: formatTokenForDisplay(plaintext),
+                token: plaintext,
             });
         }),
     ),

@@ -27,7 +27,7 @@
 // behaviour rather than locking users out.
 
 import { AuthDependencyUnavailableError } from '$lib/server/auth/dependency-unavailable.js';
-import { randomBytes, createHash, createHmac, timingSafeEqual } from 'crypto';
+import { randomInt, createHash, createHmac, timingSafeEqual } from 'crypto';
 import { toUserId, type UserId } from '$lib/shared/user-id';
 import type { Sql } from 'postgres';
 import { cacheGet, cacheSet, cacheDel } from '$lib/server/cache/valkey';
@@ -62,15 +62,19 @@ import { TOKEN_CACHE_PREFIX, TOKEN_CACHE_TTL } from './constants';
 
 const logger = Logger.for('SubsonicCompat:Auth');
 
-// 20 random bytes → 40 hex chars. High enough entropy that brute-forcing
-// over the network is impractical.
-const TOKEN_LENGTH = 20;
+// The token doubles as the password people type into a phone app, so it is
+// short and lowercase, without look-alike characters (no i, l, o, 0, 1).
+// 16 characters from 31 symbols ≈ 79 bits: still far out of reach of online
+// guessing. Tokens issued before this change are 40 hex characters and keep
+// working — validation compares against whatever is stored.
+const TOKEN_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+const TOKEN_LENGTH = 16;
 
 // Module-level dummy token used for constant-time comparisons when the
 // requested user/key does not exist. Keeps the execution path (and therefore
 // wall-clock timing) indistinguishable from a valid-user-wrong-credential
 // path, preventing user-enumeration via timing.
-const DUMMY_TOKEN = randomBytes(TOKEN_LENGTH).toString('hex');
+const DUMMY_TOKEN = generateToken();
 // Placeholder UserId for the constant-time dummy-auth path only. The dummy
 // CachedAuth is never returned (the caller returns null right after the
 // timing-safe compare), so this value is never used as a data key.
@@ -362,15 +366,11 @@ function resolveToken(username: string, cached: CachedAuth): string {
 // =============================================================================
 
 export function generateToken(): string {
-    return randomBytes(TOKEN_LENGTH).toString('hex');
-}
-
-/**
- * Format a 40-char hex token for human-readable display as 8 groups of 5.
- * Returns the input unchanged if it doesn't match the expected shape.
- */
-export function formatTokenForDisplay(token: string): string {
-    return token.match(/.{1,5}/g)?.join(' ') ?? token;
+    let token = '';
+    for (let i = 0; i < TOKEN_LENGTH; i++) {
+        token += TOKEN_ALPHABET[randomInt(TOKEN_ALPHABET.length)];
+    }
+    return token;
 }
 
 // =============================================================================
@@ -453,7 +453,7 @@ export interface ApiKeyAuthResult {
 /**
  * Validate an OpenSubsonic API key (same token as the Subsonic password,
  * looked up by value instead of by username). Strips display-format spaces
- * and lowercases (tokens are stored as lowercase hex; display/copy may vary).
+ * and lowercases (tokens are stored lowercase; older releases showed them grouped).
  * Populates the per-username auth cache as a side effect.
  */
 export async function validateApiKey(apiKey: string, sql: Sql): Promise<ApiKeyAuthResult | null> {
@@ -628,7 +628,7 @@ function _dummyCompare(
                 return;
             }
         }
-        provided = provided.replace(/ /g, '');
+        provided = provided.replace(/ /g, '').toLowerCase();
         try {
             const a = Buffer.from(provided, 'utf8');
             const b = Buffer.from(dummyToken, 'utf8');
@@ -780,9 +780,11 @@ export async function validateCredentials(
                 return null;
             }
         }
-        // Strip spaces: the UI displays the token with spaces for readability
-        // (e.g. "12345 67890 ...") but the stored value is unspaced hex.
-        provided = provided.replace(/ /g, '');
+        // Strip spaces: older releases displayed the token in groups of five
+        // ("12345 67890 ..."), and people may still paste that form.
+        // Lowercase: stored tokens are always lowercase, and phone keyboards
+        // like to capitalise the first letter.
+        provided = provided.replace(/ /g, '').toLowerCase();
         // Constant-time compare; mismatched lengths are a guaranteed mismatch
         // and would throw inside timingSafeEqual otherwise.
         try {

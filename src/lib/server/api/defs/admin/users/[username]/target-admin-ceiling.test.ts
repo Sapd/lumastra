@@ -70,7 +70,6 @@ vi.mock('$lib/server/subsonic-compat/auth.js', () => ({
     getOrCreateToken: (...a: unknown[]) => svc.getOrCreateToken(...a),
     resetToken: (...a: unknown[]) => svc.resetToken(...a),
     deleteUserToken: (...a: unknown[]) => svc.deleteUserToken(...a),
-    formatTokenForDisplay: (t: string) => t,
 }));
 vi.mock('$lib/server/database/queries/subsonic-client-passwords.queries.js', () => ({
     getTokenByUserId: { one: vi.fn().mockResolvedValue(null) },

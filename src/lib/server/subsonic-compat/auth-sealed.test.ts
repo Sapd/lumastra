@@ -207,6 +207,34 @@ describe('Subsonic token encryption at rest', () => {
         expect(row.token_lookup).not.toContain(token);
     });
 
+    it('issues a short, typeable token without look-alike characters', async () => {
+        const token = await getOrCreateToken(USER_ID);
+        expect(token).toMatch(/^[a-hjkmnp-z2-9]{16}$/);
+        expect(await resetToken(USER_ID)).not.toBe(token);
+    });
+
+    it('accepts the password typed with a capitalised first letter', async () => {
+        const token = await getOrCreateToken(USER_ID);
+        const typed = token[0]!.toUpperCase() + token.slice(1);
+        expect(await validateCredentials('denis', { password: typed })).not.toBeNull();
+    });
+
+    it('still authenticates a legacy sealed 40-char hex token', async () => {
+        // Tokens issued before the short format are 40 hex chars; validation
+        // compares against what is stored, whatever its length.
+        seedLegacyPlaintextRow(USER_ID, '0123456789abcdef0123456789abcdef01234567');
+        await validateCredentials('denis', {
+            password: '0123456789abcdef0123456789abcdef01234567',
+        });
+        await settle();
+        expect(rows.get(USER_ID)!.token_sealed).toMatch(/^enc:v2:/);
+        expect(
+            await validateCredentials('denis', {
+                password: '01234 56789 abcde f0123 45678 9abcd ef012 34567',
+            }),
+        ).not.toBeNull();
+    });
+
     it('round-trips the token through reveal', async () => {
         const token = await getOrCreateToken(USER_ID);
         expect(await revealToken(USER_ID)).toBe(token);
