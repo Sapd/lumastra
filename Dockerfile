@@ -124,7 +124,7 @@ RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build \
 # build after that layer was evicted produced an image with musl-only bindings and
 # preprod crash-looped on `Cannot find module '@valkey/valkey-glide-linux-x64-gnu'`.
 # Resolving on the same libc we ship makes the stage produce what the runtime needs.
-FROM node:24.22.3-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS prod-deps
+FROM node:24.22.3-slim@sha256:873f586f3794f52281bd039bf02c048a0be08fde619338f9941bad1eb6b34530 AS prod-deps
 WORKDIR /app
 
 COPY package*.json ./
@@ -143,7 +143,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # (an arm64 release build no longer compiles Rust under QEMU, which took most of
 # the release job). Native builds (target == build arch) are unchanged.
 # Runtime selection remains explicit; packaging does not activate either binary.
-FROM --platform=$BUILDPLATFORM node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS native-node-tools
+FROM --platform=$BUILDPLATFORM node:24.22.3-bookworm-slim@sha256:873f586f3794f52281bd039bf02c048a0be08fde619338f9941bad1eb6b34530 AS native-node-tools
 FROM --platform=$BUILDPLATFORM rust:1.99.1-bookworm AS native-builder
 ARG TARGETARCH
 ARG BUILDARCH
@@ -178,7 +178,7 @@ RUN set -eu; \
 # All Node stages use the same patch version and multi-arch INDEX digests.
 # Keep these pins >= .node-min-version; Dependabot checks for updates daily.
 # Bookworm glibc 2.36 binaries run on Ubuntu noble's newer glibc 2.39.
-FROM node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS node-runtime
+FROM node:24.22.3-bookworm-slim@sha256:873f586f3794f52281bd039bf02c048a0be08fde619338f9941bad1eb6b34530 AS node-runtime
 
 # Production runtime (Ubuntu 24.04 "noble").
 # Ubuntu base (not Debian) because the Intel GPU userspace required for QSV (the
